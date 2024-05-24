@@ -2,24 +2,28 @@
 
 set -euxo pipefail
 
-IMAGE=test-serf:devel
-MAX_NODE=31
-NAME_FMT=serf%02u
+IMAGE=inventory-service:devel
+MAX_NODE=4
+NAME_FMT=node%02u
 
 function start() {
     _name=$(printf ${NAME_FMT} 0)
     docker run --rm --detach \
         --name ${_name} \
         --hostname ${_name} \
-        ${IMAGE} agent
+        --volume /var/run/libvirt:/var/run/libvirt:ro \
+        --publish 8080:8080/tcp \
+        ${IMAGE}
     _addr=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' ${_name})
 
-    for i in $(seq ${MAX_NODE}); do
+    for i in $(seq 1 ${MAX_NODE}); do
         _name=$(printf $NAME_FMT ${i})
         docker run --rm --detach \
             --name ${_name} \
             --hostname ${_name} \
-            ${IMAGE} agent -join=${_addr}
+            --volume /var/run/libvirt:/var/run/libvirt:ro \
+            --env SERF_AGENT_ARGS="-join=${_addr}" \
+            ${IMAGE}
     done
 }
 
