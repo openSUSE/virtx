@@ -27,4 +27,9 @@ RUN zypper -n ref && \
         libvirt-libs && \
     chmod +x /entrypoint.sh
 
+# default serf ports
+EXPOSE 7946/tcp 7946/udp
+# web server
+EXPOSE 8080/tcp
+
 ENTRYPOINT [ "/entrypoint.sh" ]

@@ -10,7 +10,12 @@ image:
 
 run: image
 	@echo "Using image: $(IMAGE)"
-	@docker run --rm -ti -v /var/run/libvirt:/var/run/libvirt:ro -p 8080:8080/tcp $(IMAGE)
+	@docker run --rm -ti \
+		-v /var/run/libvirt:/var/run/libvirt:ro \
+		-p 8080:8080/tcp \
+		-p 7946:7946/tcp \
+		-p 7946:7946/udp \
+		$(IMAGE)
 
 build: format
 	@echo Running go build
