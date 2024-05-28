@@ -1,13 +1,39 @@
 package inventory
 
 import (
+	_ "embed"
 	"fmt"
-	"io"
+	"html/template"
 	"log"
 	"net/http"
 	"sync"
 
 	"suse.com/inventory-service/pkg/hypervisor"
+)
+
+//go:embed inventory.tmpl
+var tmplContent string
+
+var (
+	tmplFuncs = template.FuncMap{
+		"guestStateToString": func(state int) string {
+			stateToStringMap := map[int]string{
+				0: "no state",              // VIR_DOMAIN_NOSTATE
+				1: "running",               // VIR_DOMAIN_RUNNING
+				2: "blocked on resource",   // VIR_DOMAIN_BLOCKED
+				3: "paused by user",        // VIR_DOMAIN_PAUSED
+				4: "being shut down",       // VIR_DOMAIN_SHUTDOWN
+				5: "shut off",              // VIR_DOMAIN_SHUTOFF
+				6: "crashed",               // VIR_DOMAIN_CRASHED
+				7: "suspended by guest pm", // VIR_DOMAIN_PMSUSPENDED
+			}
+			if str, ok := stateToStringMap[state]; ok {
+				return str
+			}
+			return "unknown state"
+		},
+	}
+	inventoryTmpl = template.Must(template.New("inventory").Funcs(tmplFuncs).Parse(tmplContent))
 )
 
 type HostState struct {
@@ -121,25 +147,14 @@ func (s *Service) updateGuestState(hostKey string, guestInfo *hypervisor.GuestIn
 
 // ServeHTTP implements net/http.Handler
 func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query()
-	host := r.FormValue("host")
-	io.WriteString(w, fmt.Sprintf("OK! %v %s\n\n", query, host))
+	w.Header().Set("Content-Type", "text/html")
 
 	s.RLock()
 	defer s.RUnlock()
 
-	for _, host := range s.inventory {
-		hostStatus := fmt.Sprintf(
-			"\nHost: %s %s [%s] / %d guests\n",
-			host.UUID, host.Hostname, host.Status, len(host.Guests),
-		)
-		io.WriteString(w, hostStatus)
-		for _, gi := range host.Guests {
-			guestStatus := fmt.Sprintf(
-				"---> Guest: %s %s %d\n",
-				gi.UUID, gi.Name, gi.State,
-			)
-			io.WriteString(w, guestStatus)
-		}
+	if err := inventoryTmpl.Execute(w, s.inventory); err != nil {
+		s.logger.Print(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }

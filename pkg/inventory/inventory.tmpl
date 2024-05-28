@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+  <head>
+    <!-- Write your comments here -->
+    <title>Inventory</title>
+    <meta name="description" content="Inventory of virtual machines">
+    <style>
+      table {
+        font-family: arial, sans-serif;
+        border-collapse: collapse;
+        width: 100%;
+      }
+      td, th {
+        border: 1px solid #dddddd;
+        text-align: left;
+        padding: 8px;
+      }
+      tr:nth-child(even) {
+        background-color: #dddddd;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Inventory</h1>
+    {{ range $_, $host := . }}
+    <h2>Host: {{ $host.UUID }} <a href="http://{{ $host.Hostname }}">{{ $host.Hostname }}</a> [{{ $host.Status }}] / {{ len $host.Guests }} guests</h2>
+    <table>
+      <tr>
+        <th>UUID</th>
+        <th>Name</th>
+        <th>State</th>
+      </tr>
+      {{ range $_, $guest := $host.Guests }}
+      <tr>
+        <td>{{ $guest.UUID }}</td>
+        <td><a href="http://{{ $host.Hostname }}">{{ $guest.Name }}</a></td>
+        <td>{{ guestStateToString $guest.State }}</td>
+      </tr>
+      {{ end }}
+    </table>
+    {{ end }}
+  </body>
+</html>
