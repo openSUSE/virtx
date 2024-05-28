@@ -76,8 +76,11 @@ func main() {
 		logger.Fatal(err)
 	}
 
-	go forwardGuestEvents(eventCh, serf, hostInfo, logger)
-	go processSerfEvents(serfCh, serf, s, hostInfo, logger)
+	hvShutdownCh := make(chan struct{})
+	go forwardGuestEvents(eventCh, serf, hostInfo, logger, hvShutdownCh)
+
+	serfShutdownCh := make(chan struct{})
+	go processSerfEvents(serfCh, serf, s, hostInfo, logger, serfShutdownCh)
 
 	go func() {
 		err := s.ListenAndServe()
@@ -102,8 +105,15 @@ func main() {
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
-	sig := <-c
-	logger.Println("Got signal:", sig)
+
+	select {
+	case sig := <-c:
+		logger.Println("Got signal:", sig)
+	case <-hvShutdownCh:
+		logger.Println("Hypervisor shutdown")
+	case <-serfShutdownCh:
+		logger.Println("Serf shutdown")
+	}
 }
 
 func processSerfEvents(
@@ -112,6 +122,7 @@ func processSerfEvents(
 	s *inventory.Service,
 	hostInfo *hypervisor.HostInfo,
 	logger *log.Logger,
+	shutdownCh chan<- struct{},
 ) {
 	logger.Println("Processing events...")
 	for e := range serfCh {
@@ -169,6 +180,7 @@ func processSerfEvents(
 		}
 	}
 	logger.Println("Processing done")
+	close(shutdownCh)
 }
 
 func forwardGuestEvents(
@@ -176,6 +188,7 @@ func forwardGuestEvents(
 	serf *client.RPCClient,
 	hostInfo *hypervisor.HostInfo,
 	logger *log.Logger,
+	shutdownCh chan<- struct{},
 ) {
 	logger.Println("Forwarding guest events...")
 	for gi := range eventCh {
@@ -184,6 +197,7 @@ func forwardGuestEvents(
 		}
 	}
 	logger.Println("Forwarding done")
+	close(shutdownCh)
 }
 
 func sendInfoEvent(s *inventory.Service, serf *client.RPCClient, hostKey string, newHost int) error {
