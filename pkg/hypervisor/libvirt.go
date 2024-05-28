@@ -113,7 +113,11 @@ func (h *hypervisor) Watch(eventCh chan<- GuestInfo) (int, error) {
 		}
 		state, reason, err := d.GetState()
 		if err != nil {
-			h.logger.Fatal(err)
+			if e.Event == libvirt.DOMAIN_EVENT_UNDEFINED {
+				state = -1
+			} else {
+				h.logger.Fatal(err)
+			}
 		}
 		h.logger.Printf("[HYPERVISOR] %s/%s: %v %v %v\n", name, uuidStr, e, state, reason)
 		eventCh <- GuestInfo{
