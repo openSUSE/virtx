@@ -19,9 +19,11 @@ type HostInfo struct {
 }
 
 type GuestInfo struct {
-	Name  string
-	UUID  uuid.UUID
-	State int
+	Name      string
+	UUID      uuid.UUID
+	State     int
+	Memory    uint64
+	NrVirtCpu uint
 }
 
 type hypervisor struct {
@@ -81,14 +83,16 @@ func (h *hypervisor) GuestInfo() ([]GuestInfo, error) {
 		if err != nil {
 			return nil, err
 		}
-		state, _, err := d.GetState()
+		info, err := d.GetInfo()
 		if err != nil {
 			return nil, err
 		}
 		guestInfo = append(guestInfo, GuestInfo{
-			Name:  name,
-			UUID:  uuid.MustParse(uuidStr),
-			State: int(state),
+			Name:      name,
+			UUID:      uuid.MustParse(uuidStr),
+			State:     int(info.State),
+			Memory:    info.Memory,
+			NrVirtCpu: info.NrVirtCpu,
 		})
 	}
 
@@ -103,6 +107,11 @@ func freeDomains(doms []libvirt.Domain) {
 
 func (h *hypervisor) Watch(eventCh chan<- GuestInfo) (int, error) {
 	lifecycleCb := func(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventLifecycle) {
+		var (
+			state     int
+			memory    uint64
+			nrVirtCPU uint
+		)
 		name, err := d.GetName()
 		if err != nil {
 			h.logger.Fatal(err)
@@ -111,19 +120,25 @@ func (h *hypervisor) Watch(eventCh chan<- GuestInfo) (int, error) {
 		if err != nil {
 			h.logger.Fatal(err)
 		}
-		state, reason, err := d.GetState()
+		info, err := d.GetInfo()
 		if err != nil {
 			if e.Event == libvirt.DOMAIN_EVENT_UNDEFINED {
 				state = -1
 			} else {
 				h.logger.Fatal(err)
 			}
+		} else {
+			state = int(info.State)
+			memory = info.Memory
+			nrVirtCPU = info.NrVirtCpu
 		}
-		h.logger.Printf("[HYPERVISOR] %s/%s: %v %v %v\n", name, uuidStr, e, state, reason)
+		h.logger.Printf("[HYPERVISOR] %s/%s: %v %v\n", name, uuidStr, e, info)
 		eventCh <- GuestInfo{
-			Name:  name,
-			UUID:  uuid.MustParse(uuidStr),
-			State: int(state),
+			Name:      name,
+			UUID:      uuid.MustParse(uuidStr),
+			State:     state,
+			Memory:    memory,
+			NrVirtCpu: nrVirtCPU,
 		}
 	}
 	id, err := h.conn.DomainEventLifecycleRegister(nil, lifecycleCb)

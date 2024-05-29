@@ -32,21 +32,35 @@ func UnpackHostInfoEvent(payload []byte) (*hypervisor.HostInfo, int, error) {
 }
 
 func PackGuestInfoEvent(guestInfo *hypervisor.GuestInfo, hostUUID uuid.UUID) ([]byte, error) {
-	str := fmt.Sprintf("%s %s %s %d", hostUUID, guestInfo.UUID, guestInfo.Name, guestInfo.State)
+	str := fmt.Sprintf(
+		"%s %s %s %d %d %d",
+		hostUUID, guestInfo.UUID, guestInfo.Name,
+		guestInfo.State, guestInfo.Memory, guestInfo.NrVirtCpu,
+	)
 	return []byte(str), nil
 }
 
 func UnpackGuestInfoEvent(payload []byte) (*hypervisor.GuestInfo, uuid.UUID, error) {
-	var hostUuidStr string
-	var uuidStr string
-	var name string
-	var state int
-	if _, err := fmt.Sscanf(string(payload), "%s %s %s %d", &hostUuidStr, &uuidStr, &name, &state); err != nil {
+	var (
+		hostUuidStr string
+		uuidStr     string
+		name        string
+		state       int
+		memory      uint64
+		nrVirtCPU   uint
+	)
+	if _, err := fmt.Sscanf(
+		string(payload), "%s %s %s %d %d %d",
+		&hostUuidStr, &uuidStr, &name,
+		&state, &memory, &nrVirtCPU,
+	); err != nil {
 		return nil, uuid.Nil, err
 	}
 	return &hypervisor.GuestInfo{
-		Name:  name,
-		UUID:  uuid.MustParse(uuidStr),
-		State: state,
+		Name:      name,
+		UUID:      uuid.MustParse(uuidStr),
+		State:     state,
+		Memory:    memory,
+		NrVirtCpu: nrVirtCPU,
 	}, uuid.MustParse(hostUuidStr), nil
 }

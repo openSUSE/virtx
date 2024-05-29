@@ -47,7 +47,7 @@
       <tr>
         <td>{{ $guest.UUID }}</td>
         <td><a href="https://{{ $host.Hostname }}:9090/machines#vm?name={{ $guest.Name }}&connection=system">{{ $guest.Name }}</a></td>
-        <td>{{ guestStateToString $guest.State }}</td>
+        <td>{{ guestStateToString $guest.State }} / {{ $guest.NrVirtCpu }} vCPUs / {{ $guest.Memory }} KiB RAM</td>
       </tr>
       {{ end }}
     </table>
