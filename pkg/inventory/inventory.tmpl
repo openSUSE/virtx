@@ -36,7 +36,7 @@
     <h1>Inventory</h1>
     {{ range $_, $host := . }}
     <h2><a href="https://{{ $host.Hostname }}:9090/machines">{{ $host.Hostname }}</a></h2>
-    <h3>{{ $host.UUID }} [{{ $host.Status }}] / {{ len $host.Guests }} guests</h3>
+    <h3>{{ $host.UUID }} / {{ $host.Vendor }} {{ $host.Model }} {{ $host.Arch }} / {{ $host.Status }} / {{ len $host.Guests }} guests</h3>
     <table>
       <tr>
         <th>UUID</th>

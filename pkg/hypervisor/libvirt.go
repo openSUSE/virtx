@@ -16,6 +16,9 @@ const (
 type HostInfo struct {
 	Hostname string
 	UUID     uuid.UUID
+	Arch     string
+	Vendor   string
+	Model    string
 }
 
 type GuestInfo struct {
@@ -62,6 +65,9 @@ func (h *hypervisor) HostInfo() (*HostInfo, error) {
 	return &HostInfo{
 		Hostname: hostname,
 		UUID:     uuid.MustParse(caps.Host.UUID),
+		Arch:     caps.Host.CPU.Arch,
+		Vendor:   caps.Host.CPU.Vendor,
+		Model:    caps.Host.CPU.Model,
 	}, nil
 }
 

@@ -14,20 +14,37 @@ const (
 )
 
 func PackHostInfoEvent(hostInfo *hypervisor.HostInfo, newHost int) ([]byte, error) {
-	str := fmt.Sprintf("%s %s %d", hostInfo.UUID, hostInfo.Hostname, newHost)
+	str := fmt.Sprintf(
+		"%s %s %s %s %s %d",
+		hostInfo.UUID, hostInfo.Hostname,
+		hostInfo.Arch, hostInfo.Vendor, hostInfo.Model,
+		newHost)
 	return []byte(str), nil
 }
 
 func UnpackHostInfoEvent(payload []byte) (*hypervisor.HostInfo, int, error) {
-	var uuidStr string
-	var hostname string
-	var newHost int
-	if _, err := fmt.Sscanf(string(payload), "%s %s %d", &uuidStr, &hostname, &newHost); err != nil {
+	var (
+		uuidStr  string
+		hostname string
+		arch     string
+		vendor   string
+		model    string
+		newHost  int
+	)
+	if _, err := fmt.Sscanf(
+		string(payload), "%s %s %s %s %s %d",
+		&uuidStr, &hostname,
+		&arch, &vendor, &model,
+		&newHost,
+	); err != nil {
 		return nil, 0, err
 	}
 	return &hypervisor.HostInfo{
 		Hostname: hostname,
 		UUID:     uuid.MustParse(uuidStr),
+		Arch:     arch,
+		Vendor:   vendor,
+		Model:    model,
 	}, newHost, nil
 }
 
