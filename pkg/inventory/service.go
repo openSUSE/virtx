@@ -16,22 +16,7 @@ var tmplContent string
 
 var (
 	tmplFuncs = template.FuncMap{
-		"guestStateToString": func(state int) string {
-			stateToStringMap := map[int]string{
-				0: "no state",              // VIR_DOMAIN_NOSTATE
-				1: "running",               // VIR_DOMAIN_RUNNING
-				2: "blocked on resource",   // VIR_DOMAIN_BLOCKED
-				3: "paused by user",        // VIR_DOMAIN_PAUSED
-				4: "being shut down",       // VIR_DOMAIN_SHUTDOWN
-				5: "shut off",              // VIR_DOMAIN_SHUTOFF
-				6: "crashed",               // VIR_DOMAIN_CRASHED
-				7: "suspended by guest pm", // VIR_DOMAIN_PMSUSPENDED
-			}
-			if str, ok := stateToStringMap[state]; ok {
-				return str
-			}
-			return "unknown state"
-		},
+		"guestStateToString": hypervisor.GuestStateToString,
 	}
 	inventoryTmpl = template.Must(template.New("inventory").Funcs(tmplFuncs).Parse(tmplContent))
 )

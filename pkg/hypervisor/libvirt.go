@@ -31,6 +31,29 @@ type GuestInfo struct {
 	NrVirtCpu uint
 }
 
+func GuestStateToString(state int) string {
+	switch libvirt.DomainState(state) {
+	case libvirt.DOMAIN_NOSTATE:
+		return "no state"
+	case libvirt.DOMAIN_RUNNING:
+		return "running"
+	case libvirt.DOMAIN_BLOCKED:
+		return "blocked on resource"
+	case libvirt.DOMAIN_PAUSED:
+		return "paused by user"
+	case libvirt.DOMAIN_SHUTDOWN:
+		return "being shut down"
+	case libvirt.DOMAIN_SHUTOFF:
+		return "shut off"
+	case libvirt.DOMAIN_CRASHED:
+		return "crashed"
+	case libvirt.DOMAIN_PMSUSPENDED:
+		return "suspended by guest pm"
+	default:
+		return "unknown state"
+	}
+}
+
 type hypervisor struct {
 	logger   *log.Logger
 	conn     *libvirt.Connect
