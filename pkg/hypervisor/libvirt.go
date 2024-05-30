@@ -11,6 +11,8 @@ import (
 
 const (
 	QEMUSystemURI = "qemu:///system"
+
+	DomainUndefined = -1
 )
 
 type HostInfo struct {
@@ -129,7 +131,7 @@ func (h *hypervisor) Watch(eventCh chan<- GuestInfo) (int, error) {
 		info, err := d.GetInfo()
 		if err != nil {
 			if e.Event == libvirt.DOMAIN_EVENT_UNDEFINED {
-				state = -1
+				state = DomainUndefined
 			} else {
 				h.logger.Fatal(err)
 			}

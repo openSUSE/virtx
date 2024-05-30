@@ -140,7 +140,7 @@ func (s *Service) updateGuestState(hostKey string, guestInfo *hypervisor.GuestIn
 	if hostState.Guests == nil {
 		hostState.Guests = make(map[string]hypervisor.GuestInfo)
 	}
-	if guestInfo.State < 0 {
+	if guestInfo.State == hypervisor.DomainUndefined {
 		delete(hostState.Guests, guestInfo.UUID.String())
 	} else {
 		hostState.Guests[guestInfo.UUID.String()] = *guestInfo
