@@ -126,6 +126,7 @@ func (s *Service) updateGuestState(hostKey string, guestInfo *hypervisor.GuestIn
 		hostState.Guests = make(map[string]hypervisor.GuestInfo)
 	}
 	if guestInfo.State == hypervisor.DomainUndefined {
+		s.logger.Printf("DELETED %s %s hostUUID(%s)", guestInfo.Name, guestInfo.UUID, hostKey)
 		delete(hostState.Guests, guestInfo.UUID.String())
 	} else {
 		hostState.Guests[guestInfo.UUID.String()] = *guestInfo

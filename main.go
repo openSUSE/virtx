@@ -126,8 +126,6 @@ func processSerfEvents(
 ) {
 	logger.Println("Processing events...")
 	for e := range serfCh {
-		logger.Println(e)
-
 		switch e["Event"].(string) {
 		case "user":
 		case "member-leave":
@@ -159,6 +157,7 @@ func processSerfEvents(
 			if err != nil {
 				logger.Fatal(err)
 			}
+			logger.Printf("%s: %s %s newHost(%d)", name, hi.UUID, hi.Hostname, newHost)
 			if err := s.UpdateHostState(hi); err != nil {
 				logger.Fatal(err)
 			}
@@ -172,6 +171,12 @@ func processSerfEvents(
 			if err != nil {
 				logger.Fatal(err)
 			}
+			logger.Printf(
+				"%s: %s %s state(%d - %s) hostUUID(%s)",
+				name, gi.UUID, gi.Name,
+				gi.State, hypervisor.GuestStateToString(gi.State),
+				hostUUID,
+			)
 			if err := s.UpdateGuestState(hostUUID.String(), gi); err != nil {
 				logger.Fatal(err)
 			}
