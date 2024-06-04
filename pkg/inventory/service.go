@@ -23,8 +23,19 @@ var (
 
 type HostState struct {
 	hypervisor.HostInfo
+	Seq    uint64
 	Status string
 	Guests map[string]hypervisor.GuestInfo
+}
+
+func (s HostState) NumberOfActiveGuests() int {
+	n := 0
+	for _, gi := range s.Guests {
+		if gi.State != hypervisor.DomainUndefined {
+			n += 1
+		}
+	}
+	return n
 }
 
 type Inventory map[string]HostState
@@ -86,7 +97,14 @@ func (s *Service) UpdateHostState(hostInfo *hypervisor.HostInfo) error {
 
 func (s *Service) updateHostState(hostInfo *hypervisor.HostInfo) error {
 	uuidStr := hostInfo.UUID.String()
-	hostState, _ := s.inventory[uuidStr]
+	hostState, ok := s.inventory[uuidStr]
+	if ok && hostState.Seq >= hostInfo.Seq {
+		s.logger.Printf(
+			"Ignoring old host info: seq %d >= %d %s %s",
+			hostState.Seq, hostInfo.Seq, hostState.UUID, hostState.Hostname,
+		)
+		return nil
+	}
 	hostState.HostInfo = *hostInfo
 	hostState.Status = "ONLINE"
 	if hostState.Guests == nil {
@@ -125,12 +143,16 @@ func (s *Service) updateGuestState(hostKey string, guestInfo *hypervisor.GuestIn
 	if hostState.Guests == nil {
 		hostState.Guests = make(map[string]hypervisor.GuestInfo)
 	}
-	if guestInfo.State == hypervisor.DomainUndefined {
-		s.logger.Printf("DELETED %s %s hostUUID(%s)", guestInfo.Name, guestInfo.UUID, hostKey)
-		delete(hostState.Guests, guestInfo.UUID.String())
-	} else {
-		hostState.Guests[guestInfo.UUID.String()] = *guestInfo
+	if gi, ok := hostState.Guests[guestInfo.UUID.String()]; ok {
+		if gi.Seq >= guestInfo.Seq {
+			s.logger.Printf(
+				"Ignoring old guest info: seq %d >= %d %s %s",
+				gi.Seq, guestInfo.Seq, guestInfo.UUID, guestInfo.Name,
+			)
+			return nil
+		}
 	}
+	hostState.Guests[guestInfo.UUID.String()] = *guestInfo
 	s.inventory[hostKey] = hostState
 	return nil
 }

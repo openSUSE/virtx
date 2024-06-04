@@ -157,7 +157,10 @@ func processSerfEvents(
 			if err != nil {
 				logger.Fatal(err)
 			}
-			logger.Printf("%s: %s %s newHost(%d)", name, hi.UUID, hi.Hostname, newHost)
+			logger.Printf(
+				"%s: %d %s %s newHost(%d)",
+				name, hi.Seq, hi.UUID, hi.Hostname, newHost,
+			)
 			if err := s.UpdateHostState(hi); err != nil {
 				logger.Fatal(err)
 			}
@@ -172,8 +175,8 @@ func processSerfEvents(
 				logger.Fatal(err)
 			}
 			logger.Printf(
-				"%s: %s %s state(%d - %s) hostUUID(%s)",
-				name, gi.UUID, gi.Name,
+				"%s: %d %s %s state(%d - %s) hostUUID(%s)",
+				name, gi.Seq, gi.UUID, gi.Name,
 				gi.State, hypervisor.GuestStateToString(gi.State),
 				hostUUID,
 			)

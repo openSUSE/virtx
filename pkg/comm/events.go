@@ -15,8 +15,8 @@ const (
 
 func PackHostInfoEvent(hostInfo *hypervisor.HostInfo, newHost int) ([]byte, error) {
 	str := fmt.Sprintf(
-		"%s %s %s %s %s %d",
-		hostInfo.UUID, hostInfo.Hostname,
+		"%d %s %s %s %s %s %d",
+		hostInfo.Seq, hostInfo.UUID, hostInfo.Hostname,
 		hostInfo.Arch, hostInfo.Vendor, hostInfo.Model,
 		newHost)
 	return []byte(str), nil
@@ -24,6 +24,7 @@ func PackHostInfoEvent(hostInfo *hypervisor.HostInfo, newHost int) ([]byte, erro
 
 func UnpackHostInfoEvent(payload []byte) (*hypervisor.HostInfo, int, error) {
 	var (
+		seq      uint64
 		uuidStr  string
 		hostname string
 		arch     string
@@ -32,14 +33,15 @@ func UnpackHostInfoEvent(payload []byte) (*hypervisor.HostInfo, int, error) {
 		newHost  int
 	)
 	if _, err := fmt.Sscanf(
-		string(payload), "%s %s %s %s %s %d",
-		&uuidStr, &hostname,
+		string(payload), "%d %s %s %s %s %s %d",
+		&seq, &uuidStr, &hostname,
 		&arch, &vendor, &model,
 		&newHost,
 	); err != nil {
 		return nil, 0, err
 	}
 	return &hypervisor.HostInfo{
+		Seq:      seq,
 		Hostname: hostname,
 		UUID:     uuid.MustParse(uuidStr),
 		Arch:     arch,
@@ -50,8 +52,8 @@ func UnpackHostInfoEvent(payload []byte) (*hypervisor.HostInfo, int, error) {
 
 func PackGuestInfoEvent(guestInfo *hypervisor.GuestInfo, hostUUID uuid.UUID) ([]byte, error) {
 	str := fmt.Sprintf(
-		"%s %s %s %d %d %d",
-		hostUUID, guestInfo.UUID, guestInfo.Name,
+		"%s %d %s %s %d %d %d",
+		hostUUID, guestInfo.Seq, guestInfo.UUID, guestInfo.Name,
 		guestInfo.State, guestInfo.Memory, guestInfo.NrVirtCpu,
 	)
 	return []byte(str), nil
@@ -59,6 +61,7 @@ func PackGuestInfoEvent(guestInfo *hypervisor.GuestInfo, hostUUID uuid.UUID) ([]
 
 func UnpackGuestInfoEvent(payload []byte) (*hypervisor.GuestInfo, uuid.UUID, error) {
 	var (
+		seq         uint64
 		hostUuidStr string
 		uuidStr     string
 		name        string
@@ -67,13 +70,14 @@ func UnpackGuestInfoEvent(payload []byte) (*hypervisor.GuestInfo, uuid.UUID, err
 		nrVirtCPU   uint
 	)
 	if _, err := fmt.Sscanf(
-		string(payload), "%s %s %s %d %d %d",
-		&hostUuidStr, &uuidStr, &name,
+		string(payload), "%s %d %s %s %d %d %d",
+		&hostUuidStr, &seq, &uuidStr, &name,
 		&state, &memory, &nrVirtCPU,
 	); err != nil {
 		return nil, uuid.Nil, err
 	}
 	return &hypervisor.GuestInfo{
+		Seq:       seq,
 		Name:      name,
 		UUID:      uuid.MustParse(uuidStr),
 		State:     state,

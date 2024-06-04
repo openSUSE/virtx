@@ -2,6 +2,7 @@ package hypervisor
 
 import (
 	"log"
+	"sync/atomic"
 
 	"github.com/google/uuid"
 
@@ -16,6 +17,7 @@ const (
 )
 
 type HostInfo struct {
+	Seq      uint64
 	Hostname string
 	UUID     uuid.UUID
 	Arch     string
@@ -24,6 +26,7 @@ type HostInfo struct {
 }
 
 type GuestInfo struct {
+	Seq       uint64
 	Name      string
 	UUID      uuid.UUID
 	State     int
@@ -57,6 +60,7 @@ func GuestStateToString(state int) string {
 type hypervisor struct {
 	logger   *log.Logger
 	conn     *libvirt.Connect
+	seq      atomic.Uint64
 	handlers map[int]chan<- GuestInfo
 }
 
@@ -88,6 +92,7 @@ func (h *hypervisor) HostInfo() (*HostInfo, error) {
 	}
 
 	return &HostInfo{
+		Seq:      h.seq.Add(1),
 		Hostname: hostname,
 		UUID:     uuid.MustParse(caps.Host.UUID),
 		Arch:     caps.Host.CPU.Arch,
@@ -119,6 +124,7 @@ func (h *hypervisor) GuestInfo() ([]GuestInfo, error) {
 			return nil, err
 		}
 		guestInfo = append(guestInfo, GuestInfo{
+			Seq:       h.seq.Add(1),
 			Name:      name,
 			UUID:      uuid.MustParse(uuidStr),
 			State:     int(info.State),
@@ -165,6 +171,7 @@ func (h *hypervisor) Watch(eventCh chan<- GuestInfo) (int, error) {
 		}
 		h.logger.Printf("[HYPERVISOR] %s/%s: %v %v\n", name, uuidStr, e, info)
 		eventCh <- GuestInfo{
+			Seq:       h.seq.Add(1),
 			Name:      name,
 			UUID:      uuid.MustParse(uuidStr),
 			State:     state,
