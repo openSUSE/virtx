@@ -19,5 +19,7 @@ Then copy the resulting binary in your PATH:
 
 $ sudo cp main /usr/local/bin/serf
 
-Serf will be listening by default on port 7070,
+Serf will be listening by default on port 7373 for the RPC user messages,
+while it will listen on port 7946 (TCP and UDP) for serf itself.
+
 while the API service will be listening on port 8080.
