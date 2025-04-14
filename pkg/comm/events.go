@@ -13,7 +13,7 @@ const (
 )
 
 func PackHostInfoEvent(hostInfo hypervisor.HostInfo, newHost int) ([]byte, error) {
-	str := fmt.Sprintf(
+	var str string = fmt.Sprintf(
 		"%d %s %s %s %s %s %d",
 		hostInfo.Seq, hostInfo.UUID, hostInfo.Hostname,
 		hostInfo.Arch, hostInfo.Vendor, hostInfo.Model,
@@ -30,11 +30,12 @@ func UnpackHostInfoEvent(payload []byte) (hypervisor.HostInfo, int, error) {
 		vendor   string
 		model    string
 		newHost  int
+		n        int
 		err      error
 	)
-	_, err = fmt.Sscanf(string(payload), "%d %s %s %s %s %s %d",
+	n, err = fmt.Sscanf(string(payload), "%d %s %s %s %s %s %d",
 		&seq, &uuidStr, &hostname, &arch, &vendor, &model, &newHost)
-	if (err != nil) {
+	if (err != nil || n != 7) {
 		return hypervisor.HostInfo{}, 0, err
 	}
 	return hypervisor.HostInfo {
@@ -48,7 +49,7 @@ func UnpackHostInfoEvent(payload []byte) (hypervisor.HostInfo, int, error) {
 }
 
 func PackGuestInfoEvent(guestInfo hypervisor.GuestInfo, hostUUID uuid.UUID) ([]byte, error) {
-	str := fmt.Sprintf(
+	var str string = fmt.Sprintf(
 		"%s %d %s %s %d %d %d",
 		hostUUID, guestInfo.Seq, guestInfo.UUID, guestInfo.Name,
 		guestInfo.State, guestInfo.Memory, guestInfo.NrVirtCpu,
@@ -66,12 +67,15 @@ func UnpackGuestInfoEvent(payload []byte) (hypervisor.GuestInfo, uuid.UUID, erro
 		memory      uint64
 		nrVirtCPU   uint
 		guestInfo   hypervisor.GuestInfo
+		n           int
+		err         error
 	)
-	if _, err := fmt.Sscanf(
+	n, err = fmt.Sscanf(
 		string(payload), "%s %d %s %s %d %d %d",
 		&hostUuidStr, &seq, &uuidStr, &name,
 		&state, &memory, &nrVirtCPU,
-	); err != nil {
+	)
+	if (err != nil || n != 7) {
 		return guestInfo, uuid.Nil, err
 	}
 	guestInfo = hypervisor.GuestInfo {
