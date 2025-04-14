@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"sync"
 
-	"suse.com/inventory-service/pkg/hypervisor"
+	"suse.com/virtXD/pkg/hypervisor"
 )
 
 //go:embed inventory.tmpl

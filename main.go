@@ -13,9 +13,9 @@ import (
 
 	"github.com/hashicorp/serf/client"
 
-	"suse.com/inventory-service/pkg/comm"
-	"suse.com/inventory-service/pkg/hypervisor"
-	"suse.com/inventory-service/pkg/inventory"
+	"suse.com/virtXD/pkg/comm"
+	"suse.com/virtXD/pkg/hypervisor"
+	"suse.com/virtXD/pkg/inventory"
 )
 
 const (

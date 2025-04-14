@@ -4,8 +4,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-
-	"suse.com/inventory-service/pkg/hypervisor"
+	"suse.com/virtXD/pkg/hypervisor"
 )
 
 const (

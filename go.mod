@@ -1,4 +1,4 @@
-module suse.com/inventory-service
+module suse.com/virtXD
 
 go 1.21.9
 
