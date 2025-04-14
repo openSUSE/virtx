@@ -69,7 +69,7 @@ func (s *Service) HostState(hostKey string) HostState {
 }
 
 func (s *Service) Update(
-	hostInfo *hypervisor.HostInfo,
+	hostInfo hypervisor.HostInfo,
 	guestInfo []hypervisor.GuestInfo,
 ) error {
 	s.Lock()
@@ -80,7 +80,7 @@ func (s *Service) Update(
 	}
 
 	for _, gi := range guestInfo {
-		if err := s.updateGuestState(hostInfo.UUID.String(), &gi); err != nil {
+		if err := s.updateGuestState(hostInfo.UUID.String(), gi); err != nil {
 			return err
 		}
 	}
@@ -88,14 +88,14 @@ func (s *Service) Update(
 	return nil
 }
 
-func (s *Service) UpdateHostState(hostInfo *hypervisor.HostInfo) error {
+func (s *Service) UpdateHostState(hostInfo hypervisor.HostInfo) error {
 	s.Lock()
 	defer s.Unlock()
 
 	return s.updateHostState(hostInfo)
 }
 
-func (s *Service) updateHostState(hostInfo *hypervisor.HostInfo) error {
+func (s *Service) updateHostState(hostInfo hypervisor.HostInfo) error {
 	uuidStr := hostInfo.UUID.String()
 	hostState, ok := s.inventory[uuidStr]
 	if ok && hostState.Seq >= hostInfo.Seq {
@@ -105,7 +105,7 @@ func (s *Service) updateHostState(hostInfo *hypervisor.HostInfo) error {
 		)
 		return nil
 	}
-	hostState.HostInfo = *hostInfo
+	hostState.HostInfo = hostInfo
 	hostState.Status = "ONLINE"
 	if hostState.Guests == nil {
 		hostState.Guests = make(map[string]hypervisor.GuestInfo)
@@ -131,14 +131,14 @@ func (s *Service) setHostOffline(hostKey string) error {
 	return nil
 }
 
-func (s *Service) UpdateGuestState(hostKey string, guestInfo *hypervisor.GuestInfo) error {
+func (s *Service) UpdateGuestState(hostKey string, guestInfo hypervisor.GuestInfo) error {
 	s.Lock()
 	defer s.Unlock()
 
 	return s.updateGuestState(hostKey, guestInfo)
 }
 
-func (s *Service) updateGuestState(hostKey string, guestInfo *hypervisor.GuestInfo) error {
+func (s *Service) updateGuestState(hostKey string, guestInfo hypervisor.GuestInfo) error {
 	hostState, _ := s.inventory[hostKey]
 	if hostState.Guests == nil {
 		hostState.Guests = make(map[string]hypervisor.GuestInfo)
@@ -152,7 +152,7 @@ func (s *Service) updateGuestState(hostKey string, guestInfo *hypervisor.GuestIn
 			return nil
 		}
 	}
-	hostState.Guests[guestInfo.UUID.String()] = *guestInfo
+	hostState.Guests[guestInfo.UUID.String()] = guestInfo
 	s.inventory[hostKey] = hostState
 	return nil
 }

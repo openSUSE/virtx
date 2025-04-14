@@ -23,27 +23,31 @@ const (
 )
 
 func main() {
-	logger := log.New(os.Stderr, "", log.LstdFlags|log.Lshortfile)
-
-	hv, err := hypervisor.New(logger)
-	if err != nil {
+	var (
+		logger *log.Logger
+		hv *hypervisor.Hypervisor
+		err error
+		hostInfo hypervisor.HostInfo
+		guestInfo []hypervisor.GuestInfo
+	)
+	logger = log.New(os.Stderr, "", log.LstdFlags|log.Lshortfile)
+	hv, err = hypervisor.New(logger)
+	if (err != nil) {
 		logger.Fatal(err)
 	}
 	defer hv.Shutdown()
 
-	eventCh := make(chan hypervisor.GuestInfo, 64)
-	watch, err := hv.Watch(eventCh)
-	if err != nil {
+	err = hv.StartListening()
+	if (err != nil) {
 		logger.Fatal(err)
 	}
-	defer hv.Stop(watch)
 
-	hostInfo, err := hv.HostInfo()
-	if err != nil {
+	hostInfo, err = hv.HostInfo()
+	if (err != nil) {
 		logger.Fatal(err)
 	}
-	guestInfo, err := hv.GuestInfo()
-	if err != nil {
+	guestInfo, err = hv.GuestInfo()
+	if (err != nil) {
 		logger.Fatal(err)
 	}
 
@@ -77,7 +81,7 @@ func main() {
 	}
 
 	hvShutdownCh := make(chan struct{})
-	go forwardGuestEvents(eventCh, serf, hostInfo, logger, hvShutdownCh)
+	go forwardGuestEvents(hv.EventsChannel(), serf, hostInfo, logger, hvShutdownCh)
 
 	serfShutdownCh := make(chan struct{})
 	go processSerfEvents(serfCh, serf, s, hostInfo, logger, serfShutdownCh)
@@ -120,7 +124,7 @@ func processSerfEvents(
 	serfCh <-chan map[string]interface{},
 	serf *client.RPCClient,
 	s *inventory.Service,
-	hostInfo *hypervisor.HostInfo,
+	hostInfo hypervisor.HostInfo,
 	logger *log.Logger,
 	shutdownCh chan<- struct{},
 ) {
@@ -194,13 +198,13 @@ func processSerfEvents(
 func forwardGuestEvents(
 	eventCh <-chan hypervisor.GuestInfo,
 	serf *client.RPCClient,
-	hostInfo *hypervisor.HostInfo,
+	hostInfo hypervisor.HostInfo,
 	logger *log.Logger,
 	shutdownCh chan<- struct{},
 ) {
 	logger.Println("Forwarding guest events...")
 	for gi := range eventCh {
-		if err := sendGuestInfo(serf, &gi, hostInfo.UUID); err != nil {
+		if err := sendGuestInfo(serf, gi, hostInfo.UUID); err != nil {
 			logger.Fatal(err)
 		}
 	}
@@ -214,12 +218,12 @@ func sendInfoEvent(s *inventory.Service, serf *client.RPCClient, hostKey string,
 
 	hostState := s.HostState(hostKey)
 
-	if err := sendHostInfo(serf, &hostState.HostInfo, newHost); err != nil {
+	if err := sendHostInfo(serf, hostState.HostInfo, newHost); err != nil {
 		return err
 	}
 
 	for _, gi := range hostState.Guests {
-		if err := sendGuestInfo(serf, &gi, hostState.UUID); err != nil {
+		if err := sendGuestInfo(serf, gi, hostState.UUID); err != nil {
 			return err
 		}
 	}
@@ -227,7 +231,7 @@ func sendInfoEvent(s *inventory.Service, serf *client.RPCClient, hostKey string,
 	return nil
 }
 
-func sendHostInfo(serf *client.RPCClient, hostInfo *hypervisor.HostInfo, newHost int) error {
+func sendHostInfo(serf *client.RPCClient, hostInfo hypervisor.HostInfo, newHost int) error {
 	payload, err := comm.PackHostInfoEvent(hostInfo, newHost)
 	if err != nil {
 		return err
@@ -238,7 +242,7 @@ func sendHostInfo(serf *client.RPCClient, hostInfo *hypervisor.HostInfo, newHost
 	return nil
 }
 
-func sendGuestInfo(serf *client.RPCClient, guestInfo *hypervisor.GuestInfo, hostUUID uuid.UUID) error {
+func sendGuestInfo(serf *client.RPCClient, guestInfo hypervisor.GuestInfo, hostUUID uuid.UUID) error {
 	payload, err := comm.PackGuestInfoEvent(guestInfo, hostUUID)
 	if err != nil {
 		return err

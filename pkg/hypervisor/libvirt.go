@@ -57,74 +57,189 @@ func GuestStateToString(state int) string {
 	}
 }
 
-type hypervisor struct {
-	logger   *log.Logger
-	conn     *libvirt.Connect
-	seq      atomic.Uint64
-	handlers map[int]chan<- GuestInfo
+type Hypervisor struct {
+	logger        *log.Logger
+	conn          *libvirt.Connect
+	seq           atomic.Uint64
+	callbackID    int
+	eventsChannel chan GuestInfo
 }
 
-func New(logger *log.Logger) (*hypervisor, error) {
+/*
+ * Create a Hypervisor type instance,
+ * connect to libvirt and return the instance.
+ *
+ * eventsChannel is the channel used to communicate GuestInfo from the callback
+ * returned by virConnectDomainEventRegisterAny
+ *
+ * https://libvirt.org/html/libvirt-libvirt-domain.html#virConnectDomainEventRegisterAny
+ *
+ * Note that only one callback is registered for all Domain Events.
+ */
+func New(logger *log.Logger) (*Hypervisor, error) {
 	conn, err := libvirt.NewConnect(QEMUSystemURI)
-	if err != nil {
+	if (err != nil) {
 		return nil, err
 	}
-	return &hypervisor{
-		logger:   logger,
-		conn:     conn,
-		handlers: make(map[int]chan<- GuestInfo),
-	}, nil
+	var hv *Hypervisor = new(Hypervisor)
+	hv.logger = logger
+	hv.conn = conn
+	hv.eventsChannel = nil
+	hv.callbackID = -1
+
+	return hv, nil
 }
 
-func (h *hypervisor) HostInfo() (*HostInfo, error) {
-	hostname, err := h.conn.GetHostname()
-	if err != nil {
-		return nil, err
+func (hv *Hypervisor) Shutdown() {
+	hv.logger.Println("Deregistering event handlers")
+	hv.StopListening()
+	hv.logger.Println("Closing libvirt connection")
+	_, err := hv.conn.Close();
+	if (err != nil) {
+		hv.logger.Println(err)
 	}
+}
 
-	capsXml, err := h.conn.GetCapabilities()
-	if err != nil {
-		return nil, err
-	}
-	caps := libvirtxml.Caps{}
-	if err := caps.Unmarshal(capsXml); err != nil {
-		return nil, err
-	}
+/*
+ * Used by New() to start listening for domain events.
+ * Sets the callbackID and eventsChannel fields of the Hypervisor struct.
+ */
 
-	return &HostInfo{
-		Seq:      h.seq.Add(1),
+func (hv *Hypervisor) StartListening() error {
+	lifecycleCb := func(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventLifecycle) {
+		var (
+			name      string
+			uuidStr   string
+			info      *libvirt.DomainInfo
+			state     int
+			memory    uint64
+			nrVirtCPU uint
+			err       error
+		)
+		name, err = d.GetName()
+		if (err != nil) {
+			hv.logger.Println(err)
+		}
+		uuidStr, err = d.GetUUIDString()
+		if (err != nil) {
+			hv.logger.Println(err)
+		}
+		info, err = d.GetInfo()
+		if err != nil {
+			if e.Event == libvirt.DOMAIN_EVENT_UNDEFINED {
+				state = DomainUndefined
+			} else {
+				hv.logger.Println(err)
+			}
+		} else {
+			state = int(info.State)
+			memory = info.Memory
+			nrVirtCPU = info.NrVirtCpu
+		}
+		hv.logger.Printf("[HYPERVISOR] %s/%s: %v %v\n", name, uuidStr, e, info)
+		hv.eventsChannel <- GuestInfo{
+			Seq:       hv.seq.Add(1),
+			Name:      name,
+			UUID:      uuid.MustParse(uuidStr),
+			State:     state,
+			Memory:    memory,
+			NrVirtCpu: nrVirtCPU,
+		}
+	}
+	var err error
+	hv.callbackID, err = hv.conn.DomainEventLifecycleRegister(nil, lifecycleCb)
+	if (err != nil) {
+		return err
+	}
+	hv.eventsChannel = make(chan GuestInfo, 64)
+	return nil
+}
+
+func (hv *Hypervisor) StopListening() {
+	if (hv.callbackID < 0) {
+		/* already stopped */
+		hv.logger.Println("StopListening(): already stopped.")
+		return
+	}
+	hv.logger.Println("StopListening(): deregister libvirt CallbackId:", hv.callbackID)
+	var err error = hv.conn.DomainEventDeregister(hv.callbackID)
+	if (err != nil) {
+		hv.logger.Fatal(err)
+	}
+	close(hv.eventsChannel)
+	hv.eventsChannel = nil /* assume runtime will garbage collect */
+	hv.callbackID = -1
+}
+
+/* Calculate and return HostInfo */
+
+func (hv *Hypervisor) HostInfo() (HostInfo, error) {
+	var (
+		hostname, capsXml string
+		err error
+		caps libvirtxml.Caps = libvirtxml.Caps{}
+		hostinfo HostInfo
+	)
+	hostname, err = hv.conn.GetHostname()
+	if (err != nil) {
+		return hostinfo, err
+	}
+	capsXml, err = hv.conn.GetCapabilities()
+	if (err != nil) {
+		return hostinfo, err
+	}
+	err = caps.Unmarshal(capsXml)
+	if (err != nil) {
+		return hostinfo, err
+	}
+	hostinfo = HostInfo {
+		Seq: hv.seq.Add(1),
 		Hostname: hostname,
-		UUID:     uuid.MustParse(caps.Host.UUID),
-		Arch:     caps.Host.CPU.Arch,
-		Vendor:   caps.Host.CPU.Vendor,
-		Model:    caps.Host.CPU.Model,
-	}, nil
+		UUID: uuid.MustParse(caps.Host.UUID),
+		Arch: caps.Host.CPU.Arch,
+		Vendor: caps.Host.CPU.Vendor,
+		Model: caps.Host.CPU.Model,
+	}
+	return hostinfo, nil
 }
 
-func (h *hypervisor) GuestInfo() ([]GuestInfo, error) {
-	flags := libvirt.CONNECT_LIST_DOMAINS_ACTIVE | libvirt.CONNECT_LIST_DOMAINS_INACTIVE
-	doms, err := h.conn.ListAllDomains(flags)
-	if err != nil {
+/* Calculate and return GuestInfo */
+
+func (hv *Hypervisor) GuestInfo() ([]GuestInfo, error) {
+	var (
+		flags libvirt.ConnectListAllDomainsFlags
+		doms []libvirt.Domain
+		guestInfo []GuestInfo
+		err error
+	)
+	flags = libvirt.CONNECT_LIST_DOMAINS_ACTIVE | libvirt.CONNECT_LIST_DOMAINS_INACTIVE
+	doms, err = hv.conn.ListAllDomains(flags)
+	if (err != nil) {
 		return nil, err
 	}
 	defer freeDomains(doms)
 
-	guestInfo := make([]GuestInfo, 0, len(doms))
+	guestInfo = make([]GuestInfo, 0, len(doms))
 	for _, d := range doms {
-		name, err := d.GetName()
-		if err != nil {
+		var (
+			name string
+			uuidStr string
+			info *libvirt.DomainInfo
+		)
+		name, err = d.GetName()
+		if (err != nil) {
 			return nil, err
 		}
-		uuidStr, err := d.GetUUIDString()
-		if err != nil {
+		uuidStr, err = d.GetUUIDString()
+		if (err != nil) {
 			return nil, err
 		}
-		info, err := d.GetInfo()
-		if err != nil {
+		info, err = d.GetInfo()
+		if (err != nil) {
 			return nil, err
 		}
 		guestInfo = append(guestInfo, GuestInfo{
-			Seq:       h.seq.Add(1),
+			Seq:       hv.seq.Add(1),
 			Name:      name,
 			UUID:      uuid.MustParse(uuidStr),
 			State:     int(info.State),
@@ -136,95 +251,29 @@ func (h *hypervisor) GuestInfo() ([]GuestInfo, error) {
 	return guestInfo, nil
 }
 
+/* Return the libvirt domain Events Channel */
+func (hv *Hypervisor)EventsChannel() (chan GuestInfo) {
+	return hv.eventsChannel
+}
+
 func freeDomains(doms []libvirt.Domain) {
 	for _, d := range doms {
 		d.Free()
 	}
 }
 
-func (h *hypervisor) Watch(eventCh chan<- GuestInfo) (int, error) {
-	lifecycleCb := func(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventLifecycle) {
-		var (
-			state     int
-			memory    uint64
-			nrVirtCPU uint
-		)
-		name, err := d.GetName()
-		if err != nil {
-			h.logger.Fatal(err)
-		}
-		uuidStr, err := d.GetUUIDString()
-		if err != nil {
-			h.logger.Fatal(err)
-		}
-		info, err := d.GetInfo()
-		if err != nil {
-			if e.Event == libvirt.DOMAIN_EVENT_UNDEFINED {
-				state = DomainUndefined
-			} else {
-				h.logger.Fatal(err)
-			}
-		} else {
-			state = int(info.State)
-			memory = info.Memory
-			nrVirtCPU = info.NrVirtCpu
-		}
-		h.logger.Printf("[HYPERVISOR] %s/%s: %v %v\n", name, uuidStr, e, info)
-		eventCh <- GuestInfo{
-			Seq:       h.seq.Add(1),
-			Name:      name,
-			UUID:      uuid.MustParse(uuidStr),
-			State:     state,
-			Memory:    memory,
-			NrVirtCpu: nrVirtCPU,
-		}
-	}
-	id, err := h.conn.DomainEventLifecycleRegister(nil, lifecycleCb)
-	if err != nil {
-		return id, err
-	}
-	h.handlers[id] = eventCh
-
-	return id, nil
-}
-
-func (h *hypervisor) Stop(watchId int) {
-	eventCh, ok := h.handlers[watchId]
-	if !ok {
-		return
-	}
-
-	h.logger.Println("Deregister:", watchId)
-	if err := h.conn.DomainEventDeregister(watchId); err != nil {
-		h.logger.Fatal(err)
-	}
-
-	delete(h.handlers, watchId)
-	if eventCh != nil {
-		close(eventCh)
-	}
-}
-
-func (h *hypervisor) Shutdown() {
-	h.logger.Println("Deregistering event handlers")
-	for id := range h.handlers {
-		h.Stop(id)
-	}
-	h.logger.Println("Closing libvirt connection")
-	if _, err := h.conn.Close(); err != nil {
-		h.logger.Fatal(err)
-	}
-}
-
 func init() {
-	if err := libvirt.EventRegisterDefaultImpl(); err != nil {
+	var err error
+	err = libvirt.EventRegisterDefaultImpl();
+	if (err != nil) {
 		panic(err)
 	}
 
 	go func() {
 		//logger.Println("Entering event loop")
 		for {
-			if err := libvirt.EventRunDefaultImpl(); err != nil {
+			err = libvirt.EventRunDefaultImpl()
+			if (err != nil) {
 				panic(err)
 			}
 			// TODO exit properly from the event loop
