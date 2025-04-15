@@ -3,7 +3,6 @@ package comm
 import (
 	"fmt"
 
-	"github.com/google/uuid"
 	"suse.com/virtXD/pkg/hypervisor"
 )
 
@@ -24,7 +23,7 @@ func PackHostInfoEvent(hostInfo hypervisor.HostInfo, newHost int) ([]byte, error
 func UnpackHostInfoEvent(payload []byte) (hypervisor.HostInfo, int, error) {
 	var (
 		seq      uint64
-		uuidStr  string
+		uuid     string
 		hostname string
 		arch     string
 		vendor   string
@@ -34,21 +33,21 @@ func UnpackHostInfoEvent(payload []byte) (hypervisor.HostInfo, int, error) {
 		err      error
 	)
 	n, err = fmt.Sscanf(string(payload), "%d %s %s %s %s %s %d",
-		&seq, &uuidStr, &hostname, &arch, &vendor, &model, &newHost)
+		&seq, &uuid, &hostname, &arch, &vendor, &model, &newHost)
 	if (err != nil || n != 7) {
 		return hypervisor.HostInfo{}, 0, err
 	}
 	return hypervisor.HostInfo {
 		Seq:      seq,
 		Hostname: hostname,
-		UUID:     uuid.MustParse(uuidStr),
+		UUID:     uuid,
 		Arch:     arch,
 		Vendor:   vendor,
 		Model:    model,
 	}, newHost, nil
 }
 
-func PackGuestInfoEvent(guestInfo hypervisor.GuestInfo, hostUUID uuid.UUID) ([]byte, error) {
+func PackGuestInfoEvent(guestInfo hypervisor.GuestInfo, hostUUID string) ([]byte, error) {
 	var str string = fmt.Sprintf(
 		"%s %d %s %s %d %d %d",
 		hostUUID, guestInfo.Seq, guestInfo.UUID, guestInfo.Name,
@@ -57,11 +56,11 @@ func PackGuestInfoEvent(guestInfo hypervisor.GuestInfo, hostUUID uuid.UUID) ([]b
 	return []byte(str), nil
 }
 
-func UnpackGuestInfoEvent(payload []byte) (hypervisor.GuestInfo, uuid.UUID, error) {
+func UnpackGuestInfoEvent(payload []byte) (hypervisor.GuestInfo, string, error) {
 	var (
 		seq         uint64
-		hostUuidStr string
-		uuidStr     string
+		hostUUID    string
+		guestUUID   string
 		name        string
 		state       int
 		memory      uint64
@@ -72,19 +71,19 @@ func UnpackGuestInfoEvent(payload []byte) (hypervisor.GuestInfo, uuid.UUID, erro
 	)
 	n, err = fmt.Sscanf(
 		string(payload), "%s %d %s %s %d %d %d",
-		&hostUuidStr, &seq, &uuidStr, &name,
+		&hostUUID, &seq, &guestUUID, &name,
 		&state, &memory, &nrVirtCPU,
 	)
 	if (err != nil || n != 7) {
-		return guestInfo, uuid.Nil, err
+		return guestInfo, "", err
 	}
 	guestInfo = hypervisor.GuestInfo {
 		Seq:       seq,
 		Name:      name,
-		UUID:      uuid.MustParse(uuidStr),
+		UUID:      guestUUID,
 		State:     state,
 		Memory:    memory,
 		NrVirtCpu: nrVirtCPU,
 	}
-	return guestInfo, uuid.MustParse(hostUuidStr), nil
+	return guestInfo, hostUUID, nil
 }

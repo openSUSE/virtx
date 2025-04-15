@@ -10,7 +10,7 @@ import (
 )
 
 type HostState struct {
-	hypervisor.HostInfo
+	HostInfo hypervisor.HostInfo
 	Seq    uint64
 	Status string
 	Guests map[string]hypervisor.GuestInfo
@@ -41,8 +41,8 @@ func New(logger *log.Logger) *Service {
 	return s
 }
 
-func (s *Service) HostState(hostKey string) HostState {
-	hostState, _ := s.inventory[hostKey]
+func (s *Service) HostState(uuid string) HostState {
+	hostState, _ := s.inventory[uuid]
 	return hostState
 }
 
@@ -58,7 +58,7 @@ func (s *Service) Update(
 	}
 
 	for _, gi := range guestInfo {
-		if err := s.updateGuestState(hostInfo.UUID.String(), gi); err != nil {
+		if err := s.updateGuestState(hostInfo.UUID, gi); err != nil {
 			return err
 		}
 	}
@@ -74,12 +74,12 @@ func (s *Service) UpdateHostState(hostInfo hypervisor.HostInfo) error {
 }
 
 func (s *Service) updateHostState(hostInfo hypervisor.HostInfo) error {
-	uuidStr := hostInfo.UUID.String()
+	uuidStr := hostInfo.UUID
 	hostState, ok := s.inventory[uuidStr]
 	if ok && hostState.Seq >= hostInfo.Seq {
 		s.logger.Printf(
 			"Ignoring old host info: seq %d >= %d %s %s",
-			hostState.Seq, hostInfo.Seq, hostState.UUID, hostState.Hostname,
+			hostState.Seq, hostInfo.Seq, hostState.HostInfo.UUID, hostState.HostInfo.Hostname,
 		)
 		return nil
 	}
@@ -92,36 +92,36 @@ func (s *Service) updateHostState(hostInfo hypervisor.HostInfo) error {
 	return nil
 }
 
-func (s *Service) SetHostOffline(hostKey string) error {
+func (s *Service) SetHostOffline(uuid string) error {
 	s.Lock()
 	defer s.Unlock()
 
-	return s.setHostOffline(hostKey)
+	return s.setHostOffline(uuid)
 }
 
-func (s *Service) setHostOffline(hostKey string) error {
-	hostState, ok := s.inventory[hostKey]
+func (s *Service) setHostOffline(uuid string) error {
+	hostState, ok := s.inventory[uuid]
 	if !ok {
-		return fmt.Errorf("no such host %s", hostKey)
+		return fmt.Errorf("no such host %s", uuid)
 	}
 	hostState.Status = "OFFLINE"
-	s.inventory[hostKey] = hostState
+	s.inventory[uuid] = hostState
 	return nil
 }
 
-func (s *Service) UpdateGuestState(hostKey string, guestInfo hypervisor.GuestInfo) error {
+func (s *Service) UpdateGuestState(uuid string, guestInfo hypervisor.GuestInfo) error {
 	s.Lock()
 	defer s.Unlock()
 
-	return s.updateGuestState(hostKey, guestInfo)
+	return s.updateGuestState(uuid, guestInfo)
 }
 
-func (s *Service) updateGuestState(hostKey string, guestInfo hypervisor.GuestInfo) error {
-	hostState, _ := s.inventory[hostKey]
+func (s *Service) updateGuestState(uuid string, guestInfo hypervisor.GuestInfo) error {
+	hostState, _ := s.inventory[uuid]
 	if hostState.Guests == nil {
 		hostState.Guests = make(map[string]hypervisor.GuestInfo)
 	}
-	if gi, ok := hostState.Guests[guestInfo.UUID.String()]; ok {
+	if gi, ok := hostState.Guests[guestInfo.UUID]; ok {
 		if gi.Seq >= guestInfo.Seq {
 			s.logger.Printf(
 				"Ignoring old guest info: seq %d >= %d %s %s",
@@ -130,8 +130,8 @@ func (s *Service) updateGuestState(hostKey string, guestInfo hypervisor.GuestInf
 			return nil
 		}
 	}
-	hostState.Guests[guestInfo.UUID.String()] = guestInfo
-	s.inventory[hostKey] = hostState
+	hostState.Guests[guestInfo.UUID] = guestInfo
+	s.inventory[uuid] = hostState
 	return nil
 }
 

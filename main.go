@@ -9,8 +9,6 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/google/uuid"
-
 	"github.com/hashicorp/serf/client"
 
 	"suse.com/virtXD/pkg/comm"
@@ -63,7 +61,7 @@ func main() {
 	defer serf.Close()
 
 	tags := map[string]string{
-		"uuid": hostInfo.UUID.String(),
+		"uuid": hostInfo.UUID,
 	}
 	if err := serf.UpdateTags(tags, []string{}); err != nil {
 		logger.Fatal(err)
@@ -76,7 +74,7 @@ func main() {
 	}
 	defer serf.Stop(stream)
 
-	if err := sendInfoEvent(s, serf, hostInfo.UUID.String(), 1); err != nil {
+	if err := sendInfoEvent(s, serf, hostInfo.UUID, 1); err != nil {
 		logger.Fatal(err)
 	}
 
@@ -169,7 +167,7 @@ func processSerfEvents(
 				logger.Fatal(err)
 			}
 			if newHost == 1 && hi.UUID != hostInfo.UUID {
-				if err := sendInfoEvent(s, serf, hostInfo.UUID.String(), 0); err != nil {
+				if err := sendInfoEvent(s, serf, hostInfo.UUID, 0); err != nil {
 					logger.Fatal(err)
 				}
 			}
@@ -184,7 +182,7 @@ func processSerfEvents(
 				gi.State, hypervisor.GuestStateToString(gi.State),
 				hostUUID,
 			)
-			if err := s.UpdateGuestState(hostUUID.String(), gi); err != nil {
+			if err := s.UpdateGuestState(hostUUID, gi); err != nil {
 				logger.Fatal(err)
 			}
 		default:
@@ -212,18 +210,18 @@ func forwardGuestEvents(
 	close(shutdownCh)
 }
 
-func sendInfoEvent(s *virtx.Service, serf *client.RPCClient, hostKey string, newHost int) error {
+func sendInfoEvent(s *virtx.Service, serf *client.RPCClient, uuid string, newHost int) error {
 	s.RLock()
 	defer s.RUnlock()
 
-	hostState := s.HostState(hostKey)
+	hostState := s.HostState(uuid)
 
 	if err := sendHostInfo(serf, hostState.HostInfo, newHost); err != nil {
 		return err
 	}
 
 	for _, gi := range hostState.Guests {
-		if err := sendGuestInfo(serf, gi, hostState.UUID); err != nil {
+		if err := sendGuestInfo(serf, gi, hostState.HostInfo.UUID); err != nil {
 			return err
 		}
 	}
@@ -242,7 +240,7 @@ func sendHostInfo(serf *client.RPCClient, hostInfo hypervisor.HostInfo, newHost 
 	return nil
 }
 
-func sendGuestInfo(serf *client.RPCClient, guestInfo hypervisor.GuestInfo, hostUUID uuid.UUID) error {
+func sendGuestInfo(serf *client.RPCClient, guestInfo hypervisor.GuestInfo, hostUUID string) error {
 	payload, err := comm.PackGuestInfoEvent(guestInfo, hostUUID)
 	if err != nil {
 		return err

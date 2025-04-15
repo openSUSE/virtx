@@ -4,8 +4,6 @@ import (
 	"log"
 	"sync/atomic"
 
-	"github.com/google/uuid"
-
 	"libvirt.org/go/libvirt"
 	"libvirt.org/go/libvirtxml"
 )
@@ -19,7 +17,7 @@ const (
 type HostInfo struct {
 	Seq      uint64
 	Hostname string
-	UUID     uuid.UUID
+	UUID     string
 	Arch     string
 	Vendor   string
 	Model    string
@@ -28,7 +26,7 @@ type HostInfo struct {
 type GuestInfo struct {
 	Seq       uint64
 	Name      string
-	UUID      uuid.UUID
+	UUID      string
 	State     int
 	Memory    uint64
 	NrVirtCpu uint
@@ -140,7 +138,7 @@ func (hv *Hypervisor) StartListening() error {
 		hv.eventsChannel <- GuestInfo{
 			Seq:       hv.seq.Add(1),
 			Name:      name,
-			UUID:      uuid.MustParse(uuidStr),
+			UUID:      uuidStr,
 			State:     state,
 			Memory:    memory,
 			NrVirtCpu: nrVirtCPU,
@@ -195,7 +193,7 @@ func (hv *Hypervisor) HostInfo() (HostInfo, error) {
 	hostinfo = HostInfo {
 		Seq: hv.seq.Add(1),
 		Hostname: hostname,
-		UUID: uuid.MustParse(caps.Host.UUID),
+		UUID: caps.Host.UUID,
 		Arch: caps.Host.CPU.Arch,
 		Vendor: caps.Host.CPU.Vendor,
 		Model: caps.Host.CPU.Model,
@@ -241,7 +239,7 @@ func (hv *Hypervisor) GuestInfo() ([]GuestInfo, error) {
 		guestInfo = append(guestInfo, GuestInfo{
 			Seq:       hv.seq.Add(1),
 			Name:      name,
-			UUID:      uuid.MustParse(uuidStr),
+			UUID:      uuidStr,
 			State:     int(info.State),
 			Memory:    info.Memory,
 			NrVirtCpu: info.NrVirtCpu,
