@@ -16,16 +16,6 @@ type HostState struct {
 	Guests map[string]hypervisor.GuestInfo
 }
 
-func (s HostState) NumberOfActiveGuests() int {
-	n := 0
-	for _, gi := range s.Guests {
-		if gi.State != hypervisor.DomainUndefined {
-			n += 1
-		}
-	}
-	return n
-}
-
 type Inventory map[string]HostState
 
 type Service struct {
