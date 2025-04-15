@@ -15,7 +15,7 @@ import (
 
 	"suse.com/virtXD/pkg/comm"
 	"suse.com/virtXD/pkg/hypervisor"
-	"suse.com/virtXD/pkg/inventory"
+	"suse.com/virtXD/pkg/virtx"
 )
 
 const (
@@ -51,7 +51,7 @@ func main() {
 		logger.Fatal(err)
 	}
 
-	s := inventory.NewService(logger)
+	s := virtx.New(logger)
 	if err := s.Update(hostInfo, guestInfo); err != nil {
 		logger.Fatal(err)
 	}
@@ -123,7 +123,7 @@ func main() {
 func processSerfEvents(
 	serfCh <-chan map[string]interface{},
 	serf *client.RPCClient,
-	s *inventory.Service,
+	s *virtx.Service,
 	hostInfo hypervisor.HostInfo,
 	logger *log.Logger,
 	shutdownCh chan<- struct{},
@@ -212,7 +212,7 @@ func forwardGuestEvents(
 	close(shutdownCh)
 }
 
-func sendInfoEvent(s *inventory.Service, serf *client.RPCClient, hostKey string, newHost int) error {
+func sendInfoEvent(s *virtx.Service, serf *client.RPCClient, hostKey string, newHost int) error {
 	s.RLock()
 	defer s.RUnlock()
 

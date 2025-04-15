@@ -1,24 +1,12 @@
-package inventory
+package virtx
 
 import (
-	_ "embed"
 	"fmt"
-	"html/template"
 	"log"
 	"net/http"
 	"sync"
 
 	"suse.com/virtXD/pkg/hypervisor"
-)
-
-//go:embed inventory.tmpl
-var tmplContent string
-
-var (
-	tmplFuncs = template.FuncMap{
-		"guestStateToString": hypervisor.GuestStateToString,
-	}
-	inventoryTmpl = template.Must(template.New("inventory").Funcs(tmplFuncs).Parse(tmplContent))
 )
 
 type HostState struct {
@@ -47,7 +35,7 @@ type Service struct {
 	logger    *log.Logger
 }
 
-func NewService(logger *log.Logger) *Service {
+func New(logger *log.Logger) *Service {
 	mux := http.NewServeMux()
 	s := &Service{
 		Server: http.Server{
@@ -159,14 +147,10 @@ func (s *Service) updateGuestState(hostKey string, guestInfo hypervisor.GuestInf
 
 // ServeHTTP implements net/http.Handler
 func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Content-Type", "text/plain")
 
 	s.RLock()
 	defer s.RUnlock()
 
-	if err := inventoryTmpl.Execute(w, s.inventory); err != nil {
-		s.logger.Print(err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	http.Error(w, "Nothing implemented yet.", http.StatusNotImplemented)
 }
