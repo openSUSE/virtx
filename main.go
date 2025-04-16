@@ -22,24 +22,26 @@ const (
 
 func main() {
 	var (
+		err error
 		logger *log.Logger
 		hv *hypervisor.Hypervisor
-		err error
 		hostInfo hypervisor.HostInfo
 		guestInfo []hypervisor.GuestInfo
+		service *virtx.Service
+		serf *client.RPCClient
 	)
-	logger = log.New(os.Stderr, "", log.LstdFlags|log.Lshortfile)
+	logger = log.New(os.Stderr, "", log.LstdFlags | log.Lshortfile)
+
+	/* hypervisor: initialize and start listening to hypervisor events */
 	hv, err = hypervisor.New(logger)
 	if (err != nil) {
 		logger.Fatal(err)
 	}
 	defer hv.Shutdown()
-
 	err = hv.StartListening()
 	if (err != nil) {
 		logger.Fatal(err)
 	}
-
 	hostInfo, err = hv.HostInfo()
 	if (err != nil) {
 		logger.Fatal(err)
@@ -48,60 +50,68 @@ func main() {
 	if (err != nil) {
 		logger.Fatal(err)
 	}
-
-	s := virtx.New(logger)
-	if err := s.Update(hostInfo, guestInfo); err != nil {
+	/* service: initialize and first update with the host and guests information */
+	service = virtx.New(logger)
+	err = service.Update(hostInfo, guestInfo)
+	if (err != nil) {
 		logger.Fatal(err)
 	}
-
-	serf, err := client.NewRPCClient(SerfRPCAddr)
-	if err != nil {
+	/*
+     * serf: initialize RPC bi-directional communication with serf,
+     * and add a tag entry for this host using its UUID
+	 */
+	serf, err = client.NewRPCClient(SerfRPCAddr)
+	if (err != nil) {
 		logger.Fatal(err)
 	}
 	defer serf.Close()
-
-	tags := map[string]string{
-		"uuid": hostInfo.UUID,
-	}
-	if err := serf.UpdateTags(tags, []string{}); err != nil {
+	addTags := map[string]string { "uuid": hostInfo.UUID }
+	removeTags := []string {}
+	err = serf.UpdateTags(addTags, removeTags)
+	if (err != nil) {
 		logger.Fatal(err)
 	}
-
+	/* serf: create channel and stream to receive serf events */
 	serfCh := make(chan map[string]interface{}, 64)
-	stream, err := serf.Stream("*", serfCh)
-	if err != nil {
+	var stream client.StreamHandle
+	stream, err = serf.Stream("*", serfCh)
+	if (err != nil) {
 		logger.Fatal(err)
 	}
 	defer serf.Stop(stream)
-
-	if err := sendInfoEvent(s, serf, hostInfo.UUID, 1); err != nil {
+	/* serf: send Info Event with the host UUID to Serf */
+	err = sendInfoEvent(service, serf, hostInfo.UUID, 1)
+	if (err != nil) {
 		logger.Fatal(err)
 	}
-
+	/* create subroutines to send and process events */
 	hvShutdownCh := make(chan struct{})
 	go forwardGuestEvents(hv.EventsChannel(), serf, hostInfo, logger, hvShutdownCh)
 
 	serfShutdownCh := make(chan struct{})
-	go processSerfEvents(serfCh, serf, s, hostInfo, logger, serfShutdownCh)
+	go processSerfEvents(serfCh, serf, service, hostInfo, logger, serfShutdownCh)
 
+	/* create server subroutine to listen for API requests */
 	go func() {
-		err := s.ListenAndServe()
-		if err != nil && errors.Is(err, http.ErrServerClosed) {
+		err = service.ListenAndServe()
+		if (err != nil && errors.Is(err, http.ErrServerClosed)) {
 			logger.Println(err)
 		} else {
 			logger.Fatal(err)
 		}
 	}()
 
+	/* prepare atexit function to shutdown service */
 	defer func() {
 		shutdownCtx, shutdownCancel := context.WithTimeout(
 			context.Background(),
 			time.Second*5,
 		)
 		defer shutdownCancel()
-		if err := s.Shutdown(shutdownCtx); err != nil {
+		err = service.Shutdown(shutdownCtx)
+		if (err != nil) {
 			logger.Println(err)
-			logger.Fatal(s.Close())
+			logger.Fatal(service.Close())
 		}
 	}()
 
