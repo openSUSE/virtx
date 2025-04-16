@@ -138,9 +138,27 @@ func (s *Service) updateGuestState(uuid string, guestInfo hypervisor.GuestInfo) 
 // ServeHTTP implements net/http.Handler
 func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
+	var (
+		lines string
+		uuid  string
+		h     HostState
+		hi    hypervisor.HostInfo
+		gi    hypervisor.GuestInfo
+	)
+	for uuid, h = range s.inventory {
+		hi = h.HostInfo
+		var line string = fmt.Sprintf("Host %s (%s): Hostname:%s, Arch:%s, Vendor:%s, Model:%s \n",
+			uuid, h.Status, hi.Hostname, hi.Arch, hi.Vendor, hi.Model)
+		lines += line
+		for uuid, gi = range h.Guests {
+			var line string = fmt.Sprintf("Guest %s: Name:%s, State:%d, Memory:%d, VCpus: %d \n",
+				uuid, gi.Name, gi.State, gi.Memory, gi.NrVirtCpu)
+			lines += line
+		}
+	}
 
 	s.RLock()
 	defer s.RUnlock()
 
-	http.Error(w, "Nothing implemented yet.", http.StatusNotImplemented)
+	http.Error(w, lines, http.StatusNotImplemented)
 }
