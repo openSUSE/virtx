@@ -11,7 +11,7 @@ import (
 
 	"github.com/hashicorp/serf/client"
 
-	"suse.com/virtXD/pkg/comm"
+	"suse.com/virtXD/pkg/serfcomm"
 	"suse.com/virtXD/pkg/hypervisor"
 	"suse.com/virtXD/pkg/virtx"
 )
@@ -164,8 +164,8 @@ func processSerfEvents(
 		payload := e["Payload"].([]byte)
 
 		switch name {
-		case comm.HostInfoEvent:
-			hi, newHost, err := comm.UnpackHostInfoEvent(payload)
+		case serfcomm.HostInfoEvent:
+			hi, newHost, err := serfcomm.UnpackHostInfoEvent(payload)
 			if err != nil {
 				logger.Fatal(err)
 			}
@@ -181,8 +181,8 @@ func processSerfEvents(
 					logger.Fatal(err)
 				}
 			}
-		case comm.GuestInfoEvent:
-			gi, hostUUID, err := comm.UnpackGuestInfoEvent(payload)
+		case serfcomm.GuestInfoEvent:
+			gi, hostUUID, err := serfcomm.UnpackGuestInfoEvent(payload)
 			if err != nil {
 				logger.Fatal(err)
 			}
@@ -240,22 +240,22 @@ func sendInfoEvent(s *virtx.Service, serf *client.RPCClient, uuid string, newHos
 }
 
 func sendHostInfo(serf *client.RPCClient, hostInfo hypervisor.HostInfo, newHost int) error {
-	payload, err := comm.PackHostInfoEvent(hostInfo, newHost)
+	payload, err := serfcomm.PackHostInfoEvent(hostInfo, newHost)
 	if err != nil {
 		return err
 	}
-	if err := serf.UserEvent(comm.HostInfoEvent, payload, false); err != nil {
+	if err := serf.UserEvent(serfcomm.HostInfoEvent, payload, false); err != nil {
 		return err
 	}
 	return nil
 }
 
 func sendGuestInfo(serf *client.RPCClient, guestInfo hypervisor.GuestInfo, hostUUID string) error {
-	payload, err := comm.PackGuestInfoEvent(guestInfo, hostUUID)
+	payload, err := serfcomm.PackGuestInfoEvent(guestInfo, hostUUID)
 	if err != nil {
 		return err
 	}
-	if err := serf.UserEvent(comm.GuestInfoEvent, payload, false); err != nil {
+	if err := serf.UserEvent(serfcomm.GuestInfoEvent, payload, false); err != nil {
 		return err
 	}
 	return nil
