@@ -2,16 +2,19 @@ package serfcomm
 
 import (
 	"fmt"
+	"log"
 
 	"suse.com/virtXD/pkg/hypervisor"
+	"github.com/hashicorp/serf/client"
+	"suse.com/virtXD/pkg/virtx"
 )
 
 const (
-	HostInfoEvent  string = "host-info"
-	GuestInfoEvent string = "guest-info"
+	labelHostInfo string = "host-info"
+	labelGuestInfo string = "guest-info"
 )
 
-func PackHostInfoEvent(hostInfo hypervisor.HostInfo, newHost int) ([]byte, error) {
+func packHostInfoEvent(hostInfo hypervisor.HostInfo, newHost int) ([]byte, error) {
 	var str string = fmt.Sprintf(
 		"%d %s %s %s %s %s %d",
 		hostInfo.Seq, hostInfo.UUID, hostInfo.Hostname,
@@ -20,7 +23,7 @@ func PackHostInfoEvent(hostInfo hypervisor.HostInfo, newHost int) ([]byte, error
 	return []byte(str), nil
 }
 
-func UnpackHostInfoEvent(payload []byte) (hypervisor.HostInfo, int, error) {
+func unpackHostInfoEvent(payload []byte) (hypervisor.HostInfo, int, error) {
 	var (
 		seq      uint64
 		uuid     string
@@ -47,7 +50,7 @@ func UnpackHostInfoEvent(payload []byte) (hypervisor.HostInfo, int, error) {
 	}, newHost, nil
 }
 
-func PackGuestInfoEvent(guestInfo hypervisor.GuestInfo, hostUUID string) ([]byte, error) {
+func packGuestInfoEvent(guestInfo hypervisor.GuestInfo, hostUUID string) ([]byte, error) {
 	var str string = fmt.Sprintf(
 		"%s %d %s %s %d %d %d",
 		hostUUID, guestInfo.Seq, guestInfo.UUID, guestInfo.Name,
@@ -56,7 +59,7 @@ func PackGuestInfoEvent(guestInfo hypervisor.GuestInfo, hostUUID string) ([]byte
 	return []byte(str), nil
 }
 
-func UnpackGuestInfoEvent(payload []byte) (hypervisor.GuestInfo, string, error) {
+func unpackGuestInfoEvent(payload []byte) (hypervisor.GuestInfo, string, error) {
 	var (
 		seq         uint64
 		hostUUID    string
@@ -86,4 +89,137 @@ func UnpackGuestInfoEvent(payload []byte) (hypervisor.GuestInfo, string, error) 
 		NrVirtCpu: nrVirtCPU,
 	}
 	return guestInfo, hostUUID, nil
+}
+
+func sendHostInfo(serf *client.RPCClient, hostInfo hypervisor.HostInfo, newHost int) error {
+	payload, err := packHostInfoEvent(hostInfo, newHost)
+	if err != nil {
+		return err
+	}
+	if err := serf.UserEvent(labelHostInfo, payload, false); err != nil {
+		return err
+	}
+	return nil
+}
+
+func sendGuestInfo(serf *client.RPCClient, guestInfo hypervisor.GuestInfo, hostUUID string) error {
+	payload, err := packGuestInfoEvent(guestInfo, hostUUID)
+	if err != nil {
+		return err
+	}
+	if err := serf.UserEvent(labelGuestInfo, payload, false); err != nil {
+		return err
+	}
+	return nil
+}
+
+func SendInfoEvent(s *virtx.Service, serf *client.RPCClient, uuid string, newHost int) error {
+	s.RLock()
+	defer s.RUnlock()
+
+	hostState := s.HostState(uuid)
+
+	if err := sendHostInfo(serf, hostState.HostInfo, newHost); err != nil {
+		return err
+	}
+
+	for _, gi := range hostState.Guests {
+		if err := sendGuestInfo(serf, gi, hostState.HostInfo.UUID); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func RecvSerfEvents(
+	serfCh <-chan map[string]interface{},
+	serf *client.RPCClient,
+	s *virtx.Service,
+	hostInfo hypervisor.HostInfo,
+	logger *log.Logger,
+	shutdownCh chan<- struct{},
+) {
+	logger.Println("Processing events...")
+	for e := range serfCh {
+		switch e["Event"].(string) {
+		case "user":
+		case "member-leave":
+			fallthrough
+		case "member-failed":
+			for _, m := range e["Members"].([]interface{}) {
+				tags := m.(map[interface{}]interface{})["Tags"]
+				uuid, ok := tags.(map[interface{}]interface{})["uuid"].(string)
+				if !ok {
+					logger.Println("failed to get uuid tag")
+					continue
+				}
+				logger.Printf("Host %s OFFLINE", uuid)
+				if err := s.SetHostOffline(uuid); err != nil {
+					logger.Fatal(err)
+				}
+			}
+			fallthrough
+		default:
+			continue
+		}
+
+		name := e["Name"].(string)
+		payload := e["Payload"].([]byte)
+
+		switch name {
+		case labelHostInfo:
+			hi, newHost, err := unpackHostInfoEvent(payload)
+			if err != nil {
+				logger.Fatal(err)
+			}
+			logger.Printf(
+				"%s: %d %s %s newHost(%d)",
+				name, hi.Seq, hi.UUID, hi.Hostname, newHost,
+			)
+			if err := s.UpdateHostState(hi); err != nil {
+				logger.Fatal(err)
+			}
+			if newHost == 1 && hi.UUID != hostInfo.UUID {
+				if err := SendInfoEvent(s, serf, hostInfo.UUID, 0); err != nil {
+					logger.Fatal(err)
+				}
+			}
+		case labelGuestInfo:
+			gi, hostUUID, err := unpackGuestInfoEvent(payload)
+			if err != nil {
+				logger.Fatal(err)
+			}
+			logger.Printf(
+				"%s: %d %s %s state(%d - %s) hostUUID(%s)",
+				name, gi.Seq, gi.UUID, gi.Name,
+				gi.State, hypervisor.GuestStateToString(gi.State),
+				hostUUID,
+			)
+			if err := s.UpdateGuestState(hostUUID, gi); err != nil {
+				logger.Fatal(err)
+			}
+		default:
+			logger.Println("[UNKNOWN-EVENT]", name, payload)
+		}
+	}
+	logger.Println("Processing done")
+	close(shutdownCh)
+}
+
+func SendHypervisorEvents(
+	eventCh <-chan hypervisor.GuestInfo,
+	serf *client.RPCClient,
+	hostInfo hypervisor.HostInfo,
+	logger *log.Logger,
+	shutdownCh chan<- struct{},
+) {
+	logger.Println("Forwarding guest events...")
+	for gi := range eventCh {
+		if err := sendGuestInfo(serf, gi, hostInfo.UUID); err != nil {
+			logger.Fatal(err)
+		}
+	}
+	logger.Println("Forwarding done")
+	close(shutdownCh)
 }
