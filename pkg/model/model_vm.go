@@ -24,6 +24,7 @@ type Vm struct {
 	Uuid *string `json:"uuid,omitempty"`
 	Vmdef *Vmdef `json:"vmdef,omitempty"`
 	Runstate *Vmruninfo `json:"runstate,omitempty"`
+	Seq *int64 `json:"seq,omitempty"`
 }
 
 // NewVm instantiates a new Vm object
@@ -139,6 +140,38 @@ func (o *Vm) SetRunstate(v Vmruninfo) {
 	o.Runstate = &v
 }
 
+// GetSeq returns the Seq field value if set, zero value otherwise.
+func (o *Vm) GetSeq() int64 {
+	if o == nil || IsNil(o.Seq) {
+		var ret int64
+		return ret
+	}
+	return *o.Seq
+}
+
+// GetSeqOk returns a tuple with the Seq field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *Vm) GetSeqOk() (*int64, bool) {
+	if o == nil || IsNil(o.Seq) {
+		return nil, false
+	}
+	return o.Seq, true
+}
+
+// HasSeq returns a boolean if a field has been set.
+func (o *Vm) HasSeq() bool {
+	if o != nil && !IsNil(o.Seq) {
+		return true
+	}
+
+	return false
+}
+
+// SetSeq gets a reference to the given int64 and assigns it to the Seq field.
+func (o *Vm) SetSeq(v int64) {
+	o.Seq = &v
+}
+
 func (o Vm) MarshalJSON() ([]byte, error) {
 	toSerialize,err := o.ToMap()
 	if err != nil {
@@ -157,6 +190,9 @@ func (o Vm) ToMap() (map[string]interface{}, error) {
 	}
 	if !IsNil(o.Runstate) {
 		toSerialize["runstate"] = o.Runstate
+	}
+	if !IsNil(o.Seq) {
+		toSerialize["seq"] = o.Seq
 	}
 	return toSerialize, nil
 }

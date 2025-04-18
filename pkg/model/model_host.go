@@ -25,6 +25,7 @@ type Host struct {
 	Hostdef *Hostdef `json:"hostdef,omitempty"`
 	Hoststate *Hoststate `json:"hoststate,omitempty"`
 	Hostresources *Hostresources `json:"hostresources,omitempty"`
+	Seq *int64 `json:"seq,omitempty"`
 }
 
 // NewHost instantiates a new Host object
@@ -172,6 +173,38 @@ func (o *Host) SetHostresources(v Hostresources) {
 	o.Hostresources = &v
 }
 
+// GetSeq returns the Seq field value if set, zero value otherwise.
+func (o *Host) GetSeq() int64 {
+	if o == nil || IsNil(o.Seq) {
+		var ret int64
+		return ret
+	}
+	return *o.Seq
+}
+
+// GetSeqOk returns a tuple with the Seq field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *Host) GetSeqOk() (*int64, bool) {
+	if o == nil || IsNil(o.Seq) {
+		return nil, false
+	}
+	return o.Seq, true
+}
+
+// HasSeq returns a boolean if a field has been set.
+func (o *Host) HasSeq() bool {
+	if o != nil && !IsNil(o.Seq) {
+		return true
+	}
+
+	return false
+}
+
+// SetSeq gets a reference to the given int64 and assigns it to the Seq field.
+func (o *Host) SetSeq(v int64) {
+	o.Seq = &v
+}
+
 func (o Host) MarshalJSON() ([]byte, error) {
 	toSerialize,err := o.ToMap()
 	if err != nil {
@@ -193,6 +226,9 @@ func (o Host) ToMap() (map[string]interface{}, error) {
 	}
 	if !IsNil(o.Hostresources) {
 		toSerialize["hostresources"] = o.Hostresources
+	}
+	if !IsNil(o.Seq) {
+		toSerialize["seq"] = o.Seq
 	}
 	return toSerialize, nil
 }
