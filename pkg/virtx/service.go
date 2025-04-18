@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"suse.com/virtXD/pkg/hypervisor"
+	"suse.com/virtXD/pkg/model"
 )
 
 type HostState struct {
@@ -22,7 +23,8 @@ type Service struct {
 	http.Server
 	sync.RWMutex
 	inventory Inventory
-	logger    *log.Logger
+	logger *log.Logger
+	cluster openapi.Cluster
 }
 
 func New(logger *log.Logger) *Service {
@@ -33,6 +35,7 @@ func New(logger *log.Logger) *Service {
 			Handler: mux,
 		},
 		RWMutex:   sync.RWMutex{},
+		cluster:   openapi.Cluster{},
 		inventory: make(Inventory),
 		logger:    logger,
 	}
