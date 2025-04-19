@@ -1,7 +1,7 @@
 /*
 virtx
 
-This is a simple virtualization API for a KVM Cluster
+This is a simple virtualization API for a KVM Cluster. All fields are marked as required to avoid bad code generator results. Where possible, an integer value of 0 means \"unset\", \"unused\" or \"default\". In the rare cases where this clashes with a valid 0 value, the value -1 is used instead. For strings, the convention is that the \"\" (empty string) means \"unset\", \"unused\" or \"default\". 
 
 API version: 0.0.1
 Contact: claudio.fontana@suse.com
@@ -23,25 +23,23 @@ var _ MappedNullable = &Vmdef{}
 // Vmdef struct for Vmdef
 type Vmdef struct {
 	Name string `json:"name"`
-	Displayname *string `json:"displayname,omitempty"`
-	// vlanid for all traffic from/to this VM. 0 = automatically assign
-	Vlanid *int32 `json:"vlanid,omitempty"`
-	WatchdogAction *string `json:"watchdog_action,omitempty"`
-	Firmware *string `json:"firmware,omitempty"`
-	// VM generation ID. Use special value \"auto\" to autogenerate
-	Genid *string `json:"genid,omitempty"`
-	// where the Virtual SMBIOS should get information from
-	Smbios *string `json:"smbios,omitempty"`
-	// enable SAP-specific VM advanced configuration
-	Sap *bool `json:"sap,omitempty"`
-	// Custom Fields
-	Custom []CustomField `json:"custom,omitempty"`
+	Displayname string `json:"displayname"`
+	Cpudef Cpudef `json:"cpudef"`
+	Memory VmdefMemory `json:"memory"`
 	// disks attached to the VM
-	Disks []Disk `json:"disks,omitempty"`
+	Disks []Disk `json:"disks"`
 	// networks and bridges attached to the VM
-	Nets []Net `json:"nets,omitempty"`
-	Cpudef *Cpudef `json:"cpudef,omitempty"`
-	Memory *VmdefMemory `json:"memory,omitempty"`
+	Nets []Net `json:"nets"`
+	// vlanid for all traffic from/to this VM. 0 = no vlanid, -1 = automatically assign
+	Vlanid int32 `json:"vlanid"`
+	WatchdogAction string `json:"watchdog_action"`
+	Firmware string `json:"firmware"`
+	// VM generation ID. Use special value \"auto\" to autogenerate
+	Genid string `json:"genid"`
+	// where the Virtual SMBIOS should get information from
+	Smbios string `json:"smbios"`
+	// Custom Fields
+	Custom []CustomField `json:"custom"`
 }
 
 type _Vmdef Vmdef
@@ -50,9 +48,20 @@ type _Vmdef Vmdef
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVmdef(name string) *Vmdef {
+func NewVmdef(name string, displayname string, cpudef Cpudef, memory VmdefMemory, disks []Disk, nets []Net, vlanid int32, watchdogAction string, firmware string, genid string, smbios string, custom []CustomField) *Vmdef {
 	this := Vmdef{}
 	this.Name = name
+	this.Displayname = displayname
+	this.Cpudef = cpudef
+	this.Memory = memory
+	this.Disks = disks
+	this.Nets = nets
+	this.Vlanid = vlanid
+	this.WatchdogAction = watchdogAction
+	this.Firmware = firmware
+	this.Genid = genid
+	this.Smbios = smbios
+	this.Custom = custom
 	return &this
 }
 
@@ -88,388 +97,268 @@ func (o *Vmdef) SetName(v string) {
 	o.Name = v
 }
 
-// GetDisplayname returns the Displayname field value if set, zero value otherwise.
+// GetDisplayname returns the Displayname field value
 func (o *Vmdef) GetDisplayname() string {
-	if o == nil || IsNil(o.Displayname) {
+	if o == nil {
 		var ret string
 		return ret
 	}
-	return *o.Displayname
+
+	return o.Displayname
 }
 
-// GetDisplaynameOk returns a tuple with the Displayname field value if set, nil otherwise
+// GetDisplaynameOk returns a tuple with the Displayname field value
 // and a boolean to check if the value has been set.
 func (o *Vmdef) GetDisplaynameOk() (*string, bool) {
-	if o == nil || IsNil(o.Displayname) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Displayname, true
+	return &o.Displayname, true
 }
 
-// HasDisplayname returns a boolean if a field has been set.
-func (o *Vmdef) HasDisplayname() bool {
-	if o != nil && !IsNil(o.Displayname) {
-		return true
-	}
-
-	return false
-}
-
-// SetDisplayname gets a reference to the given string and assigns it to the Displayname field.
+// SetDisplayname sets field value
 func (o *Vmdef) SetDisplayname(v string) {
-	o.Displayname = &v
+	o.Displayname = v
 }
 
-// GetVlanid returns the Vlanid field value if set, zero value otherwise.
-func (o *Vmdef) GetVlanid() int32 {
-	if o == nil || IsNil(o.Vlanid) {
-		var ret int32
+// GetCpudef returns the Cpudef field value
+func (o *Vmdef) GetCpudef() Cpudef {
+	if o == nil {
+		var ret Cpudef
 		return ret
 	}
-	return *o.Vlanid
+
+	return o.Cpudef
 }
 
-// GetVlanidOk returns a tuple with the Vlanid field value if set, nil otherwise
+// GetCpudefOk returns a tuple with the Cpudef field value
 // and a boolean to check if the value has been set.
-func (o *Vmdef) GetVlanidOk() (*int32, bool) {
-	if o == nil || IsNil(o.Vlanid) {
+func (o *Vmdef) GetCpudefOk() (*Cpudef, bool) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Vlanid, true
+	return &o.Cpudef, true
 }
 
-// HasVlanid returns a boolean if a field has been set.
-func (o *Vmdef) HasVlanid() bool {
-	if o != nil && !IsNil(o.Vlanid) {
-		return true
-	}
-
-	return false
+// SetCpudef sets field value
+func (o *Vmdef) SetCpudef(v Cpudef) {
+	o.Cpudef = v
 }
 
-// SetVlanid gets a reference to the given int32 and assigns it to the Vlanid field.
-func (o *Vmdef) SetVlanid(v int32) {
-	o.Vlanid = &v
-}
-
-// GetWatchdogAction returns the WatchdogAction field value if set, zero value otherwise.
-func (o *Vmdef) GetWatchdogAction() string {
-	if o == nil || IsNil(o.WatchdogAction) {
-		var ret string
+// GetMemory returns the Memory field value
+func (o *Vmdef) GetMemory() VmdefMemory {
+	if o == nil {
+		var ret VmdefMemory
 		return ret
 	}
-	return *o.WatchdogAction
+
+	return o.Memory
 }
 
-// GetWatchdogActionOk returns a tuple with the WatchdogAction field value if set, nil otherwise
+// GetMemoryOk returns a tuple with the Memory field value
 // and a boolean to check if the value has been set.
-func (o *Vmdef) GetWatchdogActionOk() (*string, bool) {
-	if o == nil || IsNil(o.WatchdogAction) {
+func (o *Vmdef) GetMemoryOk() (*VmdefMemory, bool) {
+	if o == nil {
 		return nil, false
 	}
-	return o.WatchdogAction, true
+	return &o.Memory, true
 }
 
-// HasWatchdogAction returns a boolean if a field has been set.
-func (o *Vmdef) HasWatchdogAction() bool {
-	if o != nil && !IsNil(o.WatchdogAction) {
-		return true
-	}
-
-	return false
+// SetMemory sets field value
+func (o *Vmdef) SetMemory(v VmdefMemory) {
+	o.Memory = v
 }
 
-// SetWatchdogAction gets a reference to the given string and assigns it to the WatchdogAction field.
-func (o *Vmdef) SetWatchdogAction(v string) {
-	o.WatchdogAction = &v
-}
-
-// GetFirmware returns the Firmware field value if set, zero value otherwise.
-func (o *Vmdef) GetFirmware() string {
-	if o == nil || IsNil(o.Firmware) {
-		var ret string
-		return ret
-	}
-	return *o.Firmware
-}
-
-// GetFirmwareOk returns a tuple with the Firmware field value if set, nil otherwise
-// and a boolean to check if the value has been set.
-func (o *Vmdef) GetFirmwareOk() (*string, bool) {
-	if o == nil || IsNil(o.Firmware) {
-		return nil, false
-	}
-	return o.Firmware, true
-}
-
-// HasFirmware returns a boolean if a field has been set.
-func (o *Vmdef) HasFirmware() bool {
-	if o != nil && !IsNil(o.Firmware) {
-		return true
-	}
-
-	return false
-}
-
-// SetFirmware gets a reference to the given string and assigns it to the Firmware field.
-func (o *Vmdef) SetFirmware(v string) {
-	o.Firmware = &v
-}
-
-// GetGenid returns the Genid field value if set, zero value otherwise.
-func (o *Vmdef) GetGenid() string {
-	if o == nil || IsNil(o.Genid) {
-		var ret string
-		return ret
-	}
-	return *o.Genid
-}
-
-// GetGenidOk returns a tuple with the Genid field value if set, nil otherwise
-// and a boolean to check if the value has been set.
-func (o *Vmdef) GetGenidOk() (*string, bool) {
-	if o == nil || IsNil(o.Genid) {
-		return nil, false
-	}
-	return o.Genid, true
-}
-
-// HasGenid returns a boolean if a field has been set.
-func (o *Vmdef) HasGenid() bool {
-	if o != nil && !IsNil(o.Genid) {
-		return true
-	}
-
-	return false
-}
-
-// SetGenid gets a reference to the given string and assigns it to the Genid field.
-func (o *Vmdef) SetGenid(v string) {
-	o.Genid = &v
-}
-
-// GetSmbios returns the Smbios field value if set, zero value otherwise.
-func (o *Vmdef) GetSmbios() string {
-	if o == nil || IsNil(o.Smbios) {
-		var ret string
-		return ret
-	}
-	return *o.Smbios
-}
-
-// GetSmbiosOk returns a tuple with the Smbios field value if set, nil otherwise
-// and a boolean to check if the value has been set.
-func (o *Vmdef) GetSmbiosOk() (*string, bool) {
-	if o == nil || IsNil(o.Smbios) {
-		return nil, false
-	}
-	return o.Smbios, true
-}
-
-// HasSmbios returns a boolean if a field has been set.
-func (o *Vmdef) HasSmbios() bool {
-	if o != nil && !IsNil(o.Smbios) {
-		return true
-	}
-
-	return false
-}
-
-// SetSmbios gets a reference to the given string and assigns it to the Smbios field.
-func (o *Vmdef) SetSmbios(v string) {
-	o.Smbios = &v
-}
-
-// GetSap returns the Sap field value if set, zero value otherwise.
-func (o *Vmdef) GetSap() bool {
-	if o == nil || IsNil(o.Sap) {
-		var ret bool
-		return ret
-	}
-	return *o.Sap
-}
-
-// GetSapOk returns a tuple with the Sap field value if set, nil otherwise
-// and a boolean to check if the value has been set.
-func (o *Vmdef) GetSapOk() (*bool, bool) {
-	if o == nil || IsNil(o.Sap) {
-		return nil, false
-	}
-	return o.Sap, true
-}
-
-// HasSap returns a boolean if a field has been set.
-func (o *Vmdef) HasSap() bool {
-	if o != nil && !IsNil(o.Sap) {
-		return true
-	}
-
-	return false
-}
-
-// SetSap gets a reference to the given bool and assigns it to the Sap field.
-func (o *Vmdef) SetSap(v bool) {
-	o.Sap = &v
-}
-
-// GetCustom returns the Custom field value if set, zero value otherwise.
-func (o *Vmdef) GetCustom() []CustomField {
-	if o == nil || IsNil(o.Custom) {
-		var ret []CustomField
-		return ret
-	}
-	return o.Custom
-}
-
-// GetCustomOk returns a tuple with the Custom field value if set, nil otherwise
-// and a boolean to check if the value has been set.
-func (o *Vmdef) GetCustomOk() ([]CustomField, bool) {
-	if o == nil || IsNil(o.Custom) {
-		return nil, false
-	}
-	return o.Custom, true
-}
-
-// HasCustom returns a boolean if a field has been set.
-func (o *Vmdef) HasCustom() bool {
-	if o != nil && !IsNil(o.Custom) {
-		return true
-	}
-
-	return false
-}
-
-// SetCustom gets a reference to the given []CustomField and assigns it to the Custom field.
-func (o *Vmdef) SetCustom(v []CustomField) {
-	o.Custom = v
-}
-
-// GetDisks returns the Disks field value if set, zero value otherwise.
+// GetDisks returns the Disks field value
 func (o *Vmdef) GetDisks() []Disk {
-	if o == nil || IsNil(o.Disks) {
+	if o == nil {
 		var ret []Disk
 		return ret
 	}
+
 	return o.Disks
 }
 
-// GetDisksOk returns a tuple with the Disks field value if set, nil otherwise
+// GetDisksOk returns a tuple with the Disks field value
 // and a boolean to check if the value has been set.
 func (o *Vmdef) GetDisksOk() ([]Disk, bool) {
-	if o == nil || IsNil(o.Disks) {
+	if o == nil {
 		return nil, false
 	}
 	return o.Disks, true
 }
 
-// HasDisks returns a boolean if a field has been set.
-func (o *Vmdef) HasDisks() bool {
-	if o != nil && !IsNil(o.Disks) {
-		return true
-	}
-
-	return false
-}
-
-// SetDisks gets a reference to the given []Disk and assigns it to the Disks field.
+// SetDisks sets field value
 func (o *Vmdef) SetDisks(v []Disk) {
 	o.Disks = v
 }
 
-// GetNets returns the Nets field value if set, zero value otherwise.
+// GetNets returns the Nets field value
 func (o *Vmdef) GetNets() []Net {
-	if o == nil || IsNil(o.Nets) {
+	if o == nil {
 		var ret []Net
 		return ret
 	}
+
 	return o.Nets
 }
 
-// GetNetsOk returns a tuple with the Nets field value if set, nil otherwise
+// GetNetsOk returns a tuple with the Nets field value
 // and a boolean to check if the value has been set.
 func (o *Vmdef) GetNetsOk() ([]Net, bool) {
-	if o == nil || IsNil(o.Nets) {
+	if o == nil {
 		return nil, false
 	}
 	return o.Nets, true
 }
 
-// HasNets returns a boolean if a field has been set.
-func (o *Vmdef) HasNets() bool {
-	if o != nil && !IsNil(o.Nets) {
-		return true
-	}
-
-	return false
-}
-
-// SetNets gets a reference to the given []Net and assigns it to the Nets field.
+// SetNets sets field value
 func (o *Vmdef) SetNets(v []Net) {
 	o.Nets = v
 }
 
-// GetCpudef returns the Cpudef field value if set, zero value otherwise.
-func (o *Vmdef) GetCpudef() Cpudef {
-	if o == nil || IsNil(o.Cpudef) {
-		var ret Cpudef
+// GetVlanid returns the Vlanid field value
+func (o *Vmdef) GetVlanid() int32 {
+	if o == nil {
+		var ret int32
 		return ret
 	}
-	return *o.Cpudef
+
+	return o.Vlanid
 }
 
-// GetCpudefOk returns a tuple with the Cpudef field value if set, nil otherwise
+// GetVlanidOk returns a tuple with the Vlanid field value
 // and a boolean to check if the value has been set.
-func (o *Vmdef) GetCpudefOk() (*Cpudef, bool) {
-	if o == nil || IsNil(o.Cpudef) {
+func (o *Vmdef) GetVlanidOk() (*int32, bool) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Cpudef, true
+	return &o.Vlanid, true
 }
 
-// HasCpudef returns a boolean if a field has been set.
-func (o *Vmdef) HasCpudef() bool {
-	if o != nil && !IsNil(o.Cpudef) {
-		return true
-	}
-
-	return false
+// SetVlanid sets field value
+func (o *Vmdef) SetVlanid(v int32) {
+	o.Vlanid = v
 }
 
-// SetCpudef gets a reference to the given Cpudef and assigns it to the Cpudef field.
-func (o *Vmdef) SetCpudef(v Cpudef) {
-	o.Cpudef = &v
-}
-
-// GetMemory returns the Memory field value if set, zero value otherwise.
-func (o *Vmdef) GetMemory() VmdefMemory {
-	if o == nil || IsNil(o.Memory) {
-		var ret VmdefMemory
+// GetWatchdogAction returns the WatchdogAction field value
+func (o *Vmdef) GetWatchdogAction() string {
+	if o == nil {
+		var ret string
 		return ret
 	}
-	return *o.Memory
+
+	return o.WatchdogAction
 }
 
-// GetMemoryOk returns a tuple with the Memory field value if set, nil otherwise
+// GetWatchdogActionOk returns a tuple with the WatchdogAction field value
 // and a boolean to check if the value has been set.
-func (o *Vmdef) GetMemoryOk() (*VmdefMemory, bool) {
-	if o == nil || IsNil(o.Memory) {
+func (o *Vmdef) GetWatchdogActionOk() (*string, bool) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Memory, true
+	return &o.WatchdogAction, true
 }
 
-// HasMemory returns a boolean if a field has been set.
-func (o *Vmdef) HasMemory() bool {
-	if o != nil && !IsNil(o.Memory) {
-		return true
+// SetWatchdogAction sets field value
+func (o *Vmdef) SetWatchdogAction(v string) {
+	o.WatchdogAction = v
+}
+
+// GetFirmware returns the Firmware field value
+func (o *Vmdef) GetFirmware() string {
+	if o == nil {
+		var ret string
+		return ret
 	}
 
-	return false
+	return o.Firmware
 }
 
-// SetMemory gets a reference to the given VmdefMemory and assigns it to the Memory field.
-func (o *Vmdef) SetMemory(v VmdefMemory) {
-	o.Memory = &v
+// GetFirmwareOk returns a tuple with the Firmware field value
+// and a boolean to check if the value has been set.
+func (o *Vmdef) GetFirmwareOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Firmware, true
+}
+
+// SetFirmware sets field value
+func (o *Vmdef) SetFirmware(v string) {
+	o.Firmware = v
+}
+
+// GetGenid returns the Genid field value
+func (o *Vmdef) GetGenid() string {
+	if o == nil {
+		var ret string
+		return ret
+	}
+
+	return o.Genid
+}
+
+// GetGenidOk returns a tuple with the Genid field value
+// and a boolean to check if the value has been set.
+func (o *Vmdef) GetGenidOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Genid, true
+}
+
+// SetGenid sets field value
+func (o *Vmdef) SetGenid(v string) {
+	o.Genid = v
+}
+
+// GetSmbios returns the Smbios field value
+func (o *Vmdef) GetSmbios() string {
+	if o == nil {
+		var ret string
+		return ret
+	}
+
+	return o.Smbios
+}
+
+// GetSmbiosOk returns a tuple with the Smbios field value
+// and a boolean to check if the value has been set.
+func (o *Vmdef) GetSmbiosOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Smbios, true
+}
+
+// SetSmbios sets field value
+func (o *Vmdef) SetSmbios(v string) {
+	o.Smbios = v
+}
+
+// GetCustom returns the Custom field value
+func (o *Vmdef) GetCustom() []CustomField {
+	if o == nil {
+		var ret []CustomField
+		return ret
+	}
+
+	return o.Custom
+}
+
+// GetCustomOk returns a tuple with the Custom field value
+// and a boolean to check if the value has been set.
+func (o *Vmdef) GetCustomOk() ([]CustomField, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return o.Custom, true
+}
+
+// SetCustom sets field value
+func (o *Vmdef) SetCustom(v []CustomField) {
+	o.Custom = v
 }
 
 func (o Vmdef) MarshalJSON() ([]byte, error) {
@@ -483,42 +372,17 @@ func (o Vmdef) MarshalJSON() ([]byte, error) {
 func (o Vmdef) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["name"] = o.Name
-	if !IsNil(o.Displayname) {
-		toSerialize["displayname"] = o.Displayname
-	}
-	if !IsNil(o.Vlanid) {
-		toSerialize["vlanid"] = o.Vlanid
-	}
-	if !IsNil(o.WatchdogAction) {
-		toSerialize["watchdog_action"] = o.WatchdogAction
-	}
-	if !IsNil(o.Firmware) {
-		toSerialize["firmware"] = o.Firmware
-	}
-	if !IsNil(o.Genid) {
-		toSerialize["genid"] = o.Genid
-	}
-	if !IsNil(o.Smbios) {
-		toSerialize["smbios"] = o.Smbios
-	}
-	if !IsNil(o.Sap) {
-		toSerialize["sap"] = o.Sap
-	}
-	if !IsNil(o.Custom) {
-		toSerialize["custom"] = o.Custom
-	}
-	if !IsNil(o.Disks) {
-		toSerialize["disks"] = o.Disks
-	}
-	if !IsNil(o.Nets) {
-		toSerialize["nets"] = o.Nets
-	}
-	if !IsNil(o.Cpudef) {
-		toSerialize["cpudef"] = o.Cpudef
-	}
-	if !IsNil(o.Memory) {
-		toSerialize["memory"] = o.Memory
-	}
+	toSerialize["displayname"] = o.Displayname
+	toSerialize["cpudef"] = o.Cpudef
+	toSerialize["memory"] = o.Memory
+	toSerialize["disks"] = o.Disks
+	toSerialize["nets"] = o.Nets
+	toSerialize["vlanid"] = o.Vlanid
+	toSerialize["watchdog_action"] = o.WatchdogAction
+	toSerialize["firmware"] = o.Firmware
+	toSerialize["genid"] = o.Genid
+	toSerialize["smbios"] = o.Smbios
+	toSerialize["custom"] = o.Custom
 	return toSerialize, nil
 }
 
@@ -528,6 +392,17 @@ func (o *Vmdef) UnmarshalJSON(data []byte) (err error) {
 	// that every required field exists as a key in the generic map.
 	requiredProperties := []string{
 		"name",
+		"displayname",
+		"cpudef",
+		"memory",
+		"disks",
+		"nets",
+		"vlanid",
+		"watchdog_action",
+		"firmware",
+		"genid",
+		"smbios",
+		"custom",
 	}
 
 	allProperties := make(map[string]interface{})

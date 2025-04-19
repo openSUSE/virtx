@@ -1,7 +1,7 @@
 /*
 virtx
 
-This is a simple virtualization API for a KVM Cluster
+This is a simple virtualization API for a KVM Cluster. All fields are marked as required to avoid bad code generator results. Where possible, an integer value of 0 means \"unset\", \"unused\" or \"default\". In the rare cases where this clashes with a valid 0 value, the value -1 is used instead. For strings, the convention is that the \"\" (empty string) means \"unset\", \"unused\" or \"default\". 
 
 API version: 0.0.1
 Contact: claudio.fontana@suse.com
@@ -13,6 +13,8 @@ package openapi
 
 import (
 	"encoding/json"
+	"bytes"
+	"fmt"
 )
 
 // checks if the Cluster type satisfies the MappedNullable interface at compile time
@@ -20,19 +22,21 @@ var _ MappedNullable = &Cluster{}
 
 // Cluster struct for Cluster
 type Cluster struct {
-	// Unique Identifier for VMs, Hosts, Cluster, RFC 4122
-	Uuid *string `json:"uuid,omitempty"`
-	Name *string `json:"name,omitempty"`
+	Name string `json:"name"`
 	// total computing resources
-	Resources *Hostresources `json:"resources,omitempty"`
+	Resources Hostresources `json:"resources"`
 }
+
+type _Cluster Cluster
 
 // NewCluster instantiates a new Cluster object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewCluster() *Cluster {
+func NewCluster(name string, resources Hostresources) *Cluster {
 	this := Cluster{}
+	this.Name = name
+	this.Resources = resources
 	return &this
 }
 
@@ -44,100 +48,52 @@ func NewClusterWithDefaults() *Cluster {
 	return &this
 }
 
-// GetUuid returns the Uuid field value if set, zero value otherwise.
-func (o *Cluster) GetUuid() string {
-	if o == nil || IsNil(o.Uuid) {
-		var ret string
-		return ret
-	}
-	return *o.Uuid
-}
-
-// GetUuidOk returns a tuple with the Uuid field value if set, nil otherwise
-// and a boolean to check if the value has been set.
-func (o *Cluster) GetUuidOk() (*string, bool) {
-	if o == nil || IsNil(o.Uuid) {
-		return nil, false
-	}
-	return o.Uuid, true
-}
-
-// HasUuid returns a boolean if a field has been set.
-func (o *Cluster) HasUuid() bool {
-	if o != nil && !IsNil(o.Uuid) {
-		return true
-	}
-
-	return false
-}
-
-// SetUuid gets a reference to the given string and assigns it to the Uuid field.
-func (o *Cluster) SetUuid(v string) {
-	o.Uuid = &v
-}
-
-// GetName returns the Name field value if set, zero value otherwise.
+// GetName returns the Name field value
 func (o *Cluster) GetName() string {
-	if o == nil || IsNil(o.Name) {
+	if o == nil {
 		var ret string
 		return ret
 	}
-	return *o.Name
+
+	return o.Name
 }
 
-// GetNameOk returns a tuple with the Name field value if set, nil otherwise
+// GetNameOk returns a tuple with the Name field value
 // and a boolean to check if the value has been set.
 func (o *Cluster) GetNameOk() (*string, bool) {
-	if o == nil || IsNil(o.Name) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Name, true
+	return &o.Name, true
 }
 
-// HasName returns a boolean if a field has been set.
-func (o *Cluster) HasName() bool {
-	if o != nil && !IsNil(o.Name) {
-		return true
-	}
-
-	return false
-}
-
-// SetName gets a reference to the given string and assigns it to the Name field.
+// SetName sets field value
 func (o *Cluster) SetName(v string) {
-	o.Name = &v
+	o.Name = v
 }
 
-// GetResources returns the Resources field value if set, zero value otherwise.
+// GetResources returns the Resources field value
 func (o *Cluster) GetResources() Hostresources {
-	if o == nil || IsNil(o.Resources) {
+	if o == nil {
 		var ret Hostresources
 		return ret
 	}
-	return *o.Resources
+
+	return o.Resources
 }
 
-// GetResourcesOk returns a tuple with the Resources field value if set, nil otherwise
+// GetResourcesOk returns a tuple with the Resources field value
 // and a boolean to check if the value has been set.
 func (o *Cluster) GetResourcesOk() (*Hostresources, bool) {
-	if o == nil || IsNil(o.Resources) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Resources, true
+	return &o.Resources, true
 }
 
-// HasResources returns a boolean if a field has been set.
-func (o *Cluster) HasResources() bool {
-	if o != nil && !IsNil(o.Resources) {
-		return true
-	}
-
-	return false
-}
-
-// SetResources gets a reference to the given Hostresources and assigns it to the Resources field.
+// SetResources sets field value
 func (o *Cluster) SetResources(v Hostresources) {
-	o.Resources = &v
+	o.Resources = v
 }
 
 func (o Cluster) MarshalJSON() ([]byte, error) {
@@ -150,16 +106,47 @@ func (o Cluster) MarshalJSON() ([]byte, error) {
 
 func (o Cluster) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
-	if !IsNil(o.Uuid) {
-		toSerialize["uuid"] = o.Uuid
-	}
-	if !IsNil(o.Name) {
-		toSerialize["name"] = o.Name
-	}
-	if !IsNil(o.Resources) {
-		toSerialize["resources"] = o.Resources
-	}
+	toSerialize["name"] = o.Name
+	toSerialize["resources"] = o.Resources
 	return toSerialize, nil
+}
+
+func (o *Cluster) UnmarshalJSON(data []byte) (err error) {
+	// This validates that all required properties are included in the JSON object
+	// by unmarshalling the object into a generic map with string keys and checking
+	// that every required field exists as a key in the generic map.
+	requiredProperties := []string{
+		"name",
+		"resources",
+	}
+
+	allProperties := make(map[string]interface{})
+
+	err = json.Unmarshal(data, &allProperties)
+
+	if err != nil {
+		return err;
+	}
+
+	for _, requiredProperty := range(requiredProperties) {
+		if _, exists := allProperties[requiredProperty]; !exists {
+			return fmt.Errorf("no value given for required property %v", requiredProperty)
+		}
+	}
+
+	varCluster := _Cluster{}
+
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	err = decoder.Decode(&varCluster)
+
+	if err != nil {
+		return err
+	}
+
+	*o = Cluster(varCluster)
+
+	return err
 }
 
 type NullableCluster struct {

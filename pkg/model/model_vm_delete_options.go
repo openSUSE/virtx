@@ -1,7 +1,7 @@
 /*
 virtx
 
-This is a simple virtualization API for a KVM Cluster
+This is a simple virtualization API for a KVM Cluster. All fields are marked as required to avoid bad code generator results. Where possible, an integer value of 0 means \"unset\", \"unused\" or \"default\". In the rare cases where this clashes with a valid 0 value, the value -1 is used instead. For strings, the convention is that the \"\" (empty string) means \"unset\", \"unused\" or \"default\". 
 
 API version: 0.0.1
 Contact: claudio.fontana@suse.com
@@ -13,6 +13,8 @@ package openapi
 
 import (
 	"encoding/json"
+	"bytes"
+	"fmt"
 )
 
 // checks if the VmDeleteOptions type satisfies the MappedNullable interface at compile time
@@ -21,15 +23,18 @@ var _ MappedNullable = &VmDeleteOptions{}
 // VmDeleteOptions struct for VmDeleteOptions
 type VmDeleteOptions struct {
 	// if true, delete also the associated storage (disks)
-	DeleteStorage *bool `json:"delete_storage,omitempty"`
+	DeleteStorage bool `json:"delete_storage"`
 }
+
+type _VmDeleteOptions VmDeleteOptions
 
 // NewVmDeleteOptions instantiates a new VmDeleteOptions object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVmDeleteOptions() *VmDeleteOptions {
+func NewVmDeleteOptions(deleteStorage bool) *VmDeleteOptions {
 	this := VmDeleteOptions{}
+	this.DeleteStorage = deleteStorage
 	return &this
 }
 
@@ -41,36 +46,28 @@ func NewVmDeleteOptionsWithDefaults() *VmDeleteOptions {
 	return &this
 }
 
-// GetDeleteStorage returns the DeleteStorage field value if set, zero value otherwise.
+// GetDeleteStorage returns the DeleteStorage field value
 func (o *VmDeleteOptions) GetDeleteStorage() bool {
-	if o == nil || IsNil(o.DeleteStorage) {
+	if o == nil {
 		var ret bool
 		return ret
 	}
-	return *o.DeleteStorage
+
+	return o.DeleteStorage
 }
 
-// GetDeleteStorageOk returns a tuple with the DeleteStorage field value if set, nil otherwise
+// GetDeleteStorageOk returns a tuple with the DeleteStorage field value
 // and a boolean to check if the value has been set.
 func (o *VmDeleteOptions) GetDeleteStorageOk() (*bool, bool) {
-	if o == nil || IsNil(o.DeleteStorage) {
+	if o == nil {
 		return nil, false
 	}
-	return o.DeleteStorage, true
+	return &o.DeleteStorage, true
 }
 
-// HasDeleteStorage returns a boolean if a field has been set.
-func (o *VmDeleteOptions) HasDeleteStorage() bool {
-	if o != nil && !IsNil(o.DeleteStorage) {
-		return true
-	}
-
-	return false
-}
-
-// SetDeleteStorage gets a reference to the given bool and assigns it to the DeleteStorage field.
+// SetDeleteStorage sets field value
 func (o *VmDeleteOptions) SetDeleteStorage(v bool) {
-	o.DeleteStorage = &v
+	o.DeleteStorage = v
 }
 
 func (o VmDeleteOptions) MarshalJSON() ([]byte, error) {
@@ -83,10 +80,45 @@ func (o VmDeleteOptions) MarshalJSON() ([]byte, error) {
 
 func (o VmDeleteOptions) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
-	if !IsNil(o.DeleteStorage) {
-		toSerialize["delete_storage"] = o.DeleteStorage
-	}
+	toSerialize["delete_storage"] = o.DeleteStorage
 	return toSerialize, nil
+}
+
+func (o *VmDeleteOptions) UnmarshalJSON(data []byte) (err error) {
+	// This validates that all required properties are included in the JSON object
+	// by unmarshalling the object into a generic map with string keys and checking
+	// that every required field exists as a key in the generic map.
+	requiredProperties := []string{
+		"delete_storage",
+	}
+
+	allProperties := make(map[string]interface{})
+
+	err = json.Unmarshal(data, &allProperties)
+
+	if err != nil {
+		return err;
+	}
+
+	for _, requiredProperty := range(requiredProperties) {
+		if _, exists := allProperties[requiredProperty]; !exists {
+			return fmt.Errorf("no value given for required property %v", requiredProperty)
+		}
+	}
+
+	varVmDeleteOptions := _VmDeleteOptions{}
+
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	err = decoder.Decode(&varVmDeleteOptions)
+
+	if err != nil {
+		return err
+	}
+
+	*o = VmDeleteOptions(varVmDeleteOptions)
+
+	return err
 }
 
 type NullableVmDeleteOptions struct {

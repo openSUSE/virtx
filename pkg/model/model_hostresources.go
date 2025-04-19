@@ -1,7 +1,7 @@
 /*
 virtx
 
-This is a simple virtualization API for a KVM Cluster
+This is a simple virtualization API for a KVM Cluster. All fields are marked as required to avoid bad code generator results. Where possible, an integer value of 0 means \"unset\", \"unused\" or \"default\". In the rare cases where this clashes with a valid 0 value, the value -1 is used instead. For strings, the convention is that the \"\" (empty string) means \"unset\", \"unused\" or \"default\". 
 
 API version: 0.0.1
 Contact: claudio.fontana@suse.com
@@ -13,6 +13,8 @@ package openapi
 
 import (
 	"encoding/json"
+	"bytes"
+	"fmt"
 )
 
 // checks if the Hostresources type satisfies the MappedNullable interface at compile time
@@ -20,16 +22,20 @@ var _ MappedNullable = &Hostresources{}
 
 // Hostresources struct for Hostresources
 type Hostresources struct {
-	Memory *Hostresource `json:"memory,omitempty"`
-	Mhz *Hostresource `json:"mhz,omitempty"`
+	Memory Hostresource `json:"memory"`
+	Mhz Hostresource `json:"mhz"`
 }
+
+type _Hostresources Hostresources
 
 // NewHostresources instantiates a new Hostresources object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewHostresources() *Hostresources {
+func NewHostresources(memory Hostresource, mhz Hostresource) *Hostresources {
 	this := Hostresources{}
+	this.Memory = memory
+	this.Mhz = mhz
 	return &this
 }
 
@@ -41,68 +47,52 @@ func NewHostresourcesWithDefaults() *Hostresources {
 	return &this
 }
 
-// GetMemory returns the Memory field value if set, zero value otherwise.
+// GetMemory returns the Memory field value
 func (o *Hostresources) GetMemory() Hostresource {
-	if o == nil || IsNil(o.Memory) {
+	if o == nil {
 		var ret Hostresource
 		return ret
 	}
-	return *o.Memory
+
+	return o.Memory
 }
 
-// GetMemoryOk returns a tuple with the Memory field value if set, nil otherwise
+// GetMemoryOk returns a tuple with the Memory field value
 // and a boolean to check if the value has been set.
 func (o *Hostresources) GetMemoryOk() (*Hostresource, bool) {
-	if o == nil || IsNil(o.Memory) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Memory, true
+	return &o.Memory, true
 }
 
-// HasMemory returns a boolean if a field has been set.
-func (o *Hostresources) HasMemory() bool {
-	if o != nil && !IsNil(o.Memory) {
-		return true
-	}
-
-	return false
-}
-
-// SetMemory gets a reference to the given Hostresource and assigns it to the Memory field.
+// SetMemory sets field value
 func (o *Hostresources) SetMemory(v Hostresource) {
-	o.Memory = &v
+	o.Memory = v
 }
 
-// GetMhz returns the Mhz field value if set, zero value otherwise.
+// GetMhz returns the Mhz field value
 func (o *Hostresources) GetMhz() Hostresource {
-	if o == nil || IsNil(o.Mhz) {
+	if o == nil {
 		var ret Hostresource
 		return ret
 	}
-	return *o.Mhz
+
+	return o.Mhz
 }
 
-// GetMhzOk returns a tuple with the Mhz field value if set, nil otherwise
+// GetMhzOk returns a tuple with the Mhz field value
 // and a boolean to check if the value has been set.
 func (o *Hostresources) GetMhzOk() (*Hostresource, bool) {
-	if o == nil || IsNil(o.Mhz) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Mhz, true
+	return &o.Mhz, true
 }
 
-// HasMhz returns a boolean if a field has been set.
-func (o *Hostresources) HasMhz() bool {
-	if o != nil && !IsNil(o.Mhz) {
-		return true
-	}
-
-	return false
-}
-
-// SetMhz gets a reference to the given Hostresource and assigns it to the Mhz field.
+// SetMhz sets field value
 func (o *Hostresources) SetMhz(v Hostresource) {
-	o.Mhz = &v
+	o.Mhz = v
 }
 
 func (o Hostresources) MarshalJSON() ([]byte, error) {
@@ -115,13 +105,47 @@ func (o Hostresources) MarshalJSON() ([]byte, error) {
 
 func (o Hostresources) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
-	if !IsNil(o.Memory) {
-		toSerialize["memory"] = o.Memory
-	}
-	if !IsNil(o.Mhz) {
-		toSerialize["mhz"] = o.Mhz
-	}
+	toSerialize["memory"] = o.Memory
+	toSerialize["mhz"] = o.Mhz
 	return toSerialize, nil
+}
+
+func (o *Hostresources) UnmarshalJSON(data []byte) (err error) {
+	// This validates that all required properties are included in the JSON object
+	// by unmarshalling the object into a generic map with string keys and checking
+	// that every required field exists as a key in the generic map.
+	requiredProperties := []string{
+		"memory",
+		"mhz",
+	}
+
+	allProperties := make(map[string]interface{})
+
+	err = json.Unmarshal(data, &allProperties)
+
+	if err != nil {
+		return err;
+	}
+
+	for _, requiredProperty := range(requiredProperties) {
+		if _, exists := allProperties[requiredProperty]; !exists {
+			return fmt.Errorf("no value given for required property %v", requiredProperty)
+		}
+	}
+
+	varHostresources := _Hostresources{}
+
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	err = decoder.Decode(&varHostresources)
+
+	if err != nil {
+		return err
+	}
+
+	*o = Hostresources(varHostresources)
+
+	return err
 }
 
 type NullableHostresources struct {

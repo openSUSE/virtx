@@ -1,7 +1,7 @@
 /*
 virtx
 
-This is a simple virtualization API for a KVM Cluster
+This is a simple virtualization API for a KVM Cluster. All fields are marked as required to avoid bad code generator results. Where possible, an integer value of 0 means \"unset\", \"unused\" or \"default\". In the rare cases where this clashes with a valid 0 value, the value -1 is used instead. For strings, the convention is that the \"\" (empty string) means \"unset\", \"unused\" or \"default\". 
 
 API version: 0.0.1
 Contact: claudio.fontana@suse.com
@@ -13,6 +13,8 @@ package openapi
 
 import (
 	"encoding/json"
+	"bytes"
+	"fmt"
 )
 
 // checks if the Cpuarch type satisfies the MappedNullable interface at compile time
@@ -20,18 +22,22 @@ var _ MappedNullable = &Cpuarch{}
 
 // Cpuarch struct for Cpuarch
 type Cpuarch struct {
-	// the CPU base architecture
-	Arch NullableInt32 `json:"arch,omitempty"`
-	// vendor as per libvirt definition, x86_vendors.xml, arm_vendors.xml
-	Vendor NullableInt32 `json:"vendor,omitempty"`
+	// the CPU base architecture. Examples: \"x86_64\", \"aarch64\" 
+	Arch string `json:"arch"`
+	// vendor as per libvirt definition, x86_vendors.xml, arm_vendors.xml. Examples \"Intel\", \"AMD\" 
+	Vendor string `json:"vendor"`
 }
+
+type _Cpuarch Cpuarch
 
 // NewCpuarch instantiates a new Cpuarch object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewCpuarch() *Cpuarch {
+func NewCpuarch(arch string, vendor string) *Cpuarch {
 	this := Cpuarch{}
+	this.Arch = arch
+	this.Vendor = vendor
 	return &this
 }
 
@@ -43,88 +49,52 @@ func NewCpuarchWithDefaults() *Cpuarch {
 	return &this
 }
 
-// GetArch returns the Arch field value if set, zero value otherwise (both if not set or set to explicit null).
-func (o *Cpuarch) GetArch() int32 {
-	if o == nil || IsNil(o.Arch.Get()) {
-		var ret int32
+// GetArch returns the Arch field value
+func (o *Cpuarch) GetArch() string {
+	if o == nil {
+		var ret string
 		return ret
 	}
-	return *o.Arch.Get()
+
+	return o.Arch
 }
 
-// GetArchOk returns a tuple with the Arch field value if set, nil otherwise
+// GetArchOk returns a tuple with the Arch field value
 // and a boolean to check if the value has been set.
-// NOTE: If the value is an explicit nil, `nil, true` will be returned
-func (o *Cpuarch) GetArchOk() (*int32, bool) {
+func (o *Cpuarch) GetArchOk() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return o.Arch.Get(), o.Arch.IsSet()
+	return &o.Arch, true
 }
 
-// HasArch returns a boolean if a field has been set.
-func (o *Cpuarch) HasArch() bool {
-	if o != nil && o.Arch.IsSet() {
-		return true
-	}
-
-	return false
+// SetArch sets field value
+func (o *Cpuarch) SetArch(v string) {
+	o.Arch = v
 }
 
-// SetArch gets a reference to the given NullableInt32 and assigns it to the Arch field.
-func (o *Cpuarch) SetArch(v int32) {
-	o.Arch.Set(&v)
-}
-// SetArchNil sets the value for Arch to be an explicit nil
-func (o *Cpuarch) SetArchNil() {
-	o.Arch.Set(nil)
-}
-
-// UnsetArch ensures that no value is present for Arch, not even an explicit nil
-func (o *Cpuarch) UnsetArch() {
-	o.Arch.Unset()
-}
-
-// GetVendor returns the Vendor field value if set, zero value otherwise (both if not set or set to explicit null).
-func (o *Cpuarch) GetVendor() int32 {
-	if o == nil || IsNil(o.Vendor.Get()) {
-		var ret int32
+// GetVendor returns the Vendor field value
+func (o *Cpuarch) GetVendor() string {
+	if o == nil {
+		var ret string
 		return ret
 	}
-	return *o.Vendor.Get()
+
+	return o.Vendor
 }
 
-// GetVendorOk returns a tuple with the Vendor field value if set, nil otherwise
+// GetVendorOk returns a tuple with the Vendor field value
 // and a boolean to check if the value has been set.
-// NOTE: If the value is an explicit nil, `nil, true` will be returned
-func (o *Cpuarch) GetVendorOk() (*int32, bool) {
+func (o *Cpuarch) GetVendorOk() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return o.Vendor.Get(), o.Vendor.IsSet()
+	return &o.Vendor, true
 }
 
-// HasVendor returns a boolean if a field has been set.
-func (o *Cpuarch) HasVendor() bool {
-	if o != nil && o.Vendor.IsSet() {
-		return true
-	}
-
-	return false
-}
-
-// SetVendor gets a reference to the given NullableInt32 and assigns it to the Vendor field.
-func (o *Cpuarch) SetVendor(v int32) {
-	o.Vendor.Set(&v)
-}
-// SetVendorNil sets the value for Vendor to be an explicit nil
-func (o *Cpuarch) SetVendorNil() {
-	o.Vendor.Set(nil)
-}
-
-// UnsetVendor ensures that no value is present for Vendor, not even an explicit nil
-func (o *Cpuarch) UnsetVendor() {
-	o.Vendor.Unset()
+// SetVendor sets field value
+func (o *Cpuarch) SetVendor(v string) {
+	o.Vendor = v
 }
 
 func (o Cpuarch) MarshalJSON() ([]byte, error) {
@@ -137,13 +107,47 @@ func (o Cpuarch) MarshalJSON() ([]byte, error) {
 
 func (o Cpuarch) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
-	if o.Arch.IsSet() {
-		toSerialize["arch"] = o.Arch.Get()
-	}
-	if o.Vendor.IsSet() {
-		toSerialize["vendor"] = o.Vendor.Get()
-	}
+	toSerialize["arch"] = o.Arch
+	toSerialize["vendor"] = o.Vendor
 	return toSerialize, nil
+}
+
+func (o *Cpuarch) UnmarshalJSON(data []byte) (err error) {
+	// This validates that all required properties are included in the JSON object
+	// by unmarshalling the object into a generic map with string keys and checking
+	// that every required field exists as a key in the generic map.
+	requiredProperties := []string{
+		"arch",
+		"vendor",
+	}
+
+	allProperties := make(map[string]interface{})
+
+	err = json.Unmarshal(data, &allProperties)
+
+	if err != nil {
+		return err;
+	}
+
+	for _, requiredProperty := range(requiredProperties) {
+		if _, exists := allProperties[requiredProperty]; !exists {
+			return fmt.Errorf("no value given for required property %v", requiredProperty)
+		}
+	}
+
+	varCpuarch := _Cpuarch{}
+
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	err = decoder.Decode(&varCpuarch)
+
+	if err != nil {
+		return err
+	}
+
+	*o = Cpuarch(varCpuarch)
+
+	return err
 }
 
 type NullableCpuarch struct {

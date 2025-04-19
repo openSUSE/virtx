@@ -1,7 +1,7 @@
 /*
 virtx
 
-This is a simple virtualization API for a KVM Cluster
+This is a simple virtualization API for a KVM Cluster. All fields are marked as required to avoid bad code generator results. Where possible, an integer value of 0 means \"unset\", \"unused\" or \"default\". In the rare cases where this clashes with a valid 0 value, the value -1 is used instead. For strings, the convention is that the \"\" (empty string) means \"unset\", \"unused\" or \"default\". 
 
 API version: 0.0.1
 Contact: claudio.fontana@suse.com
@@ -13,6 +13,8 @@ package openapi
 
 import (
 	"encoding/json"
+	"bytes"
+	"fmt"
 )
 
 // checks if the VmMigrateInfoProgress type satisfies the MappedNullable interface at compile time
@@ -21,21 +23,27 @@ var _ MappedNullable = &VmMigrateInfoProgress{}
 // VmMigrateInfoProgress struct for VmMigrateInfoProgress
 type VmMigrateInfoProgress struct {
 	// MiB of RAM to be trasferred
-	Total *int64 `json:"total,omitempty"`
+	Total int64 `json:"total"`
 	// MiB already transferred to the migration target
-	Transferred *int64 `json:"transferred,omitempty"`
+	Transferred int64 `json:"transferred"`
 	// MiB remaining to be transferred to the target
-	Remaining *int64 `json:"remaining,omitempty"`
+	Remaining int64 `json:"remaining"`
 	// MiB per second. Only available for \"active\" and \"completed\"
-	Rate *float32 `json:"rate,omitempty"`
+	Rate float32 `json:"rate"`
 }
+
+type _VmMigrateInfoProgress VmMigrateInfoProgress
 
 // NewVmMigrateInfoProgress instantiates a new VmMigrateInfoProgress object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVmMigrateInfoProgress() *VmMigrateInfoProgress {
+func NewVmMigrateInfoProgress(total int64, transferred int64, remaining int64, rate float32) *VmMigrateInfoProgress {
 	this := VmMigrateInfoProgress{}
+	this.Total = total
+	this.Transferred = transferred
+	this.Remaining = remaining
+	this.Rate = rate
 	return &this
 }
 
@@ -47,132 +55,100 @@ func NewVmMigrateInfoProgressWithDefaults() *VmMigrateInfoProgress {
 	return &this
 }
 
-// GetTotal returns the Total field value if set, zero value otherwise.
+// GetTotal returns the Total field value
 func (o *VmMigrateInfoProgress) GetTotal() int64 {
-	if o == nil || IsNil(o.Total) {
+	if o == nil {
 		var ret int64
 		return ret
 	}
-	return *o.Total
+
+	return o.Total
 }
 
-// GetTotalOk returns a tuple with the Total field value if set, nil otherwise
+// GetTotalOk returns a tuple with the Total field value
 // and a boolean to check if the value has been set.
 func (o *VmMigrateInfoProgress) GetTotalOk() (*int64, bool) {
-	if o == nil || IsNil(o.Total) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Total, true
+	return &o.Total, true
 }
 
-// HasTotal returns a boolean if a field has been set.
-func (o *VmMigrateInfoProgress) HasTotal() bool {
-	if o != nil && !IsNil(o.Total) {
-		return true
-	}
-
-	return false
-}
-
-// SetTotal gets a reference to the given int64 and assigns it to the Total field.
+// SetTotal sets field value
 func (o *VmMigrateInfoProgress) SetTotal(v int64) {
-	o.Total = &v
+	o.Total = v
 }
 
-// GetTransferred returns the Transferred field value if set, zero value otherwise.
+// GetTransferred returns the Transferred field value
 func (o *VmMigrateInfoProgress) GetTransferred() int64 {
-	if o == nil || IsNil(o.Transferred) {
+	if o == nil {
 		var ret int64
 		return ret
 	}
-	return *o.Transferred
+
+	return o.Transferred
 }
 
-// GetTransferredOk returns a tuple with the Transferred field value if set, nil otherwise
+// GetTransferredOk returns a tuple with the Transferred field value
 // and a boolean to check if the value has been set.
 func (o *VmMigrateInfoProgress) GetTransferredOk() (*int64, bool) {
-	if o == nil || IsNil(o.Transferred) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Transferred, true
+	return &o.Transferred, true
 }
 
-// HasTransferred returns a boolean if a field has been set.
-func (o *VmMigrateInfoProgress) HasTransferred() bool {
-	if o != nil && !IsNil(o.Transferred) {
-		return true
-	}
-
-	return false
-}
-
-// SetTransferred gets a reference to the given int64 and assigns it to the Transferred field.
+// SetTransferred sets field value
 func (o *VmMigrateInfoProgress) SetTransferred(v int64) {
-	o.Transferred = &v
+	o.Transferred = v
 }
 
-// GetRemaining returns the Remaining field value if set, zero value otherwise.
+// GetRemaining returns the Remaining field value
 func (o *VmMigrateInfoProgress) GetRemaining() int64 {
-	if o == nil || IsNil(o.Remaining) {
+	if o == nil {
 		var ret int64
 		return ret
 	}
-	return *o.Remaining
+
+	return o.Remaining
 }
 
-// GetRemainingOk returns a tuple with the Remaining field value if set, nil otherwise
+// GetRemainingOk returns a tuple with the Remaining field value
 // and a boolean to check if the value has been set.
 func (o *VmMigrateInfoProgress) GetRemainingOk() (*int64, bool) {
-	if o == nil || IsNil(o.Remaining) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Remaining, true
+	return &o.Remaining, true
 }
 
-// HasRemaining returns a boolean if a field has been set.
-func (o *VmMigrateInfoProgress) HasRemaining() bool {
-	if o != nil && !IsNil(o.Remaining) {
-		return true
-	}
-
-	return false
-}
-
-// SetRemaining gets a reference to the given int64 and assigns it to the Remaining field.
+// SetRemaining sets field value
 func (o *VmMigrateInfoProgress) SetRemaining(v int64) {
-	o.Remaining = &v
+	o.Remaining = v
 }
 
-// GetRate returns the Rate field value if set, zero value otherwise.
+// GetRate returns the Rate field value
 func (o *VmMigrateInfoProgress) GetRate() float32 {
-	if o == nil || IsNil(o.Rate) {
+	if o == nil {
 		var ret float32
 		return ret
 	}
-	return *o.Rate
+
+	return o.Rate
 }
 
-// GetRateOk returns a tuple with the Rate field value if set, nil otherwise
+// GetRateOk returns a tuple with the Rate field value
 // and a boolean to check if the value has been set.
 func (o *VmMigrateInfoProgress) GetRateOk() (*float32, bool) {
-	if o == nil || IsNil(o.Rate) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Rate, true
+	return &o.Rate, true
 }
 
-// HasRate returns a boolean if a field has been set.
-func (o *VmMigrateInfoProgress) HasRate() bool {
-	if o != nil && !IsNil(o.Rate) {
-		return true
-	}
-
-	return false
-}
-
-// SetRate gets a reference to the given float32 and assigns it to the Rate field.
+// SetRate sets field value
 func (o *VmMigrateInfoProgress) SetRate(v float32) {
-	o.Rate = &v
+	o.Rate = v
 }
 
 func (o VmMigrateInfoProgress) MarshalJSON() ([]byte, error) {
@@ -185,19 +161,51 @@ func (o VmMigrateInfoProgress) MarshalJSON() ([]byte, error) {
 
 func (o VmMigrateInfoProgress) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
-	if !IsNil(o.Total) {
-		toSerialize["total"] = o.Total
-	}
-	if !IsNil(o.Transferred) {
-		toSerialize["transferred"] = o.Transferred
-	}
-	if !IsNil(o.Remaining) {
-		toSerialize["remaining"] = o.Remaining
-	}
-	if !IsNil(o.Rate) {
-		toSerialize["rate"] = o.Rate
-	}
+	toSerialize["total"] = o.Total
+	toSerialize["transferred"] = o.Transferred
+	toSerialize["remaining"] = o.Remaining
+	toSerialize["rate"] = o.Rate
 	return toSerialize, nil
+}
+
+func (o *VmMigrateInfoProgress) UnmarshalJSON(data []byte) (err error) {
+	// This validates that all required properties are included in the JSON object
+	// by unmarshalling the object into a generic map with string keys and checking
+	// that every required field exists as a key in the generic map.
+	requiredProperties := []string{
+		"total",
+		"transferred",
+		"remaining",
+		"rate",
+	}
+
+	allProperties := make(map[string]interface{})
+
+	err = json.Unmarshal(data, &allProperties)
+
+	if err != nil {
+		return err;
+	}
+
+	for _, requiredProperty := range(requiredProperties) {
+		if _, exists := allProperties[requiredProperty]; !exists {
+			return fmt.Errorf("no value given for required property %v", requiredProperty)
+		}
+	}
+
+	varVmMigrateInfoProgress := _VmMigrateInfoProgress{}
+
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	err = decoder.Decode(&varVmMigrateInfoProgress)
+
+	if err != nil {
+		return err
+	}
+
+	*o = VmMigrateInfoProgress(varVmMigrateInfoProgress)
+
+	return err
 }
 
 type NullableVmMigrateInfoProgress struct {

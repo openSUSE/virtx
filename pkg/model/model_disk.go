@@ -1,7 +1,7 @@
 /*
 virtx
 
-This is a simple virtualization API for a KVM Cluster
+This is a simple virtualization API for a KVM Cluster. All fields are marked as required to avoid bad code generator results. Where possible, an integer value of 0 means \"unset\", \"unused\" or \"default\". In the rare cases where this clashes with a valid 0 value, the value -1 is used instead. For strings, the convention is that the \"\" (empty string) means \"unset\", \"unused\" or \"default\". 
 
 API version: 0.0.1
 Contact: claudio.fontana@suse.com
@@ -13,6 +13,8 @@ package openapi
 
 import (
 	"encoding/json"
+	"bytes"
+	"fmt"
 )
 
 // checks if the Disk type satisfies the MappedNullable interface at compile time
@@ -20,19 +22,23 @@ var _ MappedNullable = &Disk{}
 
 // Disk struct for Disk
 type Disk struct {
-	// Unique Identifier for VMs, Hosts, Cluster, RFC 4122
-	Uuid *string `json:"uuid,omitempty"`
-	Device *string `json:"device,omitempty"`
-	Path *string `json:"path,omitempty"`
-	Bus *string `json:"bus,omitempty"`
+	Path string `json:"path"`
+	Device string `json:"device"`
+	// libvirt 'target' disk field, how the device appears in the guest
+	Bus string `json:"bus"`
 }
+
+type _Disk Disk
 
 // NewDisk instantiates a new Disk object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewDisk() *Disk {
+func NewDisk(path string, device string, bus string) *Disk {
 	this := Disk{}
+	this.Path = path
+	this.Device = device
+	this.Bus = bus
 	return &this
 }
 
@@ -44,132 +50,76 @@ func NewDiskWithDefaults() *Disk {
 	return &this
 }
 
-// GetUuid returns the Uuid field value if set, zero value otherwise.
-func (o *Disk) GetUuid() string {
-	if o == nil || IsNil(o.Uuid) {
-		var ret string
-		return ret
-	}
-	return *o.Uuid
-}
-
-// GetUuidOk returns a tuple with the Uuid field value if set, nil otherwise
-// and a boolean to check if the value has been set.
-func (o *Disk) GetUuidOk() (*string, bool) {
-	if o == nil || IsNil(o.Uuid) {
-		return nil, false
-	}
-	return o.Uuid, true
-}
-
-// HasUuid returns a boolean if a field has been set.
-func (o *Disk) HasUuid() bool {
-	if o != nil && !IsNil(o.Uuid) {
-		return true
-	}
-
-	return false
-}
-
-// SetUuid gets a reference to the given string and assigns it to the Uuid field.
-func (o *Disk) SetUuid(v string) {
-	o.Uuid = &v
-}
-
-// GetDevice returns the Device field value if set, zero value otherwise.
-func (o *Disk) GetDevice() string {
-	if o == nil || IsNil(o.Device) {
-		var ret string
-		return ret
-	}
-	return *o.Device
-}
-
-// GetDeviceOk returns a tuple with the Device field value if set, nil otherwise
-// and a boolean to check if the value has been set.
-func (o *Disk) GetDeviceOk() (*string, bool) {
-	if o == nil || IsNil(o.Device) {
-		return nil, false
-	}
-	return o.Device, true
-}
-
-// HasDevice returns a boolean if a field has been set.
-func (o *Disk) HasDevice() bool {
-	if o != nil && !IsNil(o.Device) {
-		return true
-	}
-
-	return false
-}
-
-// SetDevice gets a reference to the given string and assigns it to the Device field.
-func (o *Disk) SetDevice(v string) {
-	o.Device = &v
-}
-
-// GetPath returns the Path field value if set, zero value otherwise.
+// GetPath returns the Path field value
 func (o *Disk) GetPath() string {
-	if o == nil || IsNil(o.Path) {
+	if o == nil {
 		var ret string
 		return ret
 	}
-	return *o.Path
+
+	return o.Path
 }
 
-// GetPathOk returns a tuple with the Path field value if set, nil otherwise
+// GetPathOk returns a tuple with the Path field value
 // and a boolean to check if the value has been set.
 func (o *Disk) GetPathOk() (*string, bool) {
-	if o == nil || IsNil(o.Path) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Path, true
+	return &o.Path, true
 }
 
-// HasPath returns a boolean if a field has been set.
-func (o *Disk) HasPath() bool {
-	if o != nil && !IsNil(o.Path) {
-		return true
-	}
-
-	return false
-}
-
-// SetPath gets a reference to the given string and assigns it to the Path field.
+// SetPath sets field value
 func (o *Disk) SetPath(v string) {
-	o.Path = &v
+	o.Path = v
 }
 
-// GetBus returns the Bus field value if set, zero value otherwise.
-func (o *Disk) GetBus() string {
-	if o == nil || IsNil(o.Bus) {
+// GetDevice returns the Device field value
+func (o *Disk) GetDevice() string {
+	if o == nil {
 		var ret string
 		return ret
 	}
-	return *o.Bus
+
+	return o.Device
 }
 
-// GetBusOk returns a tuple with the Bus field value if set, nil otherwise
+// GetDeviceOk returns a tuple with the Device field value
 // and a boolean to check if the value has been set.
-func (o *Disk) GetBusOk() (*string, bool) {
-	if o == nil || IsNil(o.Bus) {
+func (o *Disk) GetDeviceOk() (*string, bool) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Bus, true
+	return &o.Device, true
 }
 
-// HasBus returns a boolean if a field has been set.
-func (o *Disk) HasBus() bool {
-	if o != nil && !IsNil(o.Bus) {
-		return true
+// SetDevice sets field value
+func (o *Disk) SetDevice(v string) {
+	o.Device = v
+}
+
+// GetBus returns the Bus field value
+func (o *Disk) GetBus() string {
+	if o == nil {
+		var ret string
+		return ret
 	}
 
-	return false
+	return o.Bus
 }
 
-// SetBus gets a reference to the given string and assigns it to the Bus field.
+// GetBusOk returns a tuple with the Bus field value
+// and a boolean to check if the value has been set.
+func (o *Disk) GetBusOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Bus, true
+}
+
+// SetBus sets field value
 func (o *Disk) SetBus(v string) {
-	o.Bus = &v
+	o.Bus = v
 }
 
 func (o Disk) MarshalJSON() ([]byte, error) {
@@ -182,19 +132,49 @@ func (o Disk) MarshalJSON() ([]byte, error) {
 
 func (o Disk) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
-	if !IsNil(o.Uuid) {
-		toSerialize["uuid"] = o.Uuid
-	}
-	if !IsNil(o.Device) {
-		toSerialize["device"] = o.Device
-	}
-	if !IsNil(o.Path) {
-		toSerialize["path"] = o.Path
-	}
-	if !IsNil(o.Bus) {
-		toSerialize["bus"] = o.Bus
-	}
+	toSerialize["path"] = o.Path
+	toSerialize["device"] = o.Device
+	toSerialize["bus"] = o.Bus
 	return toSerialize, nil
+}
+
+func (o *Disk) UnmarshalJSON(data []byte) (err error) {
+	// This validates that all required properties are included in the JSON object
+	// by unmarshalling the object into a generic map with string keys and checking
+	// that every required field exists as a key in the generic map.
+	requiredProperties := []string{
+		"path",
+		"device",
+		"bus",
+	}
+
+	allProperties := make(map[string]interface{})
+
+	err = json.Unmarshal(data, &allProperties)
+
+	if err != nil {
+		return err;
+	}
+
+	for _, requiredProperty := range(requiredProperties) {
+		if _, exists := allProperties[requiredProperty]; !exists {
+			return fmt.Errorf("no value given for required property %v", requiredProperty)
+		}
+	}
+
+	varDisk := _Disk{}
+
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	err = decoder.Decode(&varDisk)
+
+	if err != nil {
+		return err
+	}
+
+	*o = Disk(varDisk)
+
+	return err
 }
 
 type NullableDisk struct {

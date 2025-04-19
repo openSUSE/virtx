@@ -1,7 +1,7 @@
 /*
 virtx
 
-This is a simple virtualization API for a KVM Cluster
+This is a simple virtualization API for a KVM Cluster. All fields are marked as required to avoid bad code generator results. Where possible, an integer value of 0 means \"unset\", \"unused\" or \"default\". In the rare cases where this clashes with a valid 0 value, the value -1 is used instead. For strings, the convention is that the \"\" (empty string) means \"unset\", \"unused\" or \"default\". 
 
 API version: 0.0.1
 Contact: claudio.fontana@suse.com
@@ -13,6 +13,8 @@ package openapi
 
 import (
 	"encoding/json"
+	"bytes"
+	"fmt"
 )
 
 // checks if the Vm type satisfies the MappedNullable interface at compile time
@@ -20,19 +22,25 @@ var _ MappedNullable = &Vm{}
 
 // Vm struct for Vm
 type Vm struct {
-	// Unique Identifier for VMs, Hosts, Cluster, RFC 4122
-	Uuid *string `json:"uuid,omitempty"`
-	Vmdef *Vmdef `json:"vmdef,omitempty"`
-	Runstate *Vmruninfo `json:"runstate,omitempty"`
-	Seq *int64 `json:"seq,omitempty"`
+	// Unique Identifier for VMs, Hosts, Networks; RFC 4122
+	Uuid string `json:"uuid"`
+	Vmdef Vmdef `json:"vmdef"`
+	Runstate Vmruninfo `json:"runstate"`
+	Seq int64 `json:"seq"`
 }
+
+type _Vm Vm
 
 // NewVm instantiates a new Vm object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVm() *Vm {
+func NewVm(uuid string, vmdef Vmdef, runstate Vmruninfo, seq int64) *Vm {
 	this := Vm{}
+	this.Uuid = uuid
+	this.Vmdef = vmdef
+	this.Runstate = runstate
+	this.Seq = seq
 	return &this
 }
 
@@ -44,132 +52,100 @@ func NewVmWithDefaults() *Vm {
 	return &this
 }
 
-// GetUuid returns the Uuid field value if set, zero value otherwise.
+// GetUuid returns the Uuid field value
 func (o *Vm) GetUuid() string {
-	if o == nil || IsNil(o.Uuid) {
+	if o == nil {
 		var ret string
 		return ret
 	}
-	return *o.Uuid
+
+	return o.Uuid
 }
 
-// GetUuidOk returns a tuple with the Uuid field value if set, nil otherwise
+// GetUuidOk returns a tuple with the Uuid field value
 // and a boolean to check if the value has been set.
 func (o *Vm) GetUuidOk() (*string, bool) {
-	if o == nil || IsNil(o.Uuid) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Uuid, true
+	return &o.Uuid, true
 }
 
-// HasUuid returns a boolean if a field has been set.
-func (o *Vm) HasUuid() bool {
-	if o != nil && !IsNil(o.Uuid) {
-		return true
-	}
-
-	return false
-}
-
-// SetUuid gets a reference to the given string and assigns it to the Uuid field.
+// SetUuid sets field value
 func (o *Vm) SetUuid(v string) {
-	o.Uuid = &v
+	o.Uuid = v
 }
 
-// GetVmdef returns the Vmdef field value if set, zero value otherwise.
+// GetVmdef returns the Vmdef field value
 func (o *Vm) GetVmdef() Vmdef {
-	if o == nil || IsNil(o.Vmdef) {
+	if o == nil {
 		var ret Vmdef
 		return ret
 	}
-	return *o.Vmdef
+
+	return o.Vmdef
 }
 
-// GetVmdefOk returns a tuple with the Vmdef field value if set, nil otherwise
+// GetVmdefOk returns a tuple with the Vmdef field value
 // and a boolean to check if the value has been set.
 func (o *Vm) GetVmdefOk() (*Vmdef, bool) {
-	if o == nil || IsNil(o.Vmdef) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Vmdef, true
+	return &o.Vmdef, true
 }
 
-// HasVmdef returns a boolean if a field has been set.
-func (o *Vm) HasVmdef() bool {
-	if o != nil && !IsNil(o.Vmdef) {
-		return true
-	}
-
-	return false
-}
-
-// SetVmdef gets a reference to the given Vmdef and assigns it to the Vmdef field.
+// SetVmdef sets field value
 func (o *Vm) SetVmdef(v Vmdef) {
-	o.Vmdef = &v
+	o.Vmdef = v
 }
 
-// GetRunstate returns the Runstate field value if set, zero value otherwise.
+// GetRunstate returns the Runstate field value
 func (o *Vm) GetRunstate() Vmruninfo {
-	if o == nil || IsNil(o.Runstate) {
+	if o == nil {
 		var ret Vmruninfo
 		return ret
 	}
-	return *o.Runstate
+
+	return o.Runstate
 }
 
-// GetRunstateOk returns a tuple with the Runstate field value if set, nil otherwise
+// GetRunstateOk returns a tuple with the Runstate field value
 // and a boolean to check if the value has been set.
 func (o *Vm) GetRunstateOk() (*Vmruninfo, bool) {
-	if o == nil || IsNil(o.Runstate) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Runstate, true
+	return &o.Runstate, true
 }
 
-// HasRunstate returns a boolean if a field has been set.
-func (o *Vm) HasRunstate() bool {
-	if o != nil && !IsNil(o.Runstate) {
-		return true
-	}
-
-	return false
-}
-
-// SetRunstate gets a reference to the given Vmruninfo and assigns it to the Runstate field.
+// SetRunstate sets field value
 func (o *Vm) SetRunstate(v Vmruninfo) {
-	o.Runstate = &v
+	o.Runstate = v
 }
 
-// GetSeq returns the Seq field value if set, zero value otherwise.
+// GetSeq returns the Seq field value
 func (o *Vm) GetSeq() int64 {
-	if o == nil || IsNil(o.Seq) {
+	if o == nil {
 		var ret int64
 		return ret
 	}
-	return *o.Seq
+
+	return o.Seq
 }
 
-// GetSeqOk returns a tuple with the Seq field value if set, nil otherwise
+// GetSeqOk returns a tuple with the Seq field value
 // and a boolean to check if the value has been set.
 func (o *Vm) GetSeqOk() (*int64, bool) {
-	if o == nil || IsNil(o.Seq) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Seq, true
+	return &o.Seq, true
 }
 
-// HasSeq returns a boolean if a field has been set.
-func (o *Vm) HasSeq() bool {
-	if o != nil && !IsNil(o.Seq) {
-		return true
-	}
-
-	return false
-}
-
-// SetSeq gets a reference to the given int64 and assigns it to the Seq field.
+// SetSeq sets field value
 func (o *Vm) SetSeq(v int64) {
-	o.Seq = &v
+	o.Seq = v
 }
 
 func (o Vm) MarshalJSON() ([]byte, error) {
@@ -182,19 +158,51 @@ func (o Vm) MarshalJSON() ([]byte, error) {
 
 func (o Vm) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
-	if !IsNil(o.Uuid) {
-		toSerialize["uuid"] = o.Uuid
-	}
-	if !IsNil(o.Vmdef) {
-		toSerialize["vmdef"] = o.Vmdef
-	}
-	if !IsNil(o.Runstate) {
-		toSerialize["runstate"] = o.Runstate
-	}
-	if !IsNil(o.Seq) {
-		toSerialize["seq"] = o.Seq
-	}
+	toSerialize["uuid"] = o.Uuid
+	toSerialize["vmdef"] = o.Vmdef
+	toSerialize["runstate"] = o.Runstate
+	toSerialize["seq"] = o.Seq
 	return toSerialize, nil
+}
+
+func (o *Vm) UnmarshalJSON(data []byte) (err error) {
+	// This validates that all required properties are included in the JSON object
+	// by unmarshalling the object into a generic map with string keys and checking
+	// that every required field exists as a key in the generic map.
+	requiredProperties := []string{
+		"uuid",
+		"vmdef",
+		"runstate",
+		"seq",
+	}
+
+	allProperties := make(map[string]interface{})
+
+	err = json.Unmarshal(data, &allProperties)
+
+	if err != nil {
+		return err;
+	}
+
+	for _, requiredProperty := range(requiredProperties) {
+		if _, exists := allProperties[requiredProperty]; !exists {
+			return fmt.Errorf("no value given for required property %v", requiredProperty)
+		}
+	}
+
+	varVm := _Vm{}
+
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	err = decoder.Decode(&varVm)
+
+	if err != nil {
+		return err
+	}
+
+	*o = Vm(varVm)
+
+	return err
 }
 
 type NullableVm struct {

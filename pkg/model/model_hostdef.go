@@ -1,7 +1,7 @@
 /*
 virtx
 
-This is a simple virtualization API for a KVM Cluster
+This is a simple virtualization API for a KVM Cluster. All fields are marked as required to avoid bad code generator results. Where possible, an integer value of 0 means \"unset\", \"unused\" or \"default\". In the rare cases where this clashes with a valid 0 value, the value -1 is used instead. For strings, the convention is that the \"\" (empty string) means \"unset\", \"unused\" or \"default\". 
 
 API version: 0.0.1
 Contact: claudio.fontana@suse.com
@@ -13,6 +13,8 @@ package openapi
 
 import (
 	"encoding/json"
+	"bytes"
+	"fmt"
 )
 
 // checks if the Hostdef type satisfies the MappedNullable interface at compile time
@@ -20,20 +22,27 @@ var _ MappedNullable = &Hostdef{}
 
 // Hostdef struct for Hostdef
 type Hostdef struct {
-	Name *string `json:"name,omitempty"`
-	Cpuarch *Cpuarch `json:"cpuarch,omitempty"`
-	Cpudef *Cpudef `json:"cpudef,omitempty"`
+	Name string `json:"name"`
+	Cpuarch Cpuarch `json:"cpuarch"`
+	Cpudef Cpudef `json:"cpudef"`
 	// TSC frequency in Hz
-	TscFreq *int64 `json:"tsc_freq,omitempty"`
-	SysinfoBios *string `json:"sysinfo_bios,omitempty"`
+	TscFreq int64 `json:"tsc_freq"`
+	SysinfoBios HostdefSysinfoBios `json:"sysinfo_bios"`
 }
+
+type _Hostdef Hostdef
 
 // NewHostdef instantiates a new Hostdef object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewHostdef() *Hostdef {
+func NewHostdef(name string, cpuarch Cpuarch, cpudef Cpudef, tscFreq int64, sysinfoBios HostdefSysinfoBios) *Hostdef {
 	this := Hostdef{}
+	this.Name = name
+	this.Cpuarch = cpuarch
+	this.Cpudef = cpudef
+	this.TscFreq = tscFreq
+	this.SysinfoBios = sysinfoBios
 	return &this
 }
 
@@ -45,164 +54,124 @@ func NewHostdefWithDefaults() *Hostdef {
 	return &this
 }
 
-// GetName returns the Name field value if set, zero value otherwise.
+// GetName returns the Name field value
 func (o *Hostdef) GetName() string {
-	if o == nil || IsNil(o.Name) {
+	if o == nil {
 		var ret string
 		return ret
 	}
-	return *o.Name
+
+	return o.Name
 }
 
-// GetNameOk returns a tuple with the Name field value if set, nil otherwise
+// GetNameOk returns a tuple with the Name field value
 // and a boolean to check if the value has been set.
 func (o *Hostdef) GetNameOk() (*string, bool) {
-	if o == nil || IsNil(o.Name) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Name, true
+	return &o.Name, true
 }
 
-// HasName returns a boolean if a field has been set.
-func (o *Hostdef) HasName() bool {
-	if o != nil && !IsNil(o.Name) {
-		return true
-	}
-
-	return false
-}
-
-// SetName gets a reference to the given string and assigns it to the Name field.
+// SetName sets field value
 func (o *Hostdef) SetName(v string) {
-	o.Name = &v
+	o.Name = v
 }
 
-// GetCpuarch returns the Cpuarch field value if set, zero value otherwise.
+// GetCpuarch returns the Cpuarch field value
 func (o *Hostdef) GetCpuarch() Cpuarch {
-	if o == nil || IsNil(o.Cpuarch) {
+	if o == nil {
 		var ret Cpuarch
 		return ret
 	}
-	return *o.Cpuarch
+
+	return o.Cpuarch
 }
 
-// GetCpuarchOk returns a tuple with the Cpuarch field value if set, nil otherwise
+// GetCpuarchOk returns a tuple with the Cpuarch field value
 // and a boolean to check if the value has been set.
 func (o *Hostdef) GetCpuarchOk() (*Cpuarch, bool) {
-	if o == nil || IsNil(o.Cpuarch) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Cpuarch, true
+	return &o.Cpuarch, true
 }
 
-// HasCpuarch returns a boolean if a field has been set.
-func (o *Hostdef) HasCpuarch() bool {
-	if o != nil && !IsNil(o.Cpuarch) {
-		return true
-	}
-
-	return false
-}
-
-// SetCpuarch gets a reference to the given Cpuarch and assigns it to the Cpuarch field.
+// SetCpuarch sets field value
 func (o *Hostdef) SetCpuarch(v Cpuarch) {
-	o.Cpuarch = &v
+	o.Cpuarch = v
 }
 
-// GetCpudef returns the Cpudef field value if set, zero value otherwise.
+// GetCpudef returns the Cpudef field value
 func (o *Hostdef) GetCpudef() Cpudef {
-	if o == nil || IsNil(o.Cpudef) {
+	if o == nil {
 		var ret Cpudef
 		return ret
 	}
-	return *o.Cpudef
+
+	return o.Cpudef
 }
 
-// GetCpudefOk returns a tuple with the Cpudef field value if set, nil otherwise
+// GetCpudefOk returns a tuple with the Cpudef field value
 // and a boolean to check if the value has been set.
 func (o *Hostdef) GetCpudefOk() (*Cpudef, bool) {
-	if o == nil || IsNil(o.Cpudef) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Cpudef, true
+	return &o.Cpudef, true
 }
 
-// HasCpudef returns a boolean if a field has been set.
-func (o *Hostdef) HasCpudef() bool {
-	if o != nil && !IsNil(o.Cpudef) {
-		return true
-	}
-
-	return false
-}
-
-// SetCpudef gets a reference to the given Cpudef and assigns it to the Cpudef field.
+// SetCpudef sets field value
 func (o *Hostdef) SetCpudef(v Cpudef) {
-	o.Cpudef = &v
+	o.Cpudef = v
 }
 
-// GetTscFreq returns the TscFreq field value if set, zero value otherwise.
+// GetTscFreq returns the TscFreq field value
 func (o *Hostdef) GetTscFreq() int64 {
-	if o == nil || IsNil(o.TscFreq) {
+	if o == nil {
 		var ret int64
 		return ret
 	}
-	return *o.TscFreq
+
+	return o.TscFreq
 }
 
-// GetTscFreqOk returns a tuple with the TscFreq field value if set, nil otherwise
+// GetTscFreqOk returns a tuple with the TscFreq field value
 // and a boolean to check if the value has been set.
 func (o *Hostdef) GetTscFreqOk() (*int64, bool) {
-	if o == nil || IsNil(o.TscFreq) {
+	if o == nil {
 		return nil, false
 	}
-	return o.TscFreq, true
+	return &o.TscFreq, true
 }
 
-// HasTscFreq returns a boolean if a field has been set.
-func (o *Hostdef) HasTscFreq() bool {
-	if o != nil && !IsNil(o.TscFreq) {
-		return true
-	}
-
-	return false
-}
-
-// SetTscFreq gets a reference to the given int64 and assigns it to the TscFreq field.
+// SetTscFreq sets field value
 func (o *Hostdef) SetTscFreq(v int64) {
-	o.TscFreq = &v
+	o.TscFreq = v
 }
 
-// GetSysinfoBios returns the SysinfoBios field value if set, zero value otherwise.
-func (o *Hostdef) GetSysinfoBios() string {
-	if o == nil || IsNil(o.SysinfoBios) {
-		var ret string
+// GetSysinfoBios returns the SysinfoBios field value
+func (o *Hostdef) GetSysinfoBios() HostdefSysinfoBios {
+	if o == nil {
+		var ret HostdefSysinfoBios
 		return ret
 	}
-	return *o.SysinfoBios
+
+	return o.SysinfoBios
 }
 
-// GetSysinfoBiosOk returns a tuple with the SysinfoBios field value if set, nil otherwise
+// GetSysinfoBiosOk returns a tuple with the SysinfoBios field value
 // and a boolean to check if the value has been set.
-func (o *Hostdef) GetSysinfoBiosOk() (*string, bool) {
-	if o == nil || IsNil(o.SysinfoBios) {
+func (o *Hostdef) GetSysinfoBiosOk() (*HostdefSysinfoBios, bool) {
+	if o == nil {
 		return nil, false
 	}
-	return o.SysinfoBios, true
+	return &o.SysinfoBios, true
 }
 
-// HasSysinfoBios returns a boolean if a field has been set.
-func (o *Hostdef) HasSysinfoBios() bool {
-	if o != nil && !IsNil(o.SysinfoBios) {
-		return true
-	}
-
-	return false
-}
-
-// SetSysinfoBios gets a reference to the given string and assigns it to the SysinfoBios field.
-func (o *Hostdef) SetSysinfoBios(v string) {
-	o.SysinfoBios = &v
+// SetSysinfoBios sets field value
+func (o *Hostdef) SetSysinfoBios(v HostdefSysinfoBios) {
+	o.SysinfoBios = v
 }
 
 func (o Hostdef) MarshalJSON() ([]byte, error) {
@@ -215,22 +184,53 @@ func (o Hostdef) MarshalJSON() ([]byte, error) {
 
 func (o Hostdef) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
-	if !IsNil(o.Name) {
-		toSerialize["name"] = o.Name
-	}
-	if !IsNil(o.Cpuarch) {
-		toSerialize["cpuarch"] = o.Cpuarch
-	}
-	if !IsNil(o.Cpudef) {
-		toSerialize["cpudef"] = o.Cpudef
-	}
-	if !IsNil(o.TscFreq) {
-		toSerialize["tsc_freq"] = o.TscFreq
-	}
-	if !IsNil(o.SysinfoBios) {
-		toSerialize["sysinfo_bios"] = o.SysinfoBios
-	}
+	toSerialize["name"] = o.Name
+	toSerialize["cpuarch"] = o.Cpuarch
+	toSerialize["cpudef"] = o.Cpudef
+	toSerialize["tsc_freq"] = o.TscFreq
+	toSerialize["sysinfo_bios"] = o.SysinfoBios
 	return toSerialize, nil
+}
+
+func (o *Hostdef) UnmarshalJSON(data []byte) (err error) {
+	// This validates that all required properties are included in the JSON object
+	// by unmarshalling the object into a generic map with string keys and checking
+	// that every required field exists as a key in the generic map.
+	requiredProperties := []string{
+		"name",
+		"cpuarch",
+		"cpudef",
+		"tsc_freq",
+		"sysinfo_bios",
+	}
+
+	allProperties := make(map[string]interface{})
+
+	err = json.Unmarshal(data, &allProperties)
+
+	if err != nil {
+		return err;
+	}
+
+	for _, requiredProperty := range(requiredProperties) {
+		if _, exists := allProperties[requiredProperty]; !exists {
+			return fmt.Errorf("no value given for required property %v", requiredProperty)
+		}
+	}
+
+	varHostdef := _Hostdef{}
+
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	err = decoder.Decode(&varHostdef)
+
+	if err != nil {
+		return err
+	}
+
+	*o = Hostdef(varHostdef)
+
+	return err
 }
 
 type NullableHostdef struct {

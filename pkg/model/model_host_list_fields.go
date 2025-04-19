@@ -1,7 +1,7 @@
 /*
 virtx
 
-This is a simple virtualization API for a KVM Cluster
+This is a simple virtualization API for a KVM Cluster. All fields are marked as required to avoid bad code generator results. Where possible, an integer value of 0 means \"unset\", \"unused\" or \"default\". In the rare cases where this clashes with a valid 0 value, the value -1 is used instead. For strings, the convention is that the \"\" (empty string) means \"unset\", \"unused\" or \"default\". 
 
 API version: 0.0.1
 Contact: claudio.fontana@suse.com
@@ -13,6 +13,8 @@ package openapi
 
 import (
 	"encoding/json"
+	"bytes"
+	"fmt"
 )
 
 // checks if the HostListFields type satisfies the MappedNullable interface at compile time
@@ -20,20 +22,27 @@ var _ MappedNullable = &HostListFields{}
 
 // HostListFields struct for HostListFields
 type HostListFields struct {
-	Name *string `json:"name,omitempty"`
-	Cpuarch *Cpuarch `json:"cpuarch,omitempty"`
-	Cpudef *Cpudef `json:"cpudef,omitempty"`
-	Hoststate *Hoststate `json:"hoststate,omitempty"`
+	Name string `json:"name"`
+	Cpuarch Cpuarch `json:"cpuarch"`
+	Cpudef Cpudef `json:"cpudef"`
+	Hoststate Hoststate `json:"hoststate"`
 	// available for other VMs (total - reserved)
-	MemoryAvailableVms *int64 `json:"memory_available_vms,omitempty"`
+	MemoryAvailableVms int64 `json:"memory_available_vms"`
 }
+
+type _HostListFields HostListFields
 
 // NewHostListFields instantiates a new HostListFields object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewHostListFields() *HostListFields {
+func NewHostListFields(name string, cpuarch Cpuarch, cpudef Cpudef, hoststate Hoststate, memoryAvailableVms int64) *HostListFields {
 	this := HostListFields{}
+	this.Name = name
+	this.Cpuarch = cpuarch
+	this.Cpudef = cpudef
+	this.Hoststate = hoststate
+	this.MemoryAvailableVms = memoryAvailableVms
 	return &this
 }
 
@@ -45,164 +54,124 @@ func NewHostListFieldsWithDefaults() *HostListFields {
 	return &this
 }
 
-// GetName returns the Name field value if set, zero value otherwise.
+// GetName returns the Name field value
 func (o *HostListFields) GetName() string {
-	if o == nil || IsNil(o.Name) {
+	if o == nil {
 		var ret string
 		return ret
 	}
-	return *o.Name
+
+	return o.Name
 }
 
-// GetNameOk returns a tuple with the Name field value if set, nil otherwise
+// GetNameOk returns a tuple with the Name field value
 // and a boolean to check if the value has been set.
 func (o *HostListFields) GetNameOk() (*string, bool) {
-	if o == nil || IsNil(o.Name) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Name, true
+	return &o.Name, true
 }
 
-// HasName returns a boolean if a field has been set.
-func (o *HostListFields) HasName() bool {
-	if o != nil && !IsNil(o.Name) {
-		return true
-	}
-
-	return false
-}
-
-// SetName gets a reference to the given string and assigns it to the Name field.
+// SetName sets field value
 func (o *HostListFields) SetName(v string) {
-	o.Name = &v
+	o.Name = v
 }
 
-// GetCpuarch returns the Cpuarch field value if set, zero value otherwise.
+// GetCpuarch returns the Cpuarch field value
 func (o *HostListFields) GetCpuarch() Cpuarch {
-	if o == nil || IsNil(o.Cpuarch) {
+	if o == nil {
 		var ret Cpuarch
 		return ret
 	}
-	return *o.Cpuarch
+
+	return o.Cpuarch
 }
 
-// GetCpuarchOk returns a tuple with the Cpuarch field value if set, nil otherwise
+// GetCpuarchOk returns a tuple with the Cpuarch field value
 // and a boolean to check if the value has been set.
 func (o *HostListFields) GetCpuarchOk() (*Cpuarch, bool) {
-	if o == nil || IsNil(o.Cpuarch) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Cpuarch, true
+	return &o.Cpuarch, true
 }
 
-// HasCpuarch returns a boolean if a field has been set.
-func (o *HostListFields) HasCpuarch() bool {
-	if o != nil && !IsNil(o.Cpuarch) {
-		return true
-	}
-
-	return false
-}
-
-// SetCpuarch gets a reference to the given Cpuarch and assigns it to the Cpuarch field.
+// SetCpuarch sets field value
 func (o *HostListFields) SetCpuarch(v Cpuarch) {
-	o.Cpuarch = &v
+	o.Cpuarch = v
 }
 
-// GetCpudef returns the Cpudef field value if set, zero value otherwise.
+// GetCpudef returns the Cpudef field value
 func (o *HostListFields) GetCpudef() Cpudef {
-	if o == nil || IsNil(o.Cpudef) {
+	if o == nil {
 		var ret Cpudef
 		return ret
 	}
-	return *o.Cpudef
+
+	return o.Cpudef
 }
 
-// GetCpudefOk returns a tuple with the Cpudef field value if set, nil otherwise
+// GetCpudefOk returns a tuple with the Cpudef field value
 // and a boolean to check if the value has been set.
 func (o *HostListFields) GetCpudefOk() (*Cpudef, bool) {
-	if o == nil || IsNil(o.Cpudef) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Cpudef, true
+	return &o.Cpudef, true
 }
 
-// HasCpudef returns a boolean if a field has been set.
-func (o *HostListFields) HasCpudef() bool {
-	if o != nil && !IsNil(o.Cpudef) {
-		return true
-	}
-
-	return false
-}
-
-// SetCpudef gets a reference to the given Cpudef and assigns it to the Cpudef field.
+// SetCpudef sets field value
 func (o *HostListFields) SetCpudef(v Cpudef) {
-	o.Cpudef = &v
+	o.Cpudef = v
 }
 
-// GetHoststate returns the Hoststate field value if set, zero value otherwise.
+// GetHoststate returns the Hoststate field value
 func (o *HostListFields) GetHoststate() Hoststate {
-	if o == nil || IsNil(o.Hoststate) {
+	if o == nil {
 		var ret Hoststate
 		return ret
 	}
-	return *o.Hoststate
+
+	return o.Hoststate
 }
 
-// GetHoststateOk returns a tuple with the Hoststate field value if set, nil otherwise
+// GetHoststateOk returns a tuple with the Hoststate field value
 // and a boolean to check if the value has been set.
 func (o *HostListFields) GetHoststateOk() (*Hoststate, bool) {
-	if o == nil || IsNil(o.Hoststate) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Hoststate, true
+	return &o.Hoststate, true
 }
 
-// HasHoststate returns a boolean if a field has been set.
-func (o *HostListFields) HasHoststate() bool {
-	if o != nil && !IsNil(o.Hoststate) {
-		return true
-	}
-
-	return false
-}
-
-// SetHoststate gets a reference to the given Hoststate and assigns it to the Hoststate field.
+// SetHoststate sets field value
 func (o *HostListFields) SetHoststate(v Hoststate) {
-	o.Hoststate = &v
+	o.Hoststate = v
 }
 
-// GetMemoryAvailableVms returns the MemoryAvailableVms field value if set, zero value otherwise.
+// GetMemoryAvailableVms returns the MemoryAvailableVms field value
 func (o *HostListFields) GetMemoryAvailableVms() int64 {
-	if o == nil || IsNil(o.MemoryAvailableVms) {
+	if o == nil {
 		var ret int64
 		return ret
 	}
-	return *o.MemoryAvailableVms
+
+	return o.MemoryAvailableVms
 }
 
-// GetMemoryAvailableVmsOk returns a tuple with the MemoryAvailableVms field value if set, nil otherwise
+// GetMemoryAvailableVmsOk returns a tuple with the MemoryAvailableVms field value
 // and a boolean to check if the value has been set.
 func (o *HostListFields) GetMemoryAvailableVmsOk() (*int64, bool) {
-	if o == nil || IsNil(o.MemoryAvailableVms) {
+	if o == nil {
 		return nil, false
 	}
-	return o.MemoryAvailableVms, true
+	return &o.MemoryAvailableVms, true
 }
 
-// HasMemoryAvailableVms returns a boolean if a field has been set.
-func (o *HostListFields) HasMemoryAvailableVms() bool {
-	if o != nil && !IsNil(o.MemoryAvailableVms) {
-		return true
-	}
-
-	return false
-}
-
-// SetMemoryAvailableVms gets a reference to the given int64 and assigns it to the MemoryAvailableVms field.
+// SetMemoryAvailableVms sets field value
 func (o *HostListFields) SetMemoryAvailableVms(v int64) {
-	o.MemoryAvailableVms = &v
+	o.MemoryAvailableVms = v
 }
 
 func (o HostListFields) MarshalJSON() ([]byte, error) {
@@ -215,22 +184,53 @@ func (o HostListFields) MarshalJSON() ([]byte, error) {
 
 func (o HostListFields) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
-	if !IsNil(o.Name) {
-		toSerialize["name"] = o.Name
-	}
-	if !IsNil(o.Cpuarch) {
-		toSerialize["cpuarch"] = o.Cpuarch
-	}
-	if !IsNil(o.Cpudef) {
-		toSerialize["cpudef"] = o.Cpudef
-	}
-	if !IsNil(o.Hoststate) {
-		toSerialize["hoststate"] = o.Hoststate
-	}
-	if !IsNil(o.MemoryAvailableVms) {
-		toSerialize["memory_available_vms"] = o.MemoryAvailableVms
-	}
+	toSerialize["name"] = o.Name
+	toSerialize["cpuarch"] = o.Cpuarch
+	toSerialize["cpudef"] = o.Cpudef
+	toSerialize["hoststate"] = o.Hoststate
+	toSerialize["memory_available_vms"] = o.MemoryAvailableVms
 	return toSerialize, nil
+}
+
+func (o *HostListFields) UnmarshalJSON(data []byte) (err error) {
+	// This validates that all required properties are included in the JSON object
+	// by unmarshalling the object into a generic map with string keys and checking
+	// that every required field exists as a key in the generic map.
+	requiredProperties := []string{
+		"name",
+		"cpuarch",
+		"cpudef",
+		"hoststate",
+		"memory_available_vms",
+	}
+
+	allProperties := make(map[string]interface{})
+
+	err = json.Unmarshal(data, &allProperties)
+
+	if err != nil {
+		return err;
+	}
+
+	for _, requiredProperty := range(requiredProperties) {
+		if _, exists := allProperties[requiredProperty]; !exists {
+			return fmt.Errorf("no value given for required property %v", requiredProperty)
+		}
+	}
+
+	varHostListFields := _HostListFields{}
+
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	err = decoder.Decode(&varHostListFields)
+
+	if err != nil {
+		return err
+	}
+
+	*o = HostListFields(varHostListFields)
+
+	return err
 }
 
 type NullableHostListFields struct {

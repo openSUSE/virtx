@@ -1,7 +1,7 @@
 /*
 virtx
 
-This is a simple virtualization API for a KVM Cluster
+This is a simple virtualization API for a KVM Cluster. All fields are marked as required to avoid bad code generator results. Where possible, an integer value of 0 means \"unset\", \"unused\" or \"default\". In the rare cases where this clashes with a valid 0 value, the value -1 is used instead. For strings, the convention is that the \"\" (empty string) means \"unset\", \"unused\" or \"default\". 
 
 API version: 0.0.1
 Contact: claudio.fontana@suse.com
@@ -13,6 +13,8 @@ package openapi
 
 import (
 	"encoding/json"
+	"bytes"
+	"fmt"
 )
 
 // checks if the Net type satisfies the MappedNullable interface at compile time
@@ -20,20 +22,27 @@ var _ MappedNullable = &Net{}
 
 // Net struct for Net
 type Net struct {
-	// Unique Identifier for VMs, Hosts, Cluster, RFC 4122
-	Uuid *string `json:"uuid,omitempty"`
-	Type *string `json:"type,omitempty"`
-	Name *string `json:"name,omitempty"`
-	Model *string `json:"model,omitempty"`
-	Mac *string `json:"mac,omitempty"`
+	// Unique Identifier for VMs, Hosts, Networks; RFC 4122
+	Uuid string `json:"uuid"`
+	Type string `json:"type"`
+	Name string `json:"name"`
+	Model string `json:"model"`
+	Mac string `json:"mac"`
 }
+
+type _Net Net
 
 // NewNet instantiates a new Net object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewNet() *Net {
+func NewNet(uuid string, type_ string, name string, model string, mac string) *Net {
 	this := Net{}
+	this.Uuid = uuid
+	this.Type = type_
+	this.Name = name
+	this.Model = model
+	this.Mac = mac
 	return &this
 }
 
@@ -45,164 +54,124 @@ func NewNetWithDefaults() *Net {
 	return &this
 }
 
-// GetUuid returns the Uuid field value if set, zero value otherwise.
+// GetUuid returns the Uuid field value
 func (o *Net) GetUuid() string {
-	if o == nil || IsNil(o.Uuid) {
+	if o == nil {
 		var ret string
 		return ret
 	}
-	return *o.Uuid
+
+	return o.Uuid
 }
 
-// GetUuidOk returns a tuple with the Uuid field value if set, nil otherwise
+// GetUuidOk returns a tuple with the Uuid field value
 // and a boolean to check if the value has been set.
 func (o *Net) GetUuidOk() (*string, bool) {
-	if o == nil || IsNil(o.Uuid) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Uuid, true
+	return &o.Uuid, true
 }
 
-// HasUuid returns a boolean if a field has been set.
-func (o *Net) HasUuid() bool {
-	if o != nil && !IsNil(o.Uuid) {
-		return true
-	}
-
-	return false
-}
-
-// SetUuid gets a reference to the given string and assigns it to the Uuid field.
+// SetUuid sets field value
 func (o *Net) SetUuid(v string) {
-	o.Uuid = &v
+	o.Uuid = v
 }
 
-// GetType returns the Type field value if set, zero value otherwise.
+// GetType returns the Type field value
 func (o *Net) GetType() string {
-	if o == nil || IsNil(o.Type) {
+	if o == nil {
 		var ret string
 		return ret
 	}
-	return *o.Type
+
+	return o.Type
 }
 
-// GetTypeOk returns a tuple with the Type field value if set, nil otherwise
+// GetTypeOk returns a tuple with the Type field value
 // and a boolean to check if the value has been set.
 func (o *Net) GetTypeOk() (*string, bool) {
-	if o == nil || IsNil(o.Type) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Type, true
+	return &o.Type, true
 }
 
-// HasType returns a boolean if a field has been set.
-func (o *Net) HasType() bool {
-	if o != nil && !IsNil(o.Type) {
-		return true
-	}
-
-	return false
-}
-
-// SetType gets a reference to the given string and assigns it to the Type field.
+// SetType sets field value
 func (o *Net) SetType(v string) {
-	o.Type = &v
+	o.Type = v
 }
 
-// GetName returns the Name field value if set, zero value otherwise.
+// GetName returns the Name field value
 func (o *Net) GetName() string {
-	if o == nil || IsNil(o.Name) {
+	if o == nil {
 		var ret string
 		return ret
 	}
-	return *o.Name
+
+	return o.Name
 }
 
-// GetNameOk returns a tuple with the Name field value if set, nil otherwise
+// GetNameOk returns a tuple with the Name field value
 // and a boolean to check if the value has been set.
 func (o *Net) GetNameOk() (*string, bool) {
-	if o == nil || IsNil(o.Name) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Name, true
+	return &o.Name, true
 }
 
-// HasName returns a boolean if a field has been set.
-func (o *Net) HasName() bool {
-	if o != nil && !IsNil(o.Name) {
-		return true
-	}
-
-	return false
-}
-
-// SetName gets a reference to the given string and assigns it to the Name field.
+// SetName sets field value
 func (o *Net) SetName(v string) {
-	o.Name = &v
+	o.Name = v
 }
 
-// GetModel returns the Model field value if set, zero value otherwise.
+// GetModel returns the Model field value
 func (o *Net) GetModel() string {
-	if o == nil || IsNil(o.Model) {
+	if o == nil {
 		var ret string
 		return ret
 	}
-	return *o.Model
+
+	return o.Model
 }
 
-// GetModelOk returns a tuple with the Model field value if set, nil otherwise
+// GetModelOk returns a tuple with the Model field value
 // and a boolean to check if the value has been set.
 func (o *Net) GetModelOk() (*string, bool) {
-	if o == nil || IsNil(o.Model) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Model, true
+	return &o.Model, true
 }
 
-// HasModel returns a boolean if a field has been set.
-func (o *Net) HasModel() bool {
-	if o != nil && !IsNil(o.Model) {
-		return true
-	}
-
-	return false
-}
-
-// SetModel gets a reference to the given string and assigns it to the Model field.
+// SetModel sets field value
 func (o *Net) SetModel(v string) {
-	o.Model = &v
+	o.Model = v
 }
 
-// GetMac returns the Mac field value if set, zero value otherwise.
+// GetMac returns the Mac field value
 func (o *Net) GetMac() string {
-	if o == nil || IsNil(o.Mac) {
+	if o == nil {
 		var ret string
 		return ret
 	}
-	return *o.Mac
+
+	return o.Mac
 }
 
-// GetMacOk returns a tuple with the Mac field value if set, nil otherwise
+// GetMacOk returns a tuple with the Mac field value
 // and a boolean to check if the value has been set.
 func (o *Net) GetMacOk() (*string, bool) {
-	if o == nil || IsNil(o.Mac) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Mac, true
+	return &o.Mac, true
 }
 
-// HasMac returns a boolean if a field has been set.
-func (o *Net) HasMac() bool {
-	if o != nil && !IsNil(o.Mac) {
-		return true
-	}
-
-	return false
-}
-
-// SetMac gets a reference to the given string and assigns it to the Mac field.
+// SetMac sets field value
 func (o *Net) SetMac(v string) {
-	o.Mac = &v
+	o.Mac = v
 }
 
 func (o Net) MarshalJSON() ([]byte, error) {
@@ -215,22 +184,53 @@ func (o Net) MarshalJSON() ([]byte, error) {
 
 func (o Net) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
-	if !IsNil(o.Uuid) {
-		toSerialize["uuid"] = o.Uuid
-	}
-	if !IsNil(o.Type) {
-		toSerialize["type"] = o.Type
-	}
-	if !IsNil(o.Name) {
-		toSerialize["name"] = o.Name
-	}
-	if !IsNil(o.Model) {
-		toSerialize["model"] = o.Model
-	}
-	if !IsNil(o.Mac) {
-		toSerialize["mac"] = o.Mac
-	}
+	toSerialize["uuid"] = o.Uuid
+	toSerialize["type"] = o.Type
+	toSerialize["name"] = o.Name
+	toSerialize["model"] = o.Model
+	toSerialize["mac"] = o.Mac
 	return toSerialize, nil
+}
+
+func (o *Net) UnmarshalJSON(data []byte) (err error) {
+	// This validates that all required properties are included in the JSON object
+	// by unmarshalling the object into a generic map with string keys and checking
+	// that every required field exists as a key in the generic map.
+	requiredProperties := []string{
+		"uuid",
+		"type",
+		"name",
+		"model",
+		"mac",
+	}
+
+	allProperties := make(map[string]interface{})
+
+	err = json.Unmarshal(data, &allProperties)
+
+	if err != nil {
+		return err;
+	}
+
+	for _, requiredProperty := range(requiredProperties) {
+		if _, exists := allProperties[requiredProperty]; !exists {
+			return fmt.Errorf("no value given for required property %v", requiredProperty)
+		}
+	}
+
+	varNet := _Net{}
+
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	err = decoder.Decode(&varNet)
+
+	if err != nil {
+		return err
+	}
+
+	*o = Net(varNet)
+
+	return err
 }
 
 type NullableNet struct {

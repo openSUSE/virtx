@@ -1,7 +1,7 @@
 /*
 virtx
 
-This is a simple virtualization API for a KVM Cluster
+This is a simple virtualization API for a KVM Cluster. All fields are marked as required to avoid bad code generator results. Where possible, an integer value of 0 means \"unset\", \"unused\" or \"default\". In the rare cases where this clashes with a valid 0 value, the value -1 is used instead. For strings, the convention is that the \"\" (empty string) means \"unset\", \"unused\" or \"default\". 
 
 API version: 0.0.1
 Contact: claudio.fontana@suse.com
@@ -13,6 +13,8 @@ package openapi
 
 import (
 	"encoding/json"
+	"bytes"
+	"fmt"
 )
 
 // checks if the Hostresource type satisfies the MappedNullable interface at compile time
@@ -21,35 +23,33 @@ var _ MappedNullable = &Hostresource{}
 // Hostresource struct for Hostresource
 type Hostresource struct {
 	// total available on the host
-	Total *int64 `json:"total,omitempty"`
-	// reserved for linux and other system processes, os tools
-	ReservedOs *int64 `json:"reserved_os,omitempty"`
-	// used for linux and other system processes, os tools
-	UsedOs *int64 `json:"used_os,omitempty"`
-	// reserved specifically by virtx api, services
-	ReservedVirtx *int64 `json:"reserved_virtx,omitempty"`
-	// used for virtx api, services
-	UsedVirtx *int64 `json:"used_virtx,omitempty"`
-	// reserved for running the guests currently on this host
-	ReservedVms *int64 `json:"reserved_vms,omitempty"`
-	// used for running vm guests
-	UsedVms *int64 `json:"used_vms,omitempty"`
-	// used_os + used_virtx + used_vms
-	Used *int64 `json:"used,omitempty"`
-	// total - used
-	Free *int64 `json:"free,omitempty"`
-	// reserved_os + reserved_virtx + reserved_vms
-	Reserved *int64 `json:"reserved,omitempty"`
-	// available for other VMs (total - reserved)
-	AvailableVms *int64 `json:"available_vms,omitempty"`
+	Total int64 `json:"total"`
+	// amount currently in use
+	Used int64 `json:"used"`
+	// amount currently free (does not take into account reservations)
+	Free int64 `json:"free"`
+	// amount pre-reserved for running the guests currently on this host
+	ReservedVms int64 `json:"reserved_vms"`
+	// amount used for running vm guests
+	UsedVms int64 `json:"used_vms"`
+	// amount available for other VMs (free - reserved_vms)
+	AvailableVms int64 `json:"available_vms"`
 }
+
+type _Hostresource Hostresource
 
 // NewHostresource instantiates a new Hostresource object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewHostresource() *Hostresource {
+func NewHostresource(total int64, used int64, free int64, reservedVms int64, usedVms int64, availableVms int64) *Hostresource {
 	this := Hostresource{}
+	this.Total = total
+	this.Used = used
+	this.Free = free
+	this.ReservedVms = reservedVms
+	this.UsedVms = usedVms
+	this.AvailableVms = availableVms
 	return &this
 }
 
@@ -61,356 +61,148 @@ func NewHostresourceWithDefaults() *Hostresource {
 	return &this
 }
 
-// GetTotal returns the Total field value if set, zero value otherwise.
+// GetTotal returns the Total field value
 func (o *Hostresource) GetTotal() int64 {
-	if o == nil || IsNil(o.Total) {
+	if o == nil {
 		var ret int64
 		return ret
 	}
-	return *o.Total
+
+	return o.Total
 }
 
-// GetTotalOk returns a tuple with the Total field value if set, nil otherwise
+// GetTotalOk returns a tuple with the Total field value
 // and a boolean to check if the value has been set.
 func (o *Hostresource) GetTotalOk() (*int64, bool) {
-	if o == nil || IsNil(o.Total) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Total, true
+	return &o.Total, true
 }
 
-// HasTotal returns a boolean if a field has been set.
-func (o *Hostresource) HasTotal() bool {
-	if o != nil && !IsNil(o.Total) {
-		return true
-	}
-
-	return false
-}
-
-// SetTotal gets a reference to the given int64 and assigns it to the Total field.
+// SetTotal sets field value
 func (o *Hostresource) SetTotal(v int64) {
-	o.Total = &v
+	o.Total = v
 }
 
-// GetReservedOs returns the ReservedOs field value if set, zero value otherwise.
-func (o *Hostresource) GetReservedOs() int64 {
-	if o == nil || IsNil(o.ReservedOs) {
-		var ret int64
-		return ret
-	}
-	return *o.ReservedOs
-}
-
-// GetReservedOsOk returns a tuple with the ReservedOs field value if set, nil otherwise
-// and a boolean to check if the value has been set.
-func (o *Hostresource) GetReservedOsOk() (*int64, bool) {
-	if o == nil || IsNil(o.ReservedOs) {
-		return nil, false
-	}
-	return o.ReservedOs, true
-}
-
-// HasReservedOs returns a boolean if a field has been set.
-func (o *Hostresource) HasReservedOs() bool {
-	if o != nil && !IsNil(o.ReservedOs) {
-		return true
-	}
-
-	return false
-}
-
-// SetReservedOs gets a reference to the given int64 and assigns it to the ReservedOs field.
-func (o *Hostresource) SetReservedOs(v int64) {
-	o.ReservedOs = &v
-}
-
-// GetUsedOs returns the UsedOs field value if set, zero value otherwise.
-func (o *Hostresource) GetUsedOs() int64 {
-	if o == nil || IsNil(o.UsedOs) {
-		var ret int64
-		return ret
-	}
-	return *o.UsedOs
-}
-
-// GetUsedOsOk returns a tuple with the UsedOs field value if set, nil otherwise
-// and a boolean to check if the value has been set.
-func (o *Hostresource) GetUsedOsOk() (*int64, bool) {
-	if o == nil || IsNil(o.UsedOs) {
-		return nil, false
-	}
-	return o.UsedOs, true
-}
-
-// HasUsedOs returns a boolean if a field has been set.
-func (o *Hostresource) HasUsedOs() bool {
-	if o != nil && !IsNil(o.UsedOs) {
-		return true
-	}
-
-	return false
-}
-
-// SetUsedOs gets a reference to the given int64 and assigns it to the UsedOs field.
-func (o *Hostresource) SetUsedOs(v int64) {
-	o.UsedOs = &v
-}
-
-// GetReservedVirtx returns the ReservedVirtx field value if set, zero value otherwise.
-func (o *Hostresource) GetReservedVirtx() int64 {
-	if o == nil || IsNil(o.ReservedVirtx) {
-		var ret int64
-		return ret
-	}
-	return *o.ReservedVirtx
-}
-
-// GetReservedVirtxOk returns a tuple with the ReservedVirtx field value if set, nil otherwise
-// and a boolean to check if the value has been set.
-func (o *Hostresource) GetReservedVirtxOk() (*int64, bool) {
-	if o == nil || IsNil(o.ReservedVirtx) {
-		return nil, false
-	}
-	return o.ReservedVirtx, true
-}
-
-// HasReservedVirtx returns a boolean if a field has been set.
-func (o *Hostresource) HasReservedVirtx() bool {
-	if o != nil && !IsNil(o.ReservedVirtx) {
-		return true
-	}
-
-	return false
-}
-
-// SetReservedVirtx gets a reference to the given int64 and assigns it to the ReservedVirtx field.
-func (o *Hostresource) SetReservedVirtx(v int64) {
-	o.ReservedVirtx = &v
-}
-
-// GetUsedVirtx returns the UsedVirtx field value if set, zero value otherwise.
-func (o *Hostresource) GetUsedVirtx() int64 {
-	if o == nil || IsNil(o.UsedVirtx) {
-		var ret int64
-		return ret
-	}
-	return *o.UsedVirtx
-}
-
-// GetUsedVirtxOk returns a tuple with the UsedVirtx field value if set, nil otherwise
-// and a boolean to check if the value has been set.
-func (o *Hostresource) GetUsedVirtxOk() (*int64, bool) {
-	if o == nil || IsNil(o.UsedVirtx) {
-		return nil, false
-	}
-	return o.UsedVirtx, true
-}
-
-// HasUsedVirtx returns a boolean if a field has been set.
-func (o *Hostresource) HasUsedVirtx() bool {
-	if o != nil && !IsNil(o.UsedVirtx) {
-		return true
-	}
-
-	return false
-}
-
-// SetUsedVirtx gets a reference to the given int64 and assigns it to the UsedVirtx field.
-func (o *Hostresource) SetUsedVirtx(v int64) {
-	o.UsedVirtx = &v
-}
-
-// GetReservedVms returns the ReservedVms field value if set, zero value otherwise.
-func (o *Hostresource) GetReservedVms() int64 {
-	if o == nil || IsNil(o.ReservedVms) {
-		var ret int64
-		return ret
-	}
-	return *o.ReservedVms
-}
-
-// GetReservedVmsOk returns a tuple with the ReservedVms field value if set, nil otherwise
-// and a boolean to check if the value has been set.
-func (o *Hostresource) GetReservedVmsOk() (*int64, bool) {
-	if o == nil || IsNil(o.ReservedVms) {
-		return nil, false
-	}
-	return o.ReservedVms, true
-}
-
-// HasReservedVms returns a boolean if a field has been set.
-func (o *Hostresource) HasReservedVms() bool {
-	if o != nil && !IsNil(o.ReservedVms) {
-		return true
-	}
-
-	return false
-}
-
-// SetReservedVms gets a reference to the given int64 and assigns it to the ReservedVms field.
-func (o *Hostresource) SetReservedVms(v int64) {
-	o.ReservedVms = &v
-}
-
-// GetUsedVms returns the UsedVms field value if set, zero value otherwise.
-func (o *Hostresource) GetUsedVms() int64 {
-	if o == nil || IsNil(o.UsedVms) {
-		var ret int64
-		return ret
-	}
-	return *o.UsedVms
-}
-
-// GetUsedVmsOk returns a tuple with the UsedVms field value if set, nil otherwise
-// and a boolean to check if the value has been set.
-func (o *Hostresource) GetUsedVmsOk() (*int64, bool) {
-	if o == nil || IsNil(o.UsedVms) {
-		return nil, false
-	}
-	return o.UsedVms, true
-}
-
-// HasUsedVms returns a boolean if a field has been set.
-func (o *Hostresource) HasUsedVms() bool {
-	if o != nil && !IsNil(o.UsedVms) {
-		return true
-	}
-
-	return false
-}
-
-// SetUsedVms gets a reference to the given int64 and assigns it to the UsedVms field.
-func (o *Hostresource) SetUsedVms(v int64) {
-	o.UsedVms = &v
-}
-
-// GetUsed returns the Used field value if set, zero value otherwise.
+// GetUsed returns the Used field value
 func (o *Hostresource) GetUsed() int64 {
-	if o == nil || IsNil(o.Used) {
+	if o == nil {
 		var ret int64
 		return ret
 	}
-	return *o.Used
+
+	return o.Used
 }
 
-// GetUsedOk returns a tuple with the Used field value if set, nil otherwise
+// GetUsedOk returns a tuple with the Used field value
 // and a boolean to check if the value has been set.
 func (o *Hostresource) GetUsedOk() (*int64, bool) {
-	if o == nil || IsNil(o.Used) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Used, true
+	return &o.Used, true
 }
 
-// HasUsed returns a boolean if a field has been set.
-func (o *Hostresource) HasUsed() bool {
-	if o != nil && !IsNil(o.Used) {
-		return true
-	}
-
-	return false
-}
-
-// SetUsed gets a reference to the given int64 and assigns it to the Used field.
+// SetUsed sets field value
 func (o *Hostresource) SetUsed(v int64) {
-	o.Used = &v
+	o.Used = v
 }
 
-// GetFree returns the Free field value if set, zero value otherwise.
+// GetFree returns the Free field value
 func (o *Hostresource) GetFree() int64 {
-	if o == nil || IsNil(o.Free) {
+	if o == nil {
 		var ret int64
 		return ret
 	}
-	return *o.Free
+
+	return o.Free
 }
 
-// GetFreeOk returns a tuple with the Free field value if set, nil otherwise
+// GetFreeOk returns a tuple with the Free field value
 // and a boolean to check if the value has been set.
 func (o *Hostresource) GetFreeOk() (*int64, bool) {
-	if o == nil || IsNil(o.Free) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Free, true
+	return &o.Free, true
 }
 
-// HasFree returns a boolean if a field has been set.
-func (o *Hostresource) HasFree() bool {
-	if o != nil && !IsNil(o.Free) {
-		return true
-	}
-
-	return false
-}
-
-// SetFree gets a reference to the given int64 and assigns it to the Free field.
+// SetFree sets field value
 func (o *Hostresource) SetFree(v int64) {
-	o.Free = &v
+	o.Free = v
 }
 
-// GetReserved returns the Reserved field value if set, zero value otherwise.
-func (o *Hostresource) GetReserved() int64 {
-	if o == nil || IsNil(o.Reserved) {
+// GetReservedVms returns the ReservedVms field value
+func (o *Hostresource) GetReservedVms() int64 {
+	if o == nil {
 		var ret int64
 		return ret
 	}
-	return *o.Reserved
+
+	return o.ReservedVms
 }
 
-// GetReservedOk returns a tuple with the Reserved field value if set, nil otherwise
+// GetReservedVmsOk returns a tuple with the ReservedVms field value
 // and a boolean to check if the value has been set.
-func (o *Hostresource) GetReservedOk() (*int64, bool) {
-	if o == nil || IsNil(o.Reserved) {
+func (o *Hostresource) GetReservedVmsOk() (*int64, bool) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Reserved, true
+	return &o.ReservedVms, true
 }
 
-// HasReserved returns a boolean if a field has been set.
-func (o *Hostresource) HasReserved() bool {
-	if o != nil && !IsNil(o.Reserved) {
-		return true
-	}
-
-	return false
+// SetReservedVms sets field value
+func (o *Hostresource) SetReservedVms(v int64) {
+	o.ReservedVms = v
 }
 
-// SetReserved gets a reference to the given int64 and assigns it to the Reserved field.
-func (o *Hostresource) SetReserved(v int64) {
-	o.Reserved = &v
-}
-
-// GetAvailableVms returns the AvailableVms field value if set, zero value otherwise.
-func (o *Hostresource) GetAvailableVms() int64 {
-	if o == nil || IsNil(o.AvailableVms) {
+// GetUsedVms returns the UsedVms field value
+func (o *Hostresource) GetUsedVms() int64 {
+	if o == nil {
 		var ret int64
 		return ret
 	}
-	return *o.AvailableVms
+
+	return o.UsedVms
 }
 
-// GetAvailableVmsOk returns a tuple with the AvailableVms field value if set, nil otherwise
+// GetUsedVmsOk returns a tuple with the UsedVms field value
+// and a boolean to check if the value has been set.
+func (o *Hostresource) GetUsedVmsOk() (*int64, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.UsedVms, true
+}
+
+// SetUsedVms sets field value
+func (o *Hostresource) SetUsedVms(v int64) {
+	o.UsedVms = v
+}
+
+// GetAvailableVms returns the AvailableVms field value
+func (o *Hostresource) GetAvailableVms() int64 {
+	if o == nil {
+		var ret int64
+		return ret
+	}
+
+	return o.AvailableVms
+}
+
+// GetAvailableVmsOk returns a tuple with the AvailableVms field value
 // and a boolean to check if the value has been set.
 func (o *Hostresource) GetAvailableVmsOk() (*int64, bool) {
-	if o == nil || IsNil(o.AvailableVms) {
+	if o == nil {
 		return nil, false
 	}
-	return o.AvailableVms, true
+	return &o.AvailableVms, true
 }
 
-// HasAvailableVms returns a boolean if a field has been set.
-func (o *Hostresource) HasAvailableVms() bool {
-	if o != nil && !IsNil(o.AvailableVms) {
-		return true
-	}
-
-	return false
-}
-
-// SetAvailableVms gets a reference to the given int64 and assigns it to the AvailableVms field.
+// SetAvailableVms sets field value
 func (o *Hostresource) SetAvailableVms(v int64) {
-	o.AvailableVms = &v
+	o.AvailableVms = v
 }
 
 func (o Hostresource) MarshalJSON() ([]byte, error) {
@@ -423,40 +215,55 @@ func (o Hostresource) MarshalJSON() ([]byte, error) {
 
 func (o Hostresource) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
-	if !IsNil(o.Total) {
-		toSerialize["total"] = o.Total
-	}
-	if !IsNil(o.ReservedOs) {
-		toSerialize["reserved_os"] = o.ReservedOs
-	}
-	if !IsNil(o.UsedOs) {
-		toSerialize["used_os"] = o.UsedOs
-	}
-	if !IsNil(o.ReservedVirtx) {
-		toSerialize["reserved_virtx"] = o.ReservedVirtx
-	}
-	if !IsNil(o.UsedVirtx) {
-		toSerialize["used_virtx"] = o.UsedVirtx
-	}
-	if !IsNil(o.ReservedVms) {
-		toSerialize["reserved_vms"] = o.ReservedVms
-	}
-	if !IsNil(o.UsedVms) {
-		toSerialize["used_vms"] = o.UsedVms
-	}
-	if !IsNil(o.Used) {
-		toSerialize["used"] = o.Used
-	}
-	if !IsNil(o.Free) {
-		toSerialize["free"] = o.Free
-	}
-	if !IsNil(o.Reserved) {
-		toSerialize["reserved"] = o.Reserved
-	}
-	if !IsNil(o.AvailableVms) {
-		toSerialize["available_vms"] = o.AvailableVms
-	}
+	toSerialize["total"] = o.Total
+	toSerialize["used"] = o.Used
+	toSerialize["free"] = o.Free
+	toSerialize["reserved_vms"] = o.ReservedVms
+	toSerialize["used_vms"] = o.UsedVms
+	toSerialize["available_vms"] = o.AvailableVms
 	return toSerialize, nil
+}
+
+func (o *Hostresource) UnmarshalJSON(data []byte) (err error) {
+	// This validates that all required properties are included in the JSON object
+	// by unmarshalling the object into a generic map with string keys and checking
+	// that every required field exists as a key in the generic map.
+	requiredProperties := []string{
+		"total",
+		"used",
+		"free",
+		"reserved_vms",
+		"used_vms",
+		"available_vms",
+	}
+
+	allProperties := make(map[string]interface{})
+
+	err = json.Unmarshal(data, &allProperties)
+
+	if err != nil {
+		return err;
+	}
+
+	for _, requiredProperty := range(requiredProperties) {
+		if _, exists := allProperties[requiredProperty]; !exists {
+			return fmt.Errorf("no value given for required property %v", requiredProperty)
+		}
+	}
+
+	varHostresource := _Hostresource{}
+
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	err = decoder.Decode(&varHostresource)
+
+	if err != nil {
+		return err
+	}
+
+	*o = Hostresource(varHostresource)
+
+	return err
 }
 
 type NullableHostresource struct {

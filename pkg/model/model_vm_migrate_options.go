@@ -1,7 +1,7 @@
 /*
 virtx
 
-This is a simple virtualization API for a KVM Cluster
+This is a simple virtualization API for a KVM Cluster. All fields are marked as required to avoid bad code generator results. Where possible, an integer value of 0 means \"unset\", \"unused\" or \"default\". In the rare cases where this clashes with a valid 0 value, the value -1 is used instead. For strings, the convention is that the \"\" (empty string) means \"unset\", \"unused\" or \"default\". 
 
 API version: 0.0.1
 Contact: claudio.fontana@suse.com
@@ -13,6 +13,8 @@ package openapi
 
 import (
 	"encoding/json"
+	"bytes"
+	"fmt"
 )
 
 // checks if the VmMigrateOptions type satisfies the MappedNullable interface at compile time
@@ -20,16 +22,19 @@ var _ MappedNullable = &VmMigrateOptions{}
 
 // VmMigrateOptions struct for VmMigrateOptions
 type VmMigrateOptions struct {
-	// Unique Identifier for VMs, Hosts, Cluster, RFC 4122
-	Host *string `json:"host,omitempty"`
+	// Unique Identifier for VMs, Hosts, Networks; RFC 4122
+	Host string `json:"host"`
 }
+
+type _VmMigrateOptions VmMigrateOptions
 
 // NewVmMigrateOptions instantiates a new VmMigrateOptions object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVmMigrateOptions() *VmMigrateOptions {
+func NewVmMigrateOptions(host string) *VmMigrateOptions {
 	this := VmMigrateOptions{}
+	this.Host = host
 	return &this
 }
 
@@ -41,36 +46,28 @@ func NewVmMigrateOptionsWithDefaults() *VmMigrateOptions {
 	return &this
 }
 
-// GetHost returns the Host field value if set, zero value otherwise.
+// GetHost returns the Host field value
 func (o *VmMigrateOptions) GetHost() string {
-	if o == nil || IsNil(o.Host) {
+	if o == nil {
 		var ret string
 		return ret
 	}
-	return *o.Host
+
+	return o.Host
 }
 
-// GetHostOk returns a tuple with the Host field value if set, nil otherwise
+// GetHostOk returns a tuple with the Host field value
 // and a boolean to check if the value has been set.
 func (o *VmMigrateOptions) GetHostOk() (*string, bool) {
-	if o == nil || IsNil(o.Host) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Host, true
+	return &o.Host, true
 }
 
-// HasHost returns a boolean if a field has been set.
-func (o *VmMigrateOptions) HasHost() bool {
-	if o != nil && !IsNil(o.Host) {
-		return true
-	}
-
-	return false
-}
-
-// SetHost gets a reference to the given string and assigns it to the Host field.
+// SetHost sets field value
 func (o *VmMigrateOptions) SetHost(v string) {
-	o.Host = &v
+	o.Host = v
 }
 
 func (o VmMigrateOptions) MarshalJSON() ([]byte, error) {
@@ -83,10 +80,45 @@ func (o VmMigrateOptions) MarshalJSON() ([]byte, error) {
 
 func (o VmMigrateOptions) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
-	if !IsNil(o.Host) {
-		toSerialize["host"] = o.Host
-	}
+	toSerialize["host"] = o.Host
 	return toSerialize, nil
+}
+
+func (o *VmMigrateOptions) UnmarshalJSON(data []byte) (err error) {
+	// This validates that all required properties are included in the JSON object
+	// by unmarshalling the object into a generic map with string keys and checking
+	// that every required field exists as a key in the generic map.
+	requiredProperties := []string{
+		"host",
+	}
+
+	allProperties := make(map[string]interface{})
+
+	err = json.Unmarshal(data, &allProperties)
+
+	if err != nil {
+		return err;
+	}
+
+	for _, requiredProperty := range(requiredProperties) {
+		if _, exists := allProperties[requiredProperty]; !exists {
+			return fmt.Errorf("no value given for required property %v", requiredProperty)
+		}
+	}
+
+	varVmMigrateOptions := _VmMigrateOptions{}
+
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	err = decoder.Decode(&varVmMigrateOptions)
+
+	if err != nil {
+		return err
+	}
+
+	*o = VmMigrateOptions(varVmMigrateOptions)
+
+	return err
 }
 
 type NullableVmMigrateOptions struct {

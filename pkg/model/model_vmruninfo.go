@@ -1,7 +1,7 @@
 /*
 virtx
 
-This is a simple virtualization API for a KVM Cluster
+This is a simple virtualization API for a KVM Cluster. All fields are marked as required to avoid bad code generator results. Where possible, an integer value of 0 means \"unset\", \"unused\" or \"default\". In the rare cases where this clashes with a valid 0 value, the value -1 is used instead. For strings, the convention is that the \"\" (empty string) means \"unset\", \"unused\" or \"default\". 
 
 API version: 0.0.1
 Contact: claudio.fontana@suse.com
@@ -13,6 +13,8 @@ package openapi
 
 import (
 	"encoding/json"
+	"bytes"
+	"fmt"
 )
 
 // checks if the Vmruninfo type satisfies the MappedNullable interface at compile time
@@ -20,17 +22,21 @@ var _ MappedNullable = &Vmruninfo{}
 
 // Vmruninfo struct for Vmruninfo
 type Vmruninfo struct {
-	State *Vmrunstate `json:"state,omitempty"`
-	// Unique Identifier for VMs, Hosts, Cluster, RFC 4122
-	Host *string `json:"host,omitempty"`
+	State Vmrunstate `json:"state"`
+	// Unique Identifier for VMs, Hosts, Networks; RFC 4122
+	Host string `json:"host"`
 }
+
+type _Vmruninfo Vmruninfo
 
 // NewVmruninfo instantiates a new Vmruninfo object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVmruninfo() *Vmruninfo {
+func NewVmruninfo(state Vmrunstate, host string) *Vmruninfo {
 	this := Vmruninfo{}
+	this.State = state
+	this.Host = host
 	return &this
 }
 
@@ -42,68 +48,52 @@ func NewVmruninfoWithDefaults() *Vmruninfo {
 	return &this
 }
 
-// GetState returns the State field value if set, zero value otherwise.
+// GetState returns the State field value
 func (o *Vmruninfo) GetState() Vmrunstate {
-	if o == nil || IsNil(o.State) {
+	if o == nil {
 		var ret Vmrunstate
 		return ret
 	}
-	return *o.State
+
+	return o.State
 }
 
-// GetStateOk returns a tuple with the State field value if set, nil otherwise
+// GetStateOk returns a tuple with the State field value
 // and a boolean to check if the value has been set.
 func (o *Vmruninfo) GetStateOk() (*Vmrunstate, bool) {
-	if o == nil || IsNil(o.State) {
+	if o == nil {
 		return nil, false
 	}
-	return o.State, true
+	return &o.State, true
 }
 
-// HasState returns a boolean if a field has been set.
-func (o *Vmruninfo) HasState() bool {
-	if o != nil && !IsNil(o.State) {
-		return true
-	}
-
-	return false
-}
-
-// SetState gets a reference to the given Vmrunstate and assigns it to the State field.
+// SetState sets field value
 func (o *Vmruninfo) SetState(v Vmrunstate) {
-	o.State = &v
+	o.State = v
 }
 
-// GetHost returns the Host field value if set, zero value otherwise.
+// GetHost returns the Host field value
 func (o *Vmruninfo) GetHost() string {
-	if o == nil || IsNil(o.Host) {
+	if o == nil {
 		var ret string
 		return ret
 	}
-	return *o.Host
+
+	return o.Host
 }
 
-// GetHostOk returns a tuple with the Host field value if set, nil otherwise
+// GetHostOk returns a tuple with the Host field value
 // and a boolean to check if the value has been set.
 func (o *Vmruninfo) GetHostOk() (*string, bool) {
-	if o == nil || IsNil(o.Host) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Host, true
+	return &o.Host, true
 }
 
-// HasHost returns a boolean if a field has been set.
-func (o *Vmruninfo) HasHost() bool {
-	if o != nil && !IsNil(o.Host) {
-		return true
-	}
-
-	return false
-}
-
-// SetHost gets a reference to the given string and assigns it to the Host field.
+// SetHost sets field value
 func (o *Vmruninfo) SetHost(v string) {
-	o.Host = &v
+	o.Host = v
 }
 
 func (o Vmruninfo) MarshalJSON() ([]byte, error) {
@@ -116,13 +106,47 @@ func (o Vmruninfo) MarshalJSON() ([]byte, error) {
 
 func (o Vmruninfo) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
-	if !IsNil(o.State) {
-		toSerialize["state"] = o.State
-	}
-	if !IsNil(o.Host) {
-		toSerialize["host"] = o.Host
-	}
+	toSerialize["state"] = o.State
+	toSerialize["host"] = o.Host
 	return toSerialize, nil
+}
+
+func (o *Vmruninfo) UnmarshalJSON(data []byte) (err error) {
+	// This validates that all required properties are included in the JSON object
+	// by unmarshalling the object into a generic map with string keys and checking
+	// that every required field exists as a key in the generic map.
+	requiredProperties := []string{
+		"state",
+		"host",
+	}
+
+	allProperties := make(map[string]interface{})
+
+	err = json.Unmarshal(data, &allProperties)
+
+	if err != nil {
+		return err;
+	}
+
+	for _, requiredProperty := range(requiredProperties) {
+		if _, exists := allProperties[requiredProperty]; !exists {
+			return fmt.Errorf("no value given for required property %v", requiredProperty)
+		}
+	}
+
+	varVmruninfo := _Vmruninfo{}
+
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	err = decoder.Decode(&varVmruninfo)
+
+	if err != nil {
+		return err
+	}
+
+	*o = Vmruninfo(varVmruninfo)
+
+	return err
 }
 
 type NullableVmruninfo struct {

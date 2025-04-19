@@ -1,7 +1,7 @@
 /*
 virtx
 
-This is a simple virtualization API for a KVM Cluster
+This is a simple virtualization API for a KVM Cluster. All fields are marked as required to avoid bad code generator results. Where possible, an integer value of 0 means \"unset\", \"unused\" or \"default\". In the rare cases where this clashes with a valid 0 value, the value -1 is used instead. For strings, the convention is that the \"\" (empty string) means \"unset\", \"unused\" or \"default\". 
 
 API version: 0.0.1
 Contact: claudio.fontana@suse.com
@@ -13,6 +13,8 @@ package openapi
 
 import (
 	"encoding/json"
+	"bytes"
+	"fmt"
 )
 
 // checks if the VmdefMemory type satisfies the MappedNullable interface at compile time
@@ -20,16 +22,19 @@ var _ MappedNullable = &VmdefMemory{}
 
 // VmdefMemory struct for VmdefMemory
 type VmdefMemory struct {
-	// total memory to reserve for the guest in MiB
-	Total *int64 `json:"total,omitempty"`
+	// total memory reserved for the guest in MiB
+	Total int64 `json:"total"`
 }
+
+type _VmdefMemory VmdefMemory
 
 // NewVmdefMemory instantiates a new VmdefMemory object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVmdefMemory() *VmdefMemory {
+func NewVmdefMemory(total int64) *VmdefMemory {
 	this := VmdefMemory{}
+	this.Total = total
 	return &this
 }
 
@@ -41,36 +46,28 @@ func NewVmdefMemoryWithDefaults() *VmdefMemory {
 	return &this
 }
 
-// GetTotal returns the Total field value if set, zero value otherwise.
+// GetTotal returns the Total field value
 func (o *VmdefMemory) GetTotal() int64 {
-	if o == nil || IsNil(o.Total) {
+	if o == nil {
 		var ret int64
 		return ret
 	}
-	return *o.Total
+
+	return o.Total
 }
 
-// GetTotalOk returns a tuple with the Total field value if set, nil otherwise
+// GetTotalOk returns a tuple with the Total field value
 // and a boolean to check if the value has been set.
 func (o *VmdefMemory) GetTotalOk() (*int64, bool) {
-	if o == nil || IsNil(o.Total) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Total, true
+	return &o.Total, true
 }
 
-// HasTotal returns a boolean if a field has been set.
-func (o *VmdefMemory) HasTotal() bool {
-	if o != nil && !IsNil(o.Total) {
-		return true
-	}
-
-	return false
-}
-
-// SetTotal gets a reference to the given int64 and assigns it to the Total field.
+// SetTotal sets field value
 func (o *VmdefMemory) SetTotal(v int64) {
-	o.Total = &v
+	o.Total = v
 }
 
 func (o VmdefMemory) MarshalJSON() ([]byte, error) {
@@ -83,10 +80,45 @@ func (o VmdefMemory) MarshalJSON() ([]byte, error) {
 
 func (o VmdefMemory) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
-	if !IsNil(o.Total) {
-		toSerialize["total"] = o.Total
-	}
+	toSerialize["total"] = o.Total
 	return toSerialize, nil
+}
+
+func (o *VmdefMemory) UnmarshalJSON(data []byte) (err error) {
+	// This validates that all required properties are included in the JSON object
+	// by unmarshalling the object into a generic map with string keys and checking
+	// that every required field exists as a key in the generic map.
+	requiredProperties := []string{
+		"total",
+	}
+
+	allProperties := make(map[string]interface{})
+
+	err = json.Unmarshal(data, &allProperties)
+
+	if err != nil {
+		return err;
+	}
+
+	for _, requiredProperty := range(requiredProperties) {
+		if _, exists := allProperties[requiredProperty]; !exists {
+			return fmt.Errorf("no value given for required property %v", requiredProperty)
+		}
+	}
+
+	varVmdefMemory := _VmdefMemory{}
+
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	err = decoder.Decode(&varVmdefMemory)
+
+	if err != nil {
+		return err
+	}
+
+	*o = VmdefMemory(varVmdefMemory)
+
+	return err
 }
 
 type NullableVmdefMemory struct {

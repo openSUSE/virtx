@@ -1,7 +1,7 @@
 /*
 virtx
 
-This is a simple virtualization API for a KVM Cluster
+This is a simple virtualization API for a KVM Cluster. All fields are marked as required to avoid bad code generator results. Where possible, an integer value of 0 means \"unset\", \"unused\" or \"default\". In the rare cases where this clashes with a valid 0 value, the value -1 is used instead. For strings, the convention is that the \"\" (empty string) means \"unset\", \"unused\" or \"default\". 
 
 API version: 0.0.1
 Contact: claudio.fontana@suse.com
@@ -13,6 +13,8 @@ package openapi
 
 import (
 	"encoding/json"
+	"bytes"
+	"fmt"
 )
 
 // checks if the VmListOptions type satisfies the MappedNullable interface at compile time
@@ -20,16 +22,20 @@ var _ MappedNullable = &VmListOptions{}
 
 // VmListOptions struct for VmListOptions
 type VmListOptions struct {
-	Filter *VmListFields `json:"filter,omitempty"`
-	Page *Page `json:"page,omitempty"`
+	Filter VmListFields `json:"filter"`
+	Page Page `json:"page"`
 }
+
+type _VmListOptions VmListOptions
 
 // NewVmListOptions instantiates a new VmListOptions object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVmListOptions() *VmListOptions {
+func NewVmListOptions(filter VmListFields, page Page) *VmListOptions {
 	this := VmListOptions{}
+	this.Filter = filter
+	this.Page = page
 	return &this
 }
 
@@ -41,68 +47,52 @@ func NewVmListOptionsWithDefaults() *VmListOptions {
 	return &this
 }
 
-// GetFilter returns the Filter field value if set, zero value otherwise.
+// GetFilter returns the Filter field value
 func (o *VmListOptions) GetFilter() VmListFields {
-	if o == nil || IsNil(o.Filter) {
+	if o == nil {
 		var ret VmListFields
 		return ret
 	}
-	return *o.Filter
+
+	return o.Filter
 }
 
-// GetFilterOk returns a tuple with the Filter field value if set, nil otherwise
+// GetFilterOk returns a tuple with the Filter field value
 // and a boolean to check if the value has been set.
 func (o *VmListOptions) GetFilterOk() (*VmListFields, bool) {
-	if o == nil || IsNil(o.Filter) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Filter, true
+	return &o.Filter, true
 }
 
-// HasFilter returns a boolean if a field has been set.
-func (o *VmListOptions) HasFilter() bool {
-	if o != nil && !IsNil(o.Filter) {
-		return true
-	}
-
-	return false
-}
-
-// SetFilter gets a reference to the given VmListFields and assigns it to the Filter field.
+// SetFilter sets field value
 func (o *VmListOptions) SetFilter(v VmListFields) {
-	o.Filter = &v
+	o.Filter = v
 }
 
-// GetPage returns the Page field value if set, zero value otherwise.
+// GetPage returns the Page field value
 func (o *VmListOptions) GetPage() Page {
-	if o == nil || IsNil(o.Page) {
+	if o == nil {
 		var ret Page
 		return ret
 	}
-	return *o.Page
+
+	return o.Page
 }
 
-// GetPageOk returns a tuple with the Page field value if set, nil otherwise
+// GetPageOk returns a tuple with the Page field value
 // and a boolean to check if the value has been set.
 func (o *VmListOptions) GetPageOk() (*Page, bool) {
-	if o == nil || IsNil(o.Page) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Page, true
+	return &o.Page, true
 }
 
-// HasPage returns a boolean if a field has been set.
-func (o *VmListOptions) HasPage() bool {
-	if o != nil && !IsNil(o.Page) {
-		return true
-	}
-
-	return false
-}
-
-// SetPage gets a reference to the given Page and assigns it to the Page field.
+// SetPage sets field value
 func (o *VmListOptions) SetPage(v Page) {
-	o.Page = &v
+	o.Page = v
 }
 
 func (o VmListOptions) MarshalJSON() ([]byte, error) {
@@ -115,13 +105,47 @@ func (o VmListOptions) MarshalJSON() ([]byte, error) {
 
 func (o VmListOptions) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
-	if !IsNil(o.Filter) {
-		toSerialize["filter"] = o.Filter
-	}
-	if !IsNil(o.Page) {
-		toSerialize["page"] = o.Page
-	}
+	toSerialize["filter"] = o.Filter
+	toSerialize["page"] = o.Page
 	return toSerialize, nil
+}
+
+func (o *VmListOptions) UnmarshalJSON(data []byte) (err error) {
+	// This validates that all required properties are included in the JSON object
+	// by unmarshalling the object into a generic map with string keys and checking
+	// that every required field exists as a key in the generic map.
+	requiredProperties := []string{
+		"filter",
+		"page",
+	}
+
+	allProperties := make(map[string]interface{})
+
+	err = json.Unmarshal(data, &allProperties)
+
+	if err != nil {
+		return err;
+	}
+
+	for _, requiredProperty := range(requiredProperties) {
+		if _, exists := allProperties[requiredProperty]; !exists {
+			return fmt.Errorf("no value given for required property %v", requiredProperty)
+		}
+	}
+
+	varVmListOptions := _VmListOptions{}
+
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	err = decoder.Decode(&varVmListOptions)
+
+	if err != nil {
+		return err
+	}
+
+	*o = VmListOptions(varVmListOptions)
+
+	return err
 }
 
 type NullableVmListOptions struct {

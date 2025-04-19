@@ -1,7 +1,7 @@
 /*
 virtx
 
-This is a simple virtualization API for a KVM Cluster
+This is a simple virtualization API for a KVM Cluster. All fields are marked as required to avoid bad code generator results. Where possible, an integer value of 0 means \"unset\", \"unused\" or \"default\". In the rare cases where this clashes with a valid 0 value, the value -1 is used instead. For strings, the convention is that the \"\" (empty string) means \"unset\", \"unused\" or \"default\". 
 
 API version: 0.0.1
 Contact: claudio.fontana@suse.com
@@ -13,6 +13,8 @@ package openapi
 
 import (
 	"encoding/json"
+	"bytes"
+	"fmt"
 )
 
 // checks if the Page type satisfies the MappedNullable interface at compile time
@@ -20,16 +22,20 @@ var _ MappedNullable = &Page{}
 
 // Page Paging information, to limit the size of results returned at once. The page index (starting with 0) and the page size (number of items per page) are used on the server side to prepare and return the results.
 type Page struct {
-	Index *int32 `json:"index,omitempty"`
-	Size *int32 `json:"size,omitempty"`
+	Index int32 `json:"index"`
+	Size int32 `json:"size"`
 }
+
+type _Page Page
 
 // NewPage instantiates a new Page object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewPage() *Page {
+func NewPage(index int32, size int32) *Page {
 	this := Page{}
+	this.Index = index
+	this.Size = size
 	return &this
 }
 
@@ -41,68 +47,52 @@ func NewPageWithDefaults() *Page {
 	return &this
 }
 
-// GetIndex returns the Index field value if set, zero value otherwise.
+// GetIndex returns the Index field value
 func (o *Page) GetIndex() int32 {
-	if o == nil || IsNil(o.Index) {
+	if o == nil {
 		var ret int32
 		return ret
 	}
-	return *o.Index
+
+	return o.Index
 }
 
-// GetIndexOk returns a tuple with the Index field value if set, nil otherwise
+// GetIndexOk returns a tuple with the Index field value
 // and a boolean to check if the value has been set.
 func (o *Page) GetIndexOk() (*int32, bool) {
-	if o == nil || IsNil(o.Index) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Index, true
+	return &o.Index, true
 }
 
-// HasIndex returns a boolean if a field has been set.
-func (o *Page) HasIndex() bool {
-	if o != nil && !IsNil(o.Index) {
-		return true
-	}
-
-	return false
-}
-
-// SetIndex gets a reference to the given int32 and assigns it to the Index field.
+// SetIndex sets field value
 func (o *Page) SetIndex(v int32) {
-	o.Index = &v
+	o.Index = v
 }
 
-// GetSize returns the Size field value if set, zero value otherwise.
+// GetSize returns the Size field value
 func (o *Page) GetSize() int32 {
-	if o == nil || IsNil(o.Size) {
+	if o == nil {
 		var ret int32
 		return ret
 	}
-	return *o.Size
+
+	return o.Size
 }
 
-// GetSizeOk returns a tuple with the Size field value if set, nil otherwise
+// GetSizeOk returns a tuple with the Size field value
 // and a boolean to check if the value has been set.
 func (o *Page) GetSizeOk() (*int32, bool) {
-	if o == nil || IsNil(o.Size) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Size, true
+	return &o.Size, true
 }
 
-// HasSize returns a boolean if a field has been set.
-func (o *Page) HasSize() bool {
-	if o != nil && !IsNil(o.Size) {
-		return true
-	}
-
-	return false
-}
-
-// SetSize gets a reference to the given int32 and assigns it to the Size field.
+// SetSize sets field value
 func (o *Page) SetSize(v int32) {
-	o.Size = &v
+	o.Size = v
 }
 
 func (o Page) MarshalJSON() ([]byte, error) {
@@ -115,13 +105,47 @@ func (o Page) MarshalJSON() ([]byte, error) {
 
 func (o Page) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
-	if !IsNil(o.Index) {
-		toSerialize["index"] = o.Index
-	}
-	if !IsNil(o.Size) {
-		toSerialize["size"] = o.Size
-	}
+	toSerialize["index"] = o.Index
+	toSerialize["size"] = o.Size
 	return toSerialize, nil
+}
+
+func (o *Page) UnmarshalJSON(data []byte) (err error) {
+	// This validates that all required properties are included in the JSON object
+	// by unmarshalling the object into a generic map with string keys and checking
+	// that every required field exists as a key in the generic map.
+	requiredProperties := []string{
+		"index",
+		"size",
+	}
+
+	allProperties := make(map[string]interface{})
+
+	err = json.Unmarshal(data, &allProperties)
+
+	if err != nil {
+		return err;
+	}
+
+	for _, requiredProperty := range(requiredProperties) {
+		if _, exists := allProperties[requiredProperty]; !exists {
+			return fmt.Errorf("no value given for required property %v", requiredProperty)
+		}
+	}
+
+	varPage := _Page{}
+
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	err = decoder.Decode(&varPage)
+
+	if err != nil {
+		return err
+	}
+
+	*o = Page(varPage)
+
+	return err
 }
 
 type NullablePage struct {

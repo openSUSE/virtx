@@ -1,7 +1,7 @@
 /*
 virtx
 
-This is a simple virtualization API for a KVM Cluster
+This is a simple virtualization API for a KVM Cluster. All fields are marked as required to avoid bad code generator results. Where possible, an integer value of 0 means \"unset\", \"unused\" or \"default\". In the rare cases where this clashes with a valid 0 value, the value -1 is used instead. For strings, the convention is that the \"\" (empty string) means \"unset\", \"unused\" or \"default\". 
 
 API version: 0.0.1
 Contact: claudio.fontana@suse.com
@@ -13,6 +13,8 @@ package openapi
 
 import (
 	"encoding/json"
+	"bytes"
+	"fmt"
 )
 
 // checks if the VmMigrateInfo type satisfies the MappedNullable interface at compile time
@@ -21,16 +23,20 @@ var _ MappedNullable = &VmMigrateInfo{}
 // VmMigrateInfo struct for VmMigrateInfo
 type VmMigrateInfo struct {
 	// the status of the migration
-	State *string `json:"state,omitempty"`
-	Progress *VmMigrateInfoProgress `json:"progress,omitempty"`
+	State string `json:"state"`
+	Progress VmMigrateInfoProgress `json:"progress"`
 }
+
+type _VmMigrateInfo VmMigrateInfo
 
 // NewVmMigrateInfo instantiates a new VmMigrateInfo object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVmMigrateInfo() *VmMigrateInfo {
+func NewVmMigrateInfo(state string, progress VmMigrateInfoProgress) *VmMigrateInfo {
 	this := VmMigrateInfo{}
+	this.State = state
+	this.Progress = progress
 	return &this
 }
 
@@ -42,68 +48,52 @@ func NewVmMigrateInfoWithDefaults() *VmMigrateInfo {
 	return &this
 }
 
-// GetState returns the State field value if set, zero value otherwise.
+// GetState returns the State field value
 func (o *VmMigrateInfo) GetState() string {
-	if o == nil || IsNil(o.State) {
+	if o == nil {
 		var ret string
 		return ret
 	}
-	return *o.State
+
+	return o.State
 }
 
-// GetStateOk returns a tuple with the State field value if set, nil otherwise
+// GetStateOk returns a tuple with the State field value
 // and a boolean to check if the value has been set.
 func (o *VmMigrateInfo) GetStateOk() (*string, bool) {
-	if o == nil || IsNil(o.State) {
+	if o == nil {
 		return nil, false
 	}
-	return o.State, true
+	return &o.State, true
 }
 
-// HasState returns a boolean if a field has been set.
-func (o *VmMigrateInfo) HasState() bool {
-	if o != nil && !IsNil(o.State) {
-		return true
-	}
-
-	return false
-}
-
-// SetState gets a reference to the given string and assigns it to the State field.
+// SetState sets field value
 func (o *VmMigrateInfo) SetState(v string) {
-	o.State = &v
+	o.State = v
 }
 
-// GetProgress returns the Progress field value if set, zero value otherwise.
+// GetProgress returns the Progress field value
 func (o *VmMigrateInfo) GetProgress() VmMigrateInfoProgress {
-	if o == nil || IsNil(o.Progress) {
+	if o == nil {
 		var ret VmMigrateInfoProgress
 		return ret
 	}
-	return *o.Progress
+
+	return o.Progress
 }
 
-// GetProgressOk returns a tuple with the Progress field value if set, nil otherwise
+// GetProgressOk returns a tuple with the Progress field value
 // and a boolean to check if the value has been set.
 func (o *VmMigrateInfo) GetProgressOk() (*VmMigrateInfoProgress, bool) {
-	if o == nil || IsNil(o.Progress) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Progress, true
+	return &o.Progress, true
 }
 
-// HasProgress returns a boolean if a field has been set.
-func (o *VmMigrateInfo) HasProgress() bool {
-	if o != nil && !IsNil(o.Progress) {
-		return true
-	}
-
-	return false
-}
-
-// SetProgress gets a reference to the given VmMigrateInfoProgress and assigns it to the Progress field.
+// SetProgress sets field value
 func (o *VmMigrateInfo) SetProgress(v VmMigrateInfoProgress) {
-	o.Progress = &v
+	o.Progress = v
 }
 
 func (o VmMigrateInfo) MarshalJSON() ([]byte, error) {
@@ -116,13 +106,47 @@ func (o VmMigrateInfo) MarshalJSON() ([]byte, error) {
 
 func (o VmMigrateInfo) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
-	if !IsNil(o.State) {
-		toSerialize["state"] = o.State
-	}
-	if !IsNil(o.Progress) {
-		toSerialize["progress"] = o.Progress
-	}
+	toSerialize["state"] = o.State
+	toSerialize["progress"] = o.Progress
 	return toSerialize, nil
+}
+
+func (o *VmMigrateInfo) UnmarshalJSON(data []byte) (err error) {
+	// This validates that all required properties are included in the JSON object
+	// by unmarshalling the object into a generic map with string keys and checking
+	// that every required field exists as a key in the generic map.
+	requiredProperties := []string{
+		"state",
+		"progress",
+	}
+
+	allProperties := make(map[string]interface{})
+
+	err = json.Unmarshal(data, &allProperties)
+
+	if err != nil {
+		return err;
+	}
+
+	for _, requiredProperty := range(requiredProperties) {
+		if _, exists := allProperties[requiredProperty]; !exists {
+			return fmt.Errorf("no value given for required property %v", requiredProperty)
+		}
+	}
+
+	varVmMigrateInfo := _VmMigrateInfo{}
+
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	err = decoder.Decode(&varVmMigrateInfo)
+
+	if err != nil {
+		return err
+	}
+
+	*o = VmMigrateInfo(varVmMigrateInfo)
+
+	return err
 }
 
 type NullableVmMigrateInfo struct {

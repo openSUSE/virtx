@@ -1,7 +1,7 @@
 /*
 virtx
 
-This is a simple virtualization API for a KVM Cluster
+This is a simple virtualization API for a KVM Cluster. All fields are marked as required to avoid bad code generator results. Where possible, an integer value of 0 means \"unset\", \"unused\" or \"default\". In the rare cases where this clashes with a valid 0 value, the value -1 is used instead. For strings, the convention is that the \"\" (empty string) means \"unset\", \"unused\" or \"default\". 
 
 API version: 0.0.1
 Contact: claudio.fontana@suse.com
@@ -13,6 +13,8 @@ package openapi
 
 import (
 	"encoding/json"
+	"bytes"
+	"fmt"
 )
 
 // checks if the HostListItem type satisfies the MappedNullable interface at compile time
@@ -20,17 +22,21 @@ var _ MappedNullable = &HostListItem{}
 
 // HostListItem struct for HostListItem
 type HostListItem struct {
-	// Unique Identifier for VMs, Hosts, Cluster, RFC 4122
-	Uuid *string `json:"uuid,omitempty"`
-	Fields *HostListFields `json:"fields,omitempty"`
+	// Unique Identifier for VMs, Hosts, Networks; RFC 4122
+	Uuid string `json:"uuid"`
+	Fields HostListFields `json:"fields"`
 }
+
+type _HostListItem HostListItem
 
 // NewHostListItem instantiates a new HostListItem object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewHostListItem() *HostListItem {
+func NewHostListItem(uuid string, fields HostListFields) *HostListItem {
 	this := HostListItem{}
+	this.Uuid = uuid
+	this.Fields = fields
 	return &this
 }
 
@@ -42,68 +48,52 @@ func NewHostListItemWithDefaults() *HostListItem {
 	return &this
 }
 
-// GetUuid returns the Uuid field value if set, zero value otherwise.
+// GetUuid returns the Uuid field value
 func (o *HostListItem) GetUuid() string {
-	if o == nil || IsNil(o.Uuid) {
+	if o == nil {
 		var ret string
 		return ret
 	}
-	return *o.Uuid
+
+	return o.Uuid
 }
 
-// GetUuidOk returns a tuple with the Uuid field value if set, nil otherwise
+// GetUuidOk returns a tuple with the Uuid field value
 // and a boolean to check if the value has been set.
 func (o *HostListItem) GetUuidOk() (*string, bool) {
-	if o == nil || IsNil(o.Uuid) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Uuid, true
+	return &o.Uuid, true
 }
 
-// HasUuid returns a boolean if a field has been set.
-func (o *HostListItem) HasUuid() bool {
-	if o != nil && !IsNil(o.Uuid) {
-		return true
-	}
-
-	return false
-}
-
-// SetUuid gets a reference to the given string and assigns it to the Uuid field.
+// SetUuid sets field value
 func (o *HostListItem) SetUuid(v string) {
-	o.Uuid = &v
+	o.Uuid = v
 }
 
-// GetFields returns the Fields field value if set, zero value otherwise.
+// GetFields returns the Fields field value
 func (o *HostListItem) GetFields() HostListFields {
-	if o == nil || IsNil(o.Fields) {
+	if o == nil {
 		var ret HostListFields
 		return ret
 	}
-	return *o.Fields
+
+	return o.Fields
 }
 
-// GetFieldsOk returns a tuple with the Fields field value if set, nil otherwise
+// GetFieldsOk returns a tuple with the Fields field value
 // and a boolean to check if the value has been set.
 func (o *HostListItem) GetFieldsOk() (*HostListFields, bool) {
-	if o == nil || IsNil(o.Fields) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Fields, true
+	return &o.Fields, true
 }
 
-// HasFields returns a boolean if a field has been set.
-func (o *HostListItem) HasFields() bool {
-	if o != nil && !IsNil(o.Fields) {
-		return true
-	}
-
-	return false
-}
-
-// SetFields gets a reference to the given HostListFields and assigns it to the Fields field.
+// SetFields sets field value
 func (o *HostListItem) SetFields(v HostListFields) {
-	o.Fields = &v
+	o.Fields = v
 }
 
 func (o HostListItem) MarshalJSON() ([]byte, error) {
@@ -116,13 +106,47 @@ func (o HostListItem) MarshalJSON() ([]byte, error) {
 
 func (o HostListItem) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
-	if !IsNil(o.Uuid) {
-		toSerialize["uuid"] = o.Uuid
-	}
-	if !IsNil(o.Fields) {
-		toSerialize["fields"] = o.Fields
-	}
+	toSerialize["uuid"] = o.Uuid
+	toSerialize["fields"] = o.Fields
 	return toSerialize, nil
+}
+
+func (o *HostListItem) UnmarshalJSON(data []byte) (err error) {
+	// This validates that all required properties are included in the JSON object
+	// by unmarshalling the object into a generic map with string keys and checking
+	// that every required field exists as a key in the generic map.
+	requiredProperties := []string{
+		"uuid",
+		"fields",
+	}
+
+	allProperties := make(map[string]interface{})
+
+	err = json.Unmarshal(data, &allProperties)
+
+	if err != nil {
+		return err;
+	}
+
+	for _, requiredProperty := range(requiredProperties) {
+		if _, exists := allProperties[requiredProperty]; !exists {
+			return fmt.Errorf("no value given for required property %v", requiredProperty)
+		}
+	}
+
+	varHostListItem := _HostListItem{}
+
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	err = decoder.Decode(&varHostListItem)
+
+	if err != nil {
+		return err
+	}
+
+	*o = HostListItem(varHostListItem)
+
+	return err
 }
 
 type NullableHostListItem struct {

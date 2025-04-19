@@ -1,7 +1,7 @@
 /*
 virtx
 
-This is a simple virtualization API for a KVM Cluster
+This is a simple virtualization API for a KVM Cluster. All fields are marked as required to avoid bad code generator results. Where possible, an integer value of 0 means \"unset\", \"unused\" or \"default\". In the rare cases where this clashes with a valid 0 value, the value -1 is used instead. For strings, the convention is that the \"\" (empty string) means \"unset\", \"unused\" or \"default\". 
 
 API version: 0.0.1
 Contact: claudio.fontana@suse.com
@@ -13,6 +13,8 @@ package openapi
 
 import (
 	"encoding/json"
+	"bytes"
+	"fmt"
 )
 
 // checks if the VmListFields type satisfies the MappedNullable interface at compile time
@@ -20,22 +22,29 @@ var _ MappedNullable = &VmListFields{}
 
 // VmListFields struct for VmListFields
 type VmListFields struct {
-	Name *string `json:"name,omitempty"`
-	// Unique Identifier for VMs, Hosts, Cluster, RFC 4122
-	Host *string `json:"host,omitempty"`
-	Vmrunstate *Vmrunstate `json:"vmrunstate,omitempty"`
-	// vlanid for all traffic from/to this VM. 0 = automatically assign
-	Vlanid *int32 `json:"vlanid,omitempty"`
+	Name string `json:"name"`
+	// Unique Identifier for VMs, Hosts, Networks; RFC 4122
+	Host string `json:"host"`
+	Vmrunstate Vmrunstate `json:"vmrunstate"`
+	// vlanid for all traffic from/to this VM. 0 = no vlanid, -1 = automatically assign
+	Vlanid int32 `json:"vlanid"`
 	// Custom Fields
-	Custom []CustomField `json:"custom,omitempty"`
+	Custom []CustomField `json:"custom"`
 }
+
+type _VmListFields VmListFields
 
 // NewVmListFields instantiates a new VmListFields object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVmListFields() *VmListFields {
+func NewVmListFields(name string, host string, vmrunstate Vmrunstate, vlanid int32, custom []CustomField) *VmListFields {
 	this := VmListFields{}
+	this.Name = name
+	this.Host = host
+	this.Vmrunstate = vmrunstate
+	this.Vlanid = vlanid
+	this.Custom = custom
 	return &this
 }
 
@@ -47,162 +56,122 @@ func NewVmListFieldsWithDefaults() *VmListFields {
 	return &this
 }
 
-// GetName returns the Name field value if set, zero value otherwise.
+// GetName returns the Name field value
 func (o *VmListFields) GetName() string {
-	if o == nil || IsNil(o.Name) {
+	if o == nil {
 		var ret string
 		return ret
 	}
-	return *o.Name
+
+	return o.Name
 }
 
-// GetNameOk returns a tuple with the Name field value if set, nil otherwise
+// GetNameOk returns a tuple with the Name field value
 // and a boolean to check if the value has been set.
 func (o *VmListFields) GetNameOk() (*string, bool) {
-	if o == nil || IsNil(o.Name) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Name, true
+	return &o.Name, true
 }
 
-// HasName returns a boolean if a field has been set.
-func (o *VmListFields) HasName() bool {
-	if o != nil && !IsNil(o.Name) {
-		return true
-	}
-
-	return false
-}
-
-// SetName gets a reference to the given string and assigns it to the Name field.
+// SetName sets field value
 func (o *VmListFields) SetName(v string) {
-	o.Name = &v
+	o.Name = v
 }
 
-// GetHost returns the Host field value if set, zero value otherwise.
+// GetHost returns the Host field value
 func (o *VmListFields) GetHost() string {
-	if o == nil || IsNil(o.Host) {
+	if o == nil {
 		var ret string
 		return ret
 	}
-	return *o.Host
+
+	return o.Host
 }
 
-// GetHostOk returns a tuple with the Host field value if set, nil otherwise
+// GetHostOk returns a tuple with the Host field value
 // and a boolean to check if the value has been set.
 func (o *VmListFields) GetHostOk() (*string, bool) {
-	if o == nil || IsNil(o.Host) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Host, true
+	return &o.Host, true
 }
 
-// HasHost returns a boolean if a field has been set.
-func (o *VmListFields) HasHost() bool {
-	if o != nil && !IsNil(o.Host) {
-		return true
-	}
-
-	return false
-}
-
-// SetHost gets a reference to the given string and assigns it to the Host field.
+// SetHost sets field value
 func (o *VmListFields) SetHost(v string) {
-	o.Host = &v
+	o.Host = v
 }
 
-// GetVmrunstate returns the Vmrunstate field value if set, zero value otherwise.
+// GetVmrunstate returns the Vmrunstate field value
 func (o *VmListFields) GetVmrunstate() Vmrunstate {
-	if o == nil || IsNil(o.Vmrunstate) {
+	if o == nil {
 		var ret Vmrunstate
 		return ret
 	}
-	return *o.Vmrunstate
+
+	return o.Vmrunstate
 }
 
-// GetVmrunstateOk returns a tuple with the Vmrunstate field value if set, nil otherwise
+// GetVmrunstateOk returns a tuple with the Vmrunstate field value
 // and a boolean to check if the value has been set.
 func (o *VmListFields) GetVmrunstateOk() (*Vmrunstate, bool) {
-	if o == nil || IsNil(o.Vmrunstate) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Vmrunstate, true
+	return &o.Vmrunstate, true
 }
 
-// HasVmrunstate returns a boolean if a field has been set.
-func (o *VmListFields) HasVmrunstate() bool {
-	if o != nil && !IsNil(o.Vmrunstate) {
-		return true
-	}
-
-	return false
-}
-
-// SetVmrunstate gets a reference to the given Vmrunstate and assigns it to the Vmrunstate field.
+// SetVmrunstate sets field value
 func (o *VmListFields) SetVmrunstate(v Vmrunstate) {
-	o.Vmrunstate = &v
+	o.Vmrunstate = v
 }
 
-// GetVlanid returns the Vlanid field value if set, zero value otherwise.
+// GetVlanid returns the Vlanid field value
 func (o *VmListFields) GetVlanid() int32 {
-	if o == nil || IsNil(o.Vlanid) {
+	if o == nil {
 		var ret int32
 		return ret
 	}
-	return *o.Vlanid
+
+	return o.Vlanid
 }
 
-// GetVlanidOk returns a tuple with the Vlanid field value if set, nil otherwise
+// GetVlanidOk returns a tuple with the Vlanid field value
 // and a boolean to check if the value has been set.
 func (o *VmListFields) GetVlanidOk() (*int32, bool) {
-	if o == nil || IsNil(o.Vlanid) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Vlanid, true
+	return &o.Vlanid, true
 }
 
-// HasVlanid returns a boolean if a field has been set.
-func (o *VmListFields) HasVlanid() bool {
-	if o != nil && !IsNil(o.Vlanid) {
-		return true
-	}
-
-	return false
-}
-
-// SetVlanid gets a reference to the given int32 and assigns it to the Vlanid field.
+// SetVlanid sets field value
 func (o *VmListFields) SetVlanid(v int32) {
-	o.Vlanid = &v
+	o.Vlanid = v
 }
 
-// GetCustom returns the Custom field value if set, zero value otherwise.
+// GetCustom returns the Custom field value
 func (o *VmListFields) GetCustom() []CustomField {
-	if o == nil || IsNil(o.Custom) {
+	if o == nil {
 		var ret []CustomField
 		return ret
 	}
+
 	return o.Custom
 }
 
-// GetCustomOk returns a tuple with the Custom field value if set, nil otherwise
+// GetCustomOk returns a tuple with the Custom field value
 // and a boolean to check if the value has been set.
 func (o *VmListFields) GetCustomOk() ([]CustomField, bool) {
-	if o == nil || IsNil(o.Custom) {
+	if o == nil {
 		return nil, false
 	}
 	return o.Custom, true
 }
 
-// HasCustom returns a boolean if a field has been set.
-func (o *VmListFields) HasCustom() bool {
-	if o != nil && !IsNil(o.Custom) {
-		return true
-	}
-
-	return false
-}
-
-// SetCustom gets a reference to the given []CustomField and assigns it to the Custom field.
+// SetCustom sets field value
 func (o *VmListFields) SetCustom(v []CustomField) {
 	o.Custom = v
 }
@@ -217,22 +186,53 @@ func (o VmListFields) MarshalJSON() ([]byte, error) {
 
 func (o VmListFields) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
-	if !IsNil(o.Name) {
-		toSerialize["name"] = o.Name
-	}
-	if !IsNil(o.Host) {
-		toSerialize["host"] = o.Host
-	}
-	if !IsNil(o.Vmrunstate) {
-		toSerialize["vmrunstate"] = o.Vmrunstate
-	}
-	if !IsNil(o.Vlanid) {
-		toSerialize["vlanid"] = o.Vlanid
-	}
-	if !IsNil(o.Custom) {
-		toSerialize["custom"] = o.Custom
-	}
+	toSerialize["name"] = o.Name
+	toSerialize["host"] = o.Host
+	toSerialize["vmrunstate"] = o.Vmrunstate
+	toSerialize["vlanid"] = o.Vlanid
+	toSerialize["custom"] = o.Custom
 	return toSerialize, nil
+}
+
+func (o *VmListFields) UnmarshalJSON(data []byte) (err error) {
+	// This validates that all required properties are included in the JSON object
+	// by unmarshalling the object into a generic map with string keys and checking
+	// that every required field exists as a key in the generic map.
+	requiredProperties := []string{
+		"name",
+		"host",
+		"vmrunstate",
+		"vlanid",
+		"custom",
+	}
+
+	allProperties := make(map[string]interface{})
+
+	err = json.Unmarshal(data, &allProperties)
+
+	if err != nil {
+		return err;
+	}
+
+	for _, requiredProperty := range(requiredProperties) {
+		if _, exists := allProperties[requiredProperty]; !exists {
+			return fmt.Errorf("no value given for required property %v", requiredProperty)
+		}
+	}
+
+	varVmListFields := _VmListFields{}
+
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	err = decoder.Decode(&varVmListFields)
+
+	if err != nil {
+		return err
+	}
+
+	*o = VmListFields(varVmListFields)
+
+	return err
 }
 
 type NullableVmListFields struct {

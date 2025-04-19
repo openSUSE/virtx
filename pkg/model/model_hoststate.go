@@ -1,7 +1,7 @@
 /*
 virtx
 
-This is a simple virtualization API for a KVM Cluster
+This is a simple virtualization API for a KVM Cluster. All fields are marked as required to avoid bad code generator results. Where possible, an integer value of 0 means \"unset\", \"unused\" or \"default\". In the rare cases where this clashes with a valid 0 value, the value -1 is used instead. For strings, the convention is that the \"\" (empty string) means \"unset\", \"unused\" or \"default\". 
 
 API version: 0.0.1
 Contact: claudio.fontana@suse.com
@@ -21,14 +21,16 @@ type Hoststate string
 
 // List of hoststate
 const (
-	ALIVE Hoststate = "alive"
+	ACTIVE Hoststate = "active"
+	EVICTING Hoststate = "evicting"
 	LEFT Hoststate = "left"
 	FAILED Hoststate = "failed"
 )
 
 // All allowed values of Hoststate enum
 var AllowedHoststateEnumValues = []Hoststate{
-	"alive",
+	"active",
+	"evicting",
 	"left",
 	"failed",
 }

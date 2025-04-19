@@ -17,85 +17,85 @@ import (
 	"fmt"
 )
 
-// checks if the CustomField type satisfies the MappedNullable interface at compile time
-var _ MappedNullable = &CustomField{}
+// checks if the HostdefSysinfoBios type satisfies the MappedNullable interface at compile time
+var _ MappedNullable = &HostdefSysinfoBios{}
 
-// CustomField Custom Field
-type CustomField struct {
-	Name string `json:"name"`
-	Value string `json:"value"`
+// HostdefSysinfoBios struct for HostdefSysinfoBios
+type HostdefSysinfoBios struct {
+	Version string `json:"version"`
+	Date string `json:"date"`
 }
 
-type _CustomField CustomField
+type _HostdefSysinfoBios HostdefSysinfoBios
 
-// NewCustomField instantiates a new CustomField object
+// NewHostdefSysinfoBios instantiates a new HostdefSysinfoBios object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewCustomField(name string, value string) *CustomField {
-	this := CustomField{}
-	this.Name = name
-	this.Value = value
+func NewHostdefSysinfoBios(version string, date string) *HostdefSysinfoBios {
+	this := HostdefSysinfoBios{}
+	this.Version = version
+	this.Date = date
 	return &this
 }
 
-// NewCustomFieldWithDefaults instantiates a new CustomField object
+// NewHostdefSysinfoBiosWithDefaults instantiates a new HostdefSysinfoBios object
 // This constructor will only assign default values to properties that have it defined,
 // but it doesn't guarantee that properties required by API are set
-func NewCustomFieldWithDefaults() *CustomField {
-	this := CustomField{}
+func NewHostdefSysinfoBiosWithDefaults() *HostdefSysinfoBios {
+	this := HostdefSysinfoBios{}
 	return &this
 }
 
-// GetName returns the Name field value
-func (o *CustomField) GetName() string {
+// GetVersion returns the Version field value
+func (o *HostdefSysinfoBios) GetVersion() string {
 	if o == nil {
 		var ret string
 		return ret
 	}
 
-	return o.Name
+	return o.Version
 }
 
-// GetNameOk returns a tuple with the Name field value
+// GetVersionOk returns a tuple with the Version field value
 // and a boolean to check if the value has been set.
-func (o *CustomField) GetNameOk() (*string, bool) {
+func (o *HostdefSysinfoBios) GetVersionOk() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.Name, true
+	return &o.Version, true
 }
 
-// SetName sets field value
-func (o *CustomField) SetName(v string) {
-	o.Name = v
+// SetVersion sets field value
+func (o *HostdefSysinfoBios) SetVersion(v string) {
+	o.Version = v
 }
 
-// GetValue returns the Value field value
-func (o *CustomField) GetValue() string {
+// GetDate returns the Date field value
+func (o *HostdefSysinfoBios) GetDate() string {
 	if o == nil {
 		var ret string
 		return ret
 	}
 
-	return o.Value
+	return o.Date
 }
 
-// GetValueOk returns a tuple with the Value field value
+// GetDateOk returns a tuple with the Date field value
 // and a boolean to check if the value has been set.
-func (o *CustomField) GetValueOk() (*string, bool) {
+func (o *HostdefSysinfoBios) GetDateOk() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.Value, true
+	return &o.Date, true
 }
 
-// SetValue sets field value
-func (o *CustomField) SetValue(v string) {
-	o.Value = v
+// SetDate sets field value
+func (o *HostdefSysinfoBios) SetDate(v string) {
+	o.Date = v
 }
 
-func (o CustomField) MarshalJSON() ([]byte, error) {
+func (o HostdefSysinfoBios) MarshalJSON() ([]byte, error) {
 	toSerialize,err := o.ToMap()
 	if err != nil {
 		return []byte{}, err
@@ -103,20 +103,20 @@ func (o CustomField) MarshalJSON() ([]byte, error) {
 	return json.Marshal(toSerialize)
 }
 
-func (o CustomField) ToMap() (map[string]interface{}, error) {
+func (o HostdefSysinfoBios) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
-	toSerialize["name"] = o.Name
-	toSerialize["value"] = o.Value
+	toSerialize["version"] = o.Version
+	toSerialize["date"] = o.Date
 	return toSerialize, nil
 }
 
-func (o *CustomField) UnmarshalJSON(data []byte) (err error) {
+func (o *HostdefSysinfoBios) UnmarshalJSON(data []byte) (err error) {
 	// This validates that all required properties are included in the JSON object
 	// by unmarshalling the object into a generic map with string keys and checking
 	// that every required field exists as a key in the generic map.
 	requiredProperties := []string{
-		"name",
-		"value",
+		"version",
+		"date",
 	}
 
 	allProperties := make(map[string]interface{})
@@ -133,53 +133,53 @@ func (o *CustomField) UnmarshalJSON(data []byte) (err error) {
 		}
 	}
 
-	varCustomField := _CustomField{}
+	varHostdefSysinfoBios := _HostdefSysinfoBios{}
 
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	decoder.DisallowUnknownFields()
-	err = decoder.Decode(&varCustomField)
+	err = decoder.Decode(&varHostdefSysinfoBios)
 
 	if err != nil {
 		return err
 	}
 
-	*o = CustomField(varCustomField)
+	*o = HostdefSysinfoBios(varHostdefSysinfoBios)
 
 	return err
 }
 
-type NullableCustomField struct {
-	value *CustomField
+type NullableHostdefSysinfoBios struct {
+	value *HostdefSysinfoBios
 	isSet bool
 }
 
-func (v NullableCustomField) Get() *CustomField {
+func (v NullableHostdefSysinfoBios) Get() *HostdefSysinfoBios {
 	return v.value
 }
 
-func (v *NullableCustomField) Set(val *CustomField) {
+func (v *NullableHostdefSysinfoBios) Set(val *HostdefSysinfoBios) {
 	v.value = val
 	v.isSet = true
 }
 
-func (v NullableCustomField) IsSet() bool {
+func (v NullableHostdefSysinfoBios) IsSet() bool {
 	return v.isSet
 }
 
-func (v *NullableCustomField) Unset() {
+func (v *NullableHostdefSysinfoBios) Unset() {
 	v.value = nil
 	v.isSet = false
 }
 
-func NewNullableCustomField(val *CustomField) *NullableCustomField {
-	return &NullableCustomField{value: val, isSet: true}
+func NewNullableHostdefSysinfoBios(val *HostdefSysinfoBios) *NullableHostdefSysinfoBios {
+	return &NullableHostdefSysinfoBios{value: val, isSet: true}
 }
 
-func (v NullableCustomField) MarshalJSON() ([]byte, error) {
+func (v NullableHostdefSysinfoBios) MarshalJSON() ([]byte, error) {
 	return json.Marshal(v.value)
 }
 
-func (v *NullableCustomField) UnmarshalJSON(src []byte) error {
+func (v *NullableHostdefSysinfoBios) UnmarshalJSON(src []byte) error {
 	v.isSet = true
 	return json.Unmarshal(src, &v.value)
 }

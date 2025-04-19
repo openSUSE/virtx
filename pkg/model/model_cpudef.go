@@ -1,7 +1,7 @@
 /*
 virtx
 
-This is a simple virtualization API for a KVM Cluster
+This is a simple virtualization API for a KVM Cluster. All fields are marked as required to avoid bad code generator results. Where possible, an integer value of 0 means \"unset\", \"unused\" or \"default\". In the rare cases where this clashes with a valid 0 value, the value -1 is used instead. For strings, the convention is that the \"\" (empty string) means \"unset\", \"unused\" or \"default\". 
 
 API version: 0.0.1
 Contact: claudio.fontana@suse.com
@@ -13,6 +13,8 @@ package openapi
 
 import (
 	"encoding/json"
+	"bytes"
+	"fmt"
 )
 
 // checks if the Cpudef type satisfies the MappedNullable interface at compile time
@@ -20,22 +22,28 @@ var _ MappedNullable = &Cpudef{}
 
 // Cpudef struct for Cpudef
 type Cpudef struct {
-	// libvirt cpu model
-	Model *string `json:"model,omitempty"`
-	// number of sockets (NUMA)
-	Sockets *int32 `json:"sockets,omitempty"`
-	// number of cores per socket
-	Cores *int32 `json:"cores,omitempty"`
-	// number of threads per core
-	Threads *int32 `json:"threads,omitempty"`
+	// libvirt cpu model. \"\" -> not set
+	Model string `json:"model"`
+	// number of sockets (NUMA). 0 -> not set
+	Sockets int32 `json:"sockets"`
+	// number of cores per socket. 0 -> not set
+	Cores int32 `json:"cores"`
+	// number of threads per core. 0 -> not set
+	Threads int32 `json:"threads"`
 }
+
+type _Cpudef Cpudef
 
 // NewCpudef instantiates a new Cpudef object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewCpudef() *Cpudef {
+func NewCpudef(model string, sockets int32, cores int32, threads int32) *Cpudef {
 	this := Cpudef{}
+	this.Model = model
+	this.Sockets = sockets
+	this.Cores = cores
+	this.Threads = threads
 	return &this
 }
 
@@ -47,132 +55,100 @@ func NewCpudefWithDefaults() *Cpudef {
 	return &this
 }
 
-// GetModel returns the Model field value if set, zero value otherwise.
+// GetModel returns the Model field value
 func (o *Cpudef) GetModel() string {
-	if o == nil || IsNil(o.Model) {
+	if o == nil {
 		var ret string
 		return ret
 	}
-	return *o.Model
+
+	return o.Model
 }
 
-// GetModelOk returns a tuple with the Model field value if set, nil otherwise
+// GetModelOk returns a tuple with the Model field value
 // and a boolean to check if the value has been set.
 func (o *Cpudef) GetModelOk() (*string, bool) {
-	if o == nil || IsNil(o.Model) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Model, true
+	return &o.Model, true
 }
 
-// HasModel returns a boolean if a field has been set.
-func (o *Cpudef) HasModel() bool {
-	if o != nil && !IsNil(o.Model) {
-		return true
-	}
-
-	return false
-}
-
-// SetModel gets a reference to the given string and assigns it to the Model field.
+// SetModel sets field value
 func (o *Cpudef) SetModel(v string) {
-	o.Model = &v
+	o.Model = v
 }
 
-// GetSockets returns the Sockets field value if set, zero value otherwise.
+// GetSockets returns the Sockets field value
 func (o *Cpudef) GetSockets() int32 {
-	if o == nil || IsNil(o.Sockets) {
+	if o == nil {
 		var ret int32
 		return ret
 	}
-	return *o.Sockets
+
+	return o.Sockets
 }
 
-// GetSocketsOk returns a tuple with the Sockets field value if set, nil otherwise
+// GetSocketsOk returns a tuple with the Sockets field value
 // and a boolean to check if the value has been set.
 func (o *Cpudef) GetSocketsOk() (*int32, bool) {
-	if o == nil || IsNil(o.Sockets) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Sockets, true
+	return &o.Sockets, true
 }
 
-// HasSockets returns a boolean if a field has been set.
-func (o *Cpudef) HasSockets() bool {
-	if o != nil && !IsNil(o.Sockets) {
-		return true
-	}
-
-	return false
-}
-
-// SetSockets gets a reference to the given int32 and assigns it to the Sockets field.
+// SetSockets sets field value
 func (o *Cpudef) SetSockets(v int32) {
-	o.Sockets = &v
+	o.Sockets = v
 }
 
-// GetCores returns the Cores field value if set, zero value otherwise.
+// GetCores returns the Cores field value
 func (o *Cpudef) GetCores() int32 {
-	if o == nil || IsNil(o.Cores) {
+	if o == nil {
 		var ret int32
 		return ret
 	}
-	return *o.Cores
+
+	return o.Cores
 }
 
-// GetCoresOk returns a tuple with the Cores field value if set, nil otherwise
+// GetCoresOk returns a tuple with the Cores field value
 // and a boolean to check if the value has been set.
 func (o *Cpudef) GetCoresOk() (*int32, bool) {
-	if o == nil || IsNil(o.Cores) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Cores, true
+	return &o.Cores, true
 }
 
-// HasCores returns a boolean if a field has been set.
-func (o *Cpudef) HasCores() bool {
-	if o != nil && !IsNil(o.Cores) {
-		return true
-	}
-
-	return false
-}
-
-// SetCores gets a reference to the given int32 and assigns it to the Cores field.
+// SetCores sets field value
 func (o *Cpudef) SetCores(v int32) {
-	o.Cores = &v
+	o.Cores = v
 }
 
-// GetThreads returns the Threads field value if set, zero value otherwise.
+// GetThreads returns the Threads field value
 func (o *Cpudef) GetThreads() int32 {
-	if o == nil || IsNil(o.Threads) {
+	if o == nil {
 		var ret int32
 		return ret
 	}
-	return *o.Threads
+
+	return o.Threads
 }
 
-// GetThreadsOk returns a tuple with the Threads field value if set, nil otherwise
+// GetThreadsOk returns a tuple with the Threads field value
 // and a boolean to check if the value has been set.
 func (o *Cpudef) GetThreadsOk() (*int32, bool) {
-	if o == nil || IsNil(o.Threads) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Threads, true
+	return &o.Threads, true
 }
 
-// HasThreads returns a boolean if a field has been set.
-func (o *Cpudef) HasThreads() bool {
-	if o != nil && !IsNil(o.Threads) {
-		return true
-	}
-
-	return false
-}
-
-// SetThreads gets a reference to the given int32 and assigns it to the Threads field.
+// SetThreads sets field value
 func (o *Cpudef) SetThreads(v int32) {
-	o.Threads = &v
+	o.Threads = v
 }
 
 func (o Cpudef) MarshalJSON() ([]byte, error) {
@@ -185,19 +161,51 @@ func (o Cpudef) MarshalJSON() ([]byte, error) {
 
 func (o Cpudef) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
-	if !IsNil(o.Model) {
-		toSerialize["model"] = o.Model
-	}
-	if !IsNil(o.Sockets) {
-		toSerialize["sockets"] = o.Sockets
-	}
-	if !IsNil(o.Cores) {
-		toSerialize["cores"] = o.Cores
-	}
-	if !IsNil(o.Threads) {
-		toSerialize["threads"] = o.Threads
-	}
+	toSerialize["model"] = o.Model
+	toSerialize["sockets"] = o.Sockets
+	toSerialize["cores"] = o.Cores
+	toSerialize["threads"] = o.Threads
 	return toSerialize, nil
+}
+
+func (o *Cpudef) UnmarshalJSON(data []byte) (err error) {
+	// This validates that all required properties are included in the JSON object
+	// by unmarshalling the object into a generic map with string keys and checking
+	// that every required field exists as a key in the generic map.
+	requiredProperties := []string{
+		"model",
+		"sockets",
+		"cores",
+		"threads",
+	}
+
+	allProperties := make(map[string]interface{})
+
+	err = json.Unmarshal(data, &allProperties)
+
+	if err != nil {
+		return err;
+	}
+
+	for _, requiredProperty := range(requiredProperties) {
+		if _, exists := allProperties[requiredProperty]; !exists {
+			return fmt.Errorf("no value given for required property %v", requiredProperty)
+		}
+	}
+
+	varCpudef := _Cpudef{}
+
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	err = decoder.Decode(&varCpudef)
+
+	if err != nil {
+		return err
+	}
+
+	*o = Cpudef(varCpudef)
+
+	return err
 }
 
 type NullableCpudef struct {

@@ -1,7 +1,7 @@
 /*
 virtx
 
-This is a simple virtualization API for a KVM Cluster
+This is a simple virtualization API for a KVM Cluster. All fields are marked as required to avoid bad code generator results. Where possible, an integer value of 0 means \"unset\", \"unused\" or \"default\". In the rare cases where this clashes with a valid 0 value, the value -1 is used instead. For strings, the convention is that the \"\" (empty string) means \"unset\", \"unused\" or \"default\". 
 
 API version: 0.0.1
 Contact: claudio.fontana@suse.com
@@ -13,6 +13,8 @@ package openapi
 
 import (
 	"encoding/json"
+	"bytes"
+	"fmt"
 )
 
 // checks if the Host type satisfies the MappedNullable interface at compile time
@@ -20,20 +22,27 @@ var _ MappedNullable = &Host{}
 
 // Host struct for Host
 type Host struct {
-	// Unique Identifier for VMs, Hosts, Cluster, RFC 4122
-	Uuid *string `json:"uuid,omitempty"`
-	Hostdef *Hostdef `json:"hostdef,omitempty"`
-	Hoststate *Hoststate `json:"hoststate,omitempty"`
-	Hostresources *Hostresources `json:"hostresources,omitempty"`
-	Seq *int64 `json:"seq,omitempty"`
+	// Unique Identifier for VMs, Hosts, Networks; RFC 4122
+	Uuid string `json:"uuid"`
+	Hostdef Hostdef `json:"hostdef"`
+	Hoststate Hoststate `json:"hoststate"`
+	Hostresources Hostresources `json:"hostresources"`
+	Seq int64 `json:"seq"`
 }
+
+type _Host Host
 
 // NewHost instantiates a new Host object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewHost() *Host {
+func NewHost(uuid string, hostdef Hostdef, hoststate Hoststate, hostresources Hostresources, seq int64) *Host {
 	this := Host{}
+	this.Uuid = uuid
+	this.Hostdef = hostdef
+	this.Hoststate = hoststate
+	this.Hostresources = hostresources
+	this.Seq = seq
 	return &this
 }
 
@@ -45,164 +54,124 @@ func NewHostWithDefaults() *Host {
 	return &this
 }
 
-// GetUuid returns the Uuid field value if set, zero value otherwise.
+// GetUuid returns the Uuid field value
 func (o *Host) GetUuid() string {
-	if o == nil || IsNil(o.Uuid) {
+	if o == nil {
 		var ret string
 		return ret
 	}
-	return *o.Uuid
+
+	return o.Uuid
 }
 
-// GetUuidOk returns a tuple with the Uuid field value if set, nil otherwise
+// GetUuidOk returns a tuple with the Uuid field value
 // and a boolean to check if the value has been set.
 func (o *Host) GetUuidOk() (*string, bool) {
-	if o == nil || IsNil(o.Uuid) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Uuid, true
+	return &o.Uuid, true
 }
 
-// HasUuid returns a boolean if a field has been set.
-func (o *Host) HasUuid() bool {
-	if o != nil && !IsNil(o.Uuid) {
-		return true
-	}
-
-	return false
-}
-
-// SetUuid gets a reference to the given string and assigns it to the Uuid field.
+// SetUuid sets field value
 func (o *Host) SetUuid(v string) {
-	o.Uuid = &v
+	o.Uuid = v
 }
 
-// GetHostdef returns the Hostdef field value if set, zero value otherwise.
+// GetHostdef returns the Hostdef field value
 func (o *Host) GetHostdef() Hostdef {
-	if o == nil || IsNil(o.Hostdef) {
+	if o == nil {
 		var ret Hostdef
 		return ret
 	}
-	return *o.Hostdef
+
+	return o.Hostdef
 }
 
-// GetHostdefOk returns a tuple with the Hostdef field value if set, nil otherwise
+// GetHostdefOk returns a tuple with the Hostdef field value
 // and a boolean to check if the value has been set.
 func (o *Host) GetHostdefOk() (*Hostdef, bool) {
-	if o == nil || IsNil(o.Hostdef) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Hostdef, true
+	return &o.Hostdef, true
 }
 
-// HasHostdef returns a boolean if a field has been set.
-func (o *Host) HasHostdef() bool {
-	if o != nil && !IsNil(o.Hostdef) {
-		return true
-	}
-
-	return false
-}
-
-// SetHostdef gets a reference to the given Hostdef and assigns it to the Hostdef field.
+// SetHostdef sets field value
 func (o *Host) SetHostdef(v Hostdef) {
-	o.Hostdef = &v
+	o.Hostdef = v
 }
 
-// GetHoststate returns the Hoststate field value if set, zero value otherwise.
+// GetHoststate returns the Hoststate field value
 func (o *Host) GetHoststate() Hoststate {
-	if o == nil || IsNil(o.Hoststate) {
+	if o == nil {
 		var ret Hoststate
 		return ret
 	}
-	return *o.Hoststate
+
+	return o.Hoststate
 }
 
-// GetHoststateOk returns a tuple with the Hoststate field value if set, nil otherwise
+// GetHoststateOk returns a tuple with the Hoststate field value
 // and a boolean to check if the value has been set.
 func (o *Host) GetHoststateOk() (*Hoststate, bool) {
-	if o == nil || IsNil(o.Hoststate) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Hoststate, true
+	return &o.Hoststate, true
 }
 
-// HasHoststate returns a boolean if a field has been set.
-func (o *Host) HasHoststate() bool {
-	if o != nil && !IsNil(o.Hoststate) {
-		return true
-	}
-
-	return false
-}
-
-// SetHoststate gets a reference to the given Hoststate and assigns it to the Hoststate field.
+// SetHoststate sets field value
 func (o *Host) SetHoststate(v Hoststate) {
-	o.Hoststate = &v
+	o.Hoststate = v
 }
 
-// GetHostresources returns the Hostresources field value if set, zero value otherwise.
+// GetHostresources returns the Hostresources field value
 func (o *Host) GetHostresources() Hostresources {
-	if o == nil || IsNil(o.Hostresources) {
+	if o == nil {
 		var ret Hostresources
 		return ret
 	}
-	return *o.Hostresources
+
+	return o.Hostresources
 }
 
-// GetHostresourcesOk returns a tuple with the Hostresources field value if set, nil otherwise
+// GetHostresourcesOk returns a tuple with the Hostresources field value
 // and a boolean to check if the value has been set.
 func (o *Host) GetHostresourcesOk() (*Hostresources, bool) {
-	if o == nil || IsNil(o.Hostresources) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Hostresources, true
+	return &o.Hostresources, true
 }
 
-// HasHostresources returns a boolean if a field has been set.
-func (o *Host) HasHostresources() bool {
-	if o != nil && !IsNil(o.Hostresources) {
-		return true
-	}
-
-	return false
-}
-
-// SetHostresources gets a reference to the given Hostresources and assigns it to the Hostresources field.
+// SetHostresources sets field value
 func (o *Host) SetHostresources(v Hostresources) {
-	o.Hostresources = &v
+	o.Hostresources = v
 }
 
-// GetSeq returns the Seq field value if set, zero value otherwise.
+// GetSeq returns the Seq field value
 func (o *Host) GetSeq() int64 {
-	if o == nil || IsNil(o.Seq) {
+	if o == nil {
 		var ret int64
 		return ret
 	}
-	return *o.Seq
+
+	return o.Seq
 }
 
-// GetSeqOk returns a tuple with the Seq field value if set, nil otherwise
+// GetSeqOk returns a tuple with the Seq field value
 // and a boolean to check if the value has been set.
 func (o *Host) GetSeqOk() (*int64, bool) {
-	if o == nil || IsNil(o.Seq) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Seq, true
+	return &o.Seq, true
 }
 
-// HasSeq returns a boolean if a field has been set.
-func (o *Host) HasSeq() bool {
-	if o != nil && !IsNil(o.Seq) {
-		return true
-	}
-
-	return false
-}
-
-// SetSeq gets a reference to the given int64 and assigns it to the Seq field.
+// SetSeq sets field value
 func (o *Host) SetSeq(v int64) {
-	o.Seq = &v
+	o.Seq = v
 }
 
 func (o Host) MarshalJSON() ([]byte, error) {
@@ -215,22 +184,53 @@ func (o Host) MarshalJSON() ([]byte, error) {
 
 func (o Host) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
-	if !IsNil(o.Uuid) {
-		toSerialize["uuid"] = o.Uuid
-	}
-	if !IsNil(o.Hostdef) {
-		toSerialize["hostdef"] = o.Hostdef
-	}
-	if !IsNil(o.Hoststate) {
-		toSerialize["hoststate"] = o.Hoststate
-	}
-	if !IsNil(o.Hostresources) {
-		toSerialize["hostresources"] = o.Hostresources
-	}
-	if !IsNil(o.Seq) {
-		toSerialize["seq"] = o.Seq
-	}
+	toSerialize["uuid"] = o.Uuid
+	toSerialize["hostdef"] = o.Hostdef
+	toSerialize["hoststate"] = o.Hoststate
+	toSerialize["hostresources"] = o.Hostresources
+	toSerialize["seq"] = o.Seq
 	return toSerialize, nil
+}
+
+func (o *Host) UnmarshalJSON(data []byte) (err error) {
+	// This validates that all required properties are included in the JSON object
+	// by unmarshalling the object into a generic map with string keys and checking
+	// that every required field exists as a key in the generic map.
+	requiredProperties := []string{
+		"uuid",
+		"hostdef",
+		"hoststate",
+		"hostresources",
+		"seq",
+	}
+
+	allProperties := make(map[string]interface{})
+
+	err = json.Unmarshal(data, &allProperties)
+
+	if err != nil {
+		return err;
+	}
+
+	for _, requiredProperty := range(requiredProperties) {
+		if _, exists := allProperties[requiredProperty]; !exists {
+			return fmt.Errorf("no value given for required property %v", requiredProperty)
+		}
+	}
+
+	varHost := _Host{}
+
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	err = decoder.Decode(&varHost)
+
+	if err != nil {
+		return err
+	}
+
+	*o = Host(varHost)
+
+	return err
 }
 
 type NullableHost struct {
