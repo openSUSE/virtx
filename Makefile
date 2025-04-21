@@ -1,4 +1,4 @@
 all: virtXD
 
 virtXD:
-	go build
+	go build -gcflags="-l -m"
