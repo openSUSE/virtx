@@ -313,22 +313,28 @@ func freeDomains(doms []libvirt.Domain) {
 	}
 }
 
+/*
+ * XXX this is terrible, but libvirt forces us to run this before connecting.
+ * And how to guarantee that we have reached the right point in EventRunDefaultImpl()
+ * before actually calling connect?
+ * Using a goroutine does not work, because we would have to send to a channel inside
+ * EventRunDefaultImpl().
+ */
 func init() {
 	var err error
 	err = libvirt.EventRegisterDefaultImpl();
 	if (err != nil) {
 		panic(err)
 	}
-
 	go func() {
-		//logger.Println("Entering event loop")
+		//logger.Println("hypervisor: init(): Entering event loop")
 		for {
 			err = libvirt.EventRunDefaultImpl()
 			if (err != nil) {
 				panic(err)
 			}
-			// TODO exit properly from the event loop
+			// XXX exit properly from the event loop somehow
 		}
-		//logger.Println("Exiting event loop")
+		//logger.Println("hypervisor: init(): Exiting event loop")
 	}()
 }
