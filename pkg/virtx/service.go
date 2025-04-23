@@ -10,21 +10,19 @@ import (
 	"suse.com/virtXD/pkg/model"
 )
 
-type HostState struct {
-	HostInfo hypervisor.HostInfo
-	Seq    uint64
-	Status string
-	Guests map[string]hypervisor.GuestInfo
-}
-
-type Inventory map[string]HostState
+type Vms map[string]openapi.Vm
+type Hosts map[string]openapi.Host
+type Guests map[string]hypervisor.GuestInfo
 
 type Service struct {
 	http.Server
 	sync.RWMutex
-	inventory Inventory
+
 	logger *log.Logger
 	cluster openapi.Cluster
+	vms     Vms
+	hosts   Hosts
+	guests  Guests
 }
 
 func New(logger *log.Logger) *Service {
@@ -36,95 +34,83 @@ func New(logger *log.Logger) *Service {
 		},
 		RWMutex:   sync.RWMutex{},
 		cluster:   openapi.Cluster{},
-		inventory: make(Inventory),
+		vms:       make(Vms),
+		hosts:     make(Hosts),
+		guests:    make(Guests),
 		logger:    logger,
 	}
 	mux.Handle("/", s)
-
 	return s
 }
 
-func (s *Service) HostState(uuid string) HostState {
-	hostState, _ := s.inventory[uuid]
-	return hostState
+/* get a host from the list and return whether present */
+func (s *Service) GetHost(uuid string) (openapi.Host, error) {
+	var (
+		host openapi.Host
+		present bool
+		err error
+	)
+	host, present = s.hosts[uuid]
+	if (!present) {
+		err = fmt.Errorf("Service: GetHost(%s): No such host!\n", uuid)
+		return host, err
+	}
+	return host, nil
 }
 
-func (s *Service) Update(
-	hostInfo hypervisor.HostInfo,
-	guestInfo []hypervisor.GuestInfo,
-) error {
+func (s *Service) UpdateHost(host openapi.Host) error {
 	s.Lock()
 	defer s.Unlock()
 
-	if err := s.updateHostState(hostInfo); err != nil {
-		return err
-	}
-
-	for _, gi := range guestInfo {
-		if err := s.updateGuestState(hostInfo.UUID, gi); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return s.updateHost(host)
 }
 
-func (s *Service) UpdateHostState(hostInfo hypervisor.HostInfo) error {
-	s.Lock()
-	defer s.Unlock()
-
-	return s.updateHostState(hostInfo)
-}
-
-func (s *Service) updateHostState(hostInfo hypervisor.HostInfo) error {
-	uuidStr := hostInfo.UUID
-	hostState, ok := s.inventory[uuidStr]
-	if ok && hostState.Seq >= hostInfo.Seq {
-		s.logger.Printf(
-			"Ignoring old host info: seq %d >= %d %s %s",
-			hostState.Seq, hostInfo.Seq, hostState.HostInfo.UUID, hostState.HostInfo.Hostname,
-		)
+func (s *Service) updateHost(host openapi.Host) error {
+	var (
+		present bool
+		old openapi.Host
+	)
+	if (s.hosts == nil) {
+		s.hosts = make(map[string]openapi.Host)
+	}
+	old, present = s.hosts[host.Uuid]
+	if (present && old.Seq >= host.Seq) {
+		s.logger.Printf("Host %s: ignoring obsolete Host information: seq %d >= %d",
+			            old.Hostdef.Name, old.Seq, host.Seq)
 		return nil
 	}
-	hostState.HostInfo = hostInfo
-	hostState.Status = "ONLINE"
-	if hostState.Guests == nil {
-		hostState.Guests = make(map[string]hypervisor.GuestInfo)
-	}
-	s.inventory[uuidStr] = hostState
+	s.hosts[host.Uuid] = host
 	return nil
 }
 
-func (s *Service) SetHostOffline(uuid string) error {
+func (s *Service) SetHostState(uuid string, newstate string) error {
 	s.Lock()
 	defer s.Unlock()
 
-	return s.setHostOffline(uuid)
+	return s.setHostState(uuid, newstate)
 }
 
-func (s *Service) setHostOffline(uuid string) error {
-	hostState, ok := s.inventory[uuid]
+func (s *Service) setHostState(uuid string, newstate string) error {
+	host, ok := s.hosts[uuid]
 	if !ok {
 		return fmt.Errorf("no such host %s", uuid)
 	}
-	hostState.Status = "OFFLINE"
-	s.inventory[uuid] = hostState
+	host.Hoststate = openapi.Hoststate(newstate)
 	return nil
 }
 
-func (s *Service) UpdateGuestState(uuid string, guestInfo hypervisor.GuestInfo) error {
+func (s *Service) UpdateGuest(guestInfo hypervisor.GuestInfo) error {
 	s.Lock()
 	defer s.Unlock()
 
-	return s.updateGuestState(uuid, guestInfo)
+	return s.updateGuest(guestInfo)
 }
 
-func (s *Service) updateGuestState(uuid string, guestInfo hypervisor.GuestInfo) error {
-	hostState, _ := s.inventory[uuid]
-	if hostState.Guests == nil {
-		hostState.Guests = make(map[string]hypervisor.GuestInfo)
+func (s *Service) updateGuest(guestInfo hypervisor.GuestInfo) error {
+	if (s.guests == nil) {
+		s.guests = make(map[string]hypervisor.GuestInfo)
 	}
-	if gi, ok := hostState.Guests[guestInfo.UUID]; ok {
+	if gi, ok := s.guests[guestInfo.UUID]; ok {
 		if gi.Seq >= guestInfo.Seq {
 			s.logger.Printf(
 				"Ignoring old guest info: seq %d >= %d %s %s",
@@ -133,8 +119,7 @@ func (s *Service) updateGuestState(uuid string, guestInfo hypervisor.GuestInfo) 
 			return nil
 		}
 	}
-	hostState.Guests[guestInfo.UUID] = guestInfo
-	s.inventory[uuid] = hostState
+	s.guests[guestInfo.UUID] = guestInfo
 	return nil
 }
 
@@ -144,16 +129,13 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var (
 		lines string
 		uuid  string
-		h     HostState
-		hi    hypervisor.HostInfo
+		hi    openapi.Host
 		gi    hypervisor.GuestInfo
 	)
-	for uuid, h = range s.inventory {
-		hi = h.HostInfo
-		var line string = fmt.Sprintf("Host %s (%s): Hostname:%s, Arch:%s, Vendor:%s, Model:%s \n",
-			uuid, h.Status, hi.Hostname, hi.Arch, hi.Vendor, hi.Model)
+	for uuid, hi = range s.hosts {
+		var line string = fmt.Sprintf("host uuid %s name %s\n", uuid, hi.Hostdef.Name)
 		lines += line
-		for uuid, gi = range h.Guests {
+		for uuid, gi = range s.guests {
 			var line string = fmt.Sprintf("Guest %s: Name:%s, State:%d, Memory:%d, VCpus: %d \n",
 				uuid, gi.Name, gi.State, gi.Memory, gi.NrVirtCpu)
 			lines += line

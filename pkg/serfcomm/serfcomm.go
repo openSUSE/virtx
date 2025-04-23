@@ -7,6 +7,7 @@ import (
 	"suse.com/virtXD/pkg/hypervisor"
 	"github.com/hashicorp/serf/client"
 	"suse.com/virtXD/pkg/virtx"
+	"suse.com/virtXD/pkg/model"
 )
 
 const (
@@ -14,40 +15,17 @@ const (
 	labelGuestInfo string = "guest-info"
 )
 
-func packHostInfoEvent(hostInfo hypervisor.HostInfo, newHost int) ([]byte, error) {
-	var str string = fmt.Sprintf(
-		"%d %s %s %s %s %s %d",
-		hostInfo.Seq, hostInfo.UUID, hostInfo.Hostname,
-		hostInfo.Arch, hostInfo.Vendor, hostInfo.Model,
-		newHost)
-	return []byte(str), nil
+func packHostInfoEvent(hostInfo openapi.Host) ([]byte, error) {
+	return hostInfo.MarshalJSON()
 }
 
-func unpackHostInfoEvent(payload []byte) (hypervisor.HostInfo, int, error) {
+func unpackHostInfoEvent(payload []byte) (openapi.Host, error) {
 	var (
-		seq      uint64
-		uuid     string
-		hostname string
-		arch     string
-		vendor   string
-		model    string
-		newHost  int
-		n        int
-		err      error
+		host openapi.Host
+		err error
 	)
-	n, err = fmt.Sscanf(string(payload), "%d %s %s %s %s %s %d",
-		&seq, &uuid, &hostname, &arch, &vendor, &model, &newHost)
-	if (err != nil || n != 7) {
-		return hypervisor.HostInfo{}, 0, err
-	}
-	return hypervisor.HostInfo {
-		Seq:      seq,
-		Hostname: hostname,
-		UUID:     uuid,
-		Arch:     arch,
-		Vendor:   vendor,
-		Model:    model,
-	}, newHost, nil
+	err = host.UnmarshalJSON(payload)
+	return host, err;
 }
 
 func packGuestInfoEvent(guestInfo hypervisor.GuestInfo, hostUUID string) ([]byte, error) {
@@ -91,11 +69,14 @@ func unpackGuestInfoEvent(payload []byte) (hypervisor.GuestInfo, string, error) 
 	return guestInfo, hostUUID, nil
 }
 
-func sendHostInfo(serf *client.RPCClient, hostInfo hypervisor.HostInfo, newHost int) error {
-	payload, err := packHostInfoEvent(hostInfo, newHost)
+func sendHostInfo(serf *client.RPCClient, hostInfo openapi.Host) error {
+	payload, err := packHostInfoEvent(hostInfo)
 	if err != nil {
 		return err
 	}
+	var eventsize int = len(payload)
+	fmt.Printf("sendHostInfo payload len=%d\n", eventsize)
+	fmt.Printf("%s\n", string(payload))
 	if err := serf.UserEvent(labelHostInfo, payload, false); err != nil {
 		return err
 	}
@@ -113,21 +94,24 @@ func sendGuestInfo(serf *client.RPCClient, guestInfo hypervisor.GuestInfo, hostU
 	return nil
 }
 
-func SendInfoEvent(s *virtx.Service, serf *client.RPCClient, uuid string, newHost int) error {
+func SendInfoEvent(s *virtx.Service, serf *client.RPCClient, uuid string) error {
 	s.RLock()
 	defer s.RUnlock()
 
-	hostState := s.HostState(uuid)
-
-	if err := sendHostInfo(serf, hostState.HostInfo, newHost); err != nil {
+	host, err := s.GetHost(uuid)
+	if (err != nil) {
+		return err;
+	}
+	if err = sendHostInfo(serf, host); err != nil {
 		return err
 	}
 
-	for _, gi := range hostState.Guests {
-		if err := sendGuestInfo(serf, gi, hostState.HostInfo.UUID); err != nil {
-			return err
-		}
-	}
+	/* XXX probably here we want to send only the guests running on host? XXX */
+
+	//for _, gi := range s.guests {
+	//	if err = sendGuestInfo(serf, gi, host); err != nil {
+	//		return err
+	//	}
 
 	return nil
 }
@@ -136,15 +120,17 @@ func RecvSerfEvents(
 	serfCh <-chan map[string]interface{},
 	serf *client.RPCClient,
 	s *virtx.Service,
-	hostInfo hypervisor.HostInfo,
+	hostInfo openapi.Host,
 	logger *log.Logger,
 	shutdownCh chan<- struct{},
 ) {
 	logger.Println("Processing events...")
 	for e := range serfCh {
+		var newstate string = string(openapi.FAILED)
 		switch e["Event"].(string) {
 		case "user":
 		case "member-leave":
+			newstate = string(openapi.LEFT)
 			fallthrough
 		case "member-failed":
 			for _, m := range e["Members"].([]interface{}) {
@@ -155,7 +141,7 @@ func RecvSerfEvents(
 					continue
 				}
 				logger.Printf("Host %s OFFLINE", uuid)
-				if err := s.SetHostOffline(uuid); err != nil {
+				if err := s.SetHostState(uuid, newstate); err != nil {
 					logger.Fatal(err)
 				}
 			}
@@ -169,22 +155,27 @@ func RecvSerfEvents(
 
 		switch name {
 		case labelHostInfo:
-			hi, newHost, err := unpackHostInfoEvent(payload)
+			hi, err := unpackHostInfoEvent(payload)
 			if err != nil {
 				logger.Fatal(err)
 			}
 			logger.Printf(
-				"%s: %d %s %s newHost(%d)",
-				name, hi.Seq, hi.UUID, hi.Hostname, newHost,
+				"%s: %d %s %s",
+				name, hi.Seq, hi.Uuid, hi.Hostdef.Name,
 			)
-			if err := s.UpdateHostState(hi); err != nil {
+			if err := s.UpdateHost(hi); err != nil {
 				logger.Fatal(err)
 			}
-			if newHost == 1 && hi.UUID != hostInfo.UUID {
+			/*
+			 *  newHost does not exist anymore, do we really need it?
+			 */
+			/*
+			if newHost == 1 && hi.Uuid != hostInfo.Uuid {
 				if err := SendInfoEvent(s, serf, hostInfo.UUID, 0); err != nil {
 					logger.Fatal(err)
 				}
 			}
+			*/
 		case labelGuestInfo:
 			gi, hostUUID, err := unpackGuestInfoEvent(payload)
 			if err != nil {
@@ -196,7 +187,7 @@ func RecvSerfEvents(
 				gi.State, hypervisor.GuestStateToString(gi.State),
 				hostUUID,
 			)
-			if err := s.UpdateGuestState(hostUUID, gi); err != nil {
+			if err := s.UpdateGuest(gi); err != nil {
 				logger.Fatal(err)
 			}
 		default:
@@ -210,13 +201,13 @@ func RecvSerfEvents(
 func SendHypervisorEvents(
 	eventCh <-chan hypervisor.GuestInfo,
 	serf *client.RPCClient,
-	hostInfo hypervisor.HostInfo,
+	hostInfo openapi.Host,
 	logger *log.Logger,
 	shutdownCh chan<- struct{},
 ) {
 	logger.Println("Forwarding guest events...")
 	for gi := range eventCh {
-		if err := sendGuestInfo(serf, gi, hostInfo.UUID); err != nil {
+		if err := sendGuestInfo(serf, gi, hostInfo.Uuid); err != nil {
 			logger.Fatal(err)
 		}
 	}

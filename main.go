@@ -14,6 +14,7 @@ import (
 	"suse.com/virtXD/pkg/serfcomm"
 	"suse.com/virtXD/pkg/hypervisor"
 	"suse.com/virtXD/pkg/virtx"
+	"suse.com/virtXD/pkg/model"
 )
 
 const (
@@ -25,7 +26,7 @@ func main() {
 		err error
 		logger *log.Logger
 		hv *hypervisor.Hypervisor
-		hostInfo hypervisor.HostInfo
+		hostInfo openapi.Host
 		guestInfo []hypervisor.GuestInfo
 		service *virtx.Service
 		serf *client.RPCClient
@@ -42,7 +43,7 @@ func main() {
 	if (err != nil) {
 		logger.Fatal(err)
 	}
-	hostInfo, err = hv.HostInfo()
+	hostInfo, err = hv.GetHostInfo()
 	if (err != nil) {
 		logger.Fatal(err)
 	}
@@ -52,9 +53,14 @@ func main() {
 	}
 	/* service: initialize and first update with the host and guests information */
 	service = virtx.New(logger)
-	err = service.Update(hostInfo, guestInfo)
+	err = service.UpdateHost(hostInfo)
 	if (err != nil) {
 		logger.Fatal(err)
+	}
+	for _, gi := range guestInfo {
+		if err := service.UpdateGuest(gi); err != nil {
+			logger.Fatal(err)
+		}
 	}
 	/*
      * serf: initialize RPC bi-directional communication with serf,
@@ -65,7 +71,7 @@ func main() {
 		logger.Fatal(err)
 	}
 	defer serf.Close()
-	addTags := map[string]string { "uuid": hostInfo.UUID }
+	addTags := map[string]string { "uuid": hostInfo.Uuid }
 	removeTags := []string {}
 	err = serf.UpdateTags(addTags, removeTags)
 	if (err != nil) {
@@ -80,7 +86,7 @@ func main() {
 	}
 	defer serf.Stop(stream)
 	/* serf: send Info Event with the host UUID to Serf */
-	err = serfcomm.SendInfoEvent(service, serf, hostInfo.UUID, 1)
+	err = serfcomm.SendInfoEvent(service, serf, hostInfo.Uuid)
 	if (err != nil) {
 		logger.Fatal(err)
 	}

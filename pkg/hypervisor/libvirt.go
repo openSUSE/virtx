@@ -3,9 +3,13 @@ package hypervisor
 import (
 	"log"
 	"sync/atomic"
+	"encoding/xml"
 
 	"libvirt.org/go/libvirt"
 	"libvirt.org/go/libvirtxml"
+
+	"suse.com/virtXD/pkg/model"
+	. "suse.com/virtXD/pkg/constants"
 )
 
 const (
@@ -13,15 +17,6 @@ const (
 
 	DomainUndefined = -1
 )
-
-type HostInfo struct {
-	Seq      uint64
-	Hostname string
-	UUID     string
-	Arch     string
-	Vendor   string
-	Model    string
-}
 
 type GuestInfo struct {
 	Seq       uint64
@@ -99,7 +94,7 @@ func (hv *Hypervisor) Shutdown() {
 }
 
 /*
- * Used by New() to start listening for domain events.
+ * Start listening for domain events.
  * Sets the callbackID and eventsChannel fields of the Hypervisor struct.
  */
 
@@ -169,36 +164,84 @@ func (hv *Hypervisor) StopListening() {
 	hv.callbackID = -1
 }
 
-/* Calculate and return HostInfo */
+/* Calculate and return HostInfo and VMInfo for this host we are running on */
 
-func (hv *Hypervisor) HostInfo() (HostInfo, error) {
+type SysInfo struct {
+	BIOS BIOS `xml:"bios"`
+}
+
+type BIOS struct {
+	Version string `xml:"entry[name='version']"`
+	Date    string `xml:"entry[name='date']"`
+}
+
+func (hv *Hypervisor) GetHostInfo() (openapi.Host, error) {
 	var (
-		hostname, capsXml string
+		host openapi.Host
 		err error
-		caps libvirtxml.Caps = libvirtxml.Caps{}
-		hostinfo HostInfo
+		xmldata string
+		caps libvirtxml.Caps
+		smbios SysInfo
+		info *libvirt.NodeInfo
 	)
-	hostname, err = hv.conn.GetHostname()
+	xmldata, err = hv.conn.GetCapabilities()
 	if (err != nil) {
-		return hostinfo, err
+		return host, err
 	}
-	capsXml, err = hv.conn.GetCapabilities()
+	err = caps.Unmarshal(xmldata)
 	if (err != nil) {
-		return hostinfo, err
+		return host, err
 	}
-	err = caps.Unmarshal(capsXml)
+	info, err = hv.conn.GetNodeInfo()
 	if (err != nil) {
-		return hostinfo, err
+		return host, err
 	}
-	hostinfo = HostInfo {
-		Seq: hv.seq.Add(1),
-		Hostname: hostname,
-		UUID: caps.Host.UUID,
-		Arch: caps.Host.CPU.Arch,
-		Vendor: caps.Host.CPU.Vendor,
-		Model: caps.Host.CPU.Model,
+	host.Uuid = caps.Host.UUID
+	host.Hostdef.Name, err = hv.conn.GetHostname()
+	if (err != nil) {
+		return host, err
 	}
-	return hostinfo, nil
+	host.Hostdef.Cpuarch.Arch = caps.Host.CPU.Arch
+	host.Hostdef.Cpuarch.Vendor = caps.Host.CPU.Vendor
+	host.Hostdef.Cpudef.Model = caps.Host.CPU.Model
+	host.Hostdef.Cpudef.Sockets = int32(info.Sockets)
+	host.Hostdef.Cpudef.Cores = int32(info.Cores)
+	host.Hostdef.Cpudef.Threads = int32(info.Threads)
+	host.Hostdef.TscFreq = int64(caps.Host.CPU.Counter.Frequency)
+	xmldata, err = hv.conn.GetSysinfo(0)
+	if (err != nil) {
+		return host, err
+	}
+	/* XXX libvirtxml go bug/missing feature, workaround does not work XXX */
+	err = xml.Unmarshal([]byte(xmldata), &smbios)
+	if (err != nil) {
+		return host, err
+	}
+	host.Hostdef.SysinfoBios.Version = smbios.BIOS.Version
+	host.Hostdef.SysinfoBios.Date = smbios.BIOS.Date
+	host.Hoststate = openapi.ACTIVE
+	host.Hostresources.Memory.Total = int64(info.Memory / KiB) /* info returns memory in KiB, translate to MiB */
+	var free uint64
+	free, err = hv.conn.GetFreeMemory()
+	if (err != nil) {
+		return host, err
+	}
+	host.Hostresources.Memory.Free = int64(free / MiB) /* this returns in bytes, translate to MiB */
+	host.Hostresources.Memory.Used = host.Hostresources.Memory.Total - host.Hostresources.Memory.Free
+	host.Hostresources.Memory.ReservedVms = 0 /* XXX need to calculate based on domains XXX */
+	host.Hostresources.Memory.UsedVms = 0     /* XXX need to calculate based on domains XXX */
+	host.Hostresources.Memory.AvailableVms = host.Hostresources.Memory.Free - host.Hostresources.Memory.ReservedVms
+
+	/* like VMWare, we calculate the total Mhz as (total_cores * frequency) (excluding threads) */
+	host.Hostresources.Mhz.Total = int64(uint(info.Nodes * info.Sockets * info.Cores) * info.MHz)
+	host.Hostresources.Mhz.Free = host.Hostresources.Mhz.Total
+	host.Hostresources.Mhz.Used = 0 /* XXX need to calculate based on domains XXX */
+	host.Hostresources.Mhz.ReservedVms = 0 /* XXX need to calculate based on domains XXX */
+	host.Hostresources.Mhz.UsedVms = 0 /* XXX need to calculate based on domains XXX */
+	host.Hostresources.Mhz.AvailableVms = host.Hostresources.Mhz.Free - host.Hostresources.Mhz.ReservedVms
+	host.Seq = int64(hv.seq.Add(1))
+
+	return host, nil
 }
 
 /* Calculate and return GuestInfo */
