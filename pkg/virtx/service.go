@@ -2,10 +2,10 @@ package virtx
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"sync"
 
+	"suse.com/virtXD/pkg/logger"
 	"suse.com/virtXD/pkg/hypervisor"
 	"suse.com/virtXD/pkg/model"
 )
@@ -16,28 +16,26 @@ type Guests map[string]hypervisor.GuestInfo
 
 type Service struct {
 	http.Server
-	sync.RWMutex
+	m      sync.RWMutex
 
-	logger *log.Logger
 	cluster openapi.Cluster
 	vms     Vms
 	hosts   Hosts
 	guests  Guests
 }
 
-func New(logger *log.Logger) *Service {
+func New() *Service {
 	mux := http.NewServeMux()
 	s := &Service{
-		Server: http.Server{
+		Server: http.Server {
 			Addr:    ":8080",
 			Handler: mux,
 		},
-		RWMutex:   sync.RWMutex{},
+		m:         sync.RWMutex{},
 		cluster:   openapi.Cluster{},
 		vms:       make(Vms),
 		hosts:     make(Hosts),
 		guests:    make(Guests),
-		logger:    logger,
 	}
 	mux.Handle("/", s)
 	return s
@@ -45,6 +43,8 @@ func New(logger *log.Logger) *Service {
 
 /* get a host from the list and return whether present */
 func (s *Service) GetHost(uuid string) (openapi.Host, error) {
+	s.m.RLock()
+	defer s.m.RUnlock()
 	var (
 		host openapi.Host
 		present bool
@@ -59,8 +59,8 @@ func (s *Service) GetHost(uuid string) (openapi.Host, error) {
 }
 
 func (s *Service) UpdateHost(host openapi.Host) error {
-	s.Lock()
-	defer s.Unlock()
+	s.m.Lock()
+	defer s.m.Unlock()
 
 	return s.updateHost(host)
 }
@@ -75,8 +75,8 @@ func (s *Service) updateHost(host openapi.Host) error {
 	}
 	old, present = s.hosts[host.Uuid]
 	if (present && old.Seq >= host.Seq) {
-		s.logger.Printf("Host %s: ignoring obsolete Host information: seq %d >= %d",
-			            old.Hostdef.Name, old.Seq, host.Seq)
+		logger.Log("Host %s: ignoring obsolete Host information: seq %d >= %d",
+			old.Hostdef.Name, old.Seq, host.Seq)
 		return nil
 	}
 	s.hosts[host.Uuid] = host
@@ -84,8 +84,8 @@ func (s *Service) updateHost(host openapi.Host) error {
 }
 
 func (s *Service) SetHostState(uuid string, newstate string) error {
-	s.Lock()
-	defer s.Unlock()
+	s.m.Lock()
+	defer s.m.Unlock()
 
 	return s.setHostState(uuid, newstate)
 }
@@ -100,8 +100,8 @@ func (s *Service) setHostState(uuid string, newstate string) error {
 }
 
 func (s *Service) UpdateGuest(guestInfo hypervisor.GuestInfo) error {
-	s.Lock()
-	defer s.Unlock()
+	s.m.Lock()
+	defer s.m.Unlock()
 
 	return s.updateGuest(guestInfo)
 }
@@ -112,8 +112,7 @@ func (s *Service) updateGuest(guestInfo hypervisor.GuestInfo) error {
 	}
 	if gi, ok := s.guests[guestInfo.UUID]; ok {
 		if gi.Seq >= guestInfo.Seq {
-			s.logger.Printf(
-				"Ignoring old guest info: seq %d >= %d %s %s",
+			logger.Log("Ignoring old guest info: seq %d >= %d %s %s",
 				gi.Seq, guestInfo.Seq, guestInfo.UUID, guestInfo.Name,
 			)
 			return nil
@@ -125,6 +124,9 @@ func (s *Service) updateGuest(guestInfo hypervisor.GuestInfo) error {
 
 // ServeHTTP implements net/http.Handler
 func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	s.m.RLock()
+	defer s.m.RUnlock()
+
 	w.Header().Set("Content-Type", "text/plain")
 	var (
 		lines string
@@ -141,9 +143,5 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			lines += line
 		}
 	}
-
-	s.RLock()
-	defer s.RUnlock()
-
 	http.Error(w, lines, http.StatusNotImplemented)
 }

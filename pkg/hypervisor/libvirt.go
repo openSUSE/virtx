@@ -1,7 +1,6 @@
 package hypervisor
 
 import (
-	"log"
 	"sync/atomic"
 	"encoding/xml"
 
@@ -9,6 +8,7 @@ import (
 	"libvirt.org/go/libvirtxml"
 
 	"suse.com/virtXD/pkg/model"
+	"suse.com/virtXD/pkg/logger"
 	. "suse.com/virtXD/pkg/constants"
 )
 
@@ -51,7 +51,6 @@ func GuestStateToString(state int) string {
 }
 
 type Hypervisor struct {
-	logger        *log.Logger
 	conn          *libvirt.Connect
 	seq           atomic.Uint64
 	callbackID    int
@@ -69,13 +68,12 @@ type Hypervisor struct {
  *
  * Note that only one callback is registered for all Domain Events.
  */
-func New(logger *log.Logger) (*Hypervisor, error) {
+func New() (*Hypervisor, error) {
 	conn, err := libvirt.NewConnect(QEMUSystemURI)
 	if (err != nil) {
 		return nil, err
 	}
 	var hv *Hypervisor = new(Hypervisor)
-	hv.logger = logger
 	hv.conn = conn
 	hv.eventsChannel = nil
 	hv.callbackID = -1
@@ -84,12 +82,12 @@ func New(logger *log.Logger) (*Hypervisor, error) {
 }
 
 func (hv *Hypervisor) Shutdown() {
-	hv.logger.Println("Deregistering event handlers")
+	logger.Log("Deregistering event handlers")
 	hv.StopListening()
-	hv.logger.Println("Closing libvirt connection")
+	logger.Log("Closing libvirt connection")
 	_, err := hv.conn.Close();
 	if (err != nil) {
-		hv.logger.Println(err)
+		logger.Log(err.Error())
 	}
 }
 
@@ -111,25 +109,25 @@ func (hv *Hypervisor) StartListening() error {
 		)
 		name, err = d.GetName()
 		if (err != nil) {
-			hv.logger.Println(err)
+			logger.Log(err.Error())
 		}
 		uuidStr, err = d.GetUUIDString()
 		if (err != nil) {
-			hv.logger.Println(err)
+			logger.Log(err.Error())
 		}
 		info, err = d.GetInfo()
 		if err != nil {
 			if e.Event == libvirt.DOMAIN_EVENT_UNDEFINED {
 				state = DomainUndefined
 			} else {
-				hv.logger.Println(err)
+				logger.Log(err.Error())
 			}
 		} else {
 			state = int(info.State)
 			memory = info.Memory
 			nrVirtCPU = info.NrVirtCpu
 		}
-		hv.logger.Printf("[HYPERVISOR] %s/%s: %v %v\n", name, uuidStr, e, info)
+		logger.Log("[HYPERVISOR] %s/%s: %v %v\n", name, uuidStr, e, info)
 		hv.eventsChannel <- GuestInfo{
 			Seq:       hv.seq.Add(1),
 			Name:      name,
@@ -151,13 +149,13 @@ func (hv *Hypervisor) StartListening() error {
 func (hv *Hypervisor) StopListening() {
 	if (hv.callbackID < 0) {
 		/* already stopped */
-		hv.logger.Println("StopListening(): already stopped.")
+		logger.Log("StopListening(): already stopped.")
 		return
 	}
-	hv.logger.Println("StopListening(): deregister libvirt CallbackId:", hv.callbackID)
+	logger.Log("StopListening(): deregister libvirt CallbackId: %d", hv.callbackID)
 	var err error = hv.conn.DomainEventDeregister(hv.callbackID)
 	if (err != nil) {
-		hv.logger.Fatal(err)
+		logger.Fatal(err.Error())
 	}
 	close(hv.eventsChannel)
 	hv.eventsChannel = nil /* assume runtime will garbage collect */
@@ -327,7 +325,7 @@ func init() {
 		panic(err)
 	}
 	go func() {
-		//logger.Println("hypervisor: init(): Entering event loop")
+		logger.Log("hypervisor: init(): Entering event loop")
 		for {
 			err = libvirt.EventRunDefaultImpl()
 			if (err != nil) {
@@ -335,6 +333,6 @@ func init() {
 			}
 			// XXX exit properly from the event loop somehow
 		}
-		//logger.Println("hypervisor: init(): Exiting event loop")
+		logger.Log("hypervisor: init(): Exiting event loop")
 	}()
 }

@@ -2,12 +2,12 @@ package serfcomm
 
 import (
 	"fmt"
-	"log"
 
 	"suse.com/virtXD/pkg/hypervisor"
 	"github.com/hashicorp/serf/client"
 	"suse.com/virtXD/pkg/virtx"
 	"suse.com/virtXD/pkg/model"
+	"suse.com/virtXD/pkg/logger"
 )
 
 const (
@@ -95,9 +95,6 @@ func sendGuestInfo(serf *client.RPCClient, guestInfo hypervisor.GuestInfo, hostU
 }
 
 func SendInfoEvent(s *virtx.Service, serf *client.RPCClient, uuid string) error {
-	s.RLock()
-	defer s.RUnlock()
-
 	host, err := s.GetHost(uuid)
 	if (err != nil) {
 		return err;
@@ -121,10 +118,9 @@ func RecvSerfEvents(
 	serf *client.RPCClient,
 	s *virtx.Service,
 	hostInfo openapi.Host,
-	logger *log.Logger,
 	shutdownCh chan<- struct{},
 ) {
-	logger.Println("Processing events...")
+	logger.Log("Processing events...")
 	for e := range serfCh {
 		var newstate string = string(openapi.FAILED)
 		switch e["Event"].(string) {
@@ -137,12 +133,12 @@ func RecvSerfEvents(
 				tags := m.(map[interface{}]interface{})["Tags"]
 				uuid, ok := tags.(map[interface{}]interface{})["uuid"].(string)
 				if !ok {
-					logger.Println("failed to get uuid tag")
+					logger.Log("failed to get uuid tag")
 					continue
 				}
-				logger.Printf("Host %s OFFLINE", uuid)
+				logger.Log("Host %s OFFLINE", uuid)
 				if err := s.SetHostState(uuid, newstate); err != nil {
-					logger.Fatal(err)
+					logger.Fatal(err.Error())
 				}
 			}
 			fallthrough
@@ -157,34 +153,29 @@ func RecvSerfEvents(
 		case labelHostInfo:
 			hi, err := unpackHostInfoEvent(payload)
 			if err != nil {
-				logger.Fatal(err)
+				logger.Fatal(err.Error())
 			}
-			logger.Printf(
-				"%s: %d %s %s",
-				name, hi.Seq, hi.Uuid, hi.Hostdef.Name,
-			)
+			logger.Log("%s: %d %s %s", name, hi.Seq, hi.Uuid, hi.Hostdef.Name)
 			if err := s.UpdateHost(hi); err != nil {
-				logger.Fatal(err)
+				logger.Fatal(err.Error())
 			}
 		case labelGuestInfo:
 			gi, hostUUID, err := unpackGuestInfoEvent(payload)
 			if err != nil {
-				logger.Fatal(err)
+				logger.Fatal(err.Error())
 			}
-			logger.Printf(
-				"%s: %d %s %s state(%d - %s) hostUUID(%s)",
+			logger.Log("%s: %d %s %s state(%d - %s) hostUUID(%s)",
 				name, gi.Seq, gi.UUID, gi.Name,
-				gi.State, hypervisor.GuestStateToString(gi.State),
-				hostUUID,
+				gi.State, hypervisor.GuestStateToString(gi.State), hostUUID,
 			)
 			if err := s.UpdateGuest(gi); err != nil {
-				logger.Fatal(err)
+				logger.Fatal(err.Error())
 			}
 		default:
-			logger.Println("[UNKNOWN-EVENT]", name, payload)
+			logger.Log("[UNKNOWN-EVENT] %s %s", name, payload)
 		}
 	}
-	logger.Println("Processing done")
+	logger.Log("Processing done")
 	close(shutdownCh)
 }
 
@@ -192,15 +183,14 @@ func SendHypervisorEvents(
 	eventCh <-chan hypervisor.GuestInfo,
 	serf *client.RPCClient,
 	hostInfo openapi.Host,
-	logger *log.Logger,
 	shutdownCh chan<- struct{},
 ) {
-	logger.Println("Forwarding guest events...")
+	logger.Log("Forwarding guest events...")
 	for gi := range eventCh {
 		if err := sendGuestInfo(serf, gi, hostInfo.Uuid); err != nil {
-			logger.Fatal(err)
+			logger.Fatal(err.Error())
 		}
 	}
-	logger.Println("Forwarding done")
+	logger.Log("Forwarding done")
 	close(shutdownCh)
 }
