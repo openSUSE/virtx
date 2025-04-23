@@ -171,8 +171,12 @@ type SysInfo struct {
 }
 
 type BIOS struct {
-	Version string `xml:"entry[name='version']"`
-	Date    string `xml:"entry[name='date']"`
+	Entries []Entry `xml:"entry"`
+}
+
+type Entry struct {
+	Name  string `xml:"name,attr"`
+	Value string `xml:",chardata"`
 }
 
 func (hv *Hypervisor) GetHostInfo() (openapi.Host, error) {
@@ -217,8 +221,14 @@ func (hv *Hypervisor) GetHostInfo() (openapi.Host, error) {
 	if (err != nil) {
 		return host, err
 	}
-	host.Hostdef.SysinfoBios.Version = smbios.BIOS.Version
-	host.Hostdef.SysinfoBios.Date = smbios.BIOS.Date
+	for _, e := range smbios.BIOS.Entries {
+		switch e.Name {
+		case "version":
+			host.Hostdef.SysinfoBios.Version = e.Value
+		case "date":
+			host.Hostdef.SysinfoBios.Date = e.Value
+		}
+	}
 	host.Hoststate = openapi.ACTIVE
 	host.Hostresources.Memory.Total = int64(info.Memory / KiB) /* info returns memory in KiB, translate to MiB */
 	var free uint64
