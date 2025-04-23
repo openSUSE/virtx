@@ -166,16 +166,6 @@ func RecvSerfEvents(
 			if err := s.UpdateHost(hi); err != nil {
 				logger.Fatal(err)
 			}
-			/*
-			 *  newHost does not exist anymore, do we really need it?
-			 */
-			/*
-			if newHost == 1 && hi.Uuid != hostInfo.Uuid {
-				if err := SendInfoEvent(s, serf, hostInfo.UUID, 0); err != nil {
-					logger.Fatal(err)
-				}
-			}
-			*/
 		case labelGuestInfo:
 			gi, hostUUID, err := unpackGuestInfoEvent(payload)
 			if err != nil {
