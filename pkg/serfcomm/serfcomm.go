@@ -75,8 +75,7 @@ func sendHostInfo(serf *client.RPCClient, hostInfo openapi.Host) error {
 		return err
 	}
 	var eventsize int = len(payload)
-	fmt.Printf("sendHostInfo payload len=%d\n", eventsize)
-	fmt.Printf("%s\n", string(payload))
+	logger.Log("sendHostInfo payload len=%d\n", eventsize)
 	if err := serf.UserEvent(labelHostInfo, payload, false); err != nil {
 		return err
 	}
