@@ -1,10 +1,12 @@
+# LICENSE
+
+The code is under the GPLv2 license. See LICENSE file for details.
+
 # virtXD
 
 The service monitors the state of local VMs via libvirt.
 
-It has been derived from the inventory-service, which will be replaced
-by an API backend.
-
+It has been derived from the inventory-service, which will be replaced by an API backend.
 Note that to run virtXD, serf must be already running.
 
 get serf source code (tested version 0.8.2) from
