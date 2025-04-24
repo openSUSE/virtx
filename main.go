@@ -8,8 +8,6 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/hashicorp/serf/client"
-
 	"suse.com/virtXD/pkg/serfcomm"
 	"suse.com/virtXD/pkg/hypervisor"
 	"suse.com/virtXD/pkg/virtx"
@@ -28,7 +26,6 @@ func main() {
 		hostInfo openapi.Host
 		guestInfo []hypervisor.GuestInfo
 		service *virtx.Service
-		serf *client.RPCClient
 	)
 	/* hypervisor: initialize and start listening to hypervisor events */
 	hv, err = hypervisor.New()
@@ -60,39 +57,31 @@ func main() {
 		}
 	}
 	/*
-     * serf: initialize RPC bi-directional communication with serf,
+     * serf: initialize communication package, and then
+	 * the actual serf client for RPC bi-directional comm,
      * and add a tag entry for this host using its UUID
 	 */
-	serf, err = client.NewRPCClient(SerfRPCAddr)
+	err = serfcomm.Init(SerfRPCAddr)
 	if (err != nil) {
 		logger.Fatal(err.Error())
 	}
-	defer serf.Close()
-	addTags := map[string]string { "uuid": hostInfo.Uuid }
-	removeTags := []string {}
-	err = serf.UpdateTags(addTags, removeTags)
+	defer serfcomm.Shutdown()
+
+	err = serfcomm.UpdateTags(hostInfo)
 	if (err != nil) {
-		logger.Fatal(err.Error())
+		logger.Log(err.Error())
 	}
-	/* serf: create channel and stream to receive serf events */
-	serfCh := make(chan map[string]interface{}, 64)
-	var stream client.StreamHandle
-	stream, err = serf.Stream("*", serfCh)
-	if (err != nil) {
-		logger.Fatal(err.Error())
-	}
-	defer serf.Stop(stream)
 	/* serf: send Info Event with the host UUID to Serf */
-	err = serfcomm.SendInfoEvent(service, serf, hostInfo.Uuid)
+	err = serfcomm.SendInfoEvent(service, hostInfo.Uuid)
 	if (err != nil) {
 		logger.Fatal(err.Error())
 	}
 	/* create subroutines to send and process events */
 	hvShutdownCh := make(chan struct{})
-	go serfcomm.SendHypervisorEvents(hv.EventsChannel(), serf, hostInfo, hvShutdownCh)
+	go serfcomm.SendHypervisorEvents(hv.EventsChannel(), hostInfo, hvShutdownCh)
 
 	serfShutdownCh := make(chan struct{})
-	go serfcomm.RecvSerfEvents(serfCh, serf, service, hostInfo, serfShutdownCh)
+	go serfcomm.RecvSerfEvents(service, hostInfo, serfShutdownCh)
 
 	/* create server subroutine to listen for API requests */
 	go func() {

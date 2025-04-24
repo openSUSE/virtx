@@ -2,9 +2,12 @@ package serfcomm
 
 import (
 	"fmt"
+	"sync"
+	"bytes"
+	"encoding/gob"
+	"github.com/hashicorp/serf/client"
 
 	"suse.com/virtXD/pkg/hypervisor"
-	"github.com/hashicorp/serf/client"
 	"suse.com/virtXD/pkg/virtx"
 	"suse.com/virtXD/pkg/model"
 	"suse.com/virtXD/pkg/logger"
@@ -13,7 +16,20 @@ import (
 const (
 	labelHostInfo string = "host-info"
 	labelGuestInfo string = "guest-info"
+	maxMessageSize uint = 1024
 )
+
+var serf = struct {
+	c       *client.RPCClient
+	encoder *gob.Encoder
+	decoder *gob.Decoder
+	encBuffer *bytes.Buffer
+	decBuffer *bytes.Buffer
+	encMux    *sync.Mutex
+	decMux    *sync.Mutex
+	channel chan map[string]interface{}
+	stream  client.StreamHandle
+}{}
 
 func packHostInfoEvent(hostInfo openapi.Host) ([]byte, error) {
 	return hostInfo.MarshalJSON()
@@ -69,43 +85,43 @@ func unpackGuestInfoEvent(payload []byte) (hypervisor.GuestInfo, string, error) 
 	return guestInfo, hostUUID, nil
 }
 
-func sendHostInfo(serf *client.RPCClient, hostInfo openapi.Host) error {
+func sendHostInfo(hostInfo openapi.Host) error {
 	payload, err := packHostInfoEvent(hostInfo)
 	if err != nil {
 		return err
 	}
 	var eventsize int = len(payload)
 	logger.Log("sendHostInfo payload len=%d\n", eventsize)
-	if err := serf.UserEvent(labelHostInfo, payload, false); err != nil {
+	if err := serf.c.UserEvent(labelHostInfo, payload, false); err != nil {
 		return err
 	}
 	return nil
 }
 
-func sendGuestInfo(serf *client.RPCClient, guestInfo hypervisor.GuestInfo, hostUUID string) error {
+func sendGuestInfo(guestInfo hypervisor.GuestInfo, hostUUID string) error {
 	payload, err := packGuestInfoEvent(guestInfo, hostUUID)
 	if err != nil {
 		return err
 	}
-	if err := serf.UserEvent(labelGuestInfo, payload, false); err != nil {
+	if err := serf.c.UserEvent(labelGuestInfo, payload, false); err != nil {
 		return err
 	}
 	return nil
 }
 
-func SendInfoEvent(s *virtx.Service, serf *client.RPCClient, uuid string) error {
+func SendInfoEvent(s *virtx.Service, uuid string) error {
 	host, err := s.GetHost(uuid)
 	if (err != nil) {
 		return err;
 	}
-	if err = sendHostInfo(serf, host); err != nil {
+	if err = sendHostInfo(host); err != nil {
 		return err
 	}
 
 	/* XXX probably here we want to send only the guests running on host? XXX */
 
 	//for _, gi := range s.guests {
-	//	if err = sendGuestInfo(serf, gi, host); err != nil {
+	//	if err = sendGuestInfo(gi, host); err != nil {
 	//		return err
 	//	}
 
@@ -113,14 +129,12 @@ func SendInfoEvent(s *virtx.Service, serf *client.RPCClient, uuid string) error 
 }
 
 func RecvSerfEvents(
-	serfCh <-chan map[string]interface{},
-	serf *client.RPCClient,
 	s *virtx.Service,
 	hostInfo openapi.Host,
 	shutdownCh chan<- struct{},
 ) {
 	logger.Log("Processing events...")
-	for e := range serfCh {
+	for e := range serf.channel {
 		var newstate string = string(openapi.FAILED)
 		switch e["Event"].(string) {
 		case "user":
@@ -180,16 +194,57 @@ func RecvSerfEvents(
 
 func SendHypervisorEvents(
 	eventCh <-chan hypervisor.GuestInfo,
-	serf *client.RPCClient,
 	hostInfo openapi.Host,
 	shutdownCh chan<- struct{},
 ) {
 	logger.Log("Forwarding guest events...")
 	for gi := range eventCh {
-		if err := sendGuestInfo(serf, gi, hostInfo.Uuid); err != nil {
+		if err := sendGuestInfo(gi, hostInfo.Uuid); err != nil {
 			logger.Fatal(err.Error())
 		}
 	}
 	logger.Log("Forwarding done")
 	close(shutdownCh)
+}
+
+func UpdateTags(host openapi.Host) error {
+	var err error
+	/* XXX TODO: compress the Host information into gob and set as value XXX */
+	addTags := map[string]string { host.Uuid: "" }
+	removeTags := []string {}
+	err = serf.c.UpdateTags(addTags, removeTags)
+	return err
+}
+
+func Init(rpcAddr string) error {
+	var err error
+	serf.encBuffer = bytes.NewBuffer(make([]byte, 0, maxMessageSize))
+	serf.decBuffer = bytes.NewBuffer(make([]byte, 0, maxMessageSize))
+	serf.encoder = gob.NewEncoder(serf.encBuffer)
+	serf.decoder = gob.NewDecoder(serf.decBuffer)
+
+	serf.c, err = client.NewRPCClient(rpcAddr)
+	if (err != nil) {
+		return err
+	}
+	serf.channel = make(chan map[string]interface{}, 64)
+	serf.stream, err = serf.c.Stream("*", serf.channel)
+	if (err != nil) {
+		return err
+	}
+	return nil
+}
+
+func Shutdown() {
+	var err error
+	logger.Log("Shutting down...")
+	err = serf.c.Stop(serf.stream)
+	if (err != nil) {
+        logger.Log(err.Error())
+    }
+	err = serf.c.Close()
+	if (err != nil) {
+		logger.Log(err.Error())
+	}
+	logger.Log("Shutdown complete.")
 }
