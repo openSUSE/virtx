@@ -2,7 +2,9 @@
 
 all: virtXD
 
-virtXD:
+SRC = $(shell find . -name "*.go")
+
+virtXD: $(SRC)
 	go build -gcflags="-l -m"
 
 clean:
