@@ -75,14 +75,14 @@ func (s *Service) GetHost(uuid string) (openapi.Host, error) {
 	return host, nil
 }
 
-func (s *Service) UpdateHost(host openapi.Host) error {
+func (s *Service) UpdateHost(host *openapi.Host) error {
 	s.m.Lock()
 	defer s.m.Unlock()
 
 	return s.updateHost(host)
 }
 
-func (s *Service) updateHost(host openapi.Host) error {
+func (s *Service) updateHost(host *openapi.Host) error {
 	var (
 		present bool
 		old openapi.Host
@@ -96,7 +96,7 @@ func (s *Service) updateHost(host openapi.Host) error {
 			old.Hostdef.Name, old.Seq, host.Seq)
 		return nil
 	}
-	s.hosts[host.Uuid] = host
+	s.hosts[host.Uuid] = *host
 	return nil
 }
 

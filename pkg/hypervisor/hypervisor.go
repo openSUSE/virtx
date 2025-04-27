@@ -172,7 +172,7 @@ func (hv *Hypervisor) StopListening() {
 	logger.Log("StopListening(): deregister libvirt CallbackId: %d", hv.callbackID)
 	var err error = hv.conn.DomainEventDeregister(hv.callbackID)
 	if (err != nil) {
-		logger.Fatal(err.Error())
+		logger.Log(err.Error())
 	}
 	close(hv.eventsChannel)
 	hv.eventsChannel = nil /* assume runtime will garbage collect */

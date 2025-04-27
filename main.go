@@ -64,7 +64,7 @@ func main() {
 	}
 	/* service: initialize and first update with the host and guests information */
 	service = virtx.New()
-	err = service.UpdateHost(hostInfo)
+	err = service.UpdateHost(&hostInfo)
 	if (err != nil) {
 		logger.Fatal(err.Error())
 	}
@@ -84,7 +84,7 @@ func main() {
 	}
 	defer serfcomm.Shutdown()
 
-	err = serfcomm.UpdateTags(hostInfo)
+	err = serfcomm.UpdateTags(&hostInfo)
 	if (err != nil) {
 		logger.Log(err.Error())
 	}
@@ -95,10 +95,10 @@ func main() {
 	}
 	/* create subroutines to send and process events */
 	hvShutdownCh := make(chan struct{})
-	go serfcomm.SendHypervisorEvents(hv.EventsChannel(), hostInfo, hvShutdownCh)
+	go serfcomm.SendHypervisorEvents(hv.EventsChannel(), hostInfo.Uuid, hvShutdownCh)
 
 	serfShutdownCh := make(chan struct{})
-	go serfcomm.RecvSerfEvents(service, hostInfo, serfShutdownCh)
+	go serfcomm.RecvSerfEvents(service, serfShutdownCh)
 
 	/* create server subroutine to listen for API requests */
 	go func() {
@@ -106,7 +106,7 @@ func main() {
 		if (err != nil && errors.Is(err, http.ErrServerClosed)) {
 			logger.Log(err.Error())
 		} else {
-			logger.Fatal(err.Error())
+			logger.Log(err.Error())
 		}
 	}()
 
