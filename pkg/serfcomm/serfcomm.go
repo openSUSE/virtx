@@ -44,20 +44,6 @@ var serf = struct {
 	stream  client.StreamHandle
 }{}
 
-/* writes to encBuffer */
-func packHostInfoEvent(hostInfo *openapi.Host) (int, error) {
-	return sbinary.Encode(serf.encBuffer[:], binary.LittleEndian, hostInfo)
-}
-
-func unpackHostInfoEvent(payload []byte) (openapi.Host, error) {
-	var (
-		hostInfo openapi.Host
-		err error
-	)
-	_, err = sbinary.Decode(payload, binary.LittleEndian, &hostInfo)
-	return hostInfo, err
-}
-
 func packGuestInfoEvent(guestInfo hypervisor.GuestInfo, hostUUID string) ([]byte, error) {
 	var str string = fmt.Sprintf(
 		"%s %d %s %s %d %d %d",
@@ -102,7 +88,8 @@ func unpackGuestInfoEvent(payload []byte) (hypervisor.GuestInfo, string, error) 
 func sendHostInfo(hostInfo *openapi.Host) error {
 	serf.encMux.Lock()
 	defer serf.encMux.Unlock()
-	eventsize, err := packHostInfoEvent(hostInfo)
+	eventsize, err := sbinary.Encode(serf.encBuffer[:], binary.LittleEndian, hostInfo)
+
 	if err != nil {
 		return err
 	}
@@ -147,6 +134,7 @@ func RecvSerfEvents(
 	s *virtx.Service,
 	shutdownCh chan<- struct{},
 ) {
+	var err error
 	logger.Log("Processing events...")
 	for e := range serf.channel {
 		var newstate string = string(openapi.FAILED)
@@ -164,7 +152,8 @@ func RecvSerfEvents(
 					continue
 				}
 				logger.Log("Host %s OFFLINE", uuid)
-				if err := s.SetHostState(uuid, newstate); err != nil {
+				err = s.SetHostState(uuid, newstate)
+				if (err != nil) {
 					logger.Log(err.Error())
 				}
 			}
@@ -178,24 +167,35 @@ func RecvSerfEvents(
 
 		switch name {
 		case labelHostInfo:
-			hi, err := unpackHostInfoEvent(payload)
-			if err != nil {
-				logger.Log(err.Error())
-			}
-			logger.Log("%s: %d %s %s", name, hi.Seq, hi.Uuid, hi.Hostdef.Name)
-			if err := s.UpdateHost(&hi); err != nil {
-				logger.Log(err.Error())
+			var (
+				hi openapi.Host
+				size int
+			)
+			size, err = sbinary.Decode(payload, binary.LittleEndian, &hi)
+			if (err != nil) {
+				logger.Log("Decode: '%s' at offset %d", err.Error(), size)
+			} else {
+				logger.Log("Decode: %s: %d %s %s", name, hi.Seq, hi.Uuid, hi.Hostdef.Name)
+				err = s.UpdateHost(&hi)
+				if (err != nil) {
+					logger.Log(err.Error())
+				}
 			}
 		case labelGuestInfo:
-			gi, hostUUID, err := unpackGuestInfoEvent(payload)
-			if err != nil {
+			var (
+				gi hypervisor.GuestInfo
+				hostUUID string
+			)
+			gi, hostUUID, err = unpackGuestInfoEvent(payload)
+			if (err != nil) {
 				logger.Log(err.Error())
 			}
 			logger.Log("%s: %d %s %s state(%d - %s) hostUUID(%s)",
 				name, gi.Seq, gi.UUID, gi.Name,
 				gi.State, hypervisor.GuestStateToString(gi.State), hostUUID,
 			)
-			if err := s.UpdateGuest(gi); err != nil {
+			err = s.UpdateGuest(gi)
+			if (err != nil) {
 				logger.Log(err.Error())
 			}
 		default:
