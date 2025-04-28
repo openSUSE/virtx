@@ -91,7 +91,7 @@ func (s *Service) updateHost(host *openapi.Host) error {
 		s.hosts = make(map[string]openapi.Host)
 	}
 	old, present = s.hosts[host.Uuid]
-	if (present && old.Seq >= host.Seq) {
+	if (present && old.Seq > host.Seq) {
 		logger.Log("Host %s: ignoring obsolete Host information: seq %d >= %d",
 			old.Hostdef.Name, old.Seq, host.Seq)
 		return nil
