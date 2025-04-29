@@ -23,7 +23,6 @@ var _ MappedNullable = &Vmdef{}
 // Vmdef struct for Vmdef
 type Vmdef struct {
 	Name string `json:"name"`
-	Displayname string `json:"displayname"`
 	Cpudef Cpudef `json:"cpudef"`
 	Memory VmdefMemory `json:"memory"`
 	// disks attached to the VM
@@ -31,13 +30,10 @@ type Vmdef struct {
 	// networks and bridges attached to the VM
 	Nets []Net `json:"nets"`
 	// vlanid for all traffic from/to this VM. 0 = no vlanid, -1 = automatically assign
-	Vlanid int32 `json:"vlanid"`
-	WatchdogAction string `json:"watchdog_action"`
+	Vlanid int16 `json:"vlanid"`
 	Firmware string `json:"firmware"`
 	// VM generation ID. Use special value \"auto\" to autogenerate
 	Genid string `json:"genid"`
-	// where the Virtual SMBIOS should get information from
-	Smbios string `json:"smbios"`
 	// Custom Fields
 	Custom []CustomField `json:"custom"`
 }
@@ -48,19 +44,16 @@ type _Vmdef Vmdef
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVmdef(name string, displayname string, cpudef Cpudef, memory VmdefMemory, disks []Disk, nets []Net, vlanid int32, watchdogAction string, firmware string, genid string, smbios string, custom []CustomField) *Vmdef {
+func NewVmdef(name string, cpudef Cpudef, memory VmdefMemory, disks []Disk, nets []Net, vlanid int16, firmware string, genid string, custom []CustomField) *Vmdef {
 	this := Vmdef{}
 	this.Name = name
-	this.Displayname = displayname
 	this.Cpudef = cpudef
 	this.Memory = memory
 	this.Disks = disks
 	this.Nets = nets
 	this.Vlanid = vlanid
-	this.WatchdogAction = watchdogAction
 	this.Firmware = firmware
 	this.Genid = genid
-	this.Smbios = smbios
 	this.Custom = custom
 	return &this
 }
@@ -95,30 +88,6 @@ func (o *Vmdef) GetNameOk() (*string, bool) {
 // SetName sets field value
 func (o *Vmdef) SetName(v string) {
 	o.Name = v
-}
-
-// GetDisplayname returns the Displayname field value
-func (o *Vmdef) GetDisplayname() string {
-	if o == nil {
-		var ret string
-		return ret
-	}
-
-	return o.Displayname
-}
-
-// GetDisplaynameOk returns a tuple with the Displayname field value
-// and a boolean to check if the value has been set.
-func (o *Vmdef) GetDisplaynameOk() (*string, bool) {
-	if o == nil {
-		return nil, false
-	}
-	return &o.Displayname, true
-}
-
-// SetDisplayname sets field value
-func (o *Vmdef) SetDisplayname(v string) {
-	o.Displayname = v
 }
 
 // GetCpudef returns the Cpudef field value
@@ -218,9 +187,9 @@ func (o *Vmdef) SetNets(v []Net) {
 }
 
 // GetVlanid returns the Vlanid field value
-func (o *Vmdef) GetVlanid() int32 {
+func (o *Vmdef) GetVlanid() int16 {
 	if o == nil {
-		var ret int32
+		var ret int16
 		return ret
 	}
 
@@ -229,7 +198,7 @@ func (o *Vmdef) GetVlanid() int32 {
 
 // GetVlanidOk returns a tuple with the Vlanid field value
 // and a boolean to check if the value has been set.
-func (o *Vmdef) GetVlanidOk() (*int32, bool) {
+func (o *Vmdef) GetVlanidOk() (*int16, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -237,32 +206,8 @@ func (o *Vmdef) GetVlanidOk() (*int32, bool) {
 }
 
 // SetVlanid sets field value
-func (o *Vmdef) SetVlanid(v int32) {
+func (o *Vmdef) SetVlanid(v int16) {
 	o.Vlanid = v
-}
-
-// GetWatchdogAction returns the WatchdogAction field value
-func (o *Vmdef) GetWatchdogAction() string {
-	if o == nil {
-		var ret string
-		return ret
-	}
-
-	return o.WatchdogAction
-}
-
-// GetWatchdogActionOk returns a tuple with the WatchdogAction field value
-// and a boolean to check if the value has been set.
-func (o *Vmdef) GetWatchdogActionOk() (*string, bool) {
-	if o == nil {
-		return nil, false
-	}
-	return &o.WatchdogAction, true
-}
-
-// SetWatchdogAction sets field value
-func (o *Vmdef) SetWatchdogAction(v string) {
-	o.WatchdogAction = v
 }
 
 // GetFirmware returns the Firmware field value
@@ -313,30 +258,6 @@ func (o *Vmdef) SetGenid(v string) {
 	o.Genid = v
 }
 
-// GetSmbios returns the Smbios field value
-func (o *Vmdef) GetSmbios() string {
-	if o == nil {
-		var ret string
-		return ret
-	}
-
-	return o.Smbios
-}
-
-// GetSmbiosOk returns a tuple with the Smbios field value
-// and a boolean to check if the value has been set.
-func (o *Vmdef) GetSmbiosOk() (*string, bool) {
-	if o == nil {
-		return nil, false
-	}
-	return &o.Smbios, true
-}
-
-// SetSmbios sets field value
-func (o *Vmdef) SetSmbios(v string) {
-	o.Smbios = v
-}
-
 // GetCustom returns the Custom field value
 func (o *Vmdef) GetCustom() []CustomField {
 	if o == nil {
@@ -372,16 +293,13 @@ func (o Vmdef) MarshalJSON() ([]byte, error) {
 func (o Vmdef) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["name"] = o.Name
-	toSerialize["displayname"] = o.Displayname
 	toSerialize["cpudef"] = o.Cpudef
 	toSerialize["memory"] = o.Memory
 	toSerialize["disks"] = o.Disks
 	toSerialize["nets"] = o.Nets
 	toSerialize["vlanid"] = o.Vlanid
-	toSerialize["watchdog_action"] = o.WatchdogAction
 	toSerialize["firmware"] = o.Firmware
 	toSerialize["genid"] = o.Genid
-	toSerialize["smbios"] = o.Smbios
 	toSerialize["custom"] = o.Custom
 	return toSerialize, nil
 }
@@ -392,16 +310,13 @@ func (o *Vmdef) UnmarshalJSON(data []byte) (err error) {
 	// that every required field exists as a key in the generic map.
 	requiredProperties := []string{
 		"name",
-		"displayname",
 		"cpudef",
 		"memory",
 		"disks",
 		"nets",
 		"vlanid",
-		"watchdog_action",
 		"firmware",
 		"genid",
-		"smbios",
 		"custom",
 	}
 

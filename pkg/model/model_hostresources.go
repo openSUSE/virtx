@@ -20,10 +20,10 @@ import (
 // checks if the Hostresources type satisfies the MappedNullable interface at compile time
 var _ MappedNullable = &Hostresources{}
 
-// Hostresources struct for Hostresources
+// Hostresources Memory resources in GiB, CPU resources in MhZ
 type Hostresources struct {
 	Memory Hostresource `json:"memory"`
-	Mhz Hostresource `json:"mhz"`
+	Cpu Hostresource `json:"cpu"`
 }
 
 type _Hostresources Hostresources
@@ -32,10 +32,10 @@ type _Hostresources Hostresources
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewHostresources(memory Hostresource, mhz Hostresource) *Hostresources {
+func NewHostresources(memory Hostresource, cpu Hostresource) *Hostresources {
 	this := Hostresources{}
 	this.Memory = memory
-	this.Mhz = mhz
+	this.Cpu = cpu
 	return &this
 }
 
@@ -71,28 +71,28 @@ func (o *Hostresources) SetMemory(v Hostresource) {
 	o.Memory = v
 }
 
-// GetMhz returns the Mhz field value
-func (o *Hostresources) GetMhz() Hostresource {
+// GetCpu returns the Cpu field value
+func (o *Hostresources) GetCpu() Hostresource {
 	if o == nil {
 		var ret Hostresource
 		return ret
 	}
 
-	return o.Mhz
+	return o.Cpu
 }
 
-// GetMhzOk returns a tuple with the Mhz field value
+// GetCpuOk returns a tuple with the Cpu field value
 // and a boolean to check if the value has been set.
-func (o *Hostresources) GetMhzOk() (*Hostresource, bool) {
+func (o *Hostresources) GetCpuOk() (*Hostresource, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.Mhz, true
+	return &o.Cpu, true
 }
 
-// SetMhz sets field value
-func (o *Hostresources) SetMhz(v Hostresource) {
-	o.Mhz = v
+// SetCpu sets field value
+func (o *Hostresources) SetCpu(v Hostresource) {
+	o.Cpu = v
 }
 
 func (o Hostresources) MarshalJSON() ([]byte, error) {
@@ -106,7 +106,7 @@ func (o Hostresources) MarshalJSON() ([]byte, error) {
 func (o Hostresources) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["memory"] = o.Memory
-	toSerialize["mhz"] = o.Mhz
+	toSerialize["cpu"] = o.Cpu
 	return toSerialize, nil
 }
 
@@ -116,7 +116,7 @@ func (o *Hostresources) UnmarshalJSON(data []byte) (err error) {
 	// that every required field exists as a key in the generic map.
 	requiredProperties := []string{
 		"memory",
-		"mhz",
+		"cpu",
 	}
 
 	allProperties := make(map[string]interface{})

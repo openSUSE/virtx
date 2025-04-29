@@ -25,7 +25,7 @@ type HostList struct {
 	Items []HostListItem `json:"items"`
 	Page Page `json:"page"`
 	// total number of host items in all the result pages
-	Total int32 `json:"total"`
+	Total int16 `json:"total"`
 }
 
 type _HostList HostList
@@ -34,7 +34,7 @@ type _HostList HostList
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewHostList(items []HostListItem, page Page, total int32) *HostList {
+func NewHostList(items []HostListItem, page Page, total int16) *HostList {
 	this := HostList{}
 	this.Items = items
 	this.Page = page
@@ -99,9 +99,9 @@ func (o *HostList) SetPage(v Page) {
 }
 
 // GetTotal returns the Total field value
-func (o *HostList) GetTotal() int32 {
+func (o *HostList) GetTotal() int16 {
 	if o == nil {
-		var ret int32
+		var ret int16
 		return ret
 	}
 
@@ -110,7 +110,7 @@ func (o *HostList) GetTotal() int32 {
 
 // GetTotalOk returns a tuple with the Total field value
 // and a boolean to check if the value has been set.
-func (o *HostList) GetTotalOk() (*int32, bool) {
+func (o *HostList) GetTotalOk() (*int16, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -118,7 +118,7 @@ func (o *HostList) GetTotalOk() (*int32, bool) {
 }
 
 // SetTotal sets field value
-func (o *HostList) SetTotal(v int32) {
+func (o *HostList) SetTotal(v int16) {
 	o.Total = v
 }
 

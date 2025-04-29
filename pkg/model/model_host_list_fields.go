@@ -26,8 +26,8 @@ type HostListFields struct {
 	Cpuarch Cpuarch `json:"cpuarch"`
 	Cpudef Cpudef `json:"cpudef"`
 	Hoststate Hoststate `json:"hoststate"`
-	// available for other VMs (total - reserved)
-	MemoryAvailableVms int64 `json:"memory_available_vms"`
+	// memory available for running new VMs in GiB
+	MemoryAvailableVms int32 `json:"memory_available_vms"`
 }
 
 type _HostListFields HostListFields
@@ -36,7 +36,7 @@ type _HostListFields HostListFields
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewHostListFields(name string, cpuarch Cpuarch, cpudef Cpudef, hoststate Hoststate, memoryAvailableVms int64) *HostListFields {
+func NewHostListFields(name string, cpuarch Cpuarch, cpudef Cpudef, hoststate Hoststate, memoryAvailableVms int32) *HostListFields {
 	this := HostListFields{}
 	this.Name = name
 	this.Cpuarch = cpuarch
@@ -151,9 +151,9 @@ func (o *HostListFields) SetHoststate(v Hoststate) {
 }
 
 // GetMemoryAvailableVms returns the MemoryAvailableVms field value
-func (o *HostListFields) GetMemoryAvailableVms() int64 {
+func (o *HostListFields) GetMemoryAvailableVms() int32 {
 	if o == nil {
-		var ret int64
+		var ret int32
 		return ret
 	}
 
@@ -162,7 +162,7 @@ func (o *HostListFields) GetMemoryAvailableVms() int64 {
 
 // GetMemoryAvailableVmsOk returns a tuple with the MemoryAvailableVms field value
 // and a boolean to check if the value has been set.
-func (o *HostListFields) GetMemoryAvailableVmsOk() (*int64, bool) {
+func (o *HostListFields) GetMemoryAvailableVmsOk() (*int32, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -170,7 +170,7 @@ func (o *HostListFields) GetMemoryAvailableVmsOk() (*int64, bool) {
 }
 
 // SetMemoryAvailableVms sets field value
-func (o *HostListFields) SetMemoryAvailableVms(v int64) {
+func (o *HostListFields) SetMemoryAvailableVms(v int32) {
 	o.MemoryAvailableVms = v
 }
 

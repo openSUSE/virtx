@@ -22,8 +22,8 @@ var _ MappedNullable = &Page{}
 
 // Page Paging information, to limit the size of results returned at once. The page index (starting with 0) and the page size (number of items per page) are used on the server side to prepare and return the results.
 type Page struct {
-	Index int32 `json:"index"`
-	Size int32 `json:"size"`
+	Index int16 `json:"index"`
+	Size int16 `json:"size"`
 }
 
 type _Page Page
@@ -32,7 +32,7 @@ type _Page Page
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewPage(index int32, size int32) *Page {
+func NewPage(index int16, size int16) *Page {
 	this := Page{}
 	this.Index = index
 	this.Size = size
@@ -48,9 +48,9 @@ func NewPageWithDefaults() *Page {
 }
 
 // GetIndex returns the Index field value
-func (o *Page) GetIndex() int32 {
+func (o *Page) GetIndex() int16 {
 	if o == nil {
-		var ret int32
+		var ret int16
 		return ret
 	}
 
@@ -59,7 +59,7 @@ func (o *Page) GetIndex() int32 {
 
 // GetIndexOk returns a tuple with the Index field value
 // and a boolean to check if the value has been set.
-func (o *Page) GetIndexOk() (*int32, bool) {
+func (o *Page) GetIndexOk() (*int16, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -67,14 +67,14 @@ func (o *Page) GetIndexOk() (*int32, bool) {
 }
 
 // SetIndex sets field value
-func (o *Page) SetIndex(v int32) {
+func (o *Page) SetIndex(v int16) {
 	o.Index = v
 }
 
 // GetSize returns the Size field value
-func (o *Page) GetSize() int32 {
+func (o *Page) GetSize() int16 {
 	if o == nil {
-		var ret int32
+		var ret int16
 		return ret
 	}
 
@@ -83,7 +83,7 @@ func (o *Page) GetSize() int32 {
 
 // GetSizeOk returns a tuple with the Size field value
 // and a boolean to check if the value has been set.
-func (o *Page) GetSizeOk() (*int32, bool) {
+func (o *Page) GetSizeOk() (*int16, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -91,7 +91,7 @@ func (o *Page) GetSizeOk() (*int32, bool) {
 }
 
 // SetSize sets field value
-func (o *Page) SetSize(v int32) {
+func (o *Page) SetSize(v int16) {
 	o.Size = v
 }
 

@@ -175,7 +175,7 @@ func RecvSerfEvents(
 			if (err != nil) {
 				logger.Log("Decode: '%s' at offset %d", err.Error(), size)
 			} else {
-				logger.Log("Decode: %s: %d %s %s", name, hi.Seq, hi.Uuid, hi.Hostdef.Name)
+				logger.Log("Decode: %s: %d %s %s", name, hi.Seq, hi.Uuid, hi.Def.Name)
 				err = s.UpdateHost(&hi)
 				if (err != nil) {
 					logger.Log(err.Error())

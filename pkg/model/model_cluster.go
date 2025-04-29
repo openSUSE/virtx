@@ -23,7 +23,7 @@ var _ MappedNullable = &Cluster{}
 // Cluster struct for Cluster
 type Cluster struct {
 	Name string `json:"name"`
-	// total computing resources
+	// total computing resources of the cluster.
 	Resources Hostresources `json:"resources"`
 }
 

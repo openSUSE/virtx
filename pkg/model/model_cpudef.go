@@ -25,11 +25,11 @@ type Cpudef struct {
 	// libvirt cpu model. \"\" -> not set
 	Model string `json:"model"`
 	// number of sockets (NUMA). 0 -> not set
-	Sockets int32 `json:"sockets"`
+	Sockets int16 `json:"sockets"`
 	// number of cores per socket. 0 -> not set
-	Cores int32 `json:"cores"`
+	Cores int16 `json:"cores"`
 	// number of threads per core. 0 -> not set
-	Threads int32 `json:"threads"`
+	Threads int16 `json:"threads"`
 }
 
 type _Cpudef Cpudef
@@ -38,7 +38,7 @@ type _Cpudef Cpudef
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewCpudef(model string, sockets int32, cores int32, threads int32) *Cpudef {
+func NewCpudef(model string, sockets int16, cores int16, threads int16) *Cpudef {
 	this := Cpudef{}
 	this.Model = model
 	this.Sockets = sockets
@@ -80,9 +80,9 @@ func (o *Cpudef) SetModel(v string) {
 }
 
 // GetSockets returns the Sockets field value
-func (o *Cpudef) GetSockets() int32 {
+func (o *Cpudef) GetSockets() int16 {
 	if o == nil {
-		var ret int32
+		var ret int16
 		return ret
 	}
 
@@ -91,7 +91,7 @@ func (o *Cpudef) GetSockets() int32 {
 
 // GetSocketsOk returns a tuple with the Sockets field value
 // and a boolean to check if the value has been set.
-func (o *Cpudef) GetSocketsOk() (*int32, bool) {
+func (o *Cpudef) GetSocketsOk() (*int16, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -99,14 +99,14 @@ func (o *Cpudef) GetSocketsOk() (*int32, bool) {
 }
 
 // SetSockets sets field value
-func (o *Cpudef) SetSockets(v int32) {
+func (o *Cpudef) SetSockets(v int16) {
 	o.Sockets = v
 }
 
 // GetCores returns the Cores field value
-func (o *Cpudef) GetCores() int32 {
+func (o *Cpudef) GetCores() int16 {
 	if o == nil {
-		var ret int32
+		var ret int16
 		return ret
 	}
 
@@ -115,7 +115,7 @@ func (o *Cpudef) GetCores() int32 {
 
 // GetCoresOk returns a tuple with the Cores field value
 // and a boolean to check if the value has been set.
-func (o *Cpudef) GetCoresOk() (*int32, bool) {
+func (o *Cpudef) GetCoresOk() (*int16, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -123,14 +123,14 @@ func (o *Cpudef) GetCoresOk() (*int32, bool) {
 }
 
 // SetCores sets field value
-func (o *Cpudef) SetCores(v int32) {
+func (o *Cpudef) SetCores(v int16) {
 	o.Cores = v
 }
 
 // GetThreads returns the Threads field value
-func (o *Cpudef) GetThreads() int32 {
+func (o *Cpudef) GetThreads() int16 {
 	if o == nil {
-		var ret int32
+		var ret int16
 		return ret
 	}
 
@@ -139,7 +139,7 @@ func (o *Cpudef) GetThreads() int32 {
 
 // GetThreadsOk returns a tuple with the Threads field value
 // and a boolean to check if the value has been set.
-func (o *Cpudef) GetThreadsOk() (*int32, bool) {
+func (o *Cpudef) GetThreadsOk() (*int16, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -147,7 +147,7 @@ func (o *Cpudef) GetThreadsOk() (*int32, bool) {
 }
 
 // SetThreads sets field value
-func (o *Cpudef) SetThreads(v int32) {
+func (o *Cpudef) SetThreads(v int16) {
 	o.Threads = v
 }
 

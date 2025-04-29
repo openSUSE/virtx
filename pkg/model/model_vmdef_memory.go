@@ -22,8 +22,8 @@ var _ MappedNullable = &VmdefMemory{}
 
 // VmdefMemory struct for VmdefMemory
 type VmdefMemory struct {
-	// total memory reserved for the guest in MiB
-	Total int64 `json:"total"`
+	// total memory reserved for the guest in GiB
+	Total int32 `json:"total"`
 }
 
 type _VmdefMemory VmdefMemory
@@ -32,7 +32,7 @@ type _VmdefMemory VmdefMemory
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVmdefMemory(total int64) *VmdefMemory {
+func NewVmdefMemory(total int32) *VmdefMemory {
 	this := VmdefMemory{}
 	this.Total = total
 	return &this
@@ -47,9 +47,9 @@ func NewVmdefMemoryWithDefaults() *VmdefMemory {
 }
 
 // GetTotal returns the Total field value
-func (o *VmdefMemory) GetTotal() int64 {
+func (o *VmdefMemory) GetTotal() int32 {
 	if o == nil {
-		var ret int64
+		var ret int32
 		return ret
 	}
 
@@ -58,7 +58,7 @@ func (o *VmdefMemory) GetTotal() int64 {
 
 // GetTotalOk returns a tuple with the Total field value
 // and a boolean to check if the value has been set.
-func (o *VmdefMemory) GetTotalOk() (*int64, bool) {
+func (o *VmdefMemory) GetTotalOk() (*int32, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -66,7 +66,7 @@ func (o *VmdefMemory) GetTotalOk() (*int64, bool) {
 }
 
 // SetTotal sets field value
-func (o *VmdefMemory) SetTotal(v int64) {
+func (o *VmdefMemory) SetTotal(v int32) {
 	o.Total = v
 }
 

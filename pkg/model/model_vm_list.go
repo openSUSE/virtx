@@ -25,7 +25,7 @@ type VmList struct {
 	Items []VmListItem `json:"items"`
 	Page Page `json:"page"`
 	// total number of vm items in all the result pages
-	Total int32 `json:"total"`
+	Total int16 `json:"total"`
 }
 
 type _VmList VmList
@@ -34,7 +34,7 @@ type _VmList VmList
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVmList(items []VmListItem, page Page, total int32) *VmList {
+func NewVmList(items []VmListItem, page Page, total int16) *VmList {
 	this := VmList{}
 	this.Items = items
 	this.Page = page
@@ -99,9 +99,9 @@ func (o *VmList) SetPage(v Page) {
 }
 
 // GetTotal returns the Total field value
-func (o *VmList) GetTotal() int32 {
+func (o *VmList) GetTotal() int16 {
 	if o == nil {
-		var ret int32
+		var ret int16
 		return ret
 	}
 
@@ -110,7 +110,7 @@ func (o *VmList) GetTotal() int32 {
 
 // GetTotalOk returns a tuple with the Total field value
 // and a boolean to check if the value has been set.
-func (o *VmList) GetTotalOk() (*int32, bool) {
+func (o *VmList) GetTotalOk() (*int16, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -118,7 +118,7 @@ func (o *VmList) GetTotalOk() (*int32, bool) {
 }
 
 // SetTotal sets field value
-func (o *VmList) SetTotal(v int32) {
+func (o *VmList) SetTotal(v int16) {
 	o.Total = v
 }
 

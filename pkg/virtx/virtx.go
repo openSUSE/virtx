@@ -93,7 +93,7 @@ func (s *Service) updateHost(host *openapi.Host) error {
 	old, present = s.hosts[host.Uuid]
 	if (present && old.Seq > host.Seq) {
 		logger.Log("Host %s: ignoring obsolete Host information: seq %d >= %d",
-			old.Hostdef.Name, old.Seq, host.Seq)
+			old.Def.Name, old.Seq, host.Seq)
 		return nil
 	}
 	s.hosts[host.Uuid] = *host
@@ -112,7 +112,7 @@ func (s *Service) setHostState(uuid string, newstate string) error {
 	if !ok {
 		return fmt.Errorf("no such host %s", uuid)
 	}
-	host.Hoststate = openapi.Hoststate(newstate)
+	host.State = openapi.Hoststate(newstate)
 	return nil
 }
 
@@ -152,7 +152,7 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		gi    hypervisor.GuestInfo
 	)
 	for uuid, hi = range s.hosts {
-		var line string = fmt.Sprintf("host uuid %s name %s\n", uuid, hi.Hostdef.Name)
+		var line string = fmt.Sprintf("host uuid %s name %s\n", uuid, hi.Def.Name)
 		lines += line
 		for uuid, gi = range s.guests {
 			var line string = fmt.Sprintf("Guest %s: Name:%s, State:%d, Memory:%d, VCpus: %d \n",

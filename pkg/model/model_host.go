@@ -24,9 +24,10 @@ var _ MappedNullable = &Host{}
 type Host struct {
 	// Unique Identifier for VMs, Hosts, Networks; RFC 4122
 	Uuid string `json:"uuid"`
-	Hostdef Hostdef `json:"hostdef"`
-	Hoststate Hoststate `json:"hoststate"`
-	Hostresources Hostresources `json:"hostresources"`
+	Def Hostdef `json:"def"`
+	State Hoststate `json:"state"`
+	// computing resources of the host.
+	Resources Hostresources `json:"resources"`
 	Seq int64 `json:"seq"`
 }
 
@@ -36,12 +37,12 @@ type _Host Host
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewHost(uuid string, hostdef Hostdef, hoststate Hoststate, hostresources Hostresources, seq int64) *Host {
+func NewHost(uuid string, def Hostdef, state Hoststate, resources Hostresources, seq int64) *Host {
 	this := Host{}
 	this.Uuid = uuid
-	this.Hostdef = hostdef
-	this.Hoststate = hoststate
-	this.Hostresources = hostresources
+	this.Def = def
+	this.State = state
+	this.Resources = resources
 	this.Seq = seq
 	return &this
 }
@@ -78,76 +79,76 @@ func (o *Host) SetUuid(v string) {
 	o.Uuid = v
 }
 
-// GetHostdef returns the Hostdef field value
-func (o *Host) GetHostdef() Hostdef {
+// GetDef returns the Def field value
+func (o *Host) GetDef() Hostdef {
 	if o == nil {
 		var ret Hostdef
 		return ret
 	}
 
-	return o.Hostdef
+	return o.Def
 }
 
-// GetHostdefOk returns a tuple with the Hostdef field value
+// GetDefOk returns a tuple with the Def field value
 // and a boolean to check if the value has been set.
-func (o *Host) GetHostdefOk() (*Hostdef, bool) {
+func (o *Host) GetDefOk() (*Hostdef, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.Hostdef, true
+	return &o.Def, true
 }
 
-// SetHostdef sets field value
-func (o *Host) SetHostdef(v Hostdef) {
-	o.Hostdef = v
+// SetDef sets field value
+func (o *Host) SetDef(v Hostdef) {
+	o.Def = v
 }
 
-// GetHoststate returns the Hoststate field value
-func (o *Host) GetHoststate() Hoststate {
+// GetState returns the State field value
+func (o *Host) GetState() Hoststate {
 	if o == nil {
 		var ret Hoststate
 		return ret
 	}
 
-	return o.Hoststate
+	return o.State
 }
 
-// GetHoststateOk returns a tuple with the Hoststate field value
+// GetStateOk returns a tuple with the State field value
 // and a boolean to check if the value has been set.
-func (o *Host) GetHoststateOk() (*Hoststate, bool) {
+func (o *Host) GetStateOk() (*Hoststate, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.Hoststate, true
+	return &o.State, true
 }
 
-// SetHoststate sets field value
-func (o *Host) SetHoststate(v Hoststate) {
-	o.Hoststate = v
+// SetState sets field value
+func (o *Host) SetState(v Hoststate) {
+	o.State = v
 }
 
-// GetHostresources returns the Hostresources field value
-func (o *Host) GetHostresources() Hostresources {
+// GetResources returns the Resources field value
+func (o *Host) GetResources() Hostresources {
 	if o == nil {
 		var ret Hostresources
 		return ret
 	}
 
-	return o.Hostresources
+	return o.Resources
 }
 
-// GetHostresourcesOk returns a tuple with the Hostresources field value
+// GetResourcesOk returns a tuple with the Resources field value
 // and a boolean to check if the value has been set.
-func (o *Host) GetHostresourcesOk() (*Hostresources, bool) {
+func (o *Host) GetResourcesOk() (*Hostresources, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.Hostresources, true
+	return &o.Resources, true
 }
 
-// SetHostresources sets field value
-func (o *Host) SetHostresources(v Hostresources) {
-	o.Hostresources = v
+// SetResources sets field value
+func (o *Host) SetResources(v Hostresources) {
+	o.Resources = v
 }
 
 // GetSeq returns the Seq field value
@@ -185,9 +186,9 @@ func (o Host) MarshalJSON() ([]byte, error) {
 func (o Host) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["uuid"] = o.Uuid
-	toSerialize["hostdef"] = o.Hostdef
-	toSerialize["hoststate"] = o.Hoststate
-	toSerialize["hostresources"] = o.Hostresources
+	toSerialize["def"] = o.Def
+	toSerialize["state"] = o.State
+	toSerialize["resources"] = o.Resources
 	toSerialize["seq"] = o.Seq
 	return toSerialize, nil
 }
@@ -198,9 +199,9 @@ func (o *Host) UnmarshalJSON(data []byte) (err error) {
 	// that every required field exists as a key in the generic map.
 	requiredProperties := []string{
 		"uuid",
-		"hostdef",
-		"hoststate",
-		"hostresources",
+		"def",
+		"state",
+		"resources",
 		"seq",
 	}
 

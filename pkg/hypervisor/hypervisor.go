@@ -216,17 +216,17 @@ func (hv *Hypervisor) GetHostInfo() (openapi.Host, error) {
 		return host, err
 	}
 	host.Uuid = caps.Host.UUID
-	host.Hostdef.Name, err = hv.conn.GetHostname()
+	host.Def.Name, err = hv.conn.GetHostname()
 	if (err != nil) {
 		return host, err
 	}
-	host.Hostdef.Cpuarch.Arch = caps.Host.CPU.Arch
-	host.Hostdef.Cpuarch.Vendor = caps.Host.CPU.Vendor
-	host.Hostdef.Cpudef.Model = caps.Host.CPU.Model
-	host.Hostdef.Cpudef.Sockets = int32(info.Sockets)
-	host.Hostdef.Cpudef.Cores = int32(info.Cores)
-	host.Hostdef.Cpudef.Threads = int32(info.Threads)
-	host.Hostdef.TscFreq = int64(caps.Host.CPU.Counter.Frequency)
+	host.Def.Cpuarch.Arch = caps.Host.CPU.Arch
+	host.Def.Cpuarch.Vendor = caps.Host.CPU.Vendor
+	host.Def.Cpudef.Model = caps.Host.CPU.Model
+	host.Def.Cpudef.Sockets = int16(info.Sockets)
+	host.Def.Cpudef.Cores = int16(info.Cores)
+	host.Def.Cpudef.Threads = int16(info.Threads)
+	host.Def.TscFreq = int64(caps.Host.CPU.Counter.Frequency)
 	xmldata, err = hv.conn.GetSysinfo(0)
 	if (err != nil) {
 		return host, err
@@ -239,31 +239,34 @@ func (hv *Hypervisor) GetHostInfo() (openapi.Host, error) {
 	for _, e := range smbios.BIOS.Entries {
 		switch e.Name {
 		case "version":
-			host.Hostdef.SysinfoBios.Version = e.Value
+			host.Def.SysinfoBios.Version = e.Value
 		case "date":
-			host.Hostdef.SysinfoBios.Date = e.Value
+			host.Def.SysinfoBios.Date = e.Value
 		}
 	}
-	host.Hoststate = openapi.ACTIVE
-	host.Hostresources.Memory.Total = int64(info.Memory / KiB) /* info returns memory in KiB, translate to MiB */
+	host.State = openapi.ACTIVE
+	host.Resources.Memory.Total = int32(info.Memory * KiB / GiB) /* info returns memory in KiB, translate to GiB */
 	var free uint64
 	free, err = hv.conn.GetFreeMemory()
 	if (err != nil) {
 		return host, err
 	}
-	host.Hostresources.Memory.Free = int64(free / MiB) /* this returns in bytes, translate to MiB */
-	host.Hostresources.Memory.Used = host.Hostresources.Memory.Total - host.Hostresources.Memory.Free
-	host.Hostresources.Memory.ReservedVms = 0 /* XXX need to calculate based on domains XXX */
-	host.Hostresources.Memory.UsedVms = 0     /* XXX need to calculate based on domains XXX */
-	host.Hostresources.Memory.AvailableVms = host.Hostresources.Memory.Free - host.Hostresources.Memory.ReservedVms
+	host.Resources.Memory.Free = int32(free / GiB) /* this returns in bytes, translate to GiB */
+	host.Resources.Memory.Used = host.Resources.Memory.Total - host.Resources.Memory.Free
+	host.Resources.Memory.ReservedVms = 0 /* XXX need to calculate based on domains XXX */
+	host.Resources.Memory.ReservedOs = 0  /* XXX need to implement XXX */
+	host.Resources.Memory.UsedVms = 0     /* XXX need to calculate based on domains XXX */
+	host.Resources.Memory.AvailableVms = host.Resources.Memory.Total -
+		host.Resources.Memory.ReservedOs - host.Resources.Memory.ReservedVms
 
 	/* like VMWare, we calculate the total Mhz as (total_cores * frequency) (excluding threads) */
-	host.Hostresources.Mhz.Total = int64(uint(info.Nodes * info.Sockets * info.Cores) * info.MHz)
-	host.Hostresources.Mhz.Free = host.Hostresources.Mhz.Total
-	host.Hostresources.Mhz.Used = 0 /* XXX need to calculate based on domains XXX */
-	host.Hostresources.Mhz.ReservedVms = 0 /* XXX need to calculate based on domains XXX */
-	host.Hostresources.Mhz.UsedVms = 0 /* XXX need to calculate based on domains XXX */
-	host.Hostresources.Mhz.AvailableVms = host.Hostresources.Mhz.Free - host.Hostresources.Mhz.ReservedVms
+	host.Resources.Cpu.Total = int32(uint(info.Nodes * info.Sockets * info.Cores) * info.MHz)
+	host.Resources.Cpu.Free = host.Resources.Cpu.Total
+	host.Resources.Cpu.Used = 0 /* XXX need to calculate based on domains XXX */
+	host.Resources.Cpu.ReservedVms = 0 /* XXX need to calculate based on domains XXX */
+	host.Resources.Cpu.ReservedOs = 0  /* XXX need to implement XXX */
+	host.Resources.Cpu.UsedVms = 0 /* XXX need to calculate based on domains XXX */
+	host.Resources.Cpu.AvailableVms = host.Resources.Cpu.Free - host.Resources.Cpu.ReservedVms
 	host.Seq = int64(hv.seq.Add(1))
 
 	return host, nil

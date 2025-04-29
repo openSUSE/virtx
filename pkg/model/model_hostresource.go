@@ -23,17 +23,19 @@ var _ MappedNullable = &Hostresource{}
 // Hostresource struct for Hostresource
 type Hostresource struct {
 	// total available on the host
-	Total int64 `json:"total"`
+	Total int32 `json:"total"`
 	// amount currently in use
-	Used int64 `json:"used"`
+	Used int32 `json:"used"`
 	// amount currently free (does not take into account reservations)
-	Free int64 `json:"free"`
+	Free int32 `json:"free"`
+	// amount pre-reserved for the OS and the virtualization stack
+	ReservedOs int32 `json:"reserved_os"`
 	// amount pre-reserved for running the guests currently on this host
-	ReservedVms int64 `json:"reserved_vms"`
+	ReservedVms int32 `json:"reserved_vms"`
 	// amount used for running vm guests
-	UsedVms int64 `json:"used_vms"`
-	// amount available for other VMs (free - reserved_vms)
-	AvailableVms int64 `json:"available_vms"`
+	UsedVms int32 `json:"used_vms"`
+	// amount available for other VMs (total - reserved_vms - reserved_os)
+	AvailableVms int32 `json:"available_vms"`
 }
 
 type _Hostresource Hostresource
@@ -42,11 +44,12 @@ type _Hostresource Hostresource
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewHostresource(total int64, used int64, free int64, reservedVms int64, usedVms int64, availableVms int64) *Hostresource {
+func NewHostresource(total int32, used int32, free int32, reservedOs int32, reservedVms int32, usedVms int32, availableVms int32) *Hostresource {
 	this := Hostresource{}
 	this.Total = total
 	this.Used = used
 	this.Free = free
+	this.ReservedOs = reservedOs
 	this.ReservedVms = reservedVms
 	this.UsedVms = usedVms
 	this.AvailableVms = availableVms
@@ -62,9 +65,9 @@ func NewHostresourceWithDefaults() *Hostresource {
 }
 
 // GetTotal returns the Total field value
-func (o *Hostresource) GetTotal() int64 {
+func (o *Hostresource) GetTotal() int32 {
 	if o == nil {
-		var ret int64
+		var ret int32
 		return ret
 	}
 
@@ -73,7 +76,7 @@ func (o *Hostresource) GetTotal() int64 {
 
 // GetTotalOk returns a tuple with the Total field value
 // and a boolean to check if the value has been set.
-func (o *Hostresource) GetTotalOk() (*int64, bool) {
+func (o *Hostresource) GetTotalOk() (*int32, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -81,14 +84,14 @@ func (o *Hostresource) GetTotalOk() (*int64, bool) {
 }
 
 // SetTotal sets field value
-func (o *Hostresource) SetTotal(v int64) {
+func (o *Hostresource) SetTotal(v int32) {
 	o.Total = v
 }
 
 // GetUsed returns the Used field value
-func (o *Hostresource) GetUsed() int64 {
+func (o *Hostresource) GetUsed() int32 {
 	if o == nil {
-		var ret int64
+		var ret int32
 		return ret
 	}
 
@@ -97,7 +100,7 @@ func (o *Hostresource) GetUsed() int64 {
 
 // GetUsedOk returns a tuple with the Used field value
 // and a boolean to check if the value has been set.
-func (o *Hostresource) GetUsedOk() (*int64, bool) {
+func (o *Hostresource) GetUsedOk() (*int32, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -105,14 +108,14 @@ func (o *Hostresource) GetUsedOk() (*int64, bool) {
 }
 
 // SetUsed sets field value
-func (o *Hostresource) SetUsed(v int64) {
+func (o *Hostresource) SetUsed(v int32) {
 	o.Used = v
 }
 
 // GetFree returns the Free field value
-func (o *Hostresource) GetFree() int64 {
+func (o *Hostresource) GetFree() int32 {
 	if o == nil {
-		var ret int64
+		var ret int32
 		return ret
 	}
 
@@ -121,7 +124,7 @@ func (o *Hostresource) GetFree() int64 {
 
 // GetFreeOk returns a tuple with the Free field value
 // and a boolean to check if the value has been set.
-func (o *Hostresource) GetFreeOk() (*int64, bool) {
+func (o *Hostresource) GetFreeOk() (*int32, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -129,14 +132,38 @@ func (o *Hostresource) GetFreeOk() (*int64, bool) {
 }
 
 // SetFree sets field value
-func (o *Hostresource) SetFree(v int64) {
+func (o *Hostresource) SetFree(v int32) {
 	o.Free = v
 }
 
-// GetReservedVms returns the ReservedVms field value
-func (o *Hostresource) GetReservedVms() int64 {
+// GetReservedOs returns the ReservedOs field value
+func (o *Hostresource) GetReservedOs() int32 {
 	if o == nil {
-		var ret int64
+		var ret int32
+		return ret
+	}
+
+	return o.ReservedOs
+}
+
+// GetReservedOsOk returns a tuple with the ReservedOs field value
+// and a boolean to check if the value has been set.
+func (o *Hostresource) GetReservedOsOk() (*int32, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.ReservedOs, true
+}
+
+// SetReservedOs sets field value
+func (o *Hostresource) SetReservedOs(v int32) {
+	o.ReservedOs = v
+}
+
+// GetReservedVms returns the ReservedVms field value
+func (o *Hostresource) GetReservedVms() int32 {
+	if o == nil {
+		var ret int32
 		return ret
 	}
 
@@ -145,7 +172,7 @@ func (o *Hostresource) GetReservedVms() int64 {
 
 // GetReservedVmsOk returns a tuple with the ReservedVms field value
 // and a boolean to check if the value has been set.
-func (o *Hostresource) GetReservedVmsOk() (*int64, bool) {
+func (o *Hostresource) GetReservedVmsOk() (*int32, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -153,14 +180,14 @@ func (o *Hostresource) GetReservedVmsOk() (*int64, bool) {
 }
 
 // SetReservedVms sets field value
-func (o *Hostresource) SetReservedVms(v int64) {
+func (o *Hostresource) SetReservedVms(v int32) {
 	o.ReservedVms = v
 }
 
 // GetUsedVms returns the UsedVms field value
-func (o *Hostresource) GetUsedVms() int64 {
+func (o *Hostresource) GetUsedVms() int32 {
 	if o == nil {
-		var ret int64
+		var ret int32
 		return ret
 	}
 
@@ -169,7 +196,7 @@ func (o *Hostresource) GetUsedVms() int64 {
 
 // GetUsedVmsOk returns a tuple with the UsedVms field value
 // and a boolean to check if the value has been set.
-func (o *Hostresource) GetUsedVmsOk() (*int64, bool) {
+func (o *Hostresource) GetUsedVmsOk() (*int32, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -177,14 +204,14 @@ func (o *Hostresource) GetUsedVmsOk() (*int64, bool) {
 }
 
 // SetUsedVms sets field value
-func (o *Hostresource) SetUsedVms(v int64) {
+func (o *Hostresource) SetUsedVms(v int32) {
 	o.UsedVms = v
 }
 
 // GetAvailableVms returns the AvailableVms field value
-func (o *Hostresource) GetAvailableVms() int64 {
+func (o *Hostresource) GetAvailableVms() int32 {
 	if o == nil {
-		var ret int64
+		var ret int32
 		return ret
 	}
 
@@ -193,7 +220,7 @@ func (o *Hostresource) GetAvailableVms() int64 {
 
 // GetAvailableVmsOk returns a tuple with the AvailableVms field value
 // and a boolean to check if the value has been set.
-func (o *Hostresource) GetAvailableVmsOk() (*int64, bool) {
+func (o *Hostresource) GetAvailableVmsOk() (*int32, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -201,7 +228,7 @@ func (o *Hostresource) GetAvailableVmsOk() (*int64, bool) {
 }
 
 // SetAvailableVms sets field value
-func (o *Hostresource) SetAvailableVms(v int64) {
+func (o *Hostresource) SetAvailableVms(v int32) {
 	o.AvailableVms = v
 }
 
@@ -218,6 +245,7 @@ func (o Hostresource) ToMap() (map[string]interface{}, error) {
 	toSerialize["total"] = o.Total
 	toSerialize["used"] = o.Used
 	toSerialize["free"] = o.Free
+	toSerialize["reserved_os"] = o.ReservedOs
 	toSerialize["reserved_vms"] = o.ReservedVms
 	toSerialize["used_vms"] = o.UsedVms
 	toSerialize["available_vms"] = o.AvailableVms
@@ -232,6 +260,7 @@ func (o *Hostresource) UnmarshalJSON(data []byte) (err error) {
 		"total",
 		"used",
 		"free",
+		"reserved_os",
 		"reserved_vms",
 		"used_vms",
 		"available_vms",

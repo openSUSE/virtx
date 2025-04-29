@@ -27,7 +27,7 @@ type VmListFields struct {
 	Host string `json:"host"`
 	Vmrunstate Vmrunstate `json:"vmrunstate"`
 	// vlanid for all traffic from/to this VM. 0 = no vlanid, -1 = automatically assign
-	Vlanid int32 `json:"vlanid"`
+	Vlanid int16 `json:"vlanid"`
 	// Custom Fields
 	Custom []CustomField `json:"custom"`
 }
@@ -38,7 +38,7 @@ type _VmListFields VmListFields
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVmListFields(name string, host string, vmrunstate Vmrunstate, vlanid int32, custom []CustomField) *VmListFields {
+func NewVmListFields(name string, host string, vmrunstate Vmrunstate, vlanid int16, custom []CustomField) *VmListFields {
 	this := VmListFields{}
 	this.Name = name
 	this.Host = host
@@ -129,9 +129,9 @@ func (o *VmListFields) SetVmrunstate(v Vmrunstate) {
 }
 
 // GetVlanid returns the Vlanid field value
-func (o *VmListFields) GetVlanid() int32 {
+func (o *VmListFields) GetVlanid() int16 {
 	if o == nil {
-		var ret int32
+		var ret int16
 		return ret
 	}
 
@@ -140,7 +140,7 @@ func (o *VmListFields) GetVlanid() int32 {
 
 // GetVlanidOk returns a tuple with the Vlanid field value
 // and a boolean to check if the value has been set.
-func (o *VmListFields) GetVlanidOk() (*int32, bool) {
+func (o *VmListFields) GetVlanidOk() (*int16, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -148,7 +148,7 @@ func (o *VmListFields) GetVlanidOk() (*int32, bool) {
 }
 
 // SetVlanid sets field value
-func (o *VmListFields) SetVlanid(v int32) {
+func (o *VmListFields) SetVlanid(v int16) {
 	o.Vlanid = v
 }
 
