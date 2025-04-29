@@ -26,7 +26,8 @@ type Vm struct {
 	Uuid string `json:"uuid"`
 	Vmdef Vmdef `json:"vmdef"`
 	Runstate Vmruninfo `json:"runstate"`
-	Seq int64 `json:"seq"`
+	// 64bit UTC Unix timestamp
+	Ts int64 `json:"ts"`
 }
 
 type _Vm Vm
@@ -35,12 +36,12 @@ type _Vm Vm
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVm(uuid string, vmdef Vmdef, runstate Vmruninfo, seq int64) *Vm {
+func NewVm(uuid string, vmdef Vmdef, runstate Vmruninfo, ts int64) *Vm {
 	this := Vm{}
 	this.Uuid = uuid
 	this.Vmdef = vmdef
 	this.Runstate = runstate
-	this.Seq = seq
+	this.Ts = ts
 	return &this
 }
 
@@ -124,28 +125,28 @@ func (o *Vm) SetRunstate(v Vmruninfo) {
 	o.Runstate = v
 }
 
-// GetSeq returns the Seq field value
-func (o *Vm) GetSeq() int64 {
+// GetTs returns the Ts field value
+func (o *Vm) GetTs() int64 {
 	if o == nil {
 		var ret int64
 		return ret
 	}
 
-	return o.Seq
+	return o.Ts
 }
 
-// GetSeqOk returns a tuple with the Seq field value
+// GetTsOk returns a tuple with the Ts field value
 // and a boolean to check if the value has been set.
-func (o *Vm) GetSeqOk() (*int64, bool) {
+func (o *Vm) GetTsOk() (*int64, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.Seq, true
+	return &o.Ts, true
 }
 
-// SetSeq sets field value
-func (o *Vm) SetSeq(v int64) {
-	o.Seq = v
+// SetTs sets field value
+func (o *Vm) SetTs(v int64) {
+	o.Ts = v
 }
 
 func (o Vm) MarshalJSON() ([]byte, error) {
@@ -161,7 +162,7 @@ func (o Vm) ToMap() (map[string]interface{}, error) {
 	toSerialize["uuid"] = o.Uuid
 	toSerialize["vmdef"] = o.Vmdef
 	toSerialize["runstate"] = o.Runstate
-	toSerialize["seq"] = o.Seq
+	toSerialize["ts"] = o.Ts
 	return toSerialize, nil
 }
 
@@ -173,7 +174,7 @@ func (o *Vm) UnmarshalJSON(data []byte) (err error) {
 		"uuid",
 		"vmdef",
 		"runstate",
-		"seq",
+		"ts",
 	}
 
 	allProperties := make(map[string]interface{})

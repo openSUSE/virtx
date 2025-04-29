@@ -91,9 +91,9 @@ func (s *Service) updateHost(host *openapi.Host) error {
 		s.hosts = make(map[string]openapi.Host)
 	}
 	old, present = s.hosts[host.Uuid]
-	if (present && old.Seq > host.Seq) {
-		logger.Log("Host %s: ignoring obsolete Host information: seq %d >= %d",
-			old.Def.Name, old.Seq, host.Seq)
+	if (present && old.Ts > host.Ts) {
+		logger.Log("Host %s: ignoring obsolete Host information: ts %d > %d",
+			old.Def.Name, old.Ts, host.Ts)
 		return nil
 	}
 	s.hosts[host.Uuid] = *host
@@ -128,9 +128,9 @@ func (s *Service) updateGuest(guestInfo hypervisor.GuestInfo) error {
 		s.guests = make(map[string]hypervisor.GuestInfo)
 	}
 	if gi, ok := s.guests[guestInfo.UUID]; ok {
-		if gi.Seq >= guestInfo.Seq {
-			logger.Log("Ignoring old guest info: seq %d >= %d %s %s",
-				gi.Seq, guestInfo.Seq, guestInfo.UUID, guestInfo.Name,
+		if gi.Ts > guestInfo.Ts {
+			logger.Log("Ignoring old guest info: ts %d > %d %s %s",
+				gi.Ts, guestInfo.Ts, guestInfo.UUID, guestInfo.Name,
 			)
 			return nil
 		}

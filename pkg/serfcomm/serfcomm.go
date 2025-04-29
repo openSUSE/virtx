@@ -47,7 +47,7 @@ var serf = struct {
 func packGuestInfoEvent(guestInfo hypervisor.GuestInfo, hostUUID string) ([]byte, error) {
 	var str string = fmt.Sprintf(
 		"%s %d %s %s %d %d %d",
-		hostUUID, guestInfo.Seq, guestInfo.UUID, guestInfo.Name,
+		hostUUID, guestInfo.Ts, guestInfo.UUID, guestInfo.Name,
 		guestInfo.State, guestInfo.Memory, guestInfo.NrVirtCpu,
 	)
 	return []byte(str), nil
@@ -55,7 +55,7 @@ func packGuestInfoEvent(guestInfo hypervisor.GuestInfo, hostUUID string) ([]byte
 
 func unpackGuestInfoEvent(payload []byte) (hypervisor.GuestInfo, string, error) {
 	var (
-		seq         uint64
+		ts          int64
 		hostUUID    string
 		guestUUID   string
 		name        string
@@ -68,14 +68,14 @@ func unpackGuestInfoEvent(payload []byte) (hypervisor.GuestInfo, string, error) 
 	)
 	n, err = fmt.Sscanf(
 		string(payload), "%s %d %s %s %d %d %d",
-		&hostUUID, &seq, &guestUUID, &name,
+		&hostUUID, &ts, &guestUUID, &name,
 		&state, &memory, &nrVirtCPU,
 	)
 	if (err != nil || n != 7) {
 		return guestInfo, "", err
 	}
 	guestInfo = hypervisor.GuestInfo {
-		Seq:       seq,
+		Ts:        ts,
 		Name:      name,
 		UUID:      guestUUID,
 		State:     state,
@@ -175,7 +175,7 @@ func RecvSerfEvents(
 			if (err != nil) {
 				logger.Log("Decode: '%s' at offset %d", err.Error(), size)
 			} else {
-				logger.Log("Decode: %s: %d %s %s", name, hi.Seq, hi.Uuid, hi.Def.Name)
+				logger.Log("Decode: %s: %d %s %s", name, hi.Ts, hi.Uuid, hi.Def.Name)
 				err = s.UpdateHost(&hi)
 				if (err != nil) {
 					logger.Log(err.Error())
@@ -191,7 +191,7 @@ func RecvSerfEvents(
 				logger.Log(err.Error())
 			}
 			logger.Log("%s: %d %s %s state(%d - %s) hostUUID(%s)",
-				name, gi.Seq, gi.UUID, gi.Name,
+				name, gi.Ts, gi.UUID, gi.Name,
 				gi.State, hypervisor.GuestStateToString(gi.State), hostUUID,
 			)
 			err = s.UpdateGuest(gi)

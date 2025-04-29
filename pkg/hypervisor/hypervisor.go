@@ -18,7 +18,7 @@
 package hypervisor
 
 import (
-	"sync/atomic"
+	"time"
 	"encoding/xml"
 
 	"libvirt.org/go/libvirt"
@@ -36,7 +36,7 @@ const (
 )
 
 type GuestInfo struct {
-	Seq       uint64
+	Ts        int64
 	Name      string
 	UUID      string
 	State     int
@@ -69,7 +69,6 @@ func GuestStateToString(state int) string {
 
 type Hypervisor struct {
 	conn          *libvirt.Connect
-	seq           atomic.Uint64
 	callbackID    int
 	eventsChannel chan GuestInfo
 }
@@ -146,7 +145,7 @@ func (hv *Hypervisor) StartListening() error {
 		}
 		logger.Log("[HYPERVISOR] %s/%s: %v %v\n", name, uuidStr, e, info)
 		hv.eventsChannel <- GuestInfo{
-			Seq:       hv.seq.Add(1),
+			Ts:        time.Now().UTC().Unix(),
 			Name:      name,
 			UUID:      uuidStr,
 			State:     state,
@@ -267,7 +266,7 @@ func (hv *Hypervisor) GetHostInfo() (openapi.Host, error) {
 	host.Resources.Cpu.ReservedOs = 0  /* XXX need to implement XXX */
 	host.Resources.Cpu.UsedVms = 0 /* XXX need to calculate based on domains XXX */
 	host.Resources.Cpu.AvailableVms = host.Resources.Cpu.Free - host.Resources.Cpu.ReservedVms
-	host.Seq = int64(hv.seq.Add(1))
+	host.Ts = time.Now().UTC().Unix()
 
 	return host, nil
 }
@@ -308,7 +307,7 @@ func (hv *Hypervisor) GuestInfo() ([]GuestInfo, error) {
 			return nil, err
 		}
 		guestInfo = append(guestInfo, GuestInfo{
-			Seq:       hv.seq.Add(1),
+			Ts:        time.Now().UTC().Unix(),
 			Name:      name,
 			UUID:      uuidStr,
 			State:     int(info.State),
