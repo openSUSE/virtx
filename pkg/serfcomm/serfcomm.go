@@ -31,8 +31,8 @@ import (
 )
 
 const (
-	labelHostInfo string = "host-info"
-	labelGuestInfo string = "guest-info"
+	labelHostInfo string = "HI"
+	labelGuestInfo string = "GI"
 	maxMessageSize uint = 1024
 )
 
