@@ -31,8 +31,9 @@ import (
 )
 
 const (
-	labelHostInfo string = "HI"
-	labelGuestInfo string = "GI"
+	labelHostInfo string = "H"
+	labelVmInfo string = "G"
+	labelVmEvent string = "E"
 	maxMessageSize uint = 1024
 )
 
@@ -44,89 +45,63 @@ var serf = struct {
 	stream  client.StreamHandle
 }{}
 
-func packGuestInfoEvent(guestInfo hypervisor.GuestInfo, hostUUID string) ([]byte, error) {
-	var str string = fmt.Sprintf(
-		"%s %d %s %s %d %d %d",
-		hostUUID, guestInfo.Ts, guestInfo.UUID, guestInfo.Name,
-		guestInfo.State, guestInfo.Memory, guestInfo.NrVirtCpu,
-	)
-	return []byte(str), nil
-}
-
-func unpackGuestInfoEvent(payload []byte) (hypervisor.GuestInfo, string, error) {
-	var (
-		ts          int64
-		hostUUID    string
-		guestUUID   string
-		name        string
-		state       int
-		memory      uint64
-		nrVirtCPU   uint
-		guestInfo   hypervisor.GuestInfo
-		n           int
-		err         error
-	)
-	n, err = fmt.Sscanf(
-		string(payload), "%s %d %s %s %d %d %d",
-		&hostUUID, &ts, &guestUUID, &name,
-		&state, &memory, &nrVirtCPU,
-	)
-	if (err != nil || n != 7) {
-		return guestInfo, "", err
-	}
-	guestInfo = hypervisor.GuestInfo {
-		Ts:        ts,
-		Name:      name,
-		UUID:      guestUUID,
-		State:     state,
-		Memory:    memory,
-		NrVirtCpu: nrVirtCPU,
-	}
-	return guestInfo, hostUUID, nil
-}
-
 func sendHostInfo(hostInfo *openapi.Host) error {
 	serf.encMux.Lock()
 	defer serf.encMux.Unlock()
-	eventsize, err := sbinary.Encode(serf.encBuffer[:], binary.LittleEndian, hostInfo)
-
-	if err != nil {
+	var (
+		eventsize int
+		err error
+	)
+	eventsize, err = sbinary.Encode(serf.encBuffer[:], binary.LittleEndian, hostInfo)
+	if (err != nil) {
 		return err
 	}
 	logger.Log("sendHostInfo payload len=%d\n", eventsize)
-	if err := serf.c.UserEvent(labelHostInfo, serf.encBuffer[:eventsize], false); err != nil {
-		return err
-	}
-	return nil
+	return serf.c.UserEvent(labelHostInfo, serf.encBuffer[:eventsize], false)
 }
 
-func sendGuestInfo(guestInfo hypervisor.GuestInfo, hostUUID string) error {
-	payload, err := packGuestInfoEvent(guestInfo, hostUUID)
-	if err != nil {
-		return err
-	}
-	if err := serf.c.UserEvent(labelGuestInfo, payload, false); err != nil {
-		return err
-	}
-	return nil
-}
-
-func SendInfoEvent(s *virtx.Service, uuid string) error {
-	host, err := s.GetHost(uuid)
+func sendVmInfo(VmInfo *openapi.Vm) error {
+	serf.encMux.Lock()
+	defer serf.encMux.Unlock()
+	var (
+		eventsize int
+		err error
+	)
+	eventsize, err = sbinary.Encode(serf.encBuffer[:], binary.LittleEndian, VmInfo)
 	if (err != nil) {
-		return err;
-	}
-	if err = sendHostInfo(&host); err != nil {
 		return err
 	}
+	logger.Log("sendVmInfo payload len=%d\n", eventsize)
+	return serf.c.UserEvent(labelVmInfo, serf.encBuffer[:eventsize], false)
+}
 
-	/* XXX probably here we want to send only the guests running on host? XXX */
+func sendVmEvent(e *hypervisor.VmEvent) error {
+	serf.encMux.Lock()
+	defer serf.encMux.Unlock()
+	var (
+		eventsize int
+		err error
+	)
+	eventsize, err = sbinary.Encode(serf.encBuffer[:], binary.LittleEndian, e)
+	if (err != nil) {
+		return err
+	}
+	logger.Log("sendVmEvent payload len=%d\n", eventsize)
+	return serf.c.UserEvent(labelVmEvent, serf.encBuffer[:eventsize], false)
+}
 
-	//for _, gi := range s.guests {
-	//	if err = sendGuestInfo(gi, host); err != nil {
-	//		return err
-	//	}
-
+func SendInfo(host *openapi.Host, vms []openapi.Vm) error {
+	var err error
+	err = sendHostInfo(host)
+	if (err != nil) {
+		return err
+	}
+	for _, vm := range vms {
+		err = sendVmInfo(&vm)
+		if (err != nil) {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -162,10 +137,11 @@ func RecvSerfEvents(
 			continue
 		}
 
+		/* user event */
 		name := e["Name"].(string)
 		payload := e["Payload"].([]byte)
 
-		switch name {
+		switch (name) {
 		case labelHostInfo:
 			var (
 				hi openapi.Host
@@ -173,30 +149,43 @@ func RecvSerfEvents(
 			)
 			size, err = sbinary.Decode(payload, binary.LittleEndian, &hi)
 			if (err != nil) {
-				logger.Log("Decode: '%s' at offset %d", err.Error(), size)
+				logger.Log("Decode %s: ERR '%s' at offset %d", name, err.Error(), size)
 			} else {
-				logger.Log("Decode: %s: %d %s %s", name, hi.Ts, hi.Uuid, hi.Def.Name)
+				logger.Log("Decode %s: OK  %d %s %s", name, hi.Ts, hi.Uuid, hi.Def.Name)
 				err = s.UpdateHost(&hi)
 				if (err != nil) {
 					logger.Log(err.Error())
 				}
 			}
-		case labelGuestInfo:
+		case labelVmEvent:
 			var (
-				gi hypervisor.GuestInfo
-				hostUUID string
+				ve hypervisor.VmEvent
+				size int
 			)
-			gi, hostUUID, err = unpackGuestInfoEvent(payload)
+			size, err = sbinary.Decode(payload, binary.LittleEndian, &ve)
 			if (err != nil) {
-				logger.Log(err.Error())
+				logger.Log("Decode %s: ERR '%s' at offset %d", name, err.Error(), size)
+			} else {
+				logger.Log("Decode %s: OK  %d %s %s %s", name, ve.Ts, ve.Uuid, ve.Name, ve.State)
+				err = s.UpdateVmState(&ve)
+				if (err != nil) {
+					logger.Log(err.Error())
+				}
 			}
-			logger.Log("%s: %d %s %s state(%d - %s) hostUUID(%s)",
-				name, gi.Ts, gi.UUID, gi.Name,
-				gi.State, hypervisor.GuestStateToString(gi.State), hostUUID,
+		case labelVmInfo:
+			var (
+				vm openapi.Vm
+				size int
 			)
-			err = s.UpdateGuest(gi)
+			size, err = sbinary.Decode(payload, binary.LittleEndian, &vm)
 			if (err != nil) {
-				logger.Log(err.Error())
+				logger.Log("Decode %s: ERR '%s' at offset %d", name, err.Error(), size)
+			} else {
+				logger.Log("Decode %s: OK  %d %s %s %s", name, vm.Ts, vm.Uuid, vm.Vmdef.Name, vm.Runstate.State)
+				err = s.UpdateVm(&vm)
+				if (err != nil) {
+					logger.Log(err.Error())
+				}
 			}
 		default:
 			logger.Log("[UNKNOWN-EVENT] %s %s", name, payload)
@@ -206,14 +195,13 @@ func RecvSerfEvents(
 	close(shutdownCh)
 }
 
-func SendHypervisorEvents(
-	eventCh <-chan hypervisor.GuestInfo,
-	uuid string,
+func SendVmEvents(
+	eventCh <-chan hypervisor.VmEvent,
 	shutdownCh chan<- struct{},
 ) {
-	logger.Log("Forwarding guest events...")
-	for gi := range eventCh {
-		if err := sendGuestInfo(gi, uuid); err != nil {
+	logger.Log("Forwarding VM Events...")
+	for e := range eventCh {
+		if err := sendVmEvent(&e); err != nil {
 			logger.Log(err.Error())
 		}
 	}

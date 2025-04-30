@@ -29,16 +29,14 @@ import (
 
 type Vms map[string]openapi.Vm
 type Hosts map[string]openapi.Host
-type Guests map[string]hypervisor.GuestInfo
 
 type Service struct {
 	http.Server
 	m      sync.RWMutex
 
 	cluster openapi.Cluster
-	vms     Vms
 	hosts   Hosts
-	guests  Guests
+	vms     Vms
 }
 
 func New() *Service {
@@ -50,9 +48,8 @@ func New() *Service {
 		},
 		m:         sync.RWMutex{},
 		cluster:   openapi.Cluster{},
-		vms:       make(Vms),
 		hosts:     make(Hosts),
-		guests:    make(Guests),
+		vms:       make(Vms),
 	}
 	mux.Handle("/", s)
 	return s
@@ -113,29 +110,42 @@ func (s *Service) setHostState(uuid string, newstate string) error {
 		return fmt.Errorf("no such host %s", uuid)
 	}
 	host.State = openapi.Hoststate(newstate)
+	s.hosts[uuid] = host
 	return nil
 }
 
-func (s *Service) UpdateGuest(guestInfo hypervisor.GuestInfo) error {
+func (s *Service) UpdateVmState(e *hypervisor.VmEvent) error {
+	s.m.Lock()
+	defer s.m.Unlock()
+	vm, ok := s.vms[e.Uuid]
+	if !ok {
+		return fmt.Errorf("no such VM %s", e.Uuid)
+	}
+	vm.Runstate.State = openapi.Vmrunstate(e.State)
+	s.vms[e.Uuid] = vm
+	return nil
+}
+
+func (s *Service) UpdateVm(vm *openapi.Vm) error {
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	return s.updateGuest(guestInfo)
+	return s.updateVm(vm)
 }
 
-func (s *Service) updateGuest(guestInfo hypervisor.GuestInfo) error {
-	if (s.guests == nil) {
-		s.guests = make(map[string]hypervisor.GuestInfo)
+func (s *Service) updateVm(vm *openapi.Vm) error {
+	if (s.vms == nil) {
+		s.vms = make(map[string]openapi.Vm)
 	}
-	if gi, ok := s.guests[guestInfo.UUID]; ok {
-		if gi.Ts > guestInfo.Ts {
+	if old, ok := s.vms[vm.Uuid]; ok {
+		if old.Ts > vm.Ts {
 			logger.Log("Ignoring old guest info: ts %d > %d %s %s",
-				gi.Ts, guestInfo.Ts, guestInfo.UUID, guestInfo.Name,
+				old.Ts, vm.Ts, vm.Uuid, vm.Vmdef.Name,
 			)
 			return nil
 		}
 	}
-	s.guests[guestInfo.UUID] = guestInfo
+	s.vms[vm.Uuid] = *vm
 	return nil
 }
 
@@ -146,17 +156,15 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain")
 	var (
-		lines string
-		uuid  string
-		hi    openapi.Host
-		gi    hypervisor.GuestInfo
+		lines, uuid, vm_uuid string
+		hi openapi.Host
+		vm openapi.Vm
 	)
 	for uuid, hi = range s.hosts {
-		var line string = fmt.Sprintf("host uuid %s name %s\n", uuid, hi.Def.Name)
+		var line string = fmt.Sprintf("host %s(%s)\n", uuid, hi.Def.Name)
 		lines += line
-		for uuid, gi = range s.guests {
-			var line string = fmt.Sprintf("Guest %s: Name:%s, State:%d, Memory:%d, VCpus: %d \n",
-				uuid, gi.Name, gi.State, gi.Memory, gi.NrVirtCpu)
+		for vm_uuid, vm = range s.vms {
+			var line string = fmt.Sprintf("guest %s(%s): State:%s\n", vm_uuid, vm.Vmdef.Name, vm.Runstate.State)
 			lines += line
 		}
 	}

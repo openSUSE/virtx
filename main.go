@@ -41,7 +41,7 @@ func main() {
 		err error
 		hv *hypervisor.Hypervisor
 		hostInfo openapi.Host
-		guestInfo []hypervisor.GuestInfo
+		vms []openapi.Vm
 		service *virtx.Service
 	)
 	/* hypervisor: initialize and start listening to hypervisor events */
@@ -54,22 +54,18 @@ func main() {
 	if (err != nil) {
 		logger.Fatal(err.Error())
 	}
-	hostInfo, err = hv.GetHostInfo()
+	hostInfo, vms, err = hv.GetSystemInfo()
 	if (err != nil) {
 		logger.Fatal(err.Error())
 	}
-	guestInfo, err = hv.GuestInfo()
-	if (err != nil) {
-		logger.Fatal(err.Error())
-	}
-	/* service: initialize and first update with the host and guests information */
+	/* service: initialize and first update with the system information */
 	service = virtx.New()
 	err = service.UpdateHost(&hostInfo)
 	if (err != nil) {
 		logger.Fatal(err.Error())
 	}
-	for _, gi := range guestInfo {
-		if err := service.UpdateGuest(gi); err != nil {
+	for i, _ := range vms {
+		if err := service.UpdateVm(&vms[i]); err != nil {
 			logger.Fatal(err.Error())
 		}
 	}
@@ -88,14 +84,14 @@ func main() {
 	if (err != nil) {
 		logger.Log(err.Error())
 	}
-	/* serf: send Info Event with the host UUID to Serf */
-	err = serfcomm.SendInfoEvent(service, hostInfo.Uuid)
+	/* serf: send user Events for host and vms to Serf */
+	err = serfcomm.SendInfo(&hostInfo, vms)
 	if (err != nil) {
 		logger.Fatal(err.Error())
 	}
 	/* create subroutines to send and process events */
 	hvShutdownCh := make(chan struct{})
-	go serfcomm.SendHypervisorEvents(hv.EventsChannel(), hostInfo.Uuid, hvShutdownCh)
+	go serfcomm.SendVmEvents(hv.EventsChannel(), hvShutdownCh)
 
 	serfShutdownCh := make(chan struct{})
 	go serfcomm.RecvSerfEvents(service, serfShutdownCh)
