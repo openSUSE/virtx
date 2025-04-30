@@ -22,6 +22,7 @@ type Vmrunstate string
 // List of vmrunstate
 const (
 	POWEROFF Vmrunstate = "poweroff"
+	STARTUP Vmrunstate = "startup"
 	RUNNING Vmrunstate = "running"
 	PAUSED Vmrunstate = "paused"
 	MIGRATING Vmrunstate = "migrating"
@@ -33,6 +34,7 @@ const (
 // All allowed values of Vmrunstate enum
 var AllowedVmrunstateEnumValues = []Vmrunstate{
 	"poweroff",
+	"startup",
 	"running",
 	"paused",
 	"migrating",
