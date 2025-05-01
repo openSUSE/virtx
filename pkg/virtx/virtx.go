@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
+	"errors"
 
 	"suse.com/virtXD/pkg/logger"
 	"suse.com/virtXD/pkg/hypervisor"
@@ -169,4 +170,15 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	http.Error(w, lines, http.StatusNotImplemented)
+}
+
+func (s *Service) StartListening() {
+	go func() {
+		var err error = s.ListenAndServe()
+		if (err != nil && errors.Is(err, http.ErrServerClosed)) {
+			logger.Log(err.Error())
+		} else {
+			logger.Log(err.Error())
+		}
+	}()
 }

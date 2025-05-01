@@ -19,8 +19,6 @@ package main
 
 import (
 	"context"
-	"errors"
-	"net/http"
 	"os"
 	"os/signal"
 	"time"
@@ -79,14 +77,7 @@ func main() {
 		serfShutdownCh, service)
 
 	/* create server subroutine to listen for API requests */
-	go func() {
-		err = service.ListenAndServe()
-		if (err != nil && errors.Is(err, http.ErrServerClosed)) {
-			logger.Log(err.Error())
-		} else {
-			logger.Log(err.Error())
-		}
-	}()
+	service.StartListening()
 
 	/* prepare atexit function to shutdown service */
 	defer func() {
