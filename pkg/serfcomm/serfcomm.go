@@ -89,7 +89,7 @@ func sendVmEvent(e *hypervisor.VmEvent) error {
 	return serf.c.UserEvent(labelVmEvent, serf.encBuffer[:eventsize], false)
 }
 
-func RecvSerfEvents(
+func recvSerfEvents(
 	s *virtx.Service,
 	shutdownCh chan<- struct{},
 ) {
@@ -179,7 +179,7 @@ func RecvSerfEvents(
 	close(shutdownCh)
 }
 
-func SendSystemInfo(ch <-chan hypervisor.SystemInfo, service *virtx.Service, shutdownCh chan<- struct{}) {
+func sendSystemInfo(ch <-chan hypervisor.SystemInfo, service *virtx.Service, shutdownCh chan<- struct{}) {
 	var (
 		err error
 		si hypervisor.SystemInfo
@@ -196,7 +196,7 @@ func SendSystemInfo(ch <-chan hypervisor.SystemInfo, service *virtx.Service, shu
 				logger.Log(err.Error())
 			}
 		}
-		err = UpdateTags(&si.Host)
+		err = updateTags(&si.Host)
 		if (err != nil) {
 			logger.Log(err.Error())
 		}
@@ -215,7 +215,7 @@ func SendSystemInfo(ch <-chan hypervisor.SystemInfo, service *virtx.Service, shu
 	close(shutdownCh)
 }
 
-func SendVmEvents(
+func sendVmEvents(
 	eventCh <-chan hypervisor.VmEvent,
 	shutdownCh chan<- struct{},
 ) {
@@ -229,9 +229,8 @@ func SendVmEvents(
 	close(shutdownCh)
 }
 
-func UpdateTags(host *openapi.Host) error {
+func updateTags(host *openapi.Host) error {
 	var err error
-	/* XXX TODO: compress the Host information into gob and set as value XXX */
 	addTags := map[string]string { host.Uuid: "" }
 	removeTags := []string {}
 	err = serf.c.UpdateTags(addTags, removeTags)
@@ -258,9 +257,9 @@ func StartListening(
 	serfShutdownCh chan struct{},
 	service *virtx.Service) {
 	/* create subroutines to send and process events */
-	go SendVmEvents(vmEventCh, vmEventShutdownCh)
-	go SendSystemInfo(systemInfoCh, service, systemInfoShutdownCh)
-	go RecvSerfEvents(service, serfShutdownCh)
+	go sendVmEvents(vmEventCh, vmEventShutdownCh)
+	go sendSystemInfo(systemInfoCh, service, systemInfoShutdownCh)
+	go recvSerfEvents(service, serfShutdownCh)
 }
 
 func Shutdown() {

@@ -164,14 +164,14 @@ func (hv *Hypervisor) systemInfoLoop(seconds int) error {
 	ticker = time.NewTicker(time.Duration(seconds) * time.Second)
 	defer ticker.Stop()
 
-	si, err = hv.GetSystemInfo()
+	si, err = hv.getSystemInfo()
 	if (err != nil) {
 		logger.Log(err.Error())
 	} else {
 		hv.systemInfoCh <- si
 	}
 	for range ticker.C {
-		si, err = hv.GetSystemInfo()
+		si, err = hv.getSystemInfo()
 		if (err != nil) {
 			logger.Log(err.Error())
 			continue
@@ -247,7 +247,7 @@ type Entry struct {
 	Value string `xml:",chardata"`
 }
 
-func (hv *Hypervisor) GetSystemInfo() (SystemInfo, error) {
+func (hv *Hypervisor) getSystemInfo() (SystemInfo, error) {
 	var (
 		host openapi.Host
 		vms []openapi.Vm
