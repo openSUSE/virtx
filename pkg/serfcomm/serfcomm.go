@@ -18,7 +18,6 @@
 package serfcomm
 
 import (
-	"fmt"
 	"sync"
 	"encoding/binary"
 	"github.com/hashicorp/serf/client"
