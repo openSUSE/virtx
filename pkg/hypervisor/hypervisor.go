@@ -36,23 +36,29 @@ const (
 )
 
 type VmEvent struct {
-	Uuid      string
-	Name      string
-	State     string
-	Ts        int64
+	Uuid string
+	Name string
+	State string
+	Ts int64
+}
+
+type SystemInfo struct {
+	Host openapi.Host
+	Vms []openapi.Vm
 }
 
 type Hypervisor struct {
-	conn          *libvirt.Connect
-	callbackID    int
-	eventsChannel chan VmEvent
+	conn *libvirt.Connect
+	callbackID int
+	vmEventCh chan VmEvent
+	systemInfoCh chan SystemInfo
 }
 
 /*
  * Create a Hypervisor type instance,
  * connect to libvirt and return the instance.
  *
- * eventsChannel is the channel used to communicate VmEvent from the callback
+ * vmEventCh is the channel used to communicate VmEvent from the callback
  * returned by virConnectDomainEventRegisterAny
  *
  * https://libvirt.org/html/libvirt-libvirt-domain.html#virConnectDomainEventRegisterAny
@@ -66,9 +72,9 @@ func New() (*Hypervisor, error) {
 	}
 	var hv *Hypervisor = new(Hypervisor)
 	hv.conn = conn
-	hv.eventsChannel = nil
+	hv.vmEventCh = nil
+	hv.systemInfoCh = nil
 	hv.callbackID = -1
-
 	return hv, nil
 }
 
@@ -145,12 +151,43 @@ func getDomainInfo(d *libvirt.Domain) (string, string, string, error) {
 out:
 	return name, uuid, statestr, err
 }
-/*
- * Start listening for domain events.
- * Sets the callbackID and eventsChannel fields of the Hypervisor struct.
- */
 
-func (hv *Hypervisor) StartListening() error {
+/*
+ * Regularly fetch all system information (host info and vms info), and send it via systemInfoCh.
+ */
+func (hv *Hypervisor) systemInfoLoop(seconds int) error {
+	var (
+		si SystemInfo
+		err error
+		ticker *time.Ticker
+	)
+	ticker = time.NewTicker(time.Duration(seconds) * time.Second)
+	defer ticker.Stop()
+
+	si, err = hv.GetSystemInfo()
+	if (err != nil) {
+		logger.Log(err.Error())
+	} else {
+		hv.systemInfoCh <- si
+	}
+	for range ticker.C {
+		si, err = hv.GetSystemInfo()
+		if (err != nil) {
+			logger.Log(err.Error())
+			continue
+		}
+		hv.systemInfoCh <- si
+	}
+	logger.Log("systemInfoLoop Exiting!")
+	return nil
+}
+
+/*
+ * Start listening for domain events and collecting system information.
+ * Sets the callbackID, vmEventCh and systemInfoCh fields of the Hypervisor struct.
+ * Collects system information every "seconds" seconds.
+ */
+func (hv *Hypervisor) StartListening(seconds int) error {
 	lifecycleCb := func(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventLifecycle) {
 		var (
 			name, uuid, state string
@@ -165,14 +202,16 @@ func (hv *Hypervisor) StartListening() error {
 			}
 		}
 		logger.Log("[VmEvent] %s/%s: %v state: %s", name, uuid, e, state)
-		hv.eventsChannel <- VmEvent{ Name: name, Uuid: uuid, State: state, Ts: time.Now().UTC().Unix() }
+		hv.vmEventCh <- VmEvent{ Name: name, Uuid: uuid, State: state, Ts: time.Now().UTC().Unix() }
 	}
 	var err error
+	hv.vmEventCh = make(chan VmEvent, 64)
+	hv.systemInfoCh = make(chan SystemInfo, 64)
 	hv.callbackID, err = hv.conn.DomainEventLifecycleRegister(nil, lifecycleCb)
 	if (err != nil) {
 		return err
 	}
-	hv.eventsChannel = make(chan VmEvent, 64)
+	go hv.systemInfoLoop(seconds)
 	return nil
 }
 
@@ -187,8 +226,9 @@ func (hv *Hypervisor) StopListening() {
 	if (err != nil) {
 		logger.Log(err.Error())
 	}
-	close(hv.eventsChannel)
-	hv.eventsChannel = nil /* assume runtime will garbage collect */
+	close(hv.vmEventCh)
+	close(hv.systemInfoCh)
+	hv.vmEventCh = nil /* assume runtime will garbage collect */
 	hv.callbackID = -1
 }
 
@@ -207,7 +247,7 @@ type Entry struct {
 	Value string `xml:",chardata"`
 }
 
-func (hv *Hypervisor) GetSystemInfo() (openapi.Host, []openapi.Vm, error) {
+func (hv *Hypervisor) GetSystemInfo() (SystemInfo, error) {
 	var (
 		host openapi.Host
 		vms []openapi.Vm
@@ -336,12 +376,21 @@ func (hv *Hypervisor) GetSystemInfo() (openapi.Host, []openapi.Vm, error) {
 	host.Resources.Cpu.AvailableVms = host.Resources.Cpu.Free - host.Resources.Cpu.ReservedVms
 
 out:
-	return host, vms, err
+	var si SystemInfo = SystemInfo{
+		Host: host,
+		Vms: vms,
+	}
+	return si, err
 }
 
 /* Return the libvirt domain Events Channel */
-func (hv *Hypervisor)EventsChannel() (chan VmEvent) {
-	return hv.eventsChannel
+func (hv *Hypervisor)GetVmEventCh() (chan VmEvent) {
+	return hv.vmEventCh
+}
+
+/* Return the systemInfo Events Channel */
+func (hv *Hypervisor)GetSystemInfoCh() (chan SystemInfo) {
+	return hv.systemInfoCh
 }
 
 func freeDomains(doms []libvirt.Domain) {

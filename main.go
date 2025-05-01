@@ -28,7 +28,6 @@ import (
 	"suse.com/virtXD/pkg/serfcomm"
 	"suse.com/virtXD/pkg/hypervisor"
 	"suse.com/virtXD/pkg/virtx"
-	"suse.com/virtXD/pkg/model"
 	"suse.com/virtXD/pkg/logger"
 )
 
@@ -40,8 +39,6 @@ func main() {
 	var (
 		err error
 		hv *hypervisor.Hypervisor
-		hostInfo openapi.Host
-		vms []openapi.Vm
 		service *virtx.Service
 	)
 	/* hypervisor: initialize and start listening to hypervisor events */
@@ -50,24 +47,14 @@ func main() {
 		logger.Fatal(err.Error())
 	}
 	defer hv.Shutdown()
-	err = hv.StartListening()
-	if (err != nil) {
-		logger.Fatal(err.Error())
-	}
-	hostInfo, vms, err = hv.GetSystemInfo()
-	if (err != nil) {
-		logger.Fatal(err.Error())
-	}
-	/* service: initialize and first update with the system information */
+
+	/* service: initialize */
 	service = virtx.New()
-	err = service.UpdateHost(&hostInfo)
+
+	/* start listening for VMEvents (directly forwarded), and SystemInfo (to be sent every 15 seconds) */
+	err = hv.StartListening(15)
 	if (err != nil) {
 		logger.Fatal(err.Error())
-	}
-	for i, _ := range vms {
-		if err := service.UpdateVm(&vms[i]); err != nil {
-			logger.Fatal(err.Error())
-		}
 	}
 	/*
      * serf: initialize communication package, and then
@@ -80,21 +67,16 @@ func main() {
 	}
 	defer serfcomm.Shutdown()
 
-	err = serfcomm.UpdateTags(&hostInfo)
-	if (err != nil) {
-		logger.Log(err.Error())
-	}
-	/* serf: send user Events for host and vms to Serf */
-	err = serfcomm.SendInfo(&hostInfo, vms)
-	if (err != nil) {
-		logger.Fatal(err.Error())
-	}
-	/* create subroutines to send and process events */
-	hvShutdownCh := make(chan struct{})
-	go serfcomm.SendVmEvents(hv.EventsChannel(), hvShutdownCh)
-
+	vmEventShutdownCh := make(chan struct{})
+	systemInfoShutdownCh := make(chan struct{})
 	serfShutdownCh := make(chan struct{})
-	go serfcomm.RecvSerfEvents(service, serfShutdownCh)
+	/*
+     * start listening for outgoing VMEvents and SystemInfo and incoming serf events.
+	 */
+	serfcomm.StartListening(
+		hv.GetVmEventCh(), vmEventShutdownCh,
+		hv.GetSystemInfoCh(), systemInfoShutdownCh,
+		serfShutdownCh, service)
 
 	/* create server subroutine to listen for API requests */
 	go func() {
@@ -126,8 +108,10 @@ func main() {
 	select {
 	case sig := <-c:
 		logger.Log("Got signal: %d", sig)
-	case <-hvShutdownCh:
-		logger.Log("Hypervisor shutdown")
+	case <-vmEventShutdownCh:
+		logger.Log("Hypervisor vmEvent shutdown")
+	case <-systemInfoShutdownCh:
+		logger.Log("Hypervisor systemInfo shutdown")
 	case <-serfShutdownCh:
 		logger.Log("Serf shutdown")
 	}

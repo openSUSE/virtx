@@ -89,27 +89,12 @@ func sendVmEvent(e *hypervisor.VmEvent) error {
 	return serf.c.UserEvent(labelVmEvent, serf.encBuffer[:eventsize], false)
 }
 
-func SendInfo(host *openapi.Host, vms []openapi.Vm) error {
-	var err error
-	err = sendHostInfo(host)
-	if (err != nil) {
-		return err
-	}
-	for _, vm := range vms {
-		err = sendVmInfo(&vm)
-		if (err != nil) {
-			return err
-		}
-	}
-	return nil
-}
-
 func RecvSerfEvents(
 	s *virtx.Service,
 	shutdownCh chan<- struct{},
 ) {
 	var err error
-	logger.Log("Processing events...")
+	logger.Log("RecvSerfEvents loop start...")
 	for e := range serf.channel {
 		var newstate string = string(openapi.FAILED)
 		switch e["Event"].(string) {
@@ -190,7 +175,43 @@ func RecvSerfEvents(
 			logger.Log("[UNKNOWN-EVENT] %s %s", name, payload)
 		}
 	}
-	logger.Log("Processing done")
+	logger.Log("RecvSerfEvents loop exit!")
+	close(shutdownCh)
+}
+
+func SendSystemInfo(ch <-chan hypervisor.SystemInfo, service *virtx.Service, shutdownCh chan<- struct{}) {
+	var (
+		err error
+		si hypervisor.SystemInfo
+	)
+	logger.Log("SendSystemInfo loop start...")
+	for si = range ch {
+		err = service.UpdateHost(&si.Host)
+		if (err != nil) {
+			logger.Log(err.Error())
+		}
+		for i, _ := range si.Vms {
+			err = service.UpdateVm(&si.Vms[i])
+			if (err != nil) {
+				logger.Log(err.Error())
+			}
+		}
+		err = UpdateTags(&si.Host)
+		if (err != nil) {
+			logger.Log(err.Error())
+		}
+		err = sendHostInfo(&si.Host)
+		if (err != nil) {
+			logger.Log(err.Error())
+		}
+		for _, vm := range si.Vms {
+			err = sendVmInfo(&vm)
+			if (err != nil) {
+				logger.Log(err.Error())
+			}
+		}
+	}
+	logger.Log("SendSystemInfo loop exit!")
 	close(shutdownCh)
 }
 
@@ -198,13 +219,13 @@ func SendVmEvents(
 	eventCh <-chan hypervisor.VmEvent,
 	shutdownCh chan<- struct{},
 ) {
-	logger.Log("Forwarding VM Events...")
+	logger.Log("SendVmEvents loop start...")
 	for e := range eventCh {
 		if err := sendVmEvent(&e); err != nil {
 			logger.Log(err.Error())
 		}
 	}
-	logger.Log("Forwarding done")
+	logger.Log("SendVmEvents loop exit!")
 	close(shutdownCh)
 }
 
@@ -231,9 +252,20 @@ func Init(rpcAddr string) error {
 	return nil
 }
 
+func StartListening(
+	vmEventCh chan hypervisor.VmEvent, vmEventShutdownCh chan struct{},
+	systemInfoCh chan hypervisor.SystemInfo, systemInfoShutdownCh chan struct{},
+	serfShutdownCh chan struct{},
+	service *virtx.Service) {
+	/* create subroutines to send and process events */
+	go SendVmEvents(vmEventCh, vmEventShutdownCh)
+	go SendSystemInfo(systemInfoCh, service, systemInfoShutdownCh)
+	go RecvSerfEvents(service, serfShutdownCh)
+}
+
 func Shutdown() {
 	var err error
-	logger.Log("Shutting down...")
+	logger.Log("serfcomm is shutting down...")
 	err = serf.c.Stop(serf.stream)
 	if (err != nil) {
         logger.Log(err.Error())
@@ -242,5 +274,5 @@ func Shutdown() {
 	if (err != nil) {
 		logger.Log(err.Error())
 	}
-	logger.Log("Shutdown complete.")
+	logger.Log("serfcomm shutdown complete.")
 }
