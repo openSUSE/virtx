@@ -179,23 +179,13 @@ func recvSerfEvents(
 	close(shutdownCh)
 }
 
-func sendSystemInfo(ch <-chan hypervisor.SystemInfo, service *virtx.Service, shutdownCh chan<- struct{}) {
+func sendSystemInfo(ch <-chan hypervisor.SystemInfo, shutdownCh chan<- struct{}) {
 	var (
 		err error
 		si hypervisor.SystemInfo
 	)
 	logger.Log("SendSystemInfo loop start...")
 	for si = range ch {
-		err = service.UpdateHost(&si.Host)
-		if (err != nil) {
-			logger.Log(err.Error())
-		}
-		for i, _ := range si.Vms {
-			err = service.UpdateVm(&si.Vms[i])
-			if (err != nil) {
-				logger.Log(err.Error())
-			}
-		}
 		err = updateTags(&si.Host)
 		if (err != nil) {
 			logger.Log(err.Error())
@@ -258,7 +248,7 @@ func StartListening(
 	service *virtx.Service) {
 	/* create subroutines to send and process events */
 	go sendVmEvents(vmEventCh, vmEventShutdownCh)
-	go sendSystemInfo(systemInfoCh, service, systemInfoShutdownCh)
+	go sendSystemInfo(systemInfoCh, systemInfoShutdownCh)
 	go recvSerfEvents(service, serfShutdownCh)
 }
 
