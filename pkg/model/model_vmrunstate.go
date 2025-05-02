@@ -17,34 +17,36 @@ import (
 )
 
 // Vmrunstate The run state of the VM
-type Vmrunstate string
+type Vmrunstate int16
 
 // List of vmrunstate
 const (
-	POWEROFF Vmrunstate = "poweroff"
-	STARTUP Vmrunstate = "startup"
-	RUNNING Vmrunstate = "running"
-	PAUSED Vmrunstate = "paused"
-	MIGRATING Vmrunstate = "migrating"
-	TERMINATING Vmrunstate = "terminating"
-	PMSUSPENDED Vmrunstate = "pmsuspended"
-	CRASHED Vmrunstate = "crashed"
+	RUNSTATE_NONE Vmrunstate = 0
+	RUNSTATE_POWEROFF Vmrunstate = 1
+	RUNSTATE_STARTUP Vmrunstate = 2
+	RUNSTATE_RUNNING Vmrunstate = 3
+	RUNSTATE_PAUSED Vmrunstate = 4
+	RUNSTATE_MIGRATING Vmrunstate = 5
+	RUNSTATE_TERMINATING Vmrunstate = 6
+	RUNSTATE_PMSUSPENDED Vmrunstate = 7
+	RUNSTATE_CRASHED Vmrunstate = 8
 )
 
 // All allowed values of Vmrunstate enum
 var AllowedVmrunstateEnumValues = []Vmrunstate{
-	"poweroff",
-	"startup",
-	"running",
-	"paused",
-	"migrating",
-	"terminating",
-	"pmsuspended",
-	"crashed",
+	0,
+	1,
+	2,
+	3,
+	4,
+	5,
+	6,
+	7,
+	8,
 }
 
 func (v *Vmrunstate) UnmarshalJSON(src []byte) error {
-	var value string
+	var value int16
 	err := json.Unmarshal(src, &value)
 	if err != nil {
 		return err
@@ -62,7 +64,7 @@ func (v *Vmrunstate) UnmarshalJSON(src []byte) error {
 
 // NewVmrunstateFromValue returns a pointer to a valid Vmrunstate
 // for the value passed as argument, or an error if the value passed is not allowed by the enum
-func NewVmrunstateFromValue(v string) (*Vmrunstate, error) {
+func NewVmrunstateFromValue(v int16) (*Vmrunstate, error) {
 	ev := Vmrunstate(v)
 	if ev.IsValid() {
 		return &ev, nil

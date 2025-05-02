@@ -17,26 +17,26 @@ import (
 )
 
 // Hoststate the model 'Hoststate'
-type Hoststate string
+type Hoststate int16
 
 // List of hoststate
 const (
-	ACTIVE Hoststate = "active"
-	EVICTING Hoststate = "evicting"
-	LEFT Hoststate = "left"
-	FAILED Hoststate = "failed"
+	HOST_ACTIVE Hoststate = 0
+	HOST_EVICTING Hoststate = 1
+	HOST_LEFT Hoststate = 2
+	HOST_FAILED Hoststate = 3
 )
 
 // All allowed values of Hoststate enum
 var AllowedHoststateEnumValues = []Hoststate{
-	"active",
-	"evicting",
-	"left",
-	"failed",
+	0,
+	1,
+	2,
+	3,
 }
 
 func (v *Hoststate) UnmarshalJSON(src []byte) error {
-	var value string
+	var value int16
 	err := json.Unmarshal(src, &value)
 	if err != nil {
 		return err
@@ -54,7 +54,7 @@ func (v *Hoststate) UnmarshalJSON(src []byte) error {
 
 // NewHoststateFromValue returns a pointer to a valid Hoststate
 // for the value passed as argument, or an error if the value passed is not allowed by the enum
-func NewHoststateFromValue(v string) (*Hoststate, error) {
+func NewHoststateFromValue(v int16) (*Hoststate, error) {
 	ev := Hoststate(v)
 	if ev.IsValid() {
 		return &ev, nil

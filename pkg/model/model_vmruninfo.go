@@ -22,7 +22,7 @@ var _ MappedNullable = &Vmruninfo{}
 
 // Vmruninfo struct for Vmruninfo
 type Vmruninfo struct {
-	State Vmrunstate `json:"state"`
+	Runstate Vmrunstate `json:"runstate"`
 	// Unique Identifier for VMs, Hosts, Networks; RFC 4122
 	Host string `json:"host"`
 }
@@ -33,9 +33,9 @@ type _Vmruninfo Vmruninfo
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVmruninfo(state Vmrunstate, host string) *Vmruninfo {
+func NewVmruninfo(runstate Vmrunstate, host string) *Vmruninfo {
 	this := Vmruninfo{}
-	this.State = state
+	this.Runstate = runstate
 	this.Host = host
 	return &this
 }
@@ -48,28 +48,28 @@ func NewVmruninfoWithDefaults() *Vmruninfo {
 	return &this
 }
 
-// GetState returns the State field value
-func (o *Vmruninfo) GetState() Vmrunstate {
+// GetRunstate returns the Runstate field value
+func (o *Vmruninfo) GetRunstate() Vmrunstate {
 	if o == nil {
 		var ret Vmrunstate
 		return ret
 	}
 
-	return o.State
+	return o.Runstate
 }
 
-// GetStateOk returns a tuple with the State field value
+// GetRunstateOk returns a tuple with the Runstate field value
 // and a boolean to check if the value has been set.
-func (o *Vmruninfo) GetStateOk() (*Vmrunstate, bool) {
+func (o *Vmruninfo) GetRunstateOk() (*Vmrunstate, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.State, true
+	return &o.Runstate, true
 }
 
-// SetState sets field value
-func (o *Vmruninfo) SetState(v Vmrunstate) {
-	o.State = v
+// SetRunstate sets field value
+func (o *Vmruninfo) SetRunstate(v Vmrunstate) {
+	o.Runstate = v
 }
 
 // GetHost returns the Host field value
@@ -106,7 +106,7 @@ func (o Vmruninfo) MarshalJSON() ([]byte, error) {
 
 func (o Vmruninfo) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
-	toSerialize["state"] = o.State
+	toSerialize["runstate"] = o.Runstate
 	toSerialize["host"] = o.Host
 	return toSerialize, nil
 }
@@ -116,7 +116,7 @@ func (o *Vmruninfo) UnmarshalJSON(data []byte) (err error) {
 	// by unmarshalling the object into a generic map with string keys and checking
 	// that every required field exists as a key in the generic map.
 	requiredProperties := []string{
-		"state",
+		"runstate",
 		"host",
 	}
 

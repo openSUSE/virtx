@@ -98,19 +98,19 @@ func (s *Service) updateHost(host *openapi.Host) error {
 	return nil
 }
 
-func (s *Service) SetHostState(uuid string, newstate string) error {
+func (s *Service) SetHostState(uuid string, newstate openapi.Hoststate) error {
 	s.m.Lock()
 	defer s.m.Unlock()
 
 	return s.setHostState(uuid, newstate)
 }
 
-func (s *Service) setHostState(uuid string, newstate string) error {
+func (s *Service) setHostState(uuid string, newstate openapi.Hoststate) error {
 	host, ok := s.hosts[uuid]
 	if !ok {
 		return fmt.Errorf("no such host %s", uuid)
 	}
-	host.State = openapi.Hoststate(newstate)
+	host.State = newstate
 	s.hosts[uuid] = host
 	return nil
 }
@@ -122,7 +122,7 @@ func (s *Service) UpdateVmState(e *hypervisor.VmEvent) error {
 	if !ok {
 		return fmt.Errorf("no such VM %s", e.Uuid)
 	}
-	vm.Runstate.State = openapi.Vmrunstate(e.State)
+	vm.Runinfo.Runstate = openapi.Vmrunstate(e.State)
 	s.vms[e.Uuid] = vm
 	return nil
 }
@@ -141,7 +141,7 @@ func (s *Service) updateVm(vm *openapi.Vm) error {
 	if old, ok := s.vms[vm.Uuid]; ok {
 		if old.Ts > vm.Ts {
 			logger.Log("Ignoring old guest info: ts %d > %d %s %s",
-				old.Ts, vm.Ts, vm.Uuid, vm.Vmdef.Name,
+				old.Ts, vm.Ts, vm.Uuid, vm.Def.Name,
 			)
 			return nil
 		}
@@ -165,7 +165,7 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		var line string = fmt.Sprintf("host %s(%s)\n", uuid, hi.Def.Name)
 		lines += line
 		for vm_uuid, vm = range s.vms {
-			var line string = fmt.Sprintf("guest %s(%s): State:%s\n", vm_uuid, vm.Vmdef.Name, vm.Runstate.State)
+			var line string = fmt.Sprintf("guest %s(%s): State:%d\n", vm_uuid, vm.Def.Name, vm.Runinfo.Runstate)
 			lines += line
 		}
 	}

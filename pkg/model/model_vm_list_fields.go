@@ -25,7 +25,7 @@ type VmListFields struct {
 	Name string `json:"name"`
 	// Unique Identifier for VMs, Hosts, Networks; RFC 4122
 	Host string `json:"host"`
-	Vmrunstate Vmrunstate `json:"vmrunstate"`
+	Runstate Vmrunstate `json:"runstate"`
 	// vlanid for all traffic from/to this VM. 0 = no vlanid, -1 = automatically assign
 	Vlanid int16 `json:"vlanid"`
 	// Custom Fields
@@ -38,11 +38,11 @@ type _VmListFields VmListFields
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVmListFields(name string, host string, vmrunstate Vmrunstate, vlanid int16, custom []CustomField) *VmListFields {
+func NewVmListFields(name string, host string, runstate Vmrunstate, vlanid int16, custom []CustomField) *VmListFields {
 	this := VmListFields{}
 	this.Name = name
 	this.Host = host
-	this.Vmrunstate = vmrunstate
+	this.Runstate = runstate
 	this.Vlanid = vlanid
 	this.Custom = custom
 	return &this
@@ -104,28 +104,28 @@ func (o *VmListFields) SetHost(v string) {
 	o.Host = v
 }
 
-// GetVmrunstate returns the Vmrunstate field value
-func (o *VmListFields) GetVmrunstate() Vmrunstate {
+// GetRunstate returns the Runstate field value
+func (o *VmListFields) GetRunstate() Vmrunstate {
 	if o == nil {
 		var ret Vmrunstate
 		return ret
 	}
 
-	return o.Vmrunstate
+	return o.Runstate
 }
 
-// GetVmrunstateOk returns a tuple with the Vmrunstate field value
+// GetRunstateOk returns a tuple with the Runstate field value
 // and a boolean to check if the value has been set.
-func (o *VmListFields) GetVmrunstateOk() (*Vmrunstate, bool) {
+func (o *VmListFields) GetRunstateOk() (*Vmrunstate, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.Vmrunstate, true
+	return &o.Runstate, true
 }
 
-// SetVmrunstate sets field value
-func (o *VmListFields) SetVmrunstate(v Vmrunstate) {
-	o.Vmrunstate = v
+// SetRunstate sets field value
+func (o *VmListFields) SetRunstate(v Vmrunstate) {
+	o.Runstate = v
 }
 
 // GetVlanid returns the Vlanid field value
@@ -188,7 +188,7 @@ func (o VmListFields) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["name"] = o.Name
 	toSerialize["host"] = o.Host
-	toSerialize["vmrunstate"] = o.Vmrunstate
+	toSerialize["runstate"] = o.Runstate
 	toSerialize["vlanid"] = o.Vlanid
 	toSerialize["custom"] = o.Custom
 	return toSerialize, nil
@@ -201,7 +201,7 @@ func (o *VmListFields) UnmarshalJSON(data []byte) (err error) {
 	requiredProperties := []string{
 		"name",
 		"host",
-		"vmrunstate",
+		"runstate",
 		"vlanid",
 		"custom",
 	}

@@ -22,8 +22,7 @@ var _ MappedNullable = &VmMigrateInfo{}
 
 // VmMigrateInfo struct for VmMigrateInfo
 type VmMigrateInfo struct {
-	// the status of the migration
-	State string `json:"state"`
+	State MigrationState `json:"state"`
 	Progress VmMigrateInfoProgress `json:"progress"`
 }
 
@@ -33,7 +32,7 @@ type _VmMigrateInfo VmMigrateInfo
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVmMigrateInfo(state string, progress VmMigrateInfoProgress) *VmMigrateInfo {
+func NewVmMigrateInfo(state MigrationState, progress VmMigrateInfoProgress) *VmMigrateInfo {
 	this := VmMigrateInfo{}
 	this.State = state
 	this.Progress = progress
@@ -49,9 +48,9 @@ func NewVmMigrateInfoWithDefaults() *VmMigrateInfo {
 }
 
 // GetState returns the State field value
-func (o *VmMigrateInfo) GetState() string {
+func (o *VmMigrateInfo) GetState() MigrationState {
 	if o == nil {
-		var ret string
+		var ret MigrationState
 		return ret
 	}
 
@@ -60,7 +59,7 @@ func (o *VmMigrateInfo) GetState() string {
 
 // GetStateOk returns a tuple with the State field value
 // and a boolean to check if the value has been set.
-func (o *VmMigrateInfo) GetStateOk() (*string, bool) {
+func (o *VmMigrateInfo) GetStateOk() (*MigrationState, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -68,7 +67,7 @@ func (o *VmMigrateInfo) GetStateOk() (*string, bool) {
 }
 
 // SetState sets field value
-func (o *VmMigrateInfo) SetState(v string) {
+func (o *VmMigrateInfo) SetState(v MigrationState) {
 	o.State = v
 }
 

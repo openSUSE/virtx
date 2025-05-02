@@ -31,7 +31,7 @@ type Vmdef struct {
 	Nets []Net `json:"nets"`
 	// vlanid for all traffic from/to this VM. 0 = no vlanid, -1 = automatically assign
 	Vlanid int16 `json:"vlanid"`
-	Firmware string `json:"firmware"`
+	Firmware FirmwareType `json:"firmware"`
 	// VM generation ID. Use special value \"auto\" to autogenerate
 	Genid string `json:"genid"`
 	// Custom Fields
@@ -44,7 +44,7 @@ type _Vmdef Vmdef
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVmdef(name string, cpudef Cpudef, memory VmdefMemory, disks []Disk, nets []Net, vlanid int16, firmware string, genid string, custom []CustomField) *Vmdef {
+func NewVmdef(name string, cpudef Cpudef, memory VmdefMemory, disks []Disk, nets []Net, vlanid int16, firmware FirmwareType, genid string, custom []CustomField) *Vmdef {
 	this := Vmdef{}
 	this.Name = name
 	this.Cpudef = cpudef
@@ -211,9 +211,9 @@ func (o *Vmdef) SetVlanid(v int16) {
 }
 
 // GetFirmware returns the Firmware field value
-func (o *Vmdef) GetFirmware() string {
+func (o *Vmdef) GetFirmware() FirmwareType {
 	if o == nil {
-		var ret string
+		var ret FirmwareType
 		return ret
 	}
 
@@ -222,7 +222,7 @@ func (o *Vmdef) GetFirmware() string {
 
 // GetFirmwareOk returns a tuple with the Firmware field value
 // and a boolean to check if the value has been set.
-func (o *Vmdef) GetFirmwareOk() (*string, bool) {
+func (o *Vmdef) GetFirmwareOk() (*FirmwareType, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -230,7 +230,7 @@ func (o *Vmdef) GetFirmwareOk() (*string, bool) {
 }
 
 // SetFirmware sets field value
-func (o *Vmdef) SetFirmware(v string) {
+func (o *Vmdef) SetFirmware(v FirmwareType) {
 	o.Firmware = v
 }
 

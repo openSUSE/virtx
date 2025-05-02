@@ -24,9 +24,9 @@ var _ MappedNullable = &Net{}
 type Net struct {
 	// Unique Identifier for VMs, Hosts, Networks; RFC 4122
 	Uuid string `json:"uuid"`
-	Type string `json:"type"`
 	Name string `json:"name"`
-	Model string `json:"model"`
+	NetType *NetType `json:"net_type,omitempty"`
+	Model NetModel `json:"model"`
 	Mac string `json:"mac"`
 }
 
@@ -36,10 +36,9 @@ type _Net Net
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewNet(uuid string, type_ string, name string, model string, mac string) *Net {
+func NewNet(uuid string, name string, model NetModel, mac string) *Net {
 	this := Net{}
 	this.Uuid = uuid
-	this.Type = type_
 	this.Name = name
 	this.Model = model
 	this.Mac = mac
@@ -78,30 +77,6 @@ func (o *Net) SetUuid(v string) {
 	o.Uuid = v
 }
 
-// GetType returns the Type field value
-func (o *Net) GetType() string {
-	if o == nil {
-		var ret string
-		return ret
-	}
-
-	return o.Type
-}
-
-// GetTypeOk returns a tuple with the Type field value
-// and a boolean to check if the value has been set.
-func (o *Net) GetTypeOk() (*string, bool) {
-	if o == nil {
-		return nil, false
-	}
-	return &o.Type, true
-}
-
-// SetType sets field value
-func (o *Net) SetType(v string) {
-	o.Type = v
-}
-
 // GetName returns the Name field value
 func (o *Net) GetName() string {
 	if o == nil {
@@ -126,10 +101,42 @@ func (o *Net) SetName(v string) {
 	o.Name = v
 }
 
+// GetNetType returns the NetType field value if set, zero value otherwise.
+func (o *Net) GetNetType() NetType {
+	if o == nil || IsNil(o.NetType) {
+		var ret NetType
+		return ret
+	}
+	return *o.NetType
+}
+
+// GetNetTypeOk returns a tuple with the NetType field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *Net) GetNetTypeOk() (*NetType, bool) {
+	if o == nil || IsNil(o.NetType) {
+		return nil, false
+	}
+	return o.NetType, true
+}
+
+// HasNetType returns a boolean if a field has been set.
+func (o *Net) HasNetType() bool {
+	if o != nil && !IsNil(o.NetType) {
+		return true
+	}
+
+	return false
+}
+
+// SetNetType gets a reference to the given NetType and assigns it to the NetType field.
+func (o *Net) SetNetType(v NetType) {
+	o.NetType = &v
+}
+
 // GetModel returns the Model field value
-func (o *Net) GetModel() string {
+func (o *Net) GetModel() NetModel {
 	if o == nil {
-		var ret string
+		var ret NetModel
 		return ret
 	}
 
@@ -138,7 +145,7 @@ func (o *Net) GetModel() string {
 
 // GetModelOk returns a tuple with the Model field value
 // and a boolean to check if the value has been set.
-func (o *Net) GetModelOk() (*string, bool) {
+func (o *Net) GetModelOk() (*NetModel, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -146,7 +153,7 @@ func (o *Net) GetModelOk() (*string, bool) {
 }
 
 // SetModel sets field value
-func (o *Net) SetModel(v string) {
+func (o *Net) SetModel(v NetModel) {
 	o.Model = v
 }
 
@@ -185,8 +192,10 @@ func (o Net) MarshalJSON() ([]byte, error) {
 func (o Net) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["uuid"] = o.Uuid
-	toSerialize["type"] = o.Type
 	toSerialize["name"] = o.Name
+	if !IsNil(o.NetType) {
+		toSerialize["net_type"] = o.NetType
+	}
 	toSerialize["model"] = o.Model
 	toSerialize["mac"] = o.Mac
 	return toSerialize, nil
@@ -198,7 +207,6 @@ func (o *Net) UnmarshalJSON(data []byte) (err error) {
 	// that every required field exists as a key in the generic map.
 	requiredProperties := []string{
 		"uuid",
-		"type",
 		"name",
 		"model",
 		"mac",

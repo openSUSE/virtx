@@ -96,11 +96,11 @@ func recvSerfEvents(
 	var err error
 	logger.Log("RecvSerfEvents loop start...")
 	for e := range serf.channel {
-		var newstate string = string(openapi.FAILED)
+		var newstate openapi.Hoststate = openapi.HOST_FAILED
 		switch e["Event"].(string) {
 		case "user":
 		case "member-leave":
-			newstate = string(openapi.LEFT)
+			newstate = openapi.HOST_LEFT
 			fallthrough
 		case "member-failed":
 			for _, m := range e["Members"].([]interface{}) {
@@ -165,7 +165,7 @@ func recvSerfEvents(
 			if (err != nil) {
 				logger.Log("Decode %s: ERR '%s' at offset %d", name, err.Error(), size)
 			} else {
-				logger.Log("Decode %s: OK  %d %s %s %s", name, vm.Ts, vm.Uuid, vm.Vmdef.Name, vm.Runstate.State)
+				logger.Log("Decode %s: OK  %d %s %s %d", name, vm.Ts, vm.Uuid, vm.Def.Name, vm.Runinfo.Runstate)
 				err = s.UpdateVm(&vm)
 				if (err != nil) {
 					logger.Log(err.Error())

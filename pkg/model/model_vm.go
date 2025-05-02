@@ -24,8 +24,8 @@ var _ MappedNullable = &Vm{}
 type Vm struct {
 	// Unique Identifier for VMs, Hosts, Networks; RFC 4122
 	Uuid string `json:"uuid"`
-	Vmdef Vmdef `json:"vmdef"`
-	Runstate Vmruninfo `json:"runstate"`
+	Def Vmdef `json:"def"`
+	Runinfo Vmruninfo `json:"runinfo"`
 	// 64bit UTC Unix timestamp
 	Ts int64 `json:"ts"`
 }
@@ -36,11 +36,11 @@ type _Vm Vm
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVm(uuid string, vmdef Vmdef, runstate Vmruninfo, ts int64) *Vm {
+func NewVm(uuid string, def Vmdef, runinfo Vmruninfo, ts int64) *Vm {
 	this := Vm{}
 	this.Uuid = uuid
-	this.Vmdef = vmdef
-	this.Runstate = runstate
+	this.Def = def
+	this.Runinfo = runinfo
 	this.Ts = ts
 	return &this
 }
@@ -77,52 +77,52 @@ func (o *Vm) SetUuid(v string) {
 	o.Uuid = v
 }
 
-// GetVmdef returns the Vmdef field value
-func (o *Vm) GetVmdef() Vmdef {
+// GetDef returns the Def field value
+func (o *Vm) GetDef() Vmdef {
 	if o == nil {
 		var ret Vmdef
 		return ret
 	}
 
-	return o.Vmdef
+	return o.Def
 }
 
-// GetVmdefOk returns a tuple with the Vmdef field value
+// GetDefOk returns a tuple with the Def field value
 // and a boolean to check if the value has been set.
-func (o *Vm) GetVmdefOk() (*Vmdef, bool) {
+func (o *Vm) GetDefOk() (*Vmdef, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.Vmdef, true
+	return &o.Def, true
 }
 
-// SetVmdef sets field value
-func (o *Vm) SetVmdef(v Vmdef) {
-	o.Vmdef = v
+// SetDef sets field value
+func (o *Vm) SetDef(v Vmdef) {
+	o.Def = v
 }
 
-// GetRunstate returns the Runstate field value
-func (o *Vm) GetRunstate() Vmruninfo {
+// GetRuninfo returns the Runinfo field value
+func (o *Vm) GetRuninfo() Vmruninfo {
 	if o == nil {
 		var ret Vmruninfo
 		return ret
 	}
 
-	return o.Runstate
+	return o.Runinfo
 }
 
-// GetRunstateOk returns a tuple with the Runstate field value
+// GetRuninfoOk returns a tuple with the Runinfo field value
 // and a boolean to check if the value has been set.
-func (o *Vm) GetRunstateOk() (*Vmruninfo, bool) {
+func (o *Vm) GetRuninfoOk() (*Vmruninfo, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.Runstate, true
+	return &o.Runinfo, true
 }
 
-// SetRunstate sets field value
-func (o *Vm) SetRunstate(v Vmruninfo) {
-	o.Runstate = v
+// SetRuninfo sets field value
+func (o *Vm) SetRuninfo(v Vmruninfo) {
+	o.Runinfo = v
 }
 
 // GetTs returns the Ts field value
@@ -160,8 +160,8 @@ func (o Vm) MarshalJSON() ([]byte, error) {
 func (o Vm) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["uuid"] = o.Uuid
-	toSerialize["vmdef"] = o.Vmdef
-	toSerialize["runstate"] = o.Runstate
+	toSerialize["def"] = o.Def
+	toSerialize["runinfo"] = o.Runinfo
 	toSerialize["ts"] = o.Ts
 	return toSerialize, nil
 }
@@ -172,8 +172,8 @@ func (o *Vm) UnmarshalJSON(data []byte) (err error) {
 	// that every required field exists as a key in the generic map.
 	requiredProperties := []string{
 		"uuid",
-		"vmdef",
-		"runstate",
+		"def",
+		"runinfo",
 		"ts",
 	}
 

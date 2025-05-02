@@ -38,7 +38,7 @@ const (
 type VmEvent struct {
 	Uuid string
 	Name string
-	State string
+	State openapi.Vmrunstate
 	Ts int64
 }
 
@@ -89,13 +89,13 @@ func (hv *Hypervisor) Shutdown() {
 }
 
 /* get basic information about a Domain */
-func getDomainInfo(d *libvirt.Domain) (string, string, string, error) {
+func getDomainInfo(d *libvirt.Domain) (string, string, openapi.Vmrunstate, error) {
 	var (
 		name string
 		uuid string
 		reason int
 		state libvirt.DomainState
-		statestr string
+		enumState openapi.Vmrunstate
 		err error
 	)
 	name, err = d.GetName()
@@ -116,40 +116,40 @@ func getDomainInfo(d *libvirt.Domain) (string, string, string, error) {
 	case libvirt.DOMAIN_RUNNING:
 		fallthrough
 	case libvirt.DOMAIN_BLOCKED: /* ?XXX? */
-		statestr = string(openapi.RUNNING)
+		enumState = openapi.RUNSTATE_RUNNING
 	case libvirt.DOMAIN_PAUSED:
 		switch (reason) {
 		case int(libvirt.DOMAIN_PAUSED_MIGRATION): /* paused for offline migration */
-			statestr = string(openapi.MIGRATING)
+			enumState = openapi.RUNSTATE_MIGRATING
 		case int(libvirt.DOMAIN_PAUSED_SHUTTING_DOWN):
-			statestr = string(openapi.TERMINATING)
+			enumState = openapi.RUNSTATE_TERMINATING
 		case int(libvirt.DOMAIN_PAUSED_CRASHED):
-			statestr = string(openapi.CRASHED)
+			enumState = openapi.RUNSTATE_CRASHED
 		case int(libvirt.DOMAIN_PAUSED_STARTING_UP):
-			statestr = string(openapi.STARTUP)
+			enumState = openapi.RUNSTATE_STARTUP
 		default:
-			statestr = string(openapi.PAUSED)
+			enumState = openapi.RUNSTATE_PAUSED
 		}
 	case libvirt.DOMAIN_SHUTDOWN:
-		statestr = string(openapi.TERMINATING)
+		enumState = openapi.RUNSTATE_TERMINATING
 	case libvirt.DOMAIN_SHUTOFF:
 		switch (reason) {
 		case int(libvirt.DOMAIN_SHUTOFF_CRASHED):
-			statestr = string(openapi.CRASHED)
+			enumState = openapi.RUNSTATE_CRASHED
 		case int(libvirt.DOMAIN_SHUTOFF_MIGRATED):
 			/* XXX what to do when domain goes away from this host? XXX */
 		default:
-			statestr = string(openapi.POWEROFF)
+			enumState = openapi.RUNSTATE_POWEROFF
 		}
 	case libvirt.DOMAIN_CRASHED:
-		statestr = string(openapi.CRASHED)
+		enumState = openapi.RUNSTATE_CRASHED
 	case libvirt.DOMAIN_PMSUSPENDED:
-		statestr = string(openapi.PMSUSPENDED)
+		enumState = openapi.RUNSTATE_PMSUSPENDED
 	default:
 		logger.Log("Unhandled state %d, reason %d", state, reason)
 	}
 out:
-	return name, uuid, statestr, err
+	return name, uuid, enumState, err
 }
 
 /*
@@ -190,7 +190,8 @@ func (hv *Hypervisor) systemInfoLoop(seconds int) error {
 func (hv *Hypervisor) StartListening(seconds int) error {
 	lifecycleCb := func(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventLifecycle) {
 		var (
-			name, uuid, state string
+			name, uuid string
+			state openapi.Vmrunstate
 			err error
 		)
 		name, uuid, state, err = getDomainInfo(d)
@@ -201,7 +202,7 @@ func (hv *Hypervisor) StartListening(seconds int) error {
 				logger.Log(err.Error())
 			}
 		}
-		logger.Log("[VmEvent] %s/%s: %v state: %s", name, uuid, e, state)
+		logger.Log("[VmEvent] %s/%s: %v state: %d", name, uuid, e, state)
 		hv.vmEventCh <- VmEvent{ Name: name, Uuid: uuid, State: state, Ts: time.Now().UTC().Unix() }
 	}
 	var err error
@@ -306,7 +307,7 @@ func (hv *Hypervisor) getSystemInfo() (SystemInfo, error) {
 			host.Def.SysinfoBios.Date = e.Value
 		}
 	}
-	host.State = openapi.ACTIVE
+	host.State = openapi.HOST_ACTIVE
 	ts = time.Now().UTC().Unix()
 	host.Ts = ts
 
@@ -324,15 +325,13 @@ func (hv *Hypervisor) getSystemInfo() (SystemInfo, error) {
 	for _, d = range doms {
 		var (
 			vm openapi.Vm
-			state string
 		)
-		vm.Vmdef.Name, vm.Uuid, state, err = getDomainInfo(&d)
+		vm.Def.Name, vm.Uuid, vm.Runinfo.Runstate, err = getDomainInfo(&d)
 		if (err != nil) {
 			logger.Log("could not getDomainInfo: %s", err.Error())
 			continue
 		}
-		vm.Runstate.State = openapi.Vmrunstate(state)
-		vm.Runstate.Host = host.Uuid
+		vm.Runinfo.Host = host.Uuid
 		vm.Ts = ts
 		xmldata, err = d.GetXMLDesc(0)
 		if (err != nil) {
@@ -347,7 +346,7 @@ func (hv *Hypervisor) getSystemInfo() (SystemInfo, error) {
 		Firmware string `json:"firmware"`
 		Nets []Net `json:"nets"`
 		Disks []Disk `json:"disks"`
-		Memory VmdefMemory `json:"memory"`
+		Memory DefMemory `json:"memory"`
 		Cpudef Cpudef `json:"cpudef"`
 		*/
 		vms = append(vms, vm)

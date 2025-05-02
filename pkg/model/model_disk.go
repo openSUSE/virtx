@@ -23,9 +23,8 @@ var _ MappedNullable = &Disk{}
 // Disk struct for Disk
 type Disk struct {
 	Path string `json:"path"`
-	Device string `json:"device"`
-	// libvirt 'target' disk field, how the device appears in the guest
-	Bus string `json:"bus"`
+	Device DiskDevice `json:"device"`
+	Bus DiskBus `json:"bus"`
 }
 
 type _Disk Disk
@@ -34,7 +33,7 @@ type _Disk Disk
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewDisk(path string, device string, bus string) *Disk {
+func NewDisk(path string, device DiskDevice, bus DiskBus) *Disk {
 	this := Disk{}
 	this.Path = path
 	this.Device = device
@@ -75,9 +74,9 @@ func (o *Disk) SetPath(v string) {
 }
 
 // GetDevice returns the Device field value
-func (o *Disk) GetDevice() string {
+func (o *Disk) GetDevice() DiskDevice {
 	if o == nil {
-		var ret string
+		var ret DiskDevice
 		return ret
 	}
 
@@ -86,7 +85,7 @@ func (o *Disk) GetDevice() string {
 
 // GetDeviceOk returns a tuple with the Device field value
 // and a boolean to check if the value has been set.
-func (o *Disk) GetDeviceOk() (*string, bool) {
+func (o *Disk) GetDeviceOk() (*DiskDevice, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -94,14 +93,14 @@ func (o *Disk) GetDeviceOk() (*string, bool) {
 }
 
 // SetDevice sets field value
-func (o *Disk) SetDevice(v string) {
+func (o *Disk) SetDevice(v DiskDevice) {
 	o.Device = v
 }
 
 // GetBus returns the Bus field value
-func (o *Disk) GetBus() string {
+func (o *Disk) GetBus() DiskBus {
 	if o == nil {
-		var ret string
+		var ret DiskBus
 		return ret
 	}
 
@@ -110,7 +109,7 @@ func (o *Disk) GetBus() string {
 
 // GetBusOk returns a tuple with the Bus field value
 // and a boolean to check if the value has been set.
-func (o *Disk) GetBusOk() (*string, bool) {
+func (o *Disk) GetBusOk() (*DiskBus, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -118,7 +117,7 @@ func (o *Disk) GetBusOk() (*string, bool) {
 }
 
 // SetBus sets field value
-func (o *Disk) SetBus(v string) {
+func (o *Disk) SetBus(v DiskBus) {
 	o.Bus = v
 }
 
