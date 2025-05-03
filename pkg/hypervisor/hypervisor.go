@@ -37,7 +37,6 @@ const (
 
 type VmEvent struct {
 	Uuid string
-	Name string
 	State openapi.Vmrunstate
 	Ts int64
 }
@@ -203,7 +202,7 @@ func (hv *Hypervisor) StartListening(seconds int) error {
 			}
 		}
 		logger.Log("[VmEvent] %s/%s: %v state: %d", name, uuid, e, state)
-		hv.vmEventCh <- VmEvent{ Name: name, Uuid: uuid, State: state, Ts: time.Now().UTC().Unix() }
+		hv.vmEventCh <- VmEvent{ Uuid: uuid, State: state, Ts: time.Now().UTC().Unix() }
 	}
 	var err error
 	hv.vmEventCh = make(chan VmEvent, 64)

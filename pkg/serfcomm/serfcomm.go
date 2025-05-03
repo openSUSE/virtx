@@ -150,7 +150,7 @@ func recvSerfEvents(
 			if (err != nil) {
 				logger.Log("Decode %s: ERR '%s' at offset %d", name, err.Error(), size)
 			} else {
-				logger.Log("Decode %s: OK  %d %s %s %s", name, ve.Ts, ve.Uuid, ve.Name, ve.State)
+				logger.Log("Decode %s: OK  %d %s %s", name, ve.Ts, ve.Uuid, ve.State)
 				err = s.UpdateVmState(&ve)
 				if (err != nil) {
 					logger.Log(err.Error())
