@@ -24,7 +24,9 @@ var _ MappedNullable = &Cpudef{}
 type Cpudef struct {
 	// libvirt cpu model. \"\" -> not set
 	Model string `json:"model"`
-	// number of sockets (NUMA). 0 -> not set
+	// number of NUMA nodes. For VMs, values > 1 are not supported yet. 0 -> not set
+	Nodes int16 `json:"nodes"`
+	// number of sockets per node. 0 -> not set
 	Sockets int16 `json:"sockets"`
 	// number of cores per socket. 0 -> not set
 	Cores int16 `json:"cores"`
@@ -38,9 +40,10 @@ type _Cpudef Cpudef
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewCpudef(model string, sockets int16, cores int16, threads int16) *Cpudef {
+func NewCpudef(model string, nodes int16, sockets int16, cores int16, threads int16) *Cpudef {
 	this := Cpudef{}
 	this.Model = model
+	this.Nodes = nodes
 	this.Sockets = sockets
 	this.Cores = cores
 	this.Threads = threads
@@ -77,6 +80,30 @@ func (o *Cpudef) GetModelOk() (*string, bool) {
 // SetModel sets field value
 func (o *Cpudef) SetModel(v string) {
 	o.Model = v
+}
+
+// GetNodes returns the Nodes field value
+func (o *Cpudef) GetNodes() int16 {
+	if o == nil {
+		var ret int16
+		return ret
+	}
+
+	return o.Nodes
+}
+
+// GetNodesOk returns a tuple with the Nodes field value
+// and a boolean to check if the value has been set.
+func (o *Cpudef) GetNodesOk() (*int16, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Nodes, true
+}
+
+// SetNodes sets field value
+func (o *Cpudef) SetNodes(v int16) {
+	o.Nodes = v
 }
 
 // GetSockets returns the Sockets field value
@@ -162,6 +189,7 @@ func (o Cpudef) MarshalJSON() ([]byte, error) {
 func (o Cpudef) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["model"] = o.Model
+	toSerialize["nodes"] = o.Nodes
 	toSerialize["sockets"] = o.Sockets
 	toSerialize["cores"] = o.Cores
 	toSerialize["threads"] = o.Threads
@@ -174,6 +202,7 @@ func (o *Cpudef) UnmarshalJSON(data []byte) (err error) {
 	// that every required field exists as a key in the generic map.
 	requiredProperties := []string{
 		"model",
+		"nodes",
 		"sockets",
 		"cores",
 		"threads",
