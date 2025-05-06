@@ -447,7 +447,7 @@ func getDomainStats(d *libvirt.Domain, vm *VmStat) error {
 		vm.Cpus = int16(info.NrVirtCpu)
 		vm.CpuTime = info.CpuTime
 		vm.MemoryCapacity = info.Memory
-		memstat, err = d.MemoryStats(1, 0)
+		memstat, err = d.MemoryStats(20, 0)
 		if (err != nil) {
 			return err
 		}
