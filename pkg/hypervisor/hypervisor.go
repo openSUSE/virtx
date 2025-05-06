@@ -54,8 +54,8 @@ type VmStat struct {
 	CpuTime uint64              /* Total cpu time consumed in nanoseconds from libvirt.DomainCPUStats.CpuTime */
 	CpuUtilization int16        /* % of total cpu resources used */
 
-	MemoryCapacity uint64       /* Memory assigned to VM in KiB from virDomainInfo->memory */
-	MemoryUsed uint64           /* Memory in KiB of the QEMU RSS process, VIR_DOMAIN_MEMORY_STAT_RSS */
+	MemoryCapacity uint64       /* Memory assigned to VM in MiB from virDomainInfo->memory / 1024 */
+	MemoryUsed uint64           /* Memory in MiB of the QEMU RSS process, VIR_DOMAIN_MEMORY_STAT_RSS / 1024 */
 
 	DiskCapacity uint64         /* Disk Total virtual capacity (MiB) from virDomainBlockInfo->capacity / MiB*/
 	DiskAllocation uint64       /* Disk Allocated on host (MiB) from Info->allocation / MiB */
@@ -374,17 +374,17 @@ func (hv *Hypervisor) getSystemInfo(si *SystemInfo) error {
 		vmstats = append(vmstats, vm)
 	}
 	/* now calculate host resources */
-	host.Resources.Memory.Total = int32(info.Memory / MiB) /* info returns memory in KiB, translate to GiB */
+	host.Resources.Memory.Total = int32(info.Memory / KiB) /* info returns memory in KiB, translate to MiB */
 	freeMemory, err = hv.conn.GetFreeMemory()
 	if (err != nil) {
 		goto out
 	}
 	/* XXX no overcommit is currently implemented XXX */
-	host.Resources.Memory.Free = int32(freeMemory / GiB) /* this returns in bytes, translate to GiB */
+	host.Resources.Memory.Free = int32(freeMemory / MiB) /* this returns in bytes, translate to MiB */
 	host.Resources.Memory.Used = host.Resources.Memory.Total - host.Resources.Memory.Free
 	host.Resources.Memory.ReservedOs = 0  /* XXX need to implement XXX */
-	host.Resources.Memory.ReservedVms = int32(totalMemoryCapacity / MiB) /* convert from KiB to GiB */
-	host.Resources.Memory.UsedVms = int32(totalMemoryUsed / MiB) /* convert from KiB to GiB */
+	host.Resources.Memory.ReservedVms = int32(totalMemoryCapacity)
+	host.Resources.Memory.UsedVms = int32(totalMemoryUsed)
 	host.Resources.Memory.AvailableVms = host.Resources.Memory.Total -
 		host.Resources.Memory.ReservedOs - host.Resources.Memory.ReservedVms
 
@@ -446,14 +446,14 @@ func getDomainStats(d *libvirt.Domain, vm *VmStat) error {
 		}
 		vm.Cpus = int16(info.NrVirtCpu)
 		vm.CpuTime = info.CpuTime
-		vm.MemoryCapacity = info.Memory
+		vm.MemoryCapacity = info.Memory / KiB /* convert from KiB to MiB */
 		memstat, err = d.MemoryStats(20, 0)
 		if (err != nil) {
 			return err
 		}
 		for _, stat := range memstat {
 			if (libvirt.DomainMemoryStatTags(stat.Tag) == libvirt.DOMAIN_MEMORY_STAT_RSS) {
-				vm.MemoryUsed = stat.Val / MiB
+				vm.MemoryUsed = stat.Val / KiB /* convert from KiB to MiB */
 				break
 			}
 		}
