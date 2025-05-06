@@ -30,9 +30,9 @@ import (
 )
 
 const (
-	labelHostInfo string = "H"
-	labelVmInfo string = "G"
-	labelVmEvent string = "E"
+	labelHostInfo string = "HI"
+	labelVmStat string = "VS"
+	labelVmEvent string = "VE"
 	maxMessageSize uint = 1024
 )
 
@@ -59,19 +59,19 @@ func sendHostInfo(hostInfo *openapi.Host) error {
 	return serf.c.UserEvent(labelHostInfo, serf.encBuffer[:eventsize], false)
 }
 
-func sendVmInfo(VmInfo *openapi.Vm) error {
+func sendVmStat(VmStat *hypervisor.VmStat) error {
 	serf.encMux.Lock()
 	defer serf.encMux.Unlock()
 	var (
 		eventsize int
 		err error
 	)
-	eventsize, err = sbinary.Encode(serf.encBuffer[:], binary.LittleEndian, VmInfo)
+	eventsize, err = sbinary.Encode(serf.encBuffer[:], binary.LittleEndian, VmStat)
 	if (err != nil) {
 		return err
 	}
-	logger.Log("sendVmInfo payload len=%d\n", eventsize)
-	return serf.c.UserEvent(labelVmInfo, serf.encBuffer[:eventsize], false)
+	logger.Log("sendVmStat payload len=%d\n", eventsize)
+	return serf.c.UserEvent(labelVmStat, serf.encBuffer[:eventsize], false)
 }
 
 func sendVmEvent(e *hypervisor.VmEvent) error {
@@ -156,16 +156,16 @@ func recvSerfEvents(
 					logger.Log(err.Error())
 				}
 			}
-		case labelVmInfo:
+		case labelVmStat:
 			var (
-				vm openapi.Vm
+				vm hypervisor.VmStat
 				size int
 			)
 			size, err = sbinary.Decode(payload, binary.LittleEndian, &vm)
 			if (err != nil) {
 				logger.Log("Decode %s: ERR '%s' at offset %d", name, err.Error(), size)
 			} else {
-				logger.Log("Decode %s: OK  %d %s %s %d", name, vm.Ts, vm.Uuid, vm.Def.Name, vm.Runinfo.Runstate)
+				logger.Log("Decode %s: OK  %d %s %s %d", name, vm.Ts, vm.Uuid, vm.Name, vm.Runinfo.Runstate)
 				err = s.UpdateVm(&vm)
 				if (err != nil) {
 					logger.Log(err.Error())
@@ -194,8 +194,8 @@ func sendSystemInfo(ch <-chan hypervisor.SystemInfo, shutdownCh chan<- struct{})
 		if (err != nil) {
 			logger.Log(err.Error())
 		}
-		for _, vm := range si.Vms {
-			err = sendVmInfo(&vm)
+		for _, vmstat := range si.VmStats {
+			err = sendVmStat(&vmstat)
 			if (err != nil) {
 				logger.Log(err.Error())
 			}

@@ -41,9 +41,37 @@ type VmEvent struct {
 	Ts int64
 }
 
+/*
+ * VmStat are statistics collected every 15 seconds
+ */
+
+type VmStat struct {
+	Uuid string                 /* VM Uuid */
+	Name string                 /* VM Name */
+	Runinfo openapi.Vmruninfo   /* host running the VM and VM runstate */
+
+	Cpus int16                  /* Total number of vcpus for the domain from libvirt.DomainInfo */
+	CpuTime uint64              /* Total cpu time consumed in nanoseconds from libvirt.DomainCPUStats.CpuTime */
+	CpuUtilization int16        /* % of total cpu resources used */
+
+	MemoryCapacity uint64       /* Memory assigned to VM in KiB from virDomainInfo->memory */
+	MemoryUsed uint64           /* Memory in KiB of the QEMU RSS process, VIR_DOMAIN_MEMORY_STAT_RSS */
+
+	DiskCapacity uint64         /* Disk Total virtual capacity (Bytes) from virDomainBlockInfo->capacity*/
+	DiskAllocation uint64       /* Disk Allocated on host (Bytes) from Info->allocation */
+	DiskPhysical uint64         /* Disk Physical on host (Bytes) from Info->physical, including metadata */
+
+	NetRx int64                 /* Net Rx bytes */
+	NetTx int64                 /* Net Tx bytes */
+	NetRxBW int32               /* Net Rx KiB/s */
+	NetTxBW int32               /* Net Tx KiB/s */
+
+	Ts int64
+}
+
 type SystemInfo struct {
 	Host openapi.Host
-	Vms []openapi.Vm
+	VmStats []VmStat
 }
 
 type Hypervisor struct {
@@ -163,14 +191,14 @@ func (hv *Hypervisor) systemInfoLoop(seconds int) error {
 	ticker = time.NewTicker(time.Duration(seconds) * time.Second)
 	defer ticker.Stop()
 
-	si, err = hv.getSystemInfo()
+	err = hv.getSystemInfo(&si)
 	if (err != nil) {
 		logger.Log(err.Error())
 	} else {
 		hv.systemInfoCh <- si
 	}
 	for range ticker.C {
-		si, err = hv.getSystemInfo()
+		err = hv.getSystemInfo(&si)
 		if (err != nil) {
 			logger.Log(err.Error())
 			continue
@@ -202,7 +230,7 @@ func (hv *Hypervisor) StartListening(seconds int) error {
 			}
 		}
 		logger.Log("[VmEvent] %s/%s: %v state: %d", name, uuid, e, state)
-		hv.vmEventCh <- VmEvent{ Uuid: uuid, State: state, Ts: time.Now().UTC().Unix() }
+		hv.vmEventCh <- VmEvent{ Uuid: uuid, State: state, Ts: time.Now().UTC().UnixMilli() }
 	}
 	var err error
 	hv.vmEventCh = make(chan VmEvent, 64)
@@ -234,27 +262,27 @@ func (hv *Hypervisor) StopListening() {
 
 /* Calculate and return HostInfo and VMInfo for this host we are running on */
 
-type SysInfo struct {
-	BIOS BIOS `xml:"bios"`
+type xmlSysInfo struct {
+	BIOS xmlBIOS `xml:"bios"`
 }
 
-type BIOS struct {
-	Entries []Entry `xml:"entry"`
+type xmlBIOS struct {
+	Entries []xmlEntry `xml:"entry"`
 }
 
-type Entry struct {
+type xmlEntry struct {
 	Name  string `xml:"name,attr"`
 	Value string `xml:",chardata"`
 }
 
-func (hv *Hypervisor) getSystemInfo() (SystemInfo, error) {
+func (hv *Hypervisor) getSystemInfo(si *SystemInfo) error {
 	var (
 		host openapi.Host
-		vms []openapi.Vm
+		vmstats []VmStat
 		err error
 		xmldata string
 		caps libvirtxml.Caps
-		smbios SysInfo
+		smbios xmlSysInfo
 		info *libvirt.NodeInfo
 		ts int64
 	)
@@ -262,7 +290,12 @@ func (hv *Hypervisor) getSystemInfo() (SystemInfo, error) {
 		doms []libvirt.Domain
 		d libvirt.Domain
 	)
-	var free uint64
+	var (
+		freeMemory uint64
+		totalMemoryCapacity uint64
+		totalMemoryUsed uint64
+		totalCpus uint32
+	)
 
 	/* 1. set the general host information */
 	xmldata, err = hv.conn.GetCapabilities()
@@ -285,6 +318,7 @@ func (hv *Hypervisor) getSystemInfo() (SystemInfo, error) {
 	host.Def.Cpuarch.Arch = caps.Host.CPU.Arch
 	host.Def.Cpuarch.Vendor = caps.Host.CPU.Vendor
 	host.Def.Cpudef.Model = caps.Host.CPU.Model
+	host.Def.Cpudef.Nodes = int16(info.Nodes)
 	host.Def.Cpudef.Sockets = int16(info.Sockets)
 	host.Def.Cpudef.Cores = int16(info.Cores)
 	host.Def.Cpudef.Threads = int16(info.Threads)
@@ -307,7 +341,7 @@ func (hv *Hypervisor) getSystemInfo() (SystemInfo, error) {
 		}
 	}
 	host.State = openapi.HOST_ACTIVE
-	ts = time.Now().UTC().Unix()
+	ts = time.Now().UTC().UnixMilli()
 	host.Ts = ts
 
 	/*
@@ -320,65 +354,153 @@ func (hv *Hypervisor) getSystemInfo() (SystemInfo, error) {
 	}
 	defer freeDomains(doms)
 
-	vms = make([]openapi.Vm, 0, len(doms))
+	vmstats = make([]VmStat, 0, len(doms))
 	for _, d = range doms {
 		var (
-			vm openapi.Vm
+			vm VmStat
 		)
-		vm.Def.Name, vm.Uuid, vm.Runinfo.Runstate, err = getDomainInfo(&d)
+		vm.Name, vm.Uuid, vm.Runinfo.Runstate, err = getDomainInfo(&d)
 		if (err != nil) {
 			logger.Log("could not getDomainInfo: %s", err.Error())
 			continue
 		}
+		err = getDomainStats(&d, &vm)
 		vm.Runinfo.Host = host.Uuid
+		totalMemoryCapacity += vm.MemoryCapacity
+		totalMemoryUsed += vm.MemoryUsed
+		totalCpus += uint32(vm.Cpus) /* XXX maybe we should use Topology and exclude threads? XXX */
+		//cpuPercent := float64(delta) / (15.0 * float64(cpus) * 1e9) * 100.0
 		vm.Ts = ts
-		xmldata, err = d.GetXMLDesc(0)
-		if (err != nil) {
-			logger.Log("could not getXMLDesc: %s", err.Error())
-			continue
-		}
-		/* XXX get all the other fields from XML Desc I presume XXX */
-		/*
-		Custom []CustomField `json:"custom"`
-		Genid string `json:"genid"`
-		Vlanid int16 `json:"vlanid"`
-		Firmware string `json:"firmware"`
-		Nets []Net `json:"nets"`
-		Disks []Disk `json:"disks"`
-		Memory DefMemory `json:"memory"`
-		Cpudef Cpudef `json:"cpudef"`
-		*/
-		vms = append(vms, vm)
+		vmstats = append(vmstats, vm)
 	}
 	/* now calculate host resources */
-	host.Resources.Memory.Total = int32(info.Memory * KiB / GiB) /* info returns memory in KiB, translate to GiB */
-	free, err = hv.conn.GetFreeMemory()
+	host.Resources.Memory.Total = int32(info.Memory / MiB) /* info returns memory in KiB, translate to GiB */
+	freeMemory, err = hv.conn.GetFreeMemory()
 	if (err != nil) {
 		goto out
 	}
-	host.Resources.Memory.Free = int32(free / GiB) /* this returns in bytes, translate to GiB */
+	/* XXX no overcommit is currently implemented XXX */
+	host.Resources.Memory.Free = int32(freeMemory / GiB) /* this returns in bytes, translate to GiB */
 	host.Resources.Memory.Used = host.Resources.Memory.Total - host.Resources.Memory.Free
-	host.Resources.Memory.ReservedVms = 0 /* XXX need to calculate based on domains XXX */
 	host.Resources.Memory.ReservedOs = 0  /* XXX need to implement XXX */
-	host.Resources.Memory.UsedVms = 0     /* XXX need to calculate based on domains XXX */
+	host.Resources.Memory.ReservedVms = int32(totalMemoryCapacity / MiB) /* convert from KiB to GiB */
+	host.Resources.Memory.UsedVms = int32(totalMemoryUsed / MiB) /* convert from KiB to GiB */
 	host.Resources.Memory.AvailableVms = host.Resources.Memory.Total -
 		host.Resources.Memory.ReservedOs - host.Resources.Memory.ReservedVms
 
 	/* like VMWare, we calculate the total Mhz as (total_cores * frequency) (excluding threads) */
+	/* XXX no overcommit is currently implemented XXX */
 	host.Resources.Cpu.Total = int32(uint(info.Nodes * info.Sockets * info.Cores) * info.MHz)
-	host.Resources.Cpu.Free = host.Resources.Cpu.Total
-	host.Resources.Cpu.Used = 0 /* XXX need to calculate based on domains XXX */
-	host.Resources.Cpu.ReservedVms = 0 /* XXX need to calculate based on domains XXX */
-	host.Resources.Cpu.ReservedOs = 0  /* XXX need to implement XXX */
-	host.Resources.Cpu.UsedVms = 0 /* XXX need to calculate based on domains XXX */
+	host.Resources.Cpu.Used = 0 /* XXX */
+	host.Resources.Cpu.Free = host.Resources.Cpu.Total - host.Resources.Cpu.Used
+	host.Resources.Cpu.ReservedOs = 0  /* XXX */
+	host.Resources.Cpu.ReservedVms = int32(totalCpus * uint32(info.MHz))
+	host.Resources.Cpu.UsedVms = 0 /* XXX */
 	host.Resources.Cpu.AvailableVms = host.Resources.Cpu.Free - host.Resources.Cpu.ReservedVms
 
 out:
-	var si SystemInfo = SystemInfo{
-		Host: host,
-		Vms: vms,
+	si.Host = host
+	si.VmStats = vmstats
+	return err
+}
+
+type xmlDisk struct {
+	Device string `xml:"device,attr"`
+	Source struct {
+		File string `xml:"file,attr"`
+	} `xml:"source"`
+}
+
+type xmlInterface struct {
+	Target struct {
+		Dev string `xml:"dev,attr"`
+	} `xml:"target"`
+	/* Type string `xml:"type,attr"` */
+}
+
+type xmlDomain struct {
+	Devices struct {
+		Disks []xmlDisk `xml:"disk"`
+		Interfaces []xmlInterface `xml:"interface"`
+	} `xml:"devices"`
+}
+
+func getDomainStats(d *libvirt.Domain, vm *VmStat) error {
+	var err error
+	/*
+	{
+		var cpustat []libvirt.DomainCPUStats
+		cpustat, err = d.GetCPUStats(-1, 1, 0)
+		if (err != nil) {
+			return err
+		}
+		Vm.CpuTime = cpustat[0].CpuTime
 	}
-	return si, err
+	*/
+	{
+		var info *libvirt.DomainInfo
+		var memstat []libvirt.DomainMemoryStat
+		info, err = d.GetInfo()
+		if (err != nil) {
+			return err
+		}
+		vm.Cpus = int16(info.NrVirtCpu)
+		vm.CpuTime = info.CpuTime
+		vm.MemoryCapacity = info.Memory
+		memstat, err = d.MemoryStats(1, 0)
+		if (err != nil) {
+			return err
+		}
+		for _, stat := range memstat {
+			if (libvirt.DomainMemoryStatTags(stat.Tag) == libvirt.DOMAIN_MEMORY_STAT_RSS) {
+				vm.MemoryUsed = stat.Val / MiB
+				break
+			}
+		}
+	}
+	{
+		// Retrieve the domain's XML description
+		var (
+			xmldata string
+			xd xmlDomain
+		)
+		xmldata, err = d.GetXMLDesc(0)
+		if (err != nil) {
+			return err
+		}
+		err = xml.Unmarshal([]byte(xmldata), &xd)
+		if (err != nil) {
+			return err
+		}
+		for _, disk := range xd.Devices.Disks {
+			if (disk.Device == "disk" && disk.Source.File != "") {
+				var blockinfo *libvirt.DomainBlockInfo
+				blockinfo, err = d.GetBlockInfo(disk.Source.File, 0)
+				if (err != nil) {
+					return err
+				}
+				vm.DiskCapacity += blockinfo.Capacity / GiB
+				vm.DiskAllocation += blockinfo.Allocation / GiB
+				vm.DiskPhysical += blockinfo.Physical / GiB
+			}
+		}
+		for _, net := range xd.Devices.Interfaces {
+			if (net.Target.Dev != "") {
+				var netstat *libvirt.DomainInterfaceStats
+				netstat, err = d.InterfaceStats(net.Target.Dev)
+				if (err != nil) {
+					return err
+				}
+				if (netstat.RxBytesSet) {
+					vm.NetRx += netstat.RxBytes / MiB
+				}
+				if (netstat.TxBytesSet) {
+					vm.NetTx += netstat.TxBytes / MiB
+				}
+			}
+		}
+	}
+	return nil
 }
 
 /* Return the libvirt domain Events Channel */

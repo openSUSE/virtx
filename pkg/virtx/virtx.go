@@ -22,13 +22,15 @@ import (
 	"net/http"
 	"sync"
 	"errors"
+	"math"
 
 	"suse.com/virtXD/pkg/logger"
 	"suse.com/virtXD/pkg/hypervisor"
 	"suse.com/virtXD/pkg/model"
+	. "suse.com/virtXD/pkg/constants"
 )
 
-type Vms map[string]openapi.Vm
+type VmStats map[string]hypervisor.VmStat
 type Hosts map[string]openapi.Host
 
 type Service struct {
@@ -37,7 +39,7 @@ type Service struct {
 
 	cluster openapi.Cluster
 	hosts   Hosts
-	vms     Vms
+	vmstats VmStats
 }
 
 func New() *Service {
@@ -50,7 +52,7 @@ func New() *Service {
 		m:         sync.RWMutex{},
 		cluster:   openapi.Cluster{},
 		hosts:     make(Hosts),
-		vms:       make(Vms),
+		vmstats:   make(VmStats),
 	}
 	mux.Handle("/", s)
 	return s
@@ -118,35 +120,66 @@ func (s *Service) setHostState(uuid string, newstate openapi.Hoststate) error {
 func (s *Service) UpdateVmState(e *hypervisor.VmEvent) error {
 	s.m.Lock()
 	defer s.m.Unlock()
-	vm, ok := s.vms[e.Uuid]
+	vmstat, ok := s.vmstats[e.Uuid]
 	if !ok {
 		return fmt.Errorf("no such VM %s", e.Uuid)
 	}
-	vm.Runinfo.Runstate = openapi.Vmrunstate(e.State)
-	s.vms[e.Uuid] = vm
+	vmstat.Runinfo.Runstate = openapi.Vmrunstate(e.State)
+	s.vmstats[e.Uuid] = vmstat
 	return nil
 }
 
-func (s *Service) UpdateVm(vm *openapi.Vm) error {
+func (s *Service) UpdateVm(vmstat *hypervisor.VmStat) error {
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	return s.updateVm(vm)
+	return s.updateVm(vmstat)
 }
 
-func (s *Service) updateVm(vm *openapi.Vm) error {
-	if (s.vms == nil) {
-		s.vms = make(map[string]openapi.Vm)
+func (s *Service) updateVm(vmstat *hypervisor.VmStat) error {
+	if (s.vmstats == nil) {
+		s.vmstats = make(map[string]hypervisor.VmStat)
 	}
-	if old, ok := s.vms[vm.Uuid]; ok {
-		if old.Ts > vm.Ts {
+	if old, ok := s.vmstats[vmstat.Uuid]; ok {
+		if (old.Ts > vmstat.Ts) {
 			logger.Log("Ignoring old guest info: ts %d > %d %s %s",
-				old.Ts, vm.Ts, vm.Uuid, vm.Def.Name,
+				old.Ts, vmstat.Ts, vmstat.Uuid, vmstat.Name,
 			)
 			return nil
 		}
+		/* calculate deltas from previous Vm info */
+		if (int(vmstat.Runinfo.Runstate) > 1) {
+			var delta uint64
+			if (vmstat.CpuTime >= old.CpuTime) {
+				delta = vmstat.CpuTime - old.CpuTime
+			} else {
+				delta = (math.MaxUint64 - old.CpuTime) + vmstat.CpuTime + 1
+			}
+			if (delta > 0 && (vmstat.Ts - old.Ts) > 0 && vmstat.Cpus > 0) {
+				vmstat.CpuUtilization = int16((delta * 100) / (uint64(vmstat.Ts - old.Ts) * uint64(vmstat.Cpus) * 1000000))
+			}
+		}
+		{
+			var delta int64
+			if (vmstat.NetRx >= old.NetRx) {
+				delta = vmstat.NetRx - old.NetRx
+			} else {
+				delta = (math.MaxInt64 - old.NetRx) + (vmstat.NetRx - math.MinInt64) + 1
+			}
+			if (delta > 0 && (vmstat.Ts - old.Ts) > 0) {
+				vmstat.NetRxBW = int32((delta * 1000) / ((vmstat.Ts - old.Ts) * KiB))
+			}
+			if (vmstat.NetTx >= old.NetTx) {
+				delta = vmstat.NetTx - old.NetTx
+			} else {
+				delta = (math.MaxInt64 - old.NetTx) + (vmstat.NetTx - math.MinInt64) + 1
+			}
+			if (delta > 0 && (vmstat.Ts - old.Ts) > 0) {
+				vmstat.NetTxBW = int32((delta * 1000) / ((vmstat.Ts - old.Ts) * KiB))
+			}
+		}
 	}
-	s.vms[vm.Uuid] = *vm
+	s.vmstats[vmstat.Uuid] = *vmstat
 	return nil
 }
 
@@ -157,15 +190,15 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain")
 	var (
-		lines, uuid, vm_uuid string
+		lines string
 		hi openapi.Host
-		vm openapi.Vm
+		vm hypervisor.VmStat
 	)
-	for uuid, hi = range s.hosts {
-		var line string = fmt.Sprintf("host %s(%s)\n", uuid, hi.Def.Name)
+	for _, hi = range s.hosts {
+		var line string = fmt.Sprintf("HOST %+v\n", hi)
 		lines += line
-		for vm_uuid, vm = range s.vms {
-			var line string = fmt.Sprintf("guest %s(%s): State:%d\n", vm_uuid, vm.Def.Name, vm.Runinfo.Runstate)
+		for _, vm = range s.vmstats {
+			var line string = fmt.Sprintf("VM %+v\n", vm)
 			lines += line
 		}
 	}
