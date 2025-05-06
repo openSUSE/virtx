@@ -492,10 +492,10 @@ func getDomainStats(d *libvirt.Domain, vm *VmStat) error {
 					return err
 				}
 				if (netstat.RxBytesSet) {
-					vm.NetRx += netstat.RxBytes / MiB
+					vm.NetRx += netstat.RxBytes
 				}
 				if (netstat.TxBytesSet) {
-					vm.NetTx += netstat.TxBytes / MiB
+					vm.NetTx += netstat.TxBytes
 				}
 			}
 		}
