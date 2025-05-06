@@ -57,9 +57,9 @@ type VmStat struct {
 	MemoryCapacity uint64       /* Memory assigned to VM in KiB from virDomainInfo->memory */
 	MemoryUsed uint64           /* Memory in KiB of the QEMU RSS process, VIR_DOMAIN_MEMORY_STAT_RSS */
 
-	DiskCapacity uint64         /* Disk Total virtual capacity (Bytes) from virDomainBlockInfo->capacity*/
-	DiskAllocation uint64       /* Disk Allocated on host (Bytes) from Info->allocation */
-	DiskPhysical uint64         /* Disk Physical on host (Bytes) from Info->physical, including metadata */
+	DiskCapacity uint64         /* Disk Total virtual capacity (MiB) from virDomainBlockInfo->capacity / MiB*/
+	DiskAllocation uint64       /* Disk Allocated on host (MiB) from Info->allocation / MiB */
+	DiskPhysical uint64         /* Disk Physical on host (MiB) from Info->physical, including metadata */
 
 	NetRx int64                 /* Net Rx bytes */
 	NetTx int64                 /* Net Tx bytes */
@@ -479,9 +479,9 @@ func getDomainStats(d *libvirt.Domain, vm *VmStat) error {
 				if (err != nil) {
 					return err
 				}
-				vm.DiskCapacity += blockinfo.Capacity / GiB
-				vm.DiskAllocation += blockinfo.Allocation / GiB
-				vm.DiskPhysical += blockinfo.Physical / GiB
+				vm.DiskCapacity += blockinfo.Capacity / MiB
+				vm.DiskAllocation += blockinfo.Allocation / MiB
+				vm.DiskPhysical += blockinfo.Physical / MiB
 			}
 		}
 		for _, net := range xd.Devices.Interfaces {
