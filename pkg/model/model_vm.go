@@ -26,7 +26,7 @@ type Vm struct {
 	Uuid string `json:"uuid"`
 	Def Vmdef `json:"def"`
 	Runinfo Vmruninfo `json:"runinfo"`
-	// 64bit UTC Unix timestamp
+	// 64bit UTC Unix timestamp in milliseconds since Epoc.
 	Ts int64 `json:"ts"`
 }
 

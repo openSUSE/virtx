@@ -22,8 +22,6 @@ var _ MappedNullable = &Net{}
 
 // Net struct for Net
 type Net struct {
-	// Unique Identifier for VMs, Hosts, Networks; RFC 4122
-	Uuid string `json:"uuid"`
 	Name string `json:"name"`
 	NetType *NetType `json:"net_type,omitempty"`
 	Model NetModel `json:"model"`
@@ -36,9 +34,8 @@ type _Net Net
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewNet(uuid string, name string, model NetModel, mac string) *Net {
+func NewNet(name string, model NetModel, mac string) *Net {
 	this := Net{}
-	this.Uuid = uuid
 	this.Name = name
 	this.Model = model
 	this.Mac = mac
@@ -51,30 +48,6 @@ func NewNet(uuid string, name string, model NetModel, mac string) *Net {
 func NewNetWithDefaults() *Net {
 	this := Net{}
 	return &this
-}
-
-// GetUuid returns the Uuid field value
-func (o *Net) GetUuid() string {
-	if o == nil {
-		var ret string
-		return ret
-	}
-
-	return o.Uuid
-}
-
-// GetUuidOk returns a tuple with the Uuid field value
-// and a boolean to check if the value has been set.
-func (o *Net) GetUuidOk() (*string, bool) {
-	if o == nil {
-		return nil, false
-	}
-	return &o.Uuid, true
-}
-
-// SetUuid sets field value
-func (o *Net) SetUuid(v string) {
-	o.Uuid = v
 }
 
 // GetName returns the Name field value
@@ -191,7 +164,6 @@ func (o Net) MarshalJSON() ([]byte, error) {
 
 func (o Net) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
-	toSerialize["uuid"] = o.Uuid
 	toSerialize["name"] = o.Name
 	if !IsNil(o.NetType) {
 		toSerialize["net_type"] = o.NetType
@@ -206,7 +178,6 @@ func (o *Net) UnmarshalJSON(data []byte) (err error) {
 	// by unmarshalling the object into a generic map with string keys and checking
 	// that every required field exists as a key in the generic map.
 	requiredProperties := []string{
-		"uuid",
 		"name",
 		"model",
 		"mac",

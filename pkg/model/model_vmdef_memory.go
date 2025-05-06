@@ -22,7 +22,7 @@ var _ MappedNullable = &VmdefMemory{}
 
 // VmdefMemory struct for VmdefMemory
 type VmdefMemory struct {
-	// total memory reserved for the guest in GiB
+	// total memory reserved for the guest in MiB
 	Total int32 `json:"total"`
 }
 

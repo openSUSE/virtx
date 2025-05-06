@@ -22,9 +22,9 @@ type DiskBus int16
 // List of disk_bus
 const (
 	BUS_VIRTIO DiskBus = 0
-	BUS_SATA DiskBus = 1
-	BUS_SCSI DiskBus = 2
-	BUS_IDE DiskBus = 3
+	BUS_VIRTIO_SCSI DiskBus = 1
+	BUS_SATA DiskBus = 2
+	BUS_SCSI DiskBus = 3
 )
 
 // All allowed values of DiskBus enum

@@ -26,7 +26,7 @@ type HostListFields struct {
 	Cpuarch Cpuarch `json:"cpuarch"`
 	Cpudef Cpudef `json:"cpudef"`
 	Hoststate Hoststate `json:"hoststate"`
-	// memory available for running new VMs in GiB
+	// memory available for running new VMs in MiB
 	MemoryAvailableVms int32 `json:"memory_available_vms"`
 }
 

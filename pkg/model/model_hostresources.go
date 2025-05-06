@@ -20,7 +20,7 @@ import (
 // checks if the Hostresources type satisfies the MappedNullable interface at compile time
 var _ MappedNullable = &Hostresources{}
 
-// Hostresources Memory resources in GiB, CPU resources in MhZ
+// Hostresources Memory resources in MiB, CPU resources in MhZ
 type Hostresources struct {
 	Memory Hostresource `json:"memory"`
 	Cpu Hostresource `json:"cpu"`

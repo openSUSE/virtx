@@ -25,6 +25,9 @@ type Disk struct {
 	Path string `json:"path"`
 	Device DiskDevice `json:"device"`
 	Bus DiskBus `json:"bus"`
+	CreateMode DiskCreateMode `json:"create_mode"`
+	// size in MiB (use 0 for DISK_NOCREATE)
+	Size int32 `json:"size"`
 }
 
 type _Disk Disk
@@ -33,11 +36,13 @@ type _Disk Disk
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewDisk(path string, device DiskDevice, bus DiskBus) *Disk {
+func NewDisk(path string, device DiskDevice, bus DiskBus, createMode DiskCreateMode, size int32) *Disk {
 	this := Disk{}
 	this.Path = path
 	this.Device = device
 	this.Bus = bus
+	this.CreateMode = createMode
+	this.Size = size
 	return &this
 }
 
@@ -121,6 +126,54 @@ func (o *Disk) SetBus(v DiskBus) {
 	o.Bus = v
 }
 
+// GetCreateMode returns the CreateMode field value
+func (o *Disk) GetCreateMode() DiskCreateMode {
+	if o == nil {
+		var ret DiskCreateMode
+		return ret
+	}
+
+	return o.CreateMode
+}
+
+// GetCreateModeOk returns a tuple with the CreateMode field value
+// and a boolean to check if the value has been set.
+func (o *Disk) GetCreateModeOk() (*DiskCreateMode, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.CreateMode, true
+}
+
+// SetCreateMode sets field value
+func (o *Disk) SetCreateMode(v DiskCreateMode) {
+	o.CreateMode = v
+}
+
+// GetSize returns the Size field value
+func (o *Disk) GetSize() int32 {
+	if o == nil {
+		var ret int32
+		return ret
+	}
+
+	return o.Size
+}
+
+// GetSizeOk returns a tuple with the Size field value
+// and a boolean to check if the value has been set.
+func (o *Disk) GetSizeOk() (*int32, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Size, true
+}
+
+// SetSize sets field value
+func (o *Disk) SetSize(v int32) {
+	o.Size = v
+}
+
 func (o Disk) MarshalJSON() ([]byte, error) {
 	toSerialize,err := o.ToMap()
 	if err != nil {
@@ -134,6 +187,8 @@ func (o Disk) ToMap() (map[string]interface{}, error) {
 	toSerialize["path"] = o.Path
 	toSerialize["device"] = o.Device
 	toSerialize["bus"] = o.Bus
+	toSerialize["create_mode"] = o.CreateMode
+	toSerialize["size"] = o.Size
 	return toSerialize, nil
 }
 
@@ -145,6 +200,8 @@ func (o *Disk) UnmarshalJSON(data []byte) (err error) {
 		"path",
 		"device",
 		"bus",
+		"create_mode",
+		"size",
 	}
 
 	allProperties := make(map[string]interface{})
