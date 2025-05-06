@@ -1,11 +1,15 @@
 .PHONY: all clean
 
-all: virtXD
+all: virtxd virtxc
 
-SRC = $(shell find . -name "*.go")
+GO_BUILD=go build -gcflags="-N -l -m"
+PKG_SRC=$(shell find pkg/ -name "*.go")
 
-virtXD: $(SRC)
-	go build -gcflags="-N -l -m"
+virtxd: $(PKG_SRC) ./cmd/virtxd
+	$(GO_BUILD) -o $@ ./cmd/virtxd
+
+virtxc: $(PKG_SRC) cmd/virtxc
+	$(GO_BUILD) -o $@ ./cmd/virtxc
 
 clean:
-	go clean
+	rm -f virtxd virtxc
