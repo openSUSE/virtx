@@ -23,10 +23,10 @@ import (
 	"os/signal"
 	"time"
 
-	"suse.com/virtXD/pkg/serfcomm"
-	"suse.com/virtXD/pkg/hypervisor"
-	"suse.com/virtXD/pkg/virtx"
-	"suse.com/virtXD/pkg/logger"
+	"suse.com/virtx/pkg/serfcomm"
+	"suse.com/virtx/pkg/hypervisor"
+	"suse.com/virtx/pkg/virtx"
+	"suse.com/virtx/pkg/logger"
 )
 
 const (

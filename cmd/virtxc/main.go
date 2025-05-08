@@ -18,7 +18,7 @@
 package main
 
 import (
-	"suse.com/virtXD/pkg/logger"
+	"suse.com/virtx/pkg/logger"
 )
 
 func main() {

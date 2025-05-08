@@ -24,9 +24,9 @@ import (
 	"libvirt.org/go/libvirt"
 	"libvirt.org/go/libvirtxml"
 
-	"suse.com/virtXD/pkg/model"
-	"suse.com/virtXD/pkg/logger"
-	. "suse.com/virtXD/pkg/constants"
+	"suse.com/virtx/pkg/model"
+	"suse.com/virtx/pkg/logger"
+	. "suse.com/virtx/pkg/constants"
 )
 
 const (

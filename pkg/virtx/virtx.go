@@ -25,10 +25,10 @@ import (
 	"math"
 	"context"
 
-	"suse.com/virtXD/pkg/logger"
-	"suse.com/virtXD/pkg/hypervisor"
-	"suse.com/virtXD/pkg/model"
-	. "suse.com/virtXD/pkg/constants"
+	"suse.com/virtx/pkg/logger"
+	"suse.com/virtx/pkg/hypervisor"
+	"suse.com/virtx/pkg/model"
+	. "suse.com/virtx/pkg/constants"
 )
 
 type VmStats map[string]hypervisor.VmStat

@@ -22,11 +22,11 @@ import (
 	"encoding/binary"
 	"github.com/hashicorp/serf/client"
 
-	"suse.com/virtXD/pkg/hypervisor"
-	"suse.com/virtXD/pkg/virtx"
-	"suse.com/virtXD/pkg/model"
-	"suse.com/virtXD/pkg/logger"
-	"suse.com/virtXD/pkg/encoding/sbinary"
+	"suse.com/virtx/pkg/hypervisor"
+	"suse.com/virtx/pkg/virtx"
+	"suse.com/virtx/pkg/model"
+	"suse.com/virtx/pkg/logger"
+	"suse.com/virtx/pkg/encoding/sbinary"
 )
 
 const (
