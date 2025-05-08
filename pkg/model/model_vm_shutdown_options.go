@@ -17,59 +17,60 @@ import (
 	"fmt"
 )
 
-// checks if the VmListOptions type satisfies the MappedNullable interface at compile time
-var _ MappedNullable = &VmListOptions{}
+// checks if the VmShutdownOptions type satisfies the MappedNullable interface at compile time
+var _ MappedNullable = &VmShutdownOptions{}
 
-// VmListOptions struct for VmListOptions
-type VmListOptions struct {
-	Filter VmListFields `json:"filter"`
+// VmShutdownOptions struct for VmShutdownOptions
+type VmShutdownOptions struct {
+	// if true, destroy the vm immediately without any graceful shutdown (not recommended).
+	Force bool `json:"force"`
 }
 
-type _VmListOptions VmListOptions
+type _VmShutdownOptions VmShutdownOptions
 
-// NewVmListOptions instantiates a new VmListOptions object
+// NewVmShutdownOptions instantiates a new VmShutdownOptions object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVmListOptions(filter VmListFields) *VmListOptions {
-	this := VmListOptions{}
-	this.Filter = filter
+func NewVmShutdownOptions(force bool) *VmShutdownOptions {
+	this := VmShutdownOptions{}
+	this.Force = force
 	return &this
 }
 
-// NewVmListOptionsWithDefaults instantiates a new VmListOptions object
+// NewVmShutdownOptionsWithDefaults instantiates a new VmShutdownOptions object
 // This constructor will only assign default values to properties that have it defined,
 // but it doesn't guarantee that properties required by API are set
-func NewVmListOptionsWithDefaults() *VmListOptions {
-	this := VmListOptions{}
+func NewVmShutdownOptionsWithDefaults() *VmShutdownOptions {
+	this := VmShutdownOptions{}
 	return &this
 }
 
-// GetFilter returns the Filter field value
-func (o *VmListOptions) GetFilter() VmListFields {
+// GetForce returns the Force field value
+func (o *VmShutdownOptions) GetForce() bool {
 	if o == nil {
-		var ret VmListFields
+		var ret bool
 		return ret
 	}
 
-	return o.Filter
+	return o.Force
 }
 
-// GetFilterOk returns a tuple with the Filter field value
+// GetForceOk returns a tuple with the Force field value
 // and a boolean to check if the value has been set.
-func (o *VmListOptions) GetFilterOk() (*VmListFields, bool) {
+func (o *VmShutdownOptions) GetForceOk() (*bool, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.Filter, true
+	return &o.Force, true
 }
 
-// SetFilter sets field value
-func (o *VmListOptions) SetFilter(v VmListFields) {
-	o.Filter = v
+// SetForce sets field value
+func (o *VmShutdownOptions) SetForce(v bool) {
+	o.Force = v
 }
 
-func (o VmListOptions) MarshalJSON() ([]byte, error) {
+func (o VmShutdownOptions) MarshalJSON() ([]byte, error) {
 	toSerialize,err := o.ToMap()
 	if err != nil {
 		return []byte{}, err
@@ -77,18 +78,18 @@ func (o VmListOptions) MarshalJSON() ([]byte, error) {
 	return json.Marshal(toSerialize)
 }
 
-func (o VmListOptions) ToMap() (map[string]interface{}, error) {
+func (o VmShutdownOptions) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
-	toSerialize["filter"] = o.Filter
+	toSerialize["force"] = o.Force
 	return toSerialize, nil
 }
 
-func (o *VmListOptions) UnmarshalJSON(data []byte) (err error) {
+func (o *VmShutdownOptions) UnmarshalJSON(data []byte) (err error) {
 	// This validates that all required properties are included in the JSON object
 	// by unmarshalling the object into a generic map with string keys and checking
 	// that every required field exists as a key in the generic map.
 	requiredProperties := []string{
-		"filter",
+		"force",
 	}
 
 	allProperties := make(map[string]interface{})
@@ -105,53 +106,53 @@ func (o *VmListOptions) UnmarshalJSON(data []byte) (err error) {
 		}
 	}
 
-	varVmListOptions := _VmListOptions{}
+	varVmShutdownOptions := _VmShutdownOptions{}
 
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	decoder.DisallowUnknownFields()
-	err = decoder.Decode(&varVmListOptions)
+	err = decoder.Decode(&varVmShutdownOptions)
 
 	if err != nil {
 		return err
 	}
 
-	*o = VmListOptions(varVmListOptions)
+	*o = VmShutdownOptions(varVmShutdownOptions)
 
 	return err
 }
 
-type NullableVmListOptions struct {
-	value *VmListOptions
+type NullableVmShutdownOptions struct {
+	value *VmShutdownOptions
 	isSet bool
 }
 
-func (v NullableVmListOptions) Get() *VmListOptions {
+func (v NullableVmShutdownOptions) Get() *VmShutdownOptions {
 	return v.value
 }
 
-func (v *NullableVmListOptions) Set(val *VmListOptions) {
+func (v *NullableVmShutdownOptions) Set(val *VmShutdownOptions) {
 	v.value = val
 	v.isSet = true
 }
 
-func (v NullableVmListOptions) IsSet() bool {
+func (v NullableVmShutdownOptions) IsSet() bool {
 	return v.isSet
 }
 
-func (v *NullableVmListOptions) Unset() {
+func (v *NullableVmShutdownOptions) Unset() {
 	v.value = nil
 	v.isSet = false
 }
 
-func NewNullableVmListOptions(val *VmListOptions) *NullableVmListOptions {
-	return &NullableVmListOptions{value: val, isSet: true}
+func NewNullableVmShutdownOptions(val *VmShutdownOptions) *NullableVmShutdownOptions {
+	return &NullableVmShutdownOptions{value: val, isSet: true}
 }
 
-func (v NullableVmListOptions) MarshalJSON() ([]byte, error) {
+func (v NullableVmShutdownOptions) MarshalJSON() ([]byte, error) {
 	return json.Marshal(v.value)
 }
 
-func (v *NullableVmListOptions) UnmarshalJSON(src []byte) error {
+func (v *NullableVmShutdownOptions) UnmarshalJSON(src []byte) error {
 	v.isSet = true
 	return json.Unmarshal(src, &v.value)
 }

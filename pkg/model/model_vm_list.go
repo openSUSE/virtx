@@ -23,9 +23,6 @@ var _ MappedNullable = &VmList{}
 // VmList struct for VmList
 type VmList struct {
 	Items []VmListItem `json:"items"`
-	Page Page `json:"page"`
-	// total number of vm items in all the result pages
-	Total int16 `json:"total"`
 }
 
 type _VmList VmList
@@ -34,11 +31,9 @@ type _VmList VmList
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVmList(items []VmListItem, page Page, total int16) *VmList {
+func NewVmList(items []VmListItem) *VmList {
 	this := VmList{}
 	this.Items = items
-	this.Page = page
-	this.Total = total
 	return &this
 }
 
@@ -74,54 +69,6 @@ func (o *VmList) SetItems(v []VmListItem) {
 	o.Items = v
 }
 
-// GetPage returns the Page field value
-func (o *VmList) GetPage() Page {
-	if o == nil {
-		var ret Page
-		return ret
-	}
-
-	return o.Page
-}
-
-// GetPageOk returns a tuple with the Page field value
-// and a boolean to check if the value has been set.
-func (o *VmList) GetPageOk() (*Page, bool) {
-	if o == nil {
-		return nil, false
-	}
-	return &o.Page, true
-}
-
-// SetPage sets field value
-func (o *VmList) SetPage(v Page) {
-	o.Page = v
-}
-
-// GetTotal returns the Total field value
-func (o *VmList) GetTotal() int16 {
-	if o == nil {
-		var ret int16
-		return ret
-	}
-
-	return o.Total
-}
-
-// GetTotalOk returns a tuple with the Total field value
-// and a boolean to check if the value has been set.
-func (o *VmList) GetTotalOk() (*int16, bool) {
-	if o == nil {
-		return nil, false
-	}
-	return &o.Total, true
-}
-
-// SetTotal sets field value
-func (o *VmList) SetTotal(v int16) {
-	o.Total = v
-}
-
 func (o VmList) MarshalJSON() ([]byte, error) {
 	toSerialize,err := o.ToMap()
 	if err != nil {
@@ -133,8 +80,6 @@ func (o VmList) MarshalJSON() ([]byte, error) {
 func (o VmList) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["items"] = o.Items
-	toSerialize["page"] = o.Page
-	toSerialize["total"] = o.Total
 	return toSerialize, nil
 }
 
@@ -144,8 +89,6 @@ func (o *VmList) UnmarshalJSON(data []byte) (err error) {
 	// that every required field exists as a key in the generic map.
 	requiredProperties := []string{
 		"items",
-		"page",
-		"total",
 	}
 
 	allProperties := make(map[string]interface{})

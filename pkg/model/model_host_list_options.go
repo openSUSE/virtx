@@ -23,7 +23,6 @@ var _ MappedNullable = &HostListOptions{}
 // HostListOptions struct for HostListOptions
 type HostListOptions struct {
 	Filter HostListFields `json:"filter"`
-	Page Page `json:"page"`
 }
 
 type _HostListOptions HostListOptions
@@ -32,10 +31,9 @@ type _HostListOptions HostListOptions
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewHostListOptions(filter HostListFields, page Page) *HostListOptions {
+func NewHostListOptions(filter HostListFields) *HostListOptions {
 	this := HostListOptions{}
 	this.Filter = filter
-	this.Page = page
 	return &this
 }
 
@@ -71,30 +69,6 @@ func (o *HostListOptions) SetFilter(v HostListFields) {
 	o.Filter = v
 }
 
-// GetPage returns the Page field value
-func (o *HostListOptions) GetPage() Page {
-	if o == nil {
-		var ret Page
-		return ret
-	}
-
-	return o.Page
-}
-
-// GetPageOk returns a tuple with the Page field value
-// and a boolean to check if the value has been set.
-func (o *HostListOptions) GetPageOk() (*Page, bool) {
-	if o == nil {
-		return nil, false
-	}
-	return &o.Page, true
-}
-
-// SetPage sets field value
-func (o *HostListOptions) SetPage(v Page) {
-	o.Page = v
-}
-
 func (o HostListOptions) MarshalJSON() ([]byte, error) {
 	toSerialize,err := o.ToMap()
 	if err != nil {
@@ -106,7 +80,6 @@ func (o HostListOptions) MarshalJSON() ([]byte, error) {
 func (o HostListOptions) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["filter"] = o.Filter
-	toSerialize["page"] = o.Page
 	return toSerialize, nil
 }
 
@@ -116,7 +89,6 @@ func (o *HostListOptions) UnmarshalJSON(data []byte) (err error) {
 	// that every required field exists as a key in the generic map.
 	requiredProperties := []string{
 		"filter",
-		"page",
 	}
 
 	allProperties := make(map[string]interface{})

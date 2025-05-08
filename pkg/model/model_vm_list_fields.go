@@ -28,8 +28,7 @@ type VmListFields struct {
 	Runstate Vmrunstate `json:"runstate"`
 	// vlanid for all traffic from/to this VM. 0 = no vlanid, -1 = automatically assign
 	Vlanid int16 `json:"vlanid"`
-	// Custom Fields
-	Custom []CustomField `json:"custom"`
+	Custom CustomField `json:"custom"`
 }
 
 type _VmListFields VmListFields
@@ -38,7 +37,7 @@ type _VmListFields VmListFields
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVmListFields(name string, host string, runstate Vmrunstate, vlanid int16, custom []CustomField) *VmListFields {
+func NewVmListFields(name string, host string, runstate Vmrunstate, vlanid int16, custom CustomField) *VmListFields {
 	this := VmListFields{}
 	this.Name = name
 	this.Host = host
@@ -153,9 +152,9 @@ func (o *VmListFields) SetVlanid(v int16) {
 }
 
 // GetCustom returns the Custom field value
-func (o *VmListFields) GetCustom() []CustomField {
+func (o *VmListFields) GetCustom() CustomField {
 	if o == nil {
-		var ret []CustomField
+		var ret CustomField
 		return ret
 	}
 
@@ -164,15 +163,15 @@ func (o *VmListFields) GetCustom() []CustomField {
 
 // GetCustomOk returns a tuple with the Custom field value
 // and a boolean to check if the value has been set.
-func (o *VmListFields) GetCustomOk() ([]CustomField, bool) {
+func (o *VmListFields) GetCustomOk() (*CustomField, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return o.Custom, true
+	return &o.Custom, true
 }
 
 // SetCustom sets field value
-func (o *VmListFields) SetCustom(v []CustomField) {
+func (o *VmListFields) SetCustom(v CustomField) {
 	o.Custom = v
 }
 
