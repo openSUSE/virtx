@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"encoding/json"
 	"strings"
+	"bytes"
 
 	"suse.com/virtx/pkg/hypervisor"
 	//	"suse.com/virtx/pkg/logger"
@@ -17,13 +18,13 @@ func VmList(w http.ResponseWriter, r *http.Request) {
 	service.m.RLock()
 	defer service.m.RUnlock()
 	var (
-		decoder *json.Decoder
 		err error
 		o openapi.VmListOptions
 		vm hypervisor.VmStat
+		vm_list openapi.VmList
+		buf bytes.Buffer
 	)
-	decoder = json.NewDecoder(r.Body)
-	err = decoder.Decode(&o)
+	err = json.NewDecoder(r.Body).Decode(&o)
 	if (err != nil) {
 		http.Error(w, "VmList: Failed to decode JSON in Request Body", http.StatusBadRequest)
 		return
@@ -59,7 +60,26 @@ vmloop:
 				continue
 			}
 		}
+		var item openapi.VmListItem = openapi.VmListItem{
+			Uuid: vm.Uuid,
+			Fields: openapi.VmListFields{
+				Name: vm.Name,
+				Host: vm.Runinfo.Host,
+				Runstate: vm.Runinfo.Runstate,
+				Vlanid: vm.Vlanid,
+			},
+		}
+		vm_list.Items = append(vm_list.Items, item)
 	}
+	err = json.NewEncoder(&buf).Encode(vm_list)
+	if (err != nil) {
+		http.Error(w, "VmList: Failed to encode JSON", http.StatusInternalServerError)
+        return
+    }
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(buf.Bytes())
 }
 
 func VmUpdate(w http.ResponseWriter, r *http.Request) {

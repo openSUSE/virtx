@@ -25,3 +25,10 @@ Serf will be listening by default on port 7373 for the RPC user messages,
 while it will listen on port 7946 (TCP and UDP) for serf itself.
 
 while the API service will be listening on port 8080.
+
+# BUGS
+
+export GODEBUG="httpmuxgo121=0"
+
+seems necessary before starting virtxd, otherwise the old pre-1.22 go behavior is triggered,
+and no API handler works. Arg.

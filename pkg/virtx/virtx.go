@@ -48,6 +48,24 @@ var service Service
 
 func New() *Service {
 	var servemux *http.ServeMux = http.NewServeMux()
+	servemux.HandleFunc("POST /vms", VmCreate)
+	servemux.HandleFunc("GET /vms", VmList)
+	servemux.HandleFunc("PUT /vms/{uuid}", VmUpdate)
+	servemux.HandleFunc("GET /vms/{uuid}", VmGet)
+	servemux.HandleFunc("DELETE /vms/{uuid}", VmDelete)
+	servemux.HandleFunc("GET /vms/{uuid}/runstate", VmGetRunstate)
+	servemux.HandleFunc("POST /vms/{uuid}/runstate/start", VmStart)
+	servemux.HandleFunc("DELETE /vms/{uuid}/runstate/start", VmShutdown)
+	servemux.HandleFunc("POST /vms/{uuid}/runstate/pause", VmPause)
+	servemux.HandleFunc("DELETE /vms/{uuid}/runstate/pause", VmUnpause)
+	servemux.HandleFunc("POST /vms/{uuid}/runstate/migrate", VmMigrate)
+	servemux.HandleFunc("GET /vms/{uuid}/runstate/migrate", VmGetMigrateInfo)
+	servemux.HandleFunc("DELETE /vms/{uuid}/runstate/migrate", VmMigrateCancel)
+
+	servemux.HandleFunc("GET /hosts", HostList)
+	servemux.HandleFunc("GET /hosts/{uuid}", HostGet) // XXX not in API yet XXX
+	servemux.HandleFunc("GET /cluster", ClusterGet)
+
 	service = Service{
 		servemux: servemux,
 		server: http.Server{
@@ -59,23 +77,6 @@ func New() *Service {
 		hosts:     make(Hosts),
 		vmstats:   make(VmStats),
 	}
-	service.servemux.HandleFunc("POST /vms", VmCreate)
-	service.servemux.HandleFunc("GET /vms", VmList)
-	service.servemux.HandleFunc("PUT /vms/{uuid}", VmUpdate)
-	service.servemux.HandleFunc("GET /vms/{uuid}", VmGet)
-	service.servemux.HandleFunc("DELETE /vms/{uuid}", VmDelete)
-	service.servemux.HandleFunc("GET /vms/{uuid}/runstate", VmGetRunstate)
-	service.servemux.HandleFunc("POST /vms/{uuid}/runstate/start", VmStart)
-	service.servemux.HandleFunc("DELETE /vms/{uuid}/runstate/start", VmShutdown)
-	service.servemux.HandleFunc("POST /vms/{uuid}/runstate/pause", VmPause)
-	service.servemux.HandleFunc("DELETE /vms/{uuid}/runstate/pause", VmUnpause)
-	service.servemux.HandleFunc("POST /vms/{uuid}/runstate/migrate", VmMigrate)
-	service.servemux.HandleFunc("GET /vms/{uuid}/runstate/migrate", VmGetMigrateInfo)
-	service.servemux.HandleFunc("DELETE /vms/{uuid}/runstate/migrate", VmMigrateCancel)
-
-	service.servemux.HandleFunc("GET /hosts", HostList)
-	service.servemux.HandleFunc("GET /hosts/{uuid}", HostGet) // XXX not in API yet XXX
-	service.servemux.HandleFunc("GET /cluster", ClusterGet)
 	return &service
 }
 
