@@ -1,4 +1,4 @@
-package handlers
+package virtx
 
 import (
 	"net/http"

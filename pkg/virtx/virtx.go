@@ -28,7 +28,6 @@ import (
 	"suse.com/virtXD/pkg/logger"
 	"suse.com/virtXD/pkg/hypervisor"
 	"suse.com/virtXD/pkg/model"
-	"suse.com/virtXD/pkg/handlers"
 	. "suse.com/virtXD/pkg/constants"
 )
 
@@ -58,23 +57,23 @@ func New() *Service {
 		hosts:     make(Hosts),
 		vmstats:   make(VmStats),
 	}
-	s.servemux.HandleFunc("POST /vms", handlers.VmCreate)
-	s.servemux.HandleFunc("GET /vms", handlers.VmList)
-	s.servemux.HandleFunc("PUT /vms/{uuid}", handlers.VmUpdate)
-	s.servemux.HandleFunc("GET /vms/{uuid}", handlers.VmGet)
-	s.servemux.HandleFunc("DELETE /vms/{uuid}", handlers.VmDelete)
-	s.servemux.HandleFunc("GET /vms/{uuid}/runstate", handlers.VmGetRunstate)
-	s.servemux.HandleFunc("POST /vms/{uuid}/runstate/start", handlers.VmStart)
-	s.servemux.HandleFunc("DELETE /vms/{uuid}/runstate/start", handlers.VmShutdown)
-	s.servemux.HandleFunc("POST /vms/{uuid}/runstate/pause", handlers.VmPause)
-	s.servemux.HandleFunc("DELETE /vms/{uuid}/runstate/pause", handlers.VmUnpause)
-	s.servemux.HandleFunc("POST /vms/{uuid}/runstate/migrate", handlers.VmMigrate)
-	s.servemux.HandleFunc("GET /vms/{uuid}/runstate/migrate", handlers.VmGetMigrateInfo)
-	s.servemux.HandleFunc("DELETE /vms/{uuid}/runstate/migrate", handlers.VmMigrateCancel)
+	s.servemux.HandleFunc("POST /vms", VmCreate)
+	s.servemux.HandleFunc("GET /vms", VmList)
+	s.servemux.HandleFunc("PUT /vms/{uuid}", VmUpdate)
+	s.servemux.HandleFunc("GET /vms/{uuid}", VmGet)
+	s.servemux.HandleFunc("DELETE /vms/{uuid}", VmDelete)
+	s.servemux.HandleFunc("GET /vms/{uuid}/runstate", VmGetRunstate)
+	s.servemux.HandleFunc("POST /vms/{uuid}/runstate/start", VmStart)
+	s.servemux.HandleFunc("DELETE /vms/{uuid}/runstate/start", VmShutdown)
+	s.servemux.HandleFunc("POST /vms/{uuid}/runstate/pause", VmPause)
+	s.servemux.HandleFunc("DELETE /vms/{uuid}/runstate/pause", VmUnpause)
+	s.servemux.HandleFunc("POST /vms/{uuid}/runstate/migrate", VmMigrate)
+	s.servemux.HandleFunc("GET /vms/{uuid}/runstate/migrate", VmGetMigrateInfo)
+	s.servemux.HandleFunc("DELETE /vms/{uuid}/runstate/migrate", VmMigrateCancel)
 
-	s.servemux.HandleFunc("GET /hosts", handlers.HostList)
-	s.servemux.HandleFunc("GET /hosts/{uuid}", handlers.HostGet) // XXX not in API yet XXX
-	s.servemux.HandleFunc("GET /cluster", handlers.ClusterGet)
+	s.servemux.HandleFunc("GET /hosts", HostList)
+	s.servemux.HandleFunc("GET /hosts/{uuid}", HostGet) // XXX not in API yet XXX
+	s.servemux.HandleFunc("GET /cluster", ClusterGet)
 	return &s
 }
 
