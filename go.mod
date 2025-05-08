@@ -1,4 +1,4 @@
-module suse.com/virtXD
+module suse.com/virtx
 
 go 1.21.9
 
