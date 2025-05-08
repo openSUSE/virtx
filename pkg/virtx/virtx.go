@@ -23,10 +23,12 @@ import (
 	"sync"
 	"errors"
 	"math"
+	"context"
 
 	"suse.com/virtXD/pkg/logger"
 	"suse.com/virtXD/pkg/hypervisor"
 	"suse.com/virtXD/pkg/model"
+	"suse.com/virtXD/pkg/handlers"
 	. "suse.com/virtXD/pkg/constants"
 )
 
@@ -34,7 +36,8 @@ type VmStats map[string]hypervisor.VmStat
 type Hosts map[string]openapi.Host
 
 type Service struct {
-	http.Server
+	servemux *http.ServeMux
+	server http.Server
 	m      sync.RWMutex
 
 	cluster openapi.Cluster
@@ -43,19 +46,44 @@ type Service struct {
 }
 
 func New() *Service {
-	mux := http.NewServeMux()
-	s := &Service{
-		Server: http.Server {
-			Addr:    ":8080",
-			Handler: mux,
+	var servemux *http.ServeMux = http.NewServeMux()
+	s := Service{
+		servemux: servemux,
+		server: http.Server{
+			Addr: ":8080",
+			Handler: servemux,
 		},
 		m:         sync.RWMutex{},
 		cluster:   openapi.Cluster{},
 		hosts:     make(Hosts),
 		vmstats:   make(VmStats),
 	}
-	mux.Handle("/", s)
-	return s
+	s.servemux.HandleFunc("POST /vms", handlers.VmCreate)
+	s.servemux.HandleFunc("GET /vms", handlers.VmList)
+	s.servemux.HandleFunc("PUT /vms/{uuid}", handlers.VmUpdate)
+	s.servemux.HandleFunc("GET /vms/{uuid}", handlers.VmGet)
+	s.servemux.HandleFunc("DELETE /vms/{uuid}", handlers.VmDelete)
+	s.servemux.HandleFunc("GET /vms/{uuid}/runstate", handlers.VmGetRunstate)
+	s.servemux.HandleFunc("POST /vms/{uuid}/runstate/start", handlers.VmStart)
+	s.servemux.HandleFunc("DELETE /vms/{uuid}/runstate/start", handlers.VmShutdown)
+	s.servemux.HandleFunc("POST /vms/{uuid}/runstate/pause", handlers.VmPause)
+	s.servemux.HandleFunc("DELETE /vms/{uuid}/runstate/pause", handlers.VmUnpause)
+	s.servemux.HandleFunc("POST /vms/{uuid}/runstate/migrate", handlers.VmMigrate)
+	s.servemux.HandleFunc("GET /vms/{uuid}/runstate/migrate", handlers.VmGetMigrateInfo)
+	s.servemux.HandleFunc("DELETE /vms/{uuid}/runstate/migrate", handlers.VmMigrateCancel)
+
+	s.servemux.HandleFunc("GET /hosts", handlers.HostList)
+	s.servemux.HandleFunc("GET /hosts/{uuid}", handlers.HostGet) // XXX not in API yet XXX
+	s.servemux.HandleFunc("GET /cluster", handlers.ClusterGet)
+	return &s
+}
+
+func (s *Service) Shutdown(ctx context.Context) error {
+	return s.server.Shutdown(ctx)
+}
+
+func (s *Service) Close() error {
+	return s.server.Close()
 }
 
 /* get a host from the list and return whether present */
@@ -207,7 +235,7 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (s *Service) StartListening() {
 	go func() {
-		var err error = s.ListenAndServe()
+		var err error = s.server.ListenAndServe()
 		if (err != nil && errors.Is(err, http.ErrServerClosed)) {
 			logger.Log(err.Error())
 		} else {
