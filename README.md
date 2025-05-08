@@ -32,3 +32,5 @@ export GODEBUG="httpmuxgo121=0"
 
 seems necessary before starting virtxd, otherwise the old pre-1.22 go behavior is triggered,
 and no API handler works. Arg.
+
+Adding to the go.mod a section that seems to fix it, hopefully this will work.
