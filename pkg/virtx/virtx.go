@@ -44,9 +44,11 @@ type Service struct {
 	vmstats VmStats
 }
 
+var service Service
+
 func New() *Service {
 	var servemux *http.ServeMux = http.NewServeMux()
-	s := Service{
+	service = Service{
 		servemux: servemux,
 		server: http.Server{
 			Addr: ":8080",
@@ -57,24 +59,24 @@ func New() *Service {
 		hosts:     make(Hosts),
 		vmstats:   make(VmStats),
 	}
-	s.servemux.HandleFunc("POST /vms", VmCreate)
-	s.servemux.HandleFunc("GET /vms", VmList)
-	s.servemux.HandleFunc("PUT /vms/{uuid}", VmUpdate)
-	s.servemux.HandleFunc("GET /vms/{uuid}", VmGet)
-	s.servemux.HandleFunc("DELETE /vms/{uuid}", VmDelete)
-	s.servemux.HandleFunc("GET /vms/{uuid}/runstate", VmGetRunstate)
-	s.servemux.HandleFunc("POST /vms/{uuid}/runstate/start", VmStart)
-	s.servemux.HandleFunc("DELETE /vms/{uuid}/runstate/start", VmShutdown)
-	s.servemux.HandleFunc("POST /vms/{uuid}/runstate/pause", VmPause)
-	s.servemux.HandleFunc("DELETE /vms/{uuid}/runstate/pause", VmUnpause)
-	s.servemux.HandleFunc("POST /vms/{uuid}/runstate/migrate", VmMigrate)
-	s.servemux.HandleFunc("GET /vms/{uuid}/runstate/migrate", VmGetMigrateInfo)
-	s.servemux.HandleFunc("DELETE /vms/{uuid}/runstate/migrate", VmMigrateCancel)
+	service.servemux.HandleFunc("POST /vms", VmCreate)
+	service.servemux.HandleFunc("GET /vms", VmList)
+	service.servemux.HandleFunc("PUT /vms/{uuid}", VmUpdate)
+	service.servemux.HandleFunc("GET /vms/{uuid}", VmGet)
+	service.servemux.HandleFunc("DELETE /vms/{uuid}", VmDelete)
+	service.servemux.HandleFunc("GET /vms/{uuid}/runstate", VmGetRunstate)
+	service.servemux.HandleFunc("POST /vms/{uuid}/runstate/start", VmStart)
+	service.servemux.HandleFunc("DELETE /vms/{uuid}/runstate/start", VmShutdown)
+	service.servemux.HandleFunc("POST /vms/{uuid}/runstate/pause", VmPause)
+	service.servemux.HandleFunc("DELETE /vms/{uuid}/runstate/pause", VmUnpause)
+	service.servemux.HandleFunc("POST /vms/{uuid}/runstate/migrate", VmMigrate)
+	service.servemux.HandleFunc("GET /vms/{uuid}/runstate/migrate", VmGetMigrateInfo)
+	service.servemux.HandleFunc("DELETE /vms/{uuid}/runstate/migrate", VmMigrateCancel)
 
-	s.servemux.HandleFunc("GET /hosts", HostList)
-	s.servemux.HandleFunc("GET /hosts/{uuid}", HostGet) // XXX not in API yet XXX
-	s.servemux.HandleFunc("GET /cluster", ClusterGet)
-	return &s
+	service.servemux.HandleFunc("GET /hosts", HostList)
+	service.servemux.HandleFunc("GET /hosts/{uuid}", HostGet) // XXX not in API yet XXX
+	service.servemux.HandleFunc("GET /cluster", ClusterGet)
+	return &service
 }
 
 func (s *Service) Shutdown(ctx context.Context) error {

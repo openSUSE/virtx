@@ -49,6 +49,8 @@ type VmStat struct {
 	Uuid string                 /* VM Uuid */
 	Name string                 /* VM Name */
 	Runinfo openapi.Vmruninfo   /* host running the VM and VM runstate */
+	Vlanid int16                /* XXX need requirements engineering for Vlans XXX */
+	Custom []openapi.CustomField
 
 	Cpus int16                  /* Total number of vcpus for the domain from libvirt.DomainInfo */
 	CpuTime uint64              /* Total cpu time consumed in nanoseconds from libvirt.DomainCPUStats.CpuTime */
@@ -416,6 +418,11 @@ type xmlInterface struct {
 		Dev string `xml:"dev,attr"`
 	} `xml:"target"`
 	/* Type string `xml:"type,attr"` */
+	Vlan struct {
+		Tags [] struct {
+			Id int `xml:"id,attr"`
+		} `xml:"tag"`
+	} `xml:"vlan"`
 }
 
 type xmlDomain struct {
@@ -497,6 +504,9 @@ func getDomainStats(d *libvirt.Domain, vm *VmStat) error {
 				if (netstat.TxBytesSet) {
 					vm.NetTx += netstat.TxBytes
 				}
+			}
+			if (len(net.Vlan.Tags) > 0) {
+				vm.Vlanid = int16(net.Vlan.Tags[0].Id) /* XXX only one VlandID for each VM is recognized XXX */
 			}
 		}
 	}
