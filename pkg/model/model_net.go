@@ -23,7 +23,7 @@ var _ MappedNullable = &Net{}
 // Net struct for Net
 type Net struct {
 	Name string `json:"name"`
-	NetType *NetType `json:"net_type,omitempty"`
+	NetType NetType `json:"net_type"`
 	Model NetModel `json:"model"`
 	Mac string `json:"mac"`
 }
@@ -34,9 +34,10 @@ type _Net Net
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewNet(name string, model NetModel, mac string) *Net {
+func NewNet(name string, netType NetType, model NetModel, mac string) *Net {
 	this := Net{}
 	this.Name = name
+	this.NetType = netType
 	this.Model = model
 	this.Mac = mac
 	return &this
@@ -74,36 +75,28 @@ func (o *Net) SetName(v string) {
 	o.Name = v
 }
 
-// GetNetType returns the NetType field value if set, zero value otherwise.
+// GetNetType returns the NetType field value
 func (o *Net) GetNetType() NetType {
-	if o == nil || IsNil(o.NetType) {
+	if o == nil {
 		var ret NetType
 		return ret
 	}
-	return *o.NetType
+
+	return o.NetType
 }
 
-// GetNetTypeOk returns a tuple with the NetType field value if set, nil otherwise
+// GetNetTypeOk returns a tuple with the NetType field value
 // and a boolean to check if the value has been set.
 func (o *Net) GetNetTypeOk() (*NetType, bool) {
-	if o == nil || IsNil(o.NetType) {
+	if o == nil {
 		return nil, false
 	}
-	return o.NetType, true
+	return &o.NetType, true
 }
 
-// HasNetType returns a boolean if a field has been set.
-func (o *Net) HasNetType() bool {
-	if o != nil && !IsNil(o.NetType) {
-		return true
-	}
-
-	return false
-}
-
-// SetNetType gets a reference to the given NetType and assigns it to the NetType field.
+// SetNetType sets field value
 func (o *Net) SetNetType(v NetType) {
-	o.NetType = &v
+	o.NetType = v
 }
 
 // GetModel returns the Model field value
@@ -165,9 +158,7 @@ func (o Net) MarshalJSON() ([]byte, error) {
 func (o Net) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["name"] = o.Name
-	if !IsNil(o.NetType) {
-		toSerialize["net_type"] = o.NetType
-	}
+	toSerialize["net_type"] = o.NetType
 	toSerialize["model"] = o.Model
 	toSerialize["mac"] = o.Mac
 	return toSerialize, nil
@@ -179,6 +170,7 @@ func (o *Net) UnmarshalJSON(data []byte) (err error) {
 	// that every required field exists as a key in the generic map.
 	requiredProperties := []string{
 		"name",
+		"net_type",
 		"model",
 		"mac",
 	}
