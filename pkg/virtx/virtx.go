@@ -89,7 +89,7 @@ func (s *Service) Close() error {
 }
 
 /* get a host from the list and return whether present */
-func (s *Service) GetHost(uuid string) (openapi.Host, error) {
+func (s *Service) Get_host(uuid string) (openapi.Host, error) {
 	s.m.RLock()
 	defer s.m.RUnlock()
 	var (
@@ -105,14 +105,14 @@ func (s *Service) GetHost(uuid string) (openapi.Host, error) {
 	return host, nil
 }
 
-func (s *Service) UpdateHost(host *openapi.Host) error {
+func (s *Service) Update_host(host *openapi.Host) error {
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	return s.updateHost(host)
+	return s.update_host(host)
 }
 
-func (s *Service) updateHost(host *openapi.Host) error {
+func (s *Service) update_host(host *openapi.Host) error {
 	var (
 		present bool
 		old openapi.Host
@@ -130,14 +130,14 @@ func (s *Service) updateHost(host *openapi.Host) error {
 	return nil
 }
 
-func (s *Service) SetHostState(uuid string, newstate openapi.Hoststate) error {
+func (s *Service) Set_host_state(uuid string, newstate openapi.Hoststate) error {
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	return s.setHostState(uuid, newstate)
+	return s.set_host_state(uuid, newstate)
 }
 
-func (s *Service) setHostState(uuid string, newstate openapi.Hoststate) error {
+func (s *Service) set_host_state(uuid string, newstate openapi.Hoststate) error {
 	host, ok := s.hosts[uuid]
 	if !ok {
 		return fmt.Errorf("no such host %s", uuid)
@@ -147,7 +147,7 @@ func (s *Service) setHostState(uuid string, newstate openapi.Hoststate) error {
 	return nil
 }
 
-func (s *Service) UpdateVmState(e *hypervisor.VmEvent) error {
+func (s *Service) Update_vm_state(e *hypervisor.VmEvent) error {
 	s.m.Lock()
 	defer s.m.Unlock()
 	vmstat, ok := s.vmstats[e.Uuid]
@@ -159,14 +159,14 @@ func (s *Service) UpdateVmState(e *hypervisor.VmEvent) error {
 	return nil
 }
 
-func (s *Service) UpdateVm(vmstat *hypervisor.VmStat) error {
+func (s *Service) Update_vm(vmstat *hypervisor.VmStat) error {
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	return s.updateVm(vmstat)
+	return s.update_vm(vmstat)
 }
 
-func (s *Service) updateVm(vmstat *hypervisor.VmStat) error {
+func (s *Service) update_vm(vmstat *hypervisor.VmStat) error {
 	if (s.vmstats == nil) {
 		s.vmstats = make(map[string]hypervisor.VmStat)
 	}
@@ -213,29 +213,7 @@ func (s *Service) updateVm(vmstat *hypervisor.VmStat) error {
 	return nil
 }
 
-// ServeHTTP implements net/http.Handler
-func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s.m.RLock()
-	defer s.m.RUnlock()
-
-	w.Header().Set("Content-Type", "text/plain")
-	var (
-		lines string
-		hi openapi.Host
-		vm hypervisor.VmStat
-	)
-	for _, hi = range s.hosts {
-		var line string = fmt.Sprintf("HOST %+v\n", hi)
-		lines += line
-		for _, vm = range s.vmstats {
-			var line string = fmt.Sprintf("VM %+v\n", vm)
-			lines += line
-		}
-	}
-	http.Error(w, lines, http.StatusNotImplemented)
-}
-
-func (s *Service) StartListening() {
+func (s *Service) Start_listening() {
 	go func() {
 		var err error = s.server.ListenAndServe()
 		if (err != nil && errors.Is(err, http.ErrServerClosed)) {

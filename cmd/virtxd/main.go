@@ -71,13 +71,13 @@ func main() {
 	/*
      * start listening for outgoing VMEvents and SystemInfo and incoming serf events.
 	 */
-	serfcomm.StartListening(
+	serfcomm.Start_listening(
 		hv.GetVmEventCh(), vmEventShutdownCh,
 		hv.GetSystemInfoCh(), systemInfoShutdownCh,
 		serfShutdownCh, service)
 
 	/* create server subroutine to listen for API requests */
-	service.StartListening()
+	service.Start_listening()
 
 	/* prepare atexit function to shutdown service */
 	defer func() {

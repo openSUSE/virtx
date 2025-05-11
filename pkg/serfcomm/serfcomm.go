@@ -30,68 +30,68 @@ import (
 )
 
 const (
-	labelHostInfo string = "HI"
-	labelVmStat string = "VS"
-	labelVmEvent string = "VE"
-	maxMessageSize uint = 1024
+	label_host_info string = "HI"
+	label_vm_stat string = "VS"
+	label_vm_event string = "VE"
+	max_message_size uint = 1024
 )
 
 var serf = struct {
-	c       *client.RPCClient
-	encBuffer [maxMessageSize]byte
-	encMux    sync.Mutex
+	c *client.RPCClient
+	enc_buffer [max_message_size]byte
+	enc_mux sync.Mutex
 	channel chan map[string]interface{}
-	stream  client.StreamHandle
+	stream client.StreamHandle
 }{}
 
-func sendHostInfo(hostInfo *openapi.Host) error {
-	serf.encMux.Lock()
-	defer serf.encMux.Unlock()
+func send_host_info(host_info *openapi.Host) error {
+	serf.enc_mux.Lock()
+	defer serf.enc_mux.Unlock()
 	var (
 		eventsize int
 		err error
 	)
-	eventsize, err = sbinary.Encode(serf.encBuffer[:], binary.LittleEndian, hostInfo)
+	eventsize, err = sbinary.Encode(serf.enc_buffer[:], binary.LittleEndian, host_info)
 	if (err != nil) {
 		return err
 	}
-	logger.Log("sendHostInfo payload len=%d\n", eventsize)
-	return serf.c.UserEvent(labelHostInfo, serf.encBuffer[:eventsize], false)
+	logger.Log("send_host_info payload len=%d\n", eventsize)
+	return serf.c.UserEvent(label_host_info, serf.enc_buffer[:eventsize], false)
 }
 
-func sendVmStat(VmStat *hypervisor.VmStat) error {
-	serf.encMux.Lock()
-	defer serf.encMux.Unlock()
+func send_vm_stat(VmStat *hypervisor.VmStat) error {
+	serf.enc_mux.Lock()
+	defer serf.enc_mux.Unlock()
 	var (
 		eventsize int
 		err error
 	)
-	eventsize, err = sbinary.Encode(serf.encBuffer[:], binary.LittleEndian, VmStat)
+	eventsize, err = sbinary.Encode(serf.enc_buffer[:], binary.LittleEndian, VmStat)
 	if (err != nil) {
 		return err
 	}
-	logger.Log("sendVmStat payload len=%d\n", eventsize)
-	return serf.c.UserEvent(labelVmStat, serf.encBuffer[:eventsize], false)
+	logger.Log("send_vm_stat payload len=%d\n", eventsize)
+	return serf.c.UserEvent(label_vm_stat, serf.enc_buffer[:eventsize], false)
 }
 
-func sendVmEvent(e *hypervisor.VmEvent) error {
-	serf.encMux.Lock()
-	defer serf.encMux.Unlock()
+func send_vm_event(e *hypervisor.VmEvent) error {
+	serf.enc_mux.Lock()
+	defer serf.enc_mux.Unlock()
 	var (
 		eventsize int
 		err error
 	)
-	eventsize, err = sbinary.Encode(serf.encBuffer[:], binary.LittleEndian, e)
+	eventsize, err = sbinary.Encode(serf.enc_buffer[:], binary.LittleEndian, e)
 	if (err != nil) {
 		return err
 	}
-	logger.Log("sendVmEvent payload len=%d\n", eventsize)
-	return serf.c.UserEvent(labelVmEvent, serf.encBuffer[:eventsize], false)
+	logger.Log("send_vm_event payload len=%d\n", eventsize)
+	return serf.c.UserEvent(label_vm_event, serf.enc_buffer[:eventsize], false)
 }
 
-func recvSerfEvents(
+func recv_serf_events(
 	s *virtx.Service,
-	shutdownCh chan<- struct{},
+	shutdown_ch chan<- struct{},
 ) {
 	var err error
 	logger.Log("RecvSerfEvents loop start...")
@@ -111,7 +111,7 @@ func recvSerfEvents(
 					continue
 				}
 				logger.Log("Host %s OFFLINE", uuid)
-				err = s.SetHostState(uuid, newstate)
+				err = s.Set_host_state(uuid, newstate)
 				if (err != nil) {
 					logger.Log(err.Error())
 				}
@@ -126,7 +126,7 @@ func recvSerfEvents(
 		payload := e["Payload"].([]byte)
 
 		switch (name) {
-		case labelHostInfo:
+		case label_host_info:
 			var (
 				hi openapi.Host
 				size int
@@ -136,12 +136,12 @@ func recvSerfEvents(
 				logger.Log("Decode %s: ERR '%s' at offset %d", name, err.Error(), size)
 			} else {
 				logger.Log("Decode %s: OK  %d %s %s", name, hi.Ts, hi.Uuid, hi.Def.Name)
-				err = s.UpdateHost(&hi)
+				err = s.Update_host(&hi)
 				if (err != nil) {
 					logger.Log(err.Error())
 				}
 			}
-		case labelVmEvent:
+		case label_vm_event:
 			var (
 				ve hypervisor.VmEvent
 				size int
@@ -151,12 +151,12 @@ func recvSerfEvents(
 				logger.Log("Decode %s: ERR '%s' at offset %d", name, err.Error(), size)
 			} else {
 				logger.Log("Decode %s: OK  %d %s %s", name, ve.Ts, ve.Uuid, ve.State)
-				err = s.UpdateVmState(&ve)
+				err = s.Update_vm_state(&ve)
 				if (err != nil) {
 					logger.Log(err.Error())
 				}
 			}
-		case labelVmStat:
+		case label_vm_stat:
 			var (
 				vm hypervisor.VmStat
 				size int
@@ -166,7 +166,7 @@ func recvSerfEvents(
 				logger.Log("Decode %s: ERR '%s' at offset %d", name, err.Error(), size)
 			} else {
 				logger.Log("Decode %s: OK  %d %s %s %d", name, vm.Ts, vm.Uuid, vm.Name, vm.Runinfo.Runstate)
-				err = s.UpdateVm(&vm)
+				err = s.Update_vm(&vm)
 				if (err != nil) {
 					logger.Log(err.Error())
 				}
@@ -176,50 +176,50 @@ func recvSerfEvents(
 		}
 	}
 	logger.Log("RecvSerfEvents loop exit!")
-	close(shutdownCh)
+	close(shutdown_ch)
 }
 
-func sendSystemInfo(ch <-chan hypervisor.SystemInfo, shutdownCh chan<- struct{}) {
+func send_system_info(ch <-chan hypervisor.SystemInfo, shutdown_ch chan<- struct{}) {
 	var (
 		err error
 		si hypervisor.SystemInfo
 	)
 	logger.Log("SendSystemInfo loop start...")
 	for si = range ch {
-		err = updateTags(&si.Host)
+		err = update_tags(&si.Host)
 		if (err != nil) {
 			logger.Log(err.Error())
 		}
-		err = sendHostInfo(&si.Host)
+		err = send_host_info(&si.Host)
 		if (err != nil) {
 			logger.Log(err.Error())
 		}
 		for _, vmstat := range si.VmStats {
-			err = sendVmStat(&vmstat)
+			err = send_vm_stat(&vmstat)
 			if (err != nil) {
 				logger.Log(err.Error())
 			}
 		}
 	}
 	logger.Log("SendSystemInfo loop exit!")
-	close(shutdownCh)
+	close(shutdown_ch)
 }
 
-func sendVmEvents(
+func send_vm_events(
 	eventCh <-chan hypervisor.VmEvent,
-	shutdownCh chan<- struct{},
+	shutdown_ch chan<- struct{},
 ) {
 	logger.Log("SendVmEvents loop start...")
 	for e := range eventCh {
-		if err := sendVmEvent(&e); err != nil {
+		if err := send_vm_event(&e); err != nil {
 			logger.Log(err.Error())
 		}
 	}
 	logger.Log("SendVmEvents loop exit!")
-	close(shutdownCh)
+	close(shutdown_ch)
 }
 
-func updateTags(host *openapi.Host) error {
+func update_tags(host *openapi.Host) error {
 	var err error
 	addTags := map[string]string { host.Uuid: "" }
 	removeTags := []string {}
@@ -241,15 +241,15 @@ func Init(rpcAddr string) error {
 	return nil
 }
 
-func StartListening(
-	vmEventCh chan hypervisor.VmEvent, vmEventShutdownCh chan struct{},
-	systemInfoCh chan hypervisor.SystemInfo, systemInfoShutdownCh chan struct{},
-	serfShutdownCh chan struct{},
+func Start_listening(
+	vm_event_ch chan hypervisor.VmEvent, vm_event_shutdown_ch chan struct{},
+	system_info_ch chan hypervisor.SystemInfo, system_info_shutdown_ch chan struct{},
+	serf_shutdown_ch chan struct{},
 	service *virtx.Service) {
 	/* create subroutines to send and process events */
-	go sendVmEvents(vmEventCh, vmEventShutdownCh)
-	go sendSystemInfo(systemInfoCh, systemInfoShutdownCh)
-	go recvSerfEvents(service, serfShutdownCh)
+	go send_vm_events(vm_event_ch, vm_event_shutdown_ch)
+	go send_system_info(system_info_ch, system_info_shutdown_ch)
+	go recv_serf_events(service, serf_shutdown_ch)
 }
 
 func Shutdown() {
