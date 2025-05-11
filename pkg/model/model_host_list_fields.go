@@ -27,7 +27,7 @@ type HostListFields struct {
 	Cpudef Cpudef `json:"cpudef"`
 	Hoststate Hoststate `json:"hoststate"`
 	// memory available for running new VMs in MiB
-	MemoryAvailableVms int32 `json:"memory_available_vms"`
+	Memoryavailable int32 `json:"memoryavailable"`
 }
 
 type _HostListFields HostListFields
@@ -36,7 +36,7 @@ type _HostListFields HostListFields
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewHostListFields(name string, cpuarch Cpuarch, cpudef Cpudef, hoststate Hoststate, memoryAvailableVms int32) *HostListFields {
+func NewHostListFields(name string, cpuarch Cpuarch, cpudef Cpudef, hoststate Hoststate, memoryavailable int32) *HostListFields {
 	this := HostListFields{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
@@ -46,7 +46,7 @@ func NewHostListFields(name string, cpuarch Cpuarch, cpudef Cpudef, hoststate Ho
 	this.Cpuarch = cpuarch
 	this.Cpudef = cpudef
 	this.Hoststate = hoststate
-	this.MemoryAvailableVms = memoryAvailableVms
+	this.Memoryavailable = memoryavailable
 	return &this
 }
 
@@ -154,28 +154,28 @@ func (o *HostListFields) SetHoststate(v Hoststate) {
 	o.Hoststate = v
 }
 
-// GetMemoryAvailableVms returns the MemoryAvailableVms field value
-func (o *HostListFields) GetMemoryAvailableVms() int32 {
+// GetMemoryavailable returns the Memoryavailable field value
+func (o *HostListFields) GetMemoryavailable() int32 {
 	if o == nil {
 		var ret int32
 		return ret
 	}
 
-	return o.MemoryAvailableVms
+	return o.Memoryavailable
 }
 
-// GetMemoryAvailableVmsOk returns a tuple with the MemoryAvailableVms field value
+// GetMemoryavailableOk returns a tuple with the Memoryavailable field value
 // and a boolean to check if the value has been set.
-func (o *HostListFields) GetMemoryAvailableVmsOk() (*int32, bool) {
+func (o *HostListFields) GetMemoryavailableOk() (*int32, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.MemoryAvailableVms, true
+	return &o.Memoryavailable, true
 }
 
-// SetMemoryAvailableVms sets field value
-func (o *HostListFields) SetMemoryAvailableVms(v int32) {
-	o.MemoryAvailableVms = v
+// SetMemoryavailable sets field value
+func (o *HostListFields) SetMemoryavailable(v int32) {
+	o.Memoryavailable = v
 }
 
 func (o HostListFields) ToMap() (map[string]interface{}, error) {
@@ -184,7 +184,7 @@ func (o HostListFields) ToMap() (map[string]interface{}, error) {
 	toSerialize["cpuarch"] = o.Cpuarch
 	toSerialize["cpudef"] = o.Cpudef
 	toSerialize["hoststate"] = o.Hoststate
-	toSerialize["memory_available_vms"] = o.MemoryAvailableVms
+	toSerialize["memoryavailable"] = o.Memoryavailable
 	return toSerialize, nil
 }
 

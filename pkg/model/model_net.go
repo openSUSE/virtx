@@ -23,7 +23,7 @@ var _ MappedNullable = &Net{}
 // Net struct for Net
 type Net struct {
 	Name string `json:"name"`
-	NetType NetType `json:"net_type"`
+	Nettype NetType `json:"nettype"`
 	Model NetModel `json:"model"`
 	Mac string `json:"mac"`
 }
@@ -34,14 +34,14 @@ type _Net Net
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewNet(name string, netType NetType, model NetModel, mac string) *Net {
+func NewNet(name string, nettype NetType, model NetModel, mac string) *Net {
 	this := Net{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
     var _ = bytes.NewBuffer
 
 	this.Name = name
-	this.NetType = netType
+	this.Nettype = nettype
 	this.Model = model
 	this.Mac = mac
 	return &this
@@ -79,28 +79,28 @@ func (o *Net) SetName(v string) {
 	o.Name = v
 }
 
-// GetNetType returns the NetType field value
-func (o *Net) GetNetType() NetType {
+// GetNettype returns the Nettype field value
+func (o *Net) GetNettype() NetType {
 	if o == nil {
 		var ret NetType
 		return ret
 	}
 
-	return o.NetType
+	return o.Nettype
 }
 
-// GetNetTypeOk returns a tuple with the NetType field value
+// GetNettypeOk returns a tuple with the Nettype field value
 // and a boolean to check if the value has been set.
-func (o *Net) GetNetTypeOk() (*NetType, bool) {
+func (o *Net) GetNettypeOk() (*NetType, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.NetType, true
+	return &o.Nettype, true
 }
 
-// SetNetType sets field value
-func (o *Net) SetNetType(v NetType) {
-	o.NetType = v
+// SetNettype sets field value
+func (o *Net) SetNettype(v NetType) {
+	o.Nettype = v
 }
 
 // GetModel returns the Model field value
@@ -154,7 +154,7 @@ func (o *Net) SetMac(v string) {
 func (o Net) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["name"] = o.Name
-	toSerialize["net_type"] = o.NetType
+	toSerialize["nettype"] = o.Nettype
 	toSerialize["model"] = o.Model
 	toSerialize["mac"] = o.Mac
 	return toSerialize, nil

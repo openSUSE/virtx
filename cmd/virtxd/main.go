@@ -50,7 +50,7 @@ func main() {
 	service = virtx.New()
 
 	/* start listening for VMEvents (directly forwarded), and SystemInfo (to be sent every 15 seconds) */
-	err = hv.StartListening(15)
+	err = hv.Start_listening(15)
 	if (err != nil) {
 		logger.Fatal(err.Error())
 	}

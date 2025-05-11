@@ -23,7 +23,7 @@ var _ MappedNullable = &VmDeleteOptions{}
 // VmDeleteOptions struct for VmDeleteOptions
 type VmDeleteOptions struct {
 	// if true, delete also the associated storage (disks)
-	DeleteStorage bool `json:"delete_storage"`
+	Deletestorage bool `json:"deletestorage"`
 }
 
 type _VmDeleteOptions VmDeleteOptions
@@ -32,13 +32,13 @@ type _VmDeleteOptions VmDeleteOptions
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVmDeleteOptions(deleteStorage bool) *VmDeleteOptions {
+func NewVmDeleteOptions(deletestorage bool) *VmDeleteOptions {
 	this := VmDeleteOptions{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
     var _ = bytes.NewBuffer
 
-	this.DeleteStorage = deleteStorage
+	this.Deletestorage = deletestorage
 	return &this
 }
 
@@ -50,33 +50,33 @@ func NewVmDeleteOptionsWithDefaults() *VmDeleteOptions {
 	return &this
 }
 
-// GetDeleteStorage returns the DeleteStorage field value
-func (o *VmDeleteOptions) GetDeleteStorage() bool {
+// GetDeletestorage returns the Deletestorage field value
+func (o *VmDeleteOptions) GetDeletestorage() bool {
 	if o == nil {
 		var ret bool
 		return ret
 	}
 
-	return o.DeleteStorage
+	return o.Deletestorage
 }
 
-// GetDeleteStorageOk returns a tuple with the DeleteStorage field value
+// GetDeletestorageOk returns a tuple with the Deletestorage field value
 // and a boolean to check if the value has been set.
-func (o *VmDeleteOptions) GetDeleteStorageOk() (*bool, bool) {
+func (o *VmDeleteOptions) GetDeletestorageOk() (*bool, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.DeleteStorage, true
+	return &o.Deletestorage, true
 }
 
-// SetDeleteStorage sets field value
-func (o *VmDeleteOptions) SetDeleteStorage(v bool) {
-	o.DeleteStorage = v
+// SetDeletestorage sets field value
+func (o *VmDeleteOptions) SetDeletestorage(v bool) {
+	o.Deletestorage = v
 }
 
 func (o VmDeleteOptions) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
-	toSerialize["delete_storage"] = o.DeleteStorage
+	toSerialize["deletestorage"] = o.Deletestorage
 	return toSerialize, nil
 }
 

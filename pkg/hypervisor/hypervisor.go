@@ -30,9 +30,7 @@ import (
 )
 
 const (
-	QEMUSystemURI = "qemu:///system"
-
-	DomainUndefined = -1
+	libvirt_uri = "qemu:///system"
 )
 
 type VmEvent struct {
@@ -53,41 +51,41 @@ type VmStat struct {
 	Custom []openapi.CustomField
 
 	Cpus int16                  /* Total number of vcpus for the domain from libvirt.DomainInfo */
-	CpuTime uint64              /* Total cpu time consumed in nanoseconds from libvirt.DomainCPUStats.CpuTime */
-	CpuUtilization int16        /* % of total cpu resources used */
+	Cpu_time uint64             /* Total cpu time consumed in nanoseconds from libvirt.DomainCPUStats.CpuTime */
+	Cpu_utilization int16       /* % of total cpu resources used */
 
-	MemoryCapacity uint64       /* Memory assigned to VM in MiB from virDomainInfo->memory / 1024 */
-	MemoryUsed uint64           /* Memory in MiB of the QEMU RSS process, VIR_DOMAIN_MEMORY_STAT_RSS / 1024 */
+	Memory_capacity uint64       /* Memory assigned to VM in MiB from virDomainInfo->memory / 1024 */
+	Memory_used uint64           /* Memory in MiB of the QEMU RSS process, VIR_DOMAIN_MEMORY_STAT_RSS / 1024 */
 
-	DiskCapacity uint64         /* Disk Total virtual capacity (MiB) from virDomainBlockInfo->capacity / MiB*/
-	DiskAllocation uint64       /* Disk Allocated on host (MiB) from Info->allocation / MiB */
-	DiskPhysical uint64         /* Disk Physical on host (MiB) from Info->physical, including metadata */
+	Disk_capacity uint64         /* Disk Total virtual capacity (MiB) from virDomainBlockInfo->capacity / MiB*/
+	Disk_allocation uint64       /* Disk Allocated on host (MiB) from Info->allocation / MiB */
+	Disk_physical uint64         /* Disk Physical on host (MiB) from Info->physical, including metadata */
 
-	NetRx int64                 /* Net Rx bytes */
-	NetTx int64                 /* Net Tx bytes */
-	NetRxBW int32               /* Net Rx KiB/s */
-	NetTxBW int32               /* Net Tx KiB/s */
+	Net_rx int64                 /* Net Rx bytes */
+	Net_tx int64                 /* Net Tx bytes */
+	Net_rx_bw int32              /* Net Rx KiB/s */
+	Net_tx_bw int32              /* Net Tx KiB/s */
 
 	Ts int64
 }
 
 type SystemInfo struct {
 	Host openapi.Host
-	VmStats []VmStat
+	Vm_stats []VmStat
 }
 
 type Hypervisor struct {
 	conn *libvirt.Connect
-	callbackID int
-	vmEventCh chan VmEvent
-	systemInfoCh chan SystemInfo
+	callback_id int
+	vm_event_ch chan VmEvent
+	system_info_ch chan SystemInfo
 }
 
 /*
  * Create a Hypervisor type instance,
  * connect to libvirt and return the instance.
  *
- * vmEventCh is the channel used to communicate VmEvent from the callback
+ * vm_event_ch is the channel used to communicate VmEvent from the callback
  * returned by virConnectDomainEventRegisterAny
  *
  * https://libvirt.org/html/libvirt-libvirt-domain.html#virConnectDomainEventRegisterAny
@@ -95,21 +93,21 @@ type Hypervisor struct {
  * Note that only one callback is registered for all Domain Events.
  */
 func New() (*Hypervisor, error) {
-	conn, err := libvirt.NewConnect(QEMUSystemURI)
+	conn, err := libvirt.NewConnect(libvirt_uri)
 	if (err != nil) {
 		return nil, err
 	}
 	var hv *Hypervisor = new(Hypervisor)
 	hv.conn = conn
-	hv.vmEventCh = nil
-	hv.systemInfoCh = nil
-	hv.callbackID = -1
+	hv.vm_event_ch = nil
+	hv.system_info_ch = nil
+	hv.callback_id = -1
 	return hv, nil
 }
 
 func (hv *Hypervisor) Shutdown() {
 	logger.Log("Deregistering event handlers")
-	hv.StopListening()
+	hv.Stop_listening()
 	logger.Log("Closing libvirt connection")
 	_, err := hv.conn.Close();
 	if (err != nil) {
@@ -118,13 +116,13 @@ func (hv *Hypervisor) Shutdown() {
 }
 
 /* get basic information about a Domain */
-func getDomainInfo(d *libvirt.Domain) (string, string, openapi.Vmrunstate, error) {
+func get_domain_info(d *libvirt.Domain) (string, string, openapi.Vmrunstate, error) {
 	var (
 		name string
 		uuid string
 		reason int
 		state libvirt.DomainState
-		enumState openapi.Vmrunstate
+		enum_state openapi.Vmrunstate
 		err error
 	)
 	name, err = d.GetName()
@@ -139,52 +137,52 @@ func getDomainInfo(d *libvirt.Domain) (string, string, openapi.Vmrunstate, error
 	if (err != nil) {
 		goto out
 	}
-	logger.Log("getDomainInfo: state %d, reason %d", state, reason)
+	logger.Log("get_domain_info: state %d, reason %d", state, reason)
 	switch (state) {
 	//case libvirt.DOMAIN_NOSTATE: /* ?XXX? */
 	case libvirt.DOMAIN_RUNNING:
 		fallthrough
 	case libvirt.DOMAIN_BLOCKED: /* ?XXX? */
-		enumState = openapi.RUNSTATE_RUNNING
+		enum_state = openapi.RUNSTATE_RUNNING
 	case libvirt.DOMAIN_PAUSED:
 		switch (reason) {
 		case int(libvirt.DOMAIN_PAUSED_MIGRATION): /* paused for offline migration */
-			enumState = openapi.RUNSTATE_MIGRATING
+			enum_state = openapi.RUNSTATE_MIGRATING
 		case int(libvirt.DOMAIN_PAUSED_SHUTTING_DOWN):
-			enumState = openapi.RUNSTATE_TERMINATING
+			enum_state = openapi.RUNSTATE_TERMINATING
 		case int(libvirt.DOMAIN_PAUSED_CRASHED):
-			enumState = openapi.RUNSTATE_CRASHED
+			enum_state = openapi.RUNSTATE_CRASHED
 		case int(libvirt.DOMAIN_PAUSED_STARTING_UP):
-			enumState = openapi.RUNSTATE_STARTUP
+			enum_state = openapi.RUNSTATE_STARTUP
 		default:
-			enumState = openapi.RUNSTATE_PAUSED
+			enum_state = openapi.RUNSTATE_PAUSED
 		}
 	case libvirt.DOMAIN_SHUTDOWN:
-		enumState = openapi.RUNSTATE_TERMINATING
+		enum_state = openapi.RUNSTATE_TERMINATING
 	case libvirt.DOMAIN_SHUTOFF:
 		switch (reason) {
 		case int(libvirt.DOMAIN_SHUTOFF_CRASHED):
-			enumState = openapi.RUNSTATE_CRASHED
+			enum_state = openapi.RUNSTATE_CRASHED
 		case int(libvirt.DOMAIN_SHUTOFF_MIGRATED):
 			/* XXX what to do when domain goes away from this host? XXX */
 		default:
-			enumState = openapi.RUNSTATE_POWEROFF
+			enum_state = openapi.RUNSTATE_POWEROFF
 		}
 	case libvirt.DOMAIN_CRASHED:
-		enumState = openapi.RUNSTATE_CRASHED
+		enum_state = openapi.RUNSTATE_CRASHED
 	case libvirt.DOMAIN_PMSUSPENDED:
-		enumState = openapi.RUNSTATE_PMSUSPENDED
+		enum_state = openapi.RUNSTATE_PMSUSPENDED
 	default:
 		logger.Log("Unhandled state %d, reason %d", state, reason)
 	}
 out:
-	return name, uuid, enumState, err
+	return name, uuid, enum_state, err
 }
 
 /*
- * Regularly fetch all system information (host info and vms info), and send it via systemInfoCh.
+ * Regularly fetch all system information (host info and vms info), and send it via system_info_ch.
  */
-func (hv *Hypervisor) systemInfoLoop(seconds int) error {
+func (hv *Hypervisor) system_info_loop(seconds int) error {
 	var (
 		si SystemInfo
 		err error
@@ -193,37 +191,37 @@ func (hv *Hypervisor) systemInfoLoop(seconds int) error {
 	ticker = time.NewTicker(time.Duration(seconds) * time.Second)
 	defer ticker.Stop()
 
-	err = hv.getSystemInfo(&si)
+	err = hv.get_system_info(&si)
 	if (err != nil) {
 		logger.Log(err.Error())
 	} else {
-		hv.systemInfoCh <- si
+		hv.system_info_ch <- si
 	}
 	for range ticker.C {
-		err = hv.getSystemInfo(&si)
+		err = hv.get_system_info(&si)
 		if (err != nil) {
 			logger.Log(err.Error())
 			continue
 		}
-		hv.systemInfoCh <- si
+		hv.system_info_ch <- si
 	}
-	logger.Log("systemInfoLoop Exiting!")
+	logger.Log("system_info_loop Exiting!")
 	return nil
 }
 
 /*
  * Start listening for domain events and collecting system information.
- * Sets the callbackID, vmEventCh and systemInfoCh fields of the Hypervisor struct.
+ * Sets the callback_id, vm_event_ch and system_info_ch fields of the Hypervisor struct.
  * Collects system information every "seconds" seconds.
  */
-func (hv *Hypervisor) StartListening(seconds int) error {
+func (hv *Hypervisor) Start_listening(seconds int) error {
 	lifecycleCb := func(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventLifecycle) {
 		var (
 			name, uuid string
 			state openapi.Vmrunstate
 			err error
 		)
-		name, uuid, state, err = getDomainInfo(d)
+		name, uuid, state, err = get_domain_info(d)
 		if (err != nil) {
 			if e.Event == libvirt.DOMAIN_EVENT_UNDEFINED {
 				/* XXX handle this XXX */
@@ -232,34 +230,34 @@ func (hv *Hypervisor) StartListening(seconds int) error {
 			}
 		}
 		logger.Log("[VmEvent] %s/%s: %v state: %d", name, uuid, e, state)
-		hv.vmEventCh <- VmEvent{ Uuid: uuid, State: state, Ts: time.Now().UTC().UnixMilli() }
+		hv.vm_event_ch <- VmEvent{ Uuid: uuid, State: state, Ts: time.Now().UTC().UnixMilli() }
 	}
 	var err error
-	hv.vmEventCh = make(chan VmEvent, 64)
-	hv.systemInfoCh = make(chan SystemInfo, 64)
-	hv.callbackID, err = hv.conn.DomainEventLifecycleRegister(nil, lifecycleCb)
+	hv.vm_event_ch = make(chan VmEvent, 64)
+	hv.system_info_ch = make(chan SystemInfo, 64)
+	hv.callback_id, err = hv.conn.DomainEventLifecycleRegister(nil, lifecycleCb)
 	if (err != nil) {
 		return err
 	}
-	go hv.systemInfoLoop(seconds)
+	go hv.system_info_loop(seconds)
 	return nil
 }
 
-func (hv *Hypervisor) StopListening() {
-	if (hv.callbackID < 0) {
+func (hv *Hypervisor) Stop_listening() {
+	if (hv.callback_id < 0) {
 		/* already stopped */
 		logger.Log("StopListening(): already stopped.")
 		return
 	}
-	logger.Log("StopListening(): deregister libvirt CallbackId: %d", hv.callbackID)
-	var err error = hv.conn.DomainEventDeregister(hv.callbackID)
+	logger.Log("StopListening(): deregister libvirt CallbackId: %d", hv.callback_id)
+	var err error = hv.conn.DomainEventDeregister(hv.callback_id)
 	if (err != nil) {
 		logger.Log(err.Error())
 	}
-	close(hv.vmEventCh)
-	close(hv.systemInfoCh)
-	hv.vmEventCh = nil /* assume runtime will garbage collect */
-	hv.callbackID = -1
+	close(hv.vm_event_ch)
+	close(hv.system_info_ch)
+	hv.vm_event_ch = nil /* assume runtime will garbage collect */
+	hv.callback_id = -1
 }
 
 /* Calculate and return HostInfo and VMInfo for this host we are running on */
@@ -277,7 +275,7 @@ type xmlEntry struct {
 	Value string `xml:",chardata"`
 }
 
-func (hv *Hypervisor) getSystemInfo(si *SystemInfo) error {
+func (hv *Hypervisor) get_system_info(si *SystemInfo) error {
 	var (
 		host openapi.Host
 		vmstats []VmStat
@@ -293,10 +291,10 @@ func (hv *Hypervisor) getSystemInfo(si *SystemInfo) error {
 		d libvirt.Domain
 	)
 	var (
-		freeMemory uint64
-		totalMemoryCapacity uint64
-		totalMemoryUsed uint64
-		totalCpus uint32
+		free_memory uint64
+		total_memory_capacity uint64
+		total_memory_used uint64
+		total_cpus uint32
 	)
 
 	/* 1. set the general host information */
@@ -324,7 +322,7 @@ func (hv *Hypervisor) getSystemInfo(si *SystemInfo) error {
 	host.Def.Cpudef.Sockets = int16(info.Sockets)
 	host.Def.Cpudef.Cores = int16(info.Cores)
 	host.Def.Cpudef.Threads = int16(info.Threads)
-	host.Def.TscFreq = int64(caps.Host.CPU.Counter.Frequency)
+	host.Def.Tscfreq = int64(caps.Host.CPU.Counter.Frequency)
 	xmldata, err = hv.conn.GetSysinfo(0)
 	if (err != nil) {
 		goto out
@@ -337,9 +335,9 @@ func (hv *Hypervisor) getSystemInfo(si *SystemInfo) error {
 	for _, e := range smbios.BIOS.Entries {
 		switch e.Name {
 		case "version":
-			host.Def.SysinfoBios.Version = e.Value
+			host.Def.Sysinfo.Version = e.Value
 		case "date":
-			host.Def.SysinfoBios.Date = e.Value
+			host.Def.Sysinfo.Date = e.Value
 		}
 	}
 	host.State = openapi.HOST_ACTIVE
@@ -361,48 +359,48 @@ func (hv *Hypervisor) getSystemInfo(si *SystemInfo) error {
 		var (
 			vm VmStat
 		)
-		vm.Name, vm.Uuid, vm.Runinfo.Runstate, err = getDomainInfo(&d)
+		vm.Name, vm.Uuid, vm.Runinfo.Runstate, err = get_domain_info(&d)
 		if (err != nil) {
-			logger.Log("could not getDomainInfo: %s", err.Error())
+			logger.Log("could not get_domain_info: %s", err.Error())
 			continue
 		}
 		err = getDomainStats(&d, &vm)
 		vm.Runinfo.Host = host.Uuid
-		totalMemoryCapacity += vm.MemoryCapacity
-		totalMemoryUsed += vm.MemoryUsed
-		totalCpus += uint32(vm.Cpus) /* XXX maybe we should use Topology and exclude threads? XXX */
+		total_memory_capacity += vm.Memory_capacity
+		total_memory_used += vm.Memory_used
+		total_cpus += uint32(vm.Cpus) /* XXX maybe we should use Topology and exclude threads? XXX */
 		//cpuPercent := float64(delta) / (15.0 * float64(cpus) * 1e9) * 100.0
 		vm.Ts = ts
 		vmstats = append(vmstats, vm)
 	}
 	/* now calculate host resources */
 	host.Resources.Memory.Total = int32(info.Memory / KiB) /* info returns memory in KiB, translate to MiB */
-	freeMemory, err = hv.conn.GetFreeMemory()
+	free_memory, err = hv.conn.GetFreeMemory()
 	if (err != nil) {
 		goto out
 	}
 	/* XXX no overcommit is currently implemented XXX */
-	host.Resources.Memory.Free = int32(freeMemory / MiB) /* this returns in bytes, translate to MiB */
+	host.Resources.Memory.Free = int32(free_memory / MiB) /* this returns in bytes, translate to MiB */
 	host.Resources.Memory.Used = host.Resources.Memory.Total - host.Resources.Memory.Free
-	host.Resources.Memory.ReservedOs = 0  /* XXX need to implement XXX */
-	host.Resources.Memory.ReservedVms = int32(totalMemoryCapacity)
-	host.Resources.Memory.UsedVms = int32(totalMemoryUsed)
-	host.Resources.Memory.AvailableVms = host.Resources.Memory.Total -
-		host.Resources.Memory.ReservedOs - host.Resources.Memory.ReservedVms
+	host.Resources.Memory.Reservedos = 0  /* XXX need to implement XXX */
+	host.Resources.Memory.Reservedvms = int32(total_memory_capacity)
+	host.Resources.Memory.Usedvms = int32(total_memory_used)
+	host.Resources.Memory.Availablevms = host.Resources.Memory.Total -
+		host.Resources.Memory.Reservedos - host.Resources.Memory.Reservedvms
 
 	/* like VMWare, we calculate the total Mhz as (total_cores * frequency) (excluding threads) */
 	/* XXX no overcommit is currently implemented XXX */
 	host.Resources.Cpu.Total = int32(uint(info.Nodes * info.Sockets * info.Cores) * info.MHz)
 	host.Resources.Cpu.Used = 0 /* XXX */
 	host.Resources.Cpu.Free = host.Resources.Cpu.Total - host.Resources.Cpu.Used
-	host.Resources.Cpu.ReservedOs = 0  /* XXX */
-	host.Resources.Cpu.ReservedVms = int32(totalCpus * uint32(info.MHz))
-	host.Resources.Cpu.UsedVms = 0 /* XXX */
-	host.Resources.Cpu.AvailableVms = host.Resources.Cpu.Free - host.Resources.Cpu.ReservedVms
+	host.Resources.Cpu.Reservedos = 0  /* XXX */
+	host.Resources.Cpu.Reservedvms = int32(total_cpus * uint32(info.MHz))
+	host.Resources.Cpu.Usedvms = 0 /* XXX */
+	host.Resources.Cpu.Availablevms = host.Resources.Cpu.Free - host.Resources.Cpu.Reservedvms
 
 out:
 	si.Host = host
-	si.VmStats = vmstats
+	si.Vm_stats = vmstats
 	return err
 }
 
@@ -441,7 +439,7 @@ func getDomainStats(d *libvirt.Domain, vm *VmStat) error {
 		if (err != nil) {
 			return err
 		}
-		Vm.CpuTime = cpustat[0].CpuTime
+		Vm.Cpu_time = cpustat[0].CpuTime
 	}
 	*/
 	{
@@ -452,15 +450,15 @@ func getDomainStats(d *libvirt.Domain, vm *VmStat) error {
 			return err
 		}
 		vm.Cpus = int16(info.NrVirtCpu)
-		vm.CpuTime = info.CpuTime
-		vm.MemoryCapacity = info.Memory / KiB /* convert from KiB to MiB */
+		vm.Cpu_time = info.CpuTime
+		vm.Memory_capacity = info.Memory / KiB /* convert from KiB to MiB */
 		memstat, err = d.MemoryStats(20, 0)
 		if (err != nil) {
 			return err
 		}
 		for _, stat := range memstat {
 			if (libvirt.DomainMemoryStatTags(stat.Tag) == libvirt.DOMAIN_MEMORY_STAT_RSS) {
-				vm.MemoryUsed = stat.Val / KiB /* convert from KiB to MiB */
+				vm.Memory_used = stat.Val / KiB /* convert from KiB to MiB */
 				break
 			}
 		}
@@ -486,9 +484,9 @@ func getDomainStats(d *libvirt.Domain, vm *VmStat) error {
 				if (err != nil) {
 					return err
 				}
-				vm.DiskCapacity += blockinfo.Capacity / MiB
-				vm.DiskAllocation += blockinfo.Allocation / MiB
-				vm.DiskPhysical += blockinfo.Physical / MiB
+				vm.Disk_capacity += blockinfo.Capacity / MiB
+				vm.Disk_allocation += blockinfo.Allocation / MiB
+				vm.Disk_physical += blockinfo.Physical / MiB
 			}
 		}
 		for _, net := range xd.Devices.Interfaces {
@@ -499,10 +497,10 @@ func getDomainStats(d *libvirt.Domain, vm *VmStat) error {
 					return err
 				}
 				if (netstat.RxBytesSet) {
-					vm.NetRx += netstat.RxBytes
+					vm.Net_rx += netstat.RxBytes
 				}
 				if (netstat.TxBytesSet) {
-					vm.NetTx += netstat.TxBytes
+					vm.Net_tx += netstat.TxBytes
 				}
 			}
 			if (len(net.Vlan.Tags) > 0) {
@@ -515,12 +513,12 @@ func getDomainStats(d *libvirt.Domain, vm *VmStat) error {
 
 /* Return the libvirt domain Events Channel */
 func (hv *Hypervisor)GetVmEventCh() (chan VmEvent) {
-	return hv.vmEventCh
+	return hv.vm_event_ch
 }
 
 /* Return the systemInfo Events Channel */
 func (hv *Hypervisor)GetSystemInfoCh() (chan SystemInfo) {
-	return hv.systemInfoCh
+	return hv.system_info_ch
 }
 
 func freeDomains(doms []libvirt.Domain) {

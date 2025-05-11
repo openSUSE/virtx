@@ -194,7 +194,7 @@ func send_system_info(ch <-chan hypervisor.SystemInfo, shutdown_ch chan<- struct
 		if (err != nil) {
 			logger.Log(err.Error())
 		}
-		for _, vmstat := range si.VmStats {
+		for _, vmstat := range si.Vm_stats {
 			err = send_vm_stat(&vmstat)
 			if (err != nil) {
 				logger.Log(err.Error())

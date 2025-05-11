@@ -17,23 +17,23 @@ import (
 	"fmt"
 )
 
-// checks if the HostdefSysinfoBios type satisfies the MappedNullable interface at compile time
-var _ MappedNullable = &HostdefSysinfoBios{}
+// checks if the HostdefSysinfo type satisfies the MappedNullable interface at compile time
+var _ MappedNullable = &HostdefSysinfo{}
 
-// HostdefSysinfoBios struct for HostdefSysinfoBios
-type HostdefSysinfoBios struct {
+// HostdefSysinfo struct for HostdefSysinfo
+type HostdefSysinfo struct {
 	Version string `json:"version"`
 	Date string `json:"date"`
 }
 
-type _HostdefSysinfoBios HostdefSysinfoBios
+type _HostdefSysinfo HostdefSysinfo
 
-// NewHostdefSysinfoBios instantiates a new HostdefSysinfoBios object
+// NewHostdefSysinfo instantiates a new HostdefSysinfo object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewHostdefSysinfoBios(version string, date string) *HostdefSysinfoBios {
-	this := HostdefSysinfoBios{}
+func NewHostdefSysinfo(version string, date string) *HostdefSysinfo {
+	this := HostdefSysinfo{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
     var _ = bytes.NewBuffer
@@ -43,16 +43,16 @@ func NewHostdefSysinfoBios(version string, date string) *HostdefSysinfoBios {
 	return &this
 }
 
-// NewHostdefSysinfoBiosWithDefaults instantiates a new HostdefSysinfoBios object
+// NewHostdefSysinfoWithDefaults instantiates a new HostdefSysinfo object
 // This constructor will only assign default values to properties that have it defined,
 // but it doesn't guarantee that properties required by API are set
-func NewHostdefSysinfoBiosWithDefaults() *HostdefSysinfoBios {
-	this := HostdefSysinfoBios{}
+func NewHostdefSysinfoWithDefaults() *HostdefSysinfo {
+	this := HostdefSysinfo{}
 	return &this
 }
 
 // GetVersion returns the Version field value
-func (o *HostdefSysinfoBios) GetVersion() string {
+func (o *HostdefSysinfo) GetVersion() string {
 	if o == nil {
 		var ret string
 		return ret
@@ -63,7 +63,7 @@ func (o *HostdefSysinfoBios) GetVersion() string {
 
 // GetVersionOk returns a tuple with the Version field value
 // and a boolean to check if the value has been set.
-func (o *HostdefSysinfoBios) GetVersionOk() (*string, bool) {
+func (o *HostdefSysinfo) GetVersionOk() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -71,12 +71,12 @@ func (o *HostdefSysinfoBios) GetVersionOk() (*string, bool) {
 }
 
 // SetVersion sets field value
-func (o *HostdefSysinfoBios) SetVersion(v string) {
+func (o *HostdefSysinfo) SetVersion(v string) {
 	o.Version = v
 }
 
 // GetDate returns the Date field value
-func (o *HostdefSysinfoBios) GetDate() string {
+func (o *HostdefSysinfo) GetDate() string {
 	if o == nil {
 		var ret string
 		return ret
@@ -87,7 +87,7 @@ func (o *HostdefSysinfoBios) GetDate() string {
 
 // GetDateOk returns a tuple with the Date field value
 // and a boolean to check if the value has been set.
-func (o *HostdefSysinfoBios) GetDateOk() (*string, bool) {
+func (o *HostdefSysinfo) GetDateOk() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -95,49 +95,49 @@ func (o *HostdefSysinfoBios) GetDateOk() (*string, bool) {
 }
 
 // SetDate sets field value
-func (o *HostdefSysinfoBios) SetDate(v string) {
+func (o *HostdefSysinfo) SetDate(v string) {
 	o.Date = v
 }
 
-func (o HostdefSysinfoBios) ToMap() (map[string]interface{}, error) {
+func (o HostdefSysinfo) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["version"] = o.Version
 	toSerialize["date"] = o.Date
 	return toSerialize, nil
 }
 
-type NullableHostdefSysinfoBios struct {
-	value *HostdefSysinfoBios
+type NullableHostdefSysinfo struct {
+	value *HostdefSysinfo
 	isSet bool
 }
 
-func (v NullableHostdefSysinfoBios) Get() *HostdefSysinfoBios {
+func (v NullableHostdefSysinfo) Get() *HostdefSysinfo {
 	return v.value
 }
 
-func (v *NullableHostdefSysinfoBios) Set(val *HostdefSysinfoBios) {
+func (v *NullableHostdefSysinfo) Set(val *HostdefSysinfo) {
 	v.value = val
 	v.isSet = true
 }
 
-func (v NullableHostdefSysinfoBios) IsSet() bool {
+func (v NullableHostdefSysinfo) IsSet() bool {
 	return v.isSet
 }
 
-func (v *NullableHostdefSysinfoBios) Unset() {
+func (v *NullableHostdefSysinfo) Unset() {
 	v.value = nil
 	v.isSet = false
 }
 
-func NewNullableHostdefSysinfoBios(val *HostdefSysinfoBios) *NullableHostdefSysinfoBios {
-	return &NullableHostdefSysinfoBios{value: val, isSet: true}
+func NewNullableHostdefSysinfo(val *HostdefSysinfo) *NullableHostdefSysinfo {
+	return &NullableHostdefSysinfo{value: val, isSet: true}
 }
 
-func (v NullableHostdefSysinfoBios) MarshalJSON() ([]byte, error) {
+func (v NullableHostdefSysinfo) MarshalJSON() ([]byte, error) {
 	return json.Marshal(v.value)
 }
 
-func (v *NullableHostdefSysinfoBios) UnmarshalJSON(src []byte) error {
+func (v *NullableHostdefSysinfo) UnmarshalJSON(src []byte) error {
 	v.isSet = true
 	return json.Unmarshal(src, &v.value)
 }

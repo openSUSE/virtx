@@ -25,7 +25,7 @@ type Disk struct {
 	Path string `json:"path"`
 	Device DiskDevice `json:"device"`
 	Bus DiskBus `json:"bus"`
-	CreateMode DiskCreateMode `json:"create_mode"`
+	Createmode DiskCreateMode `json:"createmode"`
 	// size in MiB (use 0 for DISK_NOCREATE)
 	Size int32 `json:"size"`
 }
@@ -36,7 +36,7 @@ type _Disk Disk
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewDisk(path string, device DiskDevice, bus DiskBus, createMode DiskCreateMode, size int32) *Disk {
+func NewDisk(path string, device DiskDevice, bus DiskBus, createmode DiskCreateMode, size int32) *Disk {
 	this := Disk{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
@@ -45,7 +45,7 @@ func NewDisk(path string, device DiskDevice, bus DiskBus, createMode DiskCreateM
 	this.Path = path
 	this.Device = device
 	this.Bus = bus
-	this.CreateMode = createMode
+	this.Createmode = createmode
 	this.Size = size
 	return &this
 }
@@ -130,28 +130,28 @@ func (o *Disk) SetBus(v DiskBus) {
 	o.Bus = v
 }
 
-// GetCreateMode returns the CreateMode field value
-func (o *Disk) GetCreateMode() DiskCreateMode {
+// GetCreatemode returns the Createmode field value
+func (o *Disk) GetCreatemode() DiskCreateMode {
 	if o == nil {
 		var ret DiskCreateMode
 		return ret
 	}
 
-	return o.CreateMode
+	return o.Createmode
 }
 
-// GetCreateModeOk returns a tuple with the CreateMode field value
+// GetCreatemodeOk returns a tuple with the Createmode field value
 // and a boolean to check if the value has been set.
-func (o *Disk) GetCreateModeOk() (*DiskCreateMode, bool) {
+func (o *Disk) GetCreatemodeOk() (*DiskCreateMode, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.CreateMode, true
+	return &o.Createmode, true
 }
 
-// SetCreateMode sets field value
-func (o *Disk) SetCreateMode(v DiskCreateMode) {
-	o.CreateMode = v
+// SetCreatemode sets field value
+func (o *Disk) SetCreatemode(v DiskCreateMode) {
+	o.Createmode = v
 }
 
 // GetSize returns the Size field value
@@ -183,7 +183,7 @@ func (o Disk) ToMap() (map[string]interface{}, error) {
 	toSerialize["path"] = o.Path
 	toSerialize["device"] = o.Device
 	toSerialize["bus"] = o.Bus
-	toSerialize["create_mode"] = o.CreateMode
+	toSerialize["createmode"] = o.Createmode
 	toSerialize["size"] = o.Size
 	return toSerialize, nil
 }

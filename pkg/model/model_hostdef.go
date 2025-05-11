@@ -26,8 +26,8 @@ type Hostdef struct {
 	Cpuarch Cpuarch `json:"cpuarch"`
 	Cpudef Cpudef `json:"cpudef"`
 	// TSC frequency in Hz
-	TscFreq int64 `json:"tsc_freq"`
-	SysinfoBios HostdefSysinfoBios `json:"sysinfo_bios"`
+	Tscfreq int64 `json:"tscfreq"`
+	Sysinfo HostdefSysinfo `json:"sysinfo"`
 }
 
 type _Hostdef Hostdef
@@ -36,7 +36,7 @@ type _Hostdef Hostdef
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewHostdef(name string, cpuarch Cpuarch, cpudef Cpudef, tscFreq int64, sysinfoBios HostdefSysinfoBios) *Hostdef {
+func NewHostdef(name string, cpuarch Cpuarch, cpudef Cpudef, tscfreq int64, sysinfo HostdefSysinfo) *Hostdef {
 	this := Hostdef{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
@@ -45,8 +45,8 @@ func NewHostdef(name string, cpuarch Cpuarch, cpudef Cpudef, tscFreq int64, sysi
 	this.Name = name
 	this.Cpuarch = cpuarch
 	this.Cpudef = cpudef
-	this.TscFreq = tscFreq
-	this.SysinfoBios = sysinfoBios
+	this.Tscfreq = tscfreq
+	this.Sysinfo = sysinfo
 	return &this
 }
 
@@ -130,52 +130,52 @@ func (o *Hostdef) SetCpudef(v Cpudef) {
 	o.Cpudef = v
 }
 
-// GetTscFreq returns the TscFreq field value
-func (o *Hostdef) GetTscFreq() int64 {
+// GetTscfreq returns the Tscfreq field value
+func (o *Hostdef) GetTscfreq() int64 {
 	if o == nil {
 		var ret int64
 		return ret
 	}
 
-	return o.TscFreq
+	return o.Tscfreq
 }
 
-// GetTscFreqOk returns a tuple with the TscFreq field value
+// GetTscfreqOk returns a tuple with the Tscfreq field value
 // and a boolean to check if the value has been set.
-func (o *Hostdef) GetTscFreqOk() (*int64, bool) {
+func (o *Hostdef) GetTscfreqOk() (*int64, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.TscFreq, true
+	return &o.Tscfreq, true
 }
 
-// SetTscFreq sets field value
-func (o *Hostdef) SetTscFreq(v int64) {
-	o.TscFreq = v
+// SetTscfreq sets field value
+func (o *Hostdef) SetTscfreq(v int64) {
+	o.Tscfreq = v
 }
 
-// GetSysinfoBios returns the SysinfoBios field value
-func (o *Hostdef) GetSysinfoBios() HostdefSysinfoBios {
+// GetSysinfo returns the Sysinfo field value
+func (o *Hostdef) GetSysinfo() HostdefSysinfo {
 	if o == nil {
-		var ret HostdefSysinfoBios
+		var ret HostdefSysinfo
 		return ret
 	}
 
-	return o.SysinfoBios
+	return o.Sysinfo
 }
 
-// GetSysinfoBiosOk returns a tuple with the SysinfoBios field value
+// GetSysinfoOk returns a tuple with the Sysinfo field value
 // and a boolean to check if the value has been set.
-func (o *Hostdef) GetSysinfoBiosOk() (*HostdefSysinfoBios, bool) {
+func (o *Hostdef) GetSysinfoOk() (*HostdefSysinfo, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.SysinfoBios, true
+	return &o.Sysinfo, true
 }
 
-// SetSysinfoBios sets field value
-func (o *Hostdef) SetSysinfoBios(v HostdefSysinfoBios) {
-	o.SysinfoBios = v
+// SetSysinfo sets field value
+func (o *Hostdef) SetSysinfo(v HostdefSysinfo) {
+	o.Sysinfo = v
 }
 
 func (o Hostdef) ToMap() (map[string]interface{}, error) {
@@ -183,8 +183,8 @@ func (o Hostdef) ToMap() (map[string]interface{}, error) {
 	toSerialize["name"] = o.Name
 	toSerialize["cpuarch"] = o.Cpuarch
 	toSerialize["cpudef"] = o.Cpudef
-	toSerialize["tsc_freq"] = o.TscFreq
-	toSerialize["sysinfo_bios"] = o.SysinfoBios
+	toSerialize["tscfreq"] = o.Tscfreq
+	toSerialize["sysinfo"] = o.Sysinfo
 	return toSerialize, nil
 }
 
