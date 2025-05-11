@@ -32,7 +32,7 @@ var l struct {
 }
 
 /* called under lock and with the caller string already set */
-func doLog(caller string, format string, args ...interface{}) {
+func do_log(caller string, format string, args ...interface{}) {
 	caller = filepath.Base(caller)
 	caller = strings.TrimSuffix(caller, filepath.Ext(caller))
 
@@ -50,7 +50,7 @@ func Log(format string, args ...interface{}) {
 
 	var caller string
 	_, caller, _, _ = runtime.Caller(1)
-	doLog(caller, format, args...)
+	do_log(caller, format, args...)
 }
 
 func Fatal(format string, args ...interface{}) {
@@ -59,6 +59,6 @@ func Fatal(format string, args ...interface{}) {
 
 	var caller string
 	_, caller, _, _ = runtime.Caller(1)
-	doLog(caller, format, args...)
+	do_log(caller, format, args...)
 	os.Exit(1)
 }
