@@ -16,14 +16,14 @@ func Encode(buf []byte, order binary.ByteOrder, data any) (int, error) {
 	if (v.Kind() == reflect.Ptr && v.IsNil()) {
 		return 0, errors.New("Encode: must pass non-Nil data to encode")
 	}
-	size, err = encodeValue(buf, order, v)
+	size, err = encode_value(buf, order, v)
 	if (err != nil) {
 		return size, err
 	}
 	return size, nil
 }
 
-func encodeStruct(buf []byte, order binary.ByteOrder, val reflect.Value) (int, error) {
+func encode_struct(buf []byte, order binary.ByteOrder, val reflect.Value) (int, error) {
 	var (
 		i, n int
 		field reflect.Value
@@ -40,7 +40,7 @@ func encodeStruct(buf []byte, order binary.ByteOrder, val reflect.Value) (int, e
 			 */
 			continue
 		}
-		n, err = encodeValue(buf[offset:], order, field)
+		n, err = encode_value(buf[offset:], order, field)
 		if (err != nil) {
 			return offset, err
 		}
@@ -49,7 +49,7 @@ func encodeStruct(buf []byte, order binary.ByteOrder, val reflect.Value) (int, e
 	return offset, nil
 }
 
-func encodeBytes(buf []byte, order binary.ByteOrder, data []byte) (int, error) {
+func encode_bytes(buf []byte, order binary.ByteOrder, data []byte) (int, error) {
 	var (
 		n int = len(data)
 		offset int = 0
@@ -64,7 +64,7 @@ func encodeBytes(buf []byte, order binary.ByteOrder, data []byte) (int, error) {
 	return offset, nil
 }
 
-func encodeArray(buf []byte, order binary.ByteOrder, val reflect.Value) (int, error) {
+func encode_array(buf []byte, order binary.ByteOrder, val reflect.Value) (int, error) {
 	var (
 		i, n int = 0, val.Len()
 		off, offset int
@@ -76,7 +76,7 @@ func encodeArray(buf []byte, order binary.ByteOrder, val reflect.Value) (int, er
 	order.PutUint16(buf, uint16(n))
 	offset += 2
 	for i = 0; i < n; i++ {
-		off, err = encodeValue(buf[offset:], order, val.Index(i))
+		off, err = encode_value(buf[offset:], order, val.Index(i))
 		if (err != nil) {
 			return offset, err
 		}
@@ -85,7 +85,7 @@ func encodeArray(buf []byte, order binary.ByteOrder, val reflect.Value) (int, er
 	return offset, nil
 }
 
-func encodeValue(buf []byte, order binary.ByteOrder, val reflect.Value) (int, error) {
+func encode_value(buf []byte, order binary.ByteOrder, val reflect.Value) (int, error) {
 	if (val.Kind() == reflect.Ptr) {
 		if (val.IsNil()) {
 			return 0, errors.New("Pointer: nil pointers are not supported")
@@ -96,16 +96,16 @@ func encodeValue(buf []byte, order binary.ByteOrder, val reflect.Value) (int, er
 	case reflect.Ptr:
 		return 0, errors.New("Pointer: Ptr to Ptr is not supported")
 	case reflect.Struct:
-		return encodeStruct(buf, order, val);
+		return encode_struct(buf, order, val);
 	case reflect.String:
-		return encodeBytes(buf, order, []byte(val.String()));
+		return encode_bytes(buf, order, []byte(val.String()));
 	case reflect.Slice:
 		fallthrough
 	case reflect.Array:
 		if (val.Type().Elem().Kind() == reflect.Uint8) { /* byte slice */
-			return encodeBytes(buf, order, []byte(val.Bytes()))
+			return encode_bytes(buf, order, []byte(val.Bytes()))
 		}
-		return encodeArray(buf, order, val);
+		return encode_array(buf, order, val);
 	case reflect.Uint8:
 		if (len(buf) < 1) {
 			return 0, errors.New("Uint8: buffer too small")
@@ -169,11 +169,11 @@ func Decode(buf []byte, order binary.ByteOrder, data any) (int, error) {
 	if (v.Kind() != reflect.Ptr || v.IsNil()) {
 		return 0, errors.New("Decode: must pass a non-nil pointer")
 	}
-	size, err = decodeValue(buf, order, v)
+	size, err = decode_value(buf, order, v)
 	return size, err
 }
 
-func decodeValue(buf []byte, order binary.ByteOrder, val reflect.Value) (int, error) {
+func decode_value(buf []byte, order binary.ByteOrder, val reflect.Value) (int, error) {
 	if (val.Kind() == reflect.Ptr) {
 		if (val.IsNil()) {
 			return 0, errors.New("Pointer: nil pointer encountered")
@@ -184,14 +184,14 @@ func decodeValue(buf []byte, order binary.ByteOrder, val reflect.Value) (int, er
 	case reflect.Ptr:
 		return 0, errors.New("Pointer: Ptr to Ptr is not supported")
 	case reflect.Struct:
-		return decodeStruct(buf, order, val);
+		return decode_struct(buf, order, val);
 	case reflect.String:
-		return decodeBytes(buf, order, val);
+		return decode_bytes(buf, order, val);
 	case reflect.Slice:
 		fallthrough
 	case reflect.Array:
 		if (val.Type().Elem().Kind() == reflect.Uint8) { /* byte slice */
-			return decodeBytes(buf, order, val);
+			return decode_bytes(buf, order, val);
 		}
 		return decodeArray(buf, order, val);
 	case reflect.Uint8:
@@ -249,7 +249,7 @@ func decodeValue(buf []byte, order binary.ByteOrder, val reflect.Value) (int, er
 
 }
 
-func decodeStruct(buf []byte, order binary.ByteOrder, val reflect.Value) (int, error) {
+func decode_struct(buf []byte, order binary.ByteOrder, val reflect.Value) (int, error) {
 	var (
 		i, n int
 		field reflect.Value
@@ -266,7 +266,7 @@ func decodeStruct(buf []byte, order binary.ByteOrder, val reflect.Value) (int, e
 			 */
 			continue
 		}
-		n, err = decodeValue(buf[offset:], order, field.Addr())
+		n, err = decode_value(buf[offset:], order, field.Addr())
 		if (err != nil) {
 			return offset, err
 		}
@@ -275,7 +275,7 @@ func decodeStruct(buf []byte, order binary.ByteOrder, val reflect.Value) (int, e
 	return offset, nil
 }
 
-func decodeBytes(buf []byte, order binary.ByteOrder, val reflect.Value) (int, error) {
+func decode_bytes(buf []byte, order binary.ByteOrder, val reflect.Value) (int, error) {
 	var (
 		offset int = 0
 		n int
@@ -319,7 +319,7 @@ func decodeArray(buf []byte, order binary.ByteOrder, val reflect.Value) (int, er
 		val.Set(slice)
 	}
 	for i = 0; i < n; i++ {
-		off, err = decodeValue(buf[offset:], order, val.Index(i).Addr())
+		off, err = decode_value(buf[offset:], order, val.Index(i).Addr())
 		if (err != nil) {
 			return offset, err
 		}
