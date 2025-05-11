@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"strings"
 	"bytes"
+	"io"
 
 	"suse.com/virtx/pkg/hypervisor"
 	//	"suse.com/virtx/pkg/logger"
@@ -25,7 +26,7 @@ func VmList(w http.ResponseWriter, r *http.Request) {
 		buf bytes.Buffer
 	)
 	err = json.NewDecoder(r.Body).Decode(&o)
-	if (err != nil) {
+	if (err != nil && err != io.EOF) {
 		http.Error(w, "VmList: Failed to decode JSON in Request Body", http.StatusBadRequest)
 		return
 	}
