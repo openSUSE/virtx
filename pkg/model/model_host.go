@@ -40,6 +40,10 @@ type _Host Host
 // will change when the set of required properties is changed
 func NewHost(uuid string, def Hostdef, state Hoststate, resources Hostresources, ts int64) *Host {
 	this := Host{}
+    // XXX these two lines are here to silence errors about unused imports
+    var _ = fmt.Println
+    var _ = bytes.NewBuffer
+
 	this.Uuid = uuid
 	this.Def = def
 	this.State = state
@@ -176,14 +180,6 @@ func (o *Host) SetTs(v int64) {
 	o.Ts = v
 }
 
-func (o Host) MarshalJSON() ([]byte, error) {
-	toSerialize,err := o.ToMap()
-	if err != nil {
-		return []byte{}, err
-	}
-	return json.Marshal(toSerialize)
-}
-
 func (o Host) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["uuid"] = o.Uuid
@@ -192,47 +188,6 @@ func (o Host) ToMap() (map[string]interface{}, error) {
 	toSerialize["resources"] = o.Resources
 	toSerialize["ts"] = o.Ts
 	return toSerialize, nil
-}
-
-func (o *Host) UnmarshalJSON(data []byte) (err error) {
-	// This validates that all required properties are included in the JSON object
-	// by unmarshalling the object into a generic map with string keys and checking
-	// that every required field exists as a key in the generic map.
-	requiredProperties := []string{
-		"uuid",
-		"def",
-		"state",
-		"resources",
-		"ts",
-	}
-
-	allProperties := make(map[string]interface{})
-
-	err = json.Unmarshal(data, &allProperties)
-
-	if err != nil {
-		return err;
-	}
-
-	for _, requiredProperty := range(requiredProperties) {
-		if _, exists := allProperties[requiredProperty]; !exists {
-			return fmt.Errorf("no value given for required property %v", requiredProperty)
-		}
-	}
-
-	varHost := _Host{}
-
-	decoder := json.NewDecoder(bytes.NewReader(data))
-	decoder.DisallowUnknownFields()
-	err = decoder.Decode(&varHost)
-
-	if err != nil {
-		return err
-	}
-
-	*o = Host(varHost)
-
-	return err
 }
 
 type NullableHost struct {

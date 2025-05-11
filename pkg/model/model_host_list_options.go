@@ -33,6 +33,10 @@ type _HostListOptions HostListOptions
 // will change when the set of required properties is changed
 func NewHostListOptions(filter HostListFields) *HostListOptions {
 	this := HostListOptions{}
+    // XXX these two lines are here to silence errors about unused imports
+    var _ = fmt.Println
+    var _ = bytes.NewBuffer
+
 	this.Filter = filter
 	return &this
 }
@@ -69,55 +73,10 @@ func (o *HostListOptions) SetFilter(v HostListFields) {
 	o.Filter = v
 }
 
-func (o HostListOptions) MarshalJSON() ([]byte, error) {
-	toSerialize,err := o.ToMap()
-	if err != nil {
-		return []byte{}, err
-	}
-	return json.Marshal(toSerialize)
-}
-
 func (o HostListOptions) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["filter"] = o.Filter
 	return toSerialize, nil
-}
-
-func (o *HostListOptions) UnmarshalJSON(data []byte) (err error) {
-	// This validates that all required properties are included in the JSON object
-	// by unmarshalling the object into a generic map with string keys and checking
-	// that every required field exists as a key in the generic map.
-	requiredProperties := []string{
-		"filter",
-	}
-
-	allProperties := make(map[string]interface{})
-
-	err = json.Unmarshal(data, &allProperties)
-
-	if err != nil {
-		return err;
-	}
-
-	for _, requiredProperty := range(requiredProperties) {
-		if _, exists := allProperties[requiredProperty]; !exists {
-			return fmt.Errorf("no value given for required property %v", requiredProperty)
-		}
-	}
-
-	varHostListOptions := _HostListOptions{}
-
-	decoder := json.NewDecoder(bytes.NewReader(data))
-	decoder.DisallowUnknownFields()
-	err = decoder.Decode(&varHostListOptions)
-
-	if err != nil {
-		return err
-	}
-
-	*o = HostListOptions(varHostListOptions)
-
-	return err
 }
 
 type NullableHostListOptions struct {

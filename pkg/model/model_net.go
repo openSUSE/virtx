@@ -36,6 +36,10 @@ type _Net Net
 // will change when the set of required properties is changed
 func NewNet(name string, netType NetType, model NetModel, mac string) *Net {
 	this := Net{}
+    // XXX these two lines are here to silence errors about unused imports
+    var _ = fmt.Println
+    var _ = bytes.NewBuffer
+
 	this.Name = name
 	this.NetType = netType
 	this.Model = model
@@ -147,14 +151,6 @@ func (o *Net) SetMac(v string) {
 	o.Mac = v
 }
 
-func (o Net) MarshalJSON() ([]byte, error) {
-	toSerialize,err := o.ToMap()
-	if err != nil {
-		return []byte{}, err
-	}
-	return json.Marshal(toSerialize)
-}
-
 func (o Net) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["name"] = o.Name
@@ -162,46 +158,6 @@ func (o Net) ToMap() (map[string]interface{}, error) {
 	toSerialize["model"] = o.Model
 	toSerialize["mac"] = o.Mac
 	return toSerialize, nil
-}
-
-func (o *Net) UnmarshalJSON(data []byte) (err error) {
-	// This validates that all required properties are included in the JSON object
-	// by unmarshalling the object into a generic map with string keys and checking
-	// that every required field exists as a key in the generic map.
-	requiredProperties := []string{
-		"name",
-		"net_type",
-		"model",
-		"mac",
-	}
-
-	allProperties := make(map[string]interface{})
-
-	err = json.Unmarshal(data, &allProperties)
-
-	if err != nil {
-		return err;
-	}
-
-	for _, requiredProperty := range(requiredProperties) {
-		if _, exists := allProperties[requiredProperty]; !exists {
-			return fmt.Errorf("no value given for required property %v", requiredProperty)
-		}
-	}
-
-	varNet := _Net{}
-
-	decoder := json.NewDecoder(bytes.NewReader(data))
-	decoder.DisallowUnknownFields()
-	err = decoder.Decode(&varNet)
-
-	if err != nil {
-		return err
-	}
-
-	*o = Net(varNet)
-
-	return err
 }
 
 type NullableNet struct {

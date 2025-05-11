@@ -33,6 +33,10 @@ type _VmCreateOptions VmCreateOptions
 // will change when the set of required properties is changed
 func NewVmCreateOptions(vmdef Vmdef) *VmCreateOptions {
 	this := VmCreateOptions{}
+    // XXX these two lines are here to silence errors about unused imports
+    var _ = fmt.Println
+    var _ = bytes.NewBuffer
+
 	this.Vmdef = vmdef
 	return &this
 }
@@ -69,55 +73,10 @@ func (o *VmCreateOptions) SetVmdef(v Vmdef) {
 	o.Vmdef = v
 }
 
-func (o VmCreateOptions) MarshalJSON() ([]byte, error) {
-	toSerialize,err := o.ToMap()
-	if err != nil {
-		return []byte{}, err
-	}
-	return json.Marshal(toSerialize)
-}
-
 func (o VmCreateOptions) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["vmdef"] = o.Vmdef
 	return toSerialize, nil
-}
-
-func (o *VmCreateOptions) UnmarshalJSON(data []byte) (err error) {
-	// This validates that all required properties are included in the JSON object
-	// by unmarshalling the object into a generic map with string keys and checking
-	// that every required field exists as a key in the generic map.
-	requiredProperties := []string{
-		"vmdef",
-	}
-
-	allProperties := make(map[string]interface{})
-
-	err = json.Unmarshal(data, &allProperties)
-
-	if err != nil {
-		return err;
-	}
-
-	for _, requiredProperty := range(requiredProperties) {
-		if _, exists := allProperties[requiredProperty]; !exists {
-			return fmt.Errorf("no value given for required property %v", requiredProperty)
-		}
-	}
-
-	varVmCreateOptions := _VmCreateOptions{}
-
-	decoder := json.NewDecoder(bytes.NewReader(data))
-	decoder.DisallowUnknownFields()
-	err = decoder.Decode(&varVmCreateOptions)
-
-	if err != nil {
-		return err
-	}
-
-	*o = VmCreateOptions(varVmCreateOptions)
-
-	return err
 }
 
 type NullableVmCreateOptions struct {

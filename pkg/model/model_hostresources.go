@@ -34,6 +34,10 @@ type _Hostresources Hostresources
 // will change when the set of required properties is changed
 func NewHostresources(memory Hostresource, cpu Hostresource) *Hostresources {
 	this := Hostresources{}
+    // XXX these two lines are here to silence errors about unused imports
+    var _ = fmt.Println
+    var _ = bytes.NewBuffer
+
 	this.Memory = memory
 	this.Cpu = cpu
 	return &this
@@ -95,57 +99,11 @@ func (o *Hostresources) SetCpu(v Hostresource) {
 	o.Cpu = v
 }
 
-func (o Hostresources) MarshalJSON() ([]byte, error) {
-	toSerialize,err := o.ToMap()
-	if err != nil {
-		return []byte{}, err
-	}
-	return json.Marshal(toSerialize)
-}
-
 func (o Hostresources) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["memory"] = o.Memory
 	toSerialize["cpu"] = o.Cpu
 	return toSerialize, nil
-}
-
-func (o *Hostresources) UnmarshalJSON(data []byte) (err error) {
-	// This validates that all required properties are included in the JSON object
-	// by unmarshalling the object into a generic map with string keys and checking
-	// that every required field exists as a key in the generic map.
-	requiredProperties := []string{
-		"memory",
-		"cpu",
-	}
-
-	allProperties := make(map[string]interface{})
-
-	err = json.Unmarshal(data, &allProperties)
-
-	if err != nil {
-		return err;
-	}
-
-	for _, requiredProperty := range(requiredProperties) {
-		if _, exists := allProperties[requiredProperty]; !exists {
-			return fmt.Errorf("no value given for required property %v", requiredProperty)
-		}
-	}
-
-	varHostresources := _Hostresources{}
-
-	decoder := json.NewDecoder(bytes.NewReader(data))
-	decoder.DisallowUnknownFields()
-	err = decoder.Decode(&varHostresources)
-
-	if err != nil {
-		return err
-	}
-
-	*o = Hostresources(varHostresources)
-
-	return err
 }
 
 type NullableHostresources struct {

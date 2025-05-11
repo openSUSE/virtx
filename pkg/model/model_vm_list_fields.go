@@ -39,6 +39,10 @@ type _VmListFields VmListFields
 // will change when the set of required properties is changed
 func NewVmListFields(name string, host string, runstate Vmrunstate, vlanid int16, custom CustomField) *VmListFields {
 	this := VmListFields{}
+    // XXX these two lines are here to silence errors about unused imports
+    var _ = fmt.Println
+    var _ = bytes.NewBuffer
+
 	this.Name = name
 	this.Host = host
 	this.Runstate = runstate
@@ -175,14 +179,6 @@ func (o *VmListFields) SetCustom(v CustomField) {
 	o.Custom = v
 }
 
-func (o VmListFields) MarshalJSON() ([]byte, error) {
-	toSerialize,err := o.ToMap()
-	if err != nil {
-		return []byte{}, err
-	}
-	return json.Marshal(toSerialize)
-}
-
 func (o VmListFields) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["name"] = o.Name
@@ -191,47 +187,6 @@ func (o VmListFields) ToMap() (map[string]interface{}, error) {
 	toSerialize["vlanid"] = o.Vlanid
 	toSerialize["custom"] = o.Custom
 	return toSerialize, nil
-}
-
-func (o *VmListFields) UnmarshalJSON(data []byte) (err error) {
-	// This validates that all required properties are included in the JSON object
-	// by unmarshalling the object into a generic map with string keys and checking
-	// that every required field exists as a key in the generic map.
-	requiredProperties := []string{
-		"name",
-		"host",
-		"runstate",
-		"vlanid",
-		"custom",
-	}
-
-	allProperties := make(map[string]interface{})
-
-	err = json.Unmarshal(data, &allProperties)
-
-	if err != nil {
-		return err;
-	}
-
-	for _, requiredProperty := range(requiredProperties) {
-		if _, exists := allProperties[requiredProperty]; !exists {
-			return fmt.Errorf("no value given for required property %v", requiredProperty)
-		}
-	}
-
-	varVmListFields := _VmListFields{}
-
-	decoder := json.NewDecoder(bytes.NewReader(data))
-	decoder.DisallowUnknownFields()
-	err = decoder.Decode(&varVmListFields)
-
-	if err != nil {
-		return err
-	}
-
-	*o = VmListFields(varVmListFields)
-
-	return err
 }
 
 type NullableVmListFields struct {

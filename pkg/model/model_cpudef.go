@@ -42,6 +42,10 @@ type _Cpudef Cpudef
 // will change when the set of required properties is changed
 func NewCpudef(model string, nodes int16, sockets int16, cores int16, threads int16) *Cpudef {
 	this := Cpudef{}
+    // XXX these two lines are here to silence errors about unused imports
+    var _ = fmt.Println
+    var _ = bytes.NewBuffer
+
 	this.Model = model
 	this.Nodes = nodes
 	this.Sockets = sockets
@@ -178,14 +182,6 @@ func (o *Cpudef) SetThreads(v int16) {
 	o.Threads = v
 }
 
-func (o Cpudef) MarshalJSON() ([]byte, error) {
-	toSerialize,err := o.ToMap()
-	if err != nil {
-		return []byte{}, err
-	}
-	return json.Marshal(toSerialize)
-}
-
 func (o Cpudef) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["model"] = o.Model
@@ -194,47 +190,6 @@ func (o Cpudef) ToMap() (map[string]interface{}, error) {
 	toSerialize["cores"] = o.Cores
 	toSerialize["threads"] = o.Threads
 	return toSerialize, nil
-}
-
-func (o *Cpudef) UnmarshalJSON(data []byte) (err error) {
-	// This validates that all required properties are included in the JSON object
-	// by unmarshalling the object into a generic map with string keys and checking
-	// that every required field exists as a key in the generic map.
-	requiredProperties := []string{
-		"model",
-		"nodes",
-		"sockets",
-		"cores",
-		"threads",
-	}
-
-	allProperties := make(map[string]interface{})
-
-	err = json.Unmarshal(data, &allProperties)
-
-	if err != nil {
-		return err;
-	}
-
-	for _, requiredProperty := range(requiredProperties) {
-		if _, exists := allProperties[requiredProperty]; !exists {
-			return fmt.Errorf("no value given for required property %v", requiredProperty)
-		}
-	}
-
-	varCpudef := _Cpudef{}
-
-	decoder := json.NewDecoder(bytes.NewReader(data))
-	decoder.DisallowUnknownFields()
-	err = decoder.Decode(&varCpudef)
-
-	if err != nil {
-		return err
-	}
-
-	*o = Cpudef(varCpudef)
-
-	return err
 }
 
 type NullableCpudef struct {

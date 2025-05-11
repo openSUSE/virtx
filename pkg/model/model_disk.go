@@ -38,6 +38,10 @@ type _Disk Disk
 // will change when the set of required properties is changed
 func NewDisk(path string, device DiskDevice, bus DiskBus, createMode DiskCreateMode, size int32) *Disk {
 	this := Disk{}
+    // XXX these two lines are here to silence errors about unused imports
+    var _ = fmt.Println
+    var _ = bytes.NewBuffer
+
 	this.Path = path
 	this.Device = device
 	this.Bus = bus
@@ -174,14 +178,6 @@ func (o *Disk) SetSize(v int32) {
 	o.Size = v
 }
 
-func (o Disk) MarshalJSON() ([]byte, error) {
-	toSerialize,err := o.ToMap()
-	if err != nil {
-		return []byte{}, err
-	}
-	return json.Marshal(toSerialize)
-}
-
 func (o Disk) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["path"] = o.Path
@@ -190,47 +186,6 @@ func (o Disk) ToMap() (map[string]interface{}, error) {
 	toSerialize["create_mode"] = o.CreateMode
 	toSerialize["size"] = o.Size
 	return toSerialize, nil
-}
-
-func (o *Disk) UnmarshalJSON(data []byte) (err error) {
-	// This validates that all required properties are included in the JSON object
-	// by unmarshalling the object into a generic map with string keys and checking
-	// that every required field exists as a key in the generic map.
-	requiredProperties := []string{
-		"path",
-		"device",
-		"bus",
-		"create_mode",
-		"size",
-	}
-
-	allProperties := make(map[string]interface{})
-
-	err = json.Unmarshal(data, &allProperties)
-
-	if err != nil {
-		return err;
-	}
-
-	for _, requiredProperty := range(requiredProperties) {
-		if _, exists := allProperties[requiredProperty]; !exists {
-			return fmt.Errorf("no value given for required property %v", requiredProperty)
-		}
-	}
-
-	varDisk := _Disk{}
-
-	decoder := json.NewDecoder(bytes.NewReader(data))
-	decoder.DisallowUnknownFields()
-	err = decoder.Decode(&varDisk)
-
-	if err != nil {
-		return err
-	}
-
-	*o = Disk(varDisk)
-
-	return err
 }
 
 type NullableDisk struct {

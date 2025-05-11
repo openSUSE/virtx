@@ -46,6 +46,10 @@ type _Vmdef Vmdef
 // will change when the set of required properties is changed
 func NewVmdef(name string, cpudef Cpudef, memory VmdefMemory, disks []Disk, nets []Net, vlanid int16, firmware FirmwareType, genid string, custom []CustomField) *Vmdef {
 	this := Vmdef{}
+    // XXX these two lines are here to silence errors about unused imports
+    var _ = fmt.Println
+    var _ = bytes.NewBuffer
+
 	this.Name = name
 	this.Cpudef = cpudef
 	this.Memory = memory
@@ -282,14 +286,6 @@ func (o *Vmdef) SetCustom(v []CustomField) {
 	o.Custom = v
 }
 
-func (o Vmdef) MarshalJSON() ([]byte, error) {
-	toSerialize,err := o.ToMap()
-	if err != nil {
-		return []byte{}, err
-	}
-	return json.Marshal(toSerialize)
-}
-
 func (o Vmdef) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["name"] = o.Name
@@ -302,51 +298,6 @@ func (o Vmdef) ToMap() (map[string]interface{}, error) {
 	toSerialize["genid"] = o.Genid
 	toSerialize["custom"] = o.Custom
 	return toSerialize, nil
-}
-
-func (o *Vmdef) UnmarshalJSON(data []byte) (err error) {
-	// This validates that all required properties are included in the JSON object
-	// by unmarshalling the object into a generic map with string keys and checking
-	// that every required field exists as a key in the generic map.
-	requiredProperties := []string{
-		"name",
-		"cpudef",
-		"memory",
-		"disks",
-		"nets",
-		"vlanid",
-		"firmware",
-		"genid",
-		"custom",
-	}
-
-	allProperties := make(map[string]interface{})
-
-	err = json.Unmarshal(data, &allProperties)
-
-	if err != nil {
-		return err;
-	}
-
-	for _, requiredProperty := range(requiredProperties) {
-		if _, exists := allProperties[requiredProperty]; !exists {
-			return fmt.Errorf("no value given for required property %v", requiredProperty)
-		}
-	}
-
-	varVmdef := _Vmdef{}
-
-	decoder := json.NewDecoder(bytes.NewReader(data))
-	decoder.DisallowUnknownFields()
-	err = decoder.Decode(&varVmdef)
-
-	if err != nil {
-		return err
-	}
-
-	*o = Vmdef(varVmdef)
-
-	return err
 }
 
 type NullableVmdef struct {

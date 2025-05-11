@@ -36,6 +36,10 @@ type _Cpuarch Cpuarch
 // will change when the set of required properties is changed
 func NewCpuarch(arch string, vendor string) *Cpuarch {
 	this := Cpuarch{}
+    // XXX these two lines are here to silence errors about unused imports
+    var _ = fmt.Println
+    var _ = bytes.NewBuffer
+
 	this.Arch = arch
 	this.Vendor = vendor
 	return &this
@@ -97,57 +101,11 @@ func (o *Cpuarch) SetVendor(v string) {
 	o.Vendor = v
 }
 
-func (o Cpuarch) MarshalJSON() ([]byte, error) {
-	toSerialize,err := o.ToMap()
-	if err != nil {
-		return []byte{}, err
-	}
-	return json.Marshal(toSerialize)
-}
-
 func (o Cpuarch) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["arch"] = o.Arch
 	toSerialize["vendor"] = o.Vendor
 	return toSerialize, nil
-}
-
-func (o *Cpuarch) UnmarshalJSON(data []byte) (err error) {
-	// This validates that all required properties are included in the JSON object
-	// by unmarshalling the object into a generic map with string keys and checking
-	// that every required field exists as a key in the generic map.
-	requiredProperties := []string{
-		"arch",
-		"vendor",
-	}
-
-	allProperties := make(map[string]interface{})
-
-	err = json.Unmarshal(data, &allProperties)
-
-	if err != nil {
-		return err;
-	}
-
-	for _, requiredProperty := range(requiredProperties) {
-		if _, exists := allProperties[requiredProperty]; !exists {
-			return fmt.Errorf("no value given for required property %v", requiredProperty)
-		}
-	}
-
-	varCpuarch := _Cpuarch{}
-
-	decoder := json.NewDecoder(bytes.NewReader(data))
-	decoder.DisallowUnknownFields()
-	err = decoder.Decode(&varCpuarch)
-
-	if err != nil {
-		return err
-	}
-
-	*o = Cpuarch(varCpuarch)
-
-	return err
 }
 
 type NullableCpuarch struct {

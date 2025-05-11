@@ -46,6 +46,10 @@ type _Hostresource Hostresource
 // will change when the set of required properties is changed
 func NewHostresource(total int32, used int32, free int32, reservedOs int32, reservedVms int32, usedVms int32, availableVms int32) *Hostresource {
 	this := Hostresource{}
+    // XXX these two lines are here to silence errors about unused imports
+    var _ = fmt.Println
+    var _ = bytes.NewBuffer
+
 	this.Total = total
 	this.Used = used
 	this.Free = free
@@ -232,14 +236,6 @@ func (o *Hostresource) SetAvailableVms(v int32) {
 	o.AvailableVms = v
 }
 
-func (o Hostresource) MarshalJSON() ([]byte, error) {
-	toSerialize,err := o.ToMap()
-	if err != nil {
-		return []byte{}, err
-	}
-	return json.Marshal(toSerialize)
-}
-
 func (o Hostresource) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["total"] = o.Total
@@ -250,49 +246,6 @@ func (o Hostresource) ToMap() (map[string]interface{}, error) {
 	toSerialize["used_vms"] = o.UsedVms
 	toSerialize["available_vms"] = o.AvailableVms
 	return toSerialize, nil
-}
-
-func (o *Hostresource) UnmarshalJSON(data []byte) (err error) {
-	// This validates that all required properties are included in the JSON object
-	// by unmarshalling the object into a generic map with string keys and checking
-	// that every required field exists as a key in the generic map.
-	requiredProperties := []string{
-		"total",
-		"used",
-		"free",
-		"reserved_os",
-		"reserved_vms",
-		"used_vms",
-		"available_vms",
-	}
-
-	allProperties := make(map[string]interface{})
-
-	err = json.Unmarshal(data, &allProperties)
-
-	if err != nil {
-		return err;
-	}
-
-	for _, requiredProperty := range(requiredProperties) {
-		if _, exists := allProperties[requiredProperty]; !exists {
-			return fmt.Errorf("no value given for required property %v", requiredProperty)
-		}
-	}
-
-	varHostresource := _Hostresource{}
-
-	decoder := json.NewDecoder(bytes.NewReader(data))
-	decoder.DisallowUnknownFields()
-	err = decoder.Decode(&varHostresource)
-
-	if err != nil {
-		return err
-	}
-
-	*o = Hostresource(varHostresource)
-
-	return err
 }
 
 type NullableHostresource struct {
