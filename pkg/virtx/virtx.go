@@ -88,23 +88,6 @@ func (s *Service) Close() error {
 	return s.server.Close()
 }
 
-/* get a host from the list and return whether present */
-func (s *Service) Get_host(uuid string) (openapi.Host, error) {
-	s.m.RLock()
-	defer s.m.RUnlock()
-	var (
-		host openapi.Host
-		present bool
-		err error
-	)
-	host, present = s.hosts[uuid]
-	if (!present) {
-		err = fmt.Errorf("Service: GetHost(%s): No such host!\n", uuid)
-		return host, err
-	}
-	return host, nil
-}
-
 func (s *Service) Update_host(host *openapi.Host) error {
 	s.m.Lock()
 	defer s.m.Unlock()
