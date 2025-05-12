@@ -72,7 +72,7 @@ vmloop:
 		}
 		vm_list.Items = append(vm_list.Items, item)
 	}
-	err = json.NewEncoder(&buf).Encode(vm_list)
+	err = json.NewEncoder(&buf).Encode(&vm_list)
 	if (err != nil) {
 		http.Error(w, "VmList: Failed to encode JSON", http.StatusInternalServerError)
         return
