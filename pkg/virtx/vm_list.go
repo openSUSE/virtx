@@ -24,7 +24,7 @@ func vm_list(w http.ResponseWriter, r *http.Request) {
 	)
 	err = json.NewDecoder(r.Body).Decode(&o)
 	if (err != nil && err != io.EOF) {
-		http.Error(w, "VmList: Failed to decode JSON in Request Body", http.StatusBadRequest)
+		http.Error(w, "vm_list: Failed to decode JSON in Request Body", http.StatusBadRequest)
 		return
 	}
 
@@ -71,7 +71,7 @@ vmloop:
 	}
 	err = json.NewEncoder(&buf).Encode(&vm_list)
 	if (err != nil) {
-		http.Error(w, "VmList: Failed to encode JSON", http.StatusInternalServerError)
+		http.Error(w, "vm_list: Failed to encode JSON", http.StatusInternalServerError)
         return
     }
 

@@ -23,18 +23,18 @@ func vm_runstate_get(w http.ResponseWriter, r *http.Request) {
 	)
 	uuid = r.PathValue("uuid")
 	if (uuid == "") {
-		http.Error(w, "VmGetRunstate: Failed to decode parameters", http.StatusBadRequest)
+		http.Error(w, "vm_runstate_get: Failed to decode parameters", http.StatusBadRequest)
 		return
 	}
 	vmstat, ok = service.vmstats[uuid]
 	if (!ok) {
-		http.Error(w, "VmGetRunstate: No such VM", http.StatusNotFound)
+		http.Error(w, "vm_runstate_get: No such VM", http.StatusNotFound)
 		return
 	}
 	runinfo = vmstat.Runinfo
 	err = json.NewEncoder(&buf).Encode(&runinfo)
 	if (err != nil) {
-		http.Error(w, "VmGetRunstate: Failed to encode JSON", http.StatusInternalServerError)
+		http.Error(w, "vm_runstate_get: Failed to encode JSON", http.StatusInternalServerError)
         return
     }
 	w.Header().Set("Content-Type", "application/json")
