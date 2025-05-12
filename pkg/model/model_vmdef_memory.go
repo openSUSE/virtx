@@ -24,6 +24,8 @@ var _ MappedNullable = &VmdefMemory{}
 type VmdefMemory struct {
 	// total memory reserved for the guest in MiB
 	Total int32 `json:"total"`
+	// whether hugepages are requested
+	Hp bool `json:"hp"`
 }
 
 type _VmdefMemory VmdefMemory
@@ -32,13 +34,14 @@ type _VmdefMemory VmdefMemory
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVmdefMemory(total int32) *VmdefMemory {
+func NewVmdefMemory(total int32, hp bool) *VmdefMemory {
 	this := VmdefMemory{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
     var _ = bytes.NewBuffer
 
 	this.Total = total
+	this.Hp = hp
 	return &this
 }
 
@@ -74,9 +77,34 @@ func (o *VmdefMemory) SetTotal(v int32) {
 	o.Total = v
 }
 
+// GetHp returns the Hp field value
+func (o *VmdefMemory) GetHp() bool {
+	if o == nil {
+		var ret bool
+		return ret
+	}
+
+	return o.Hp
+}
+
+// GetHpOk returns a tuple with the Hp field value
+// and a boolean to check if the value has been set.
+func (o *VmdefMemory) GetHpOk() (*bool, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Hp, true
+}
+
+// SetHp sets field value
+func (o *VmdefMemory) SetHp(v bool) {
+	o.Hp = v
+}
+
 func (o VmdefMemory) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["total"] = o.Total
+	toSerialize["hp"] = o.Hp
 	return toSerialize, nil
 }
 
