@@ -48,23 +48,23 @@ var service Service
 
 func New() *Service {
 	var servemux *http.ServeMux = http.NewServeMux()
-	servemux.HandleFunc("POST /vms", VmCreate)
-	servemux.HandleFunc("GET /vms", VmList)
-	servemux.HandleFunc("PUT /vms/{uuid}", VmUpdate)
-	servemux.HandleFunc("GET /vms/{uuid}", VmGet)
-	servemux.HandleFunc("DELETE /vms/{uuid}", VmDelete)
-	servemux.HandleFunc("GET /vms/{uuid}/runstate", VmGetRunstate)
-	servemux.HandleFunc("POST /vms/{uuid}/runstate/start", VmStart)
-	servemux.HandleFunc("DELETE /vms/{uuid}/runstate/start", VmShutdown)
-	servemux.HandleFunc("POST /vms/{uuid}/runstate/pause", VmPause)
-	servemux.HandleFunc("DELETE /vms/{uuid}/runstate/pause", VmUnpause)
-	servemux.HandleFunc("POST /vms/{uuid}/runstate/migrate", VmMigrate)
-	servemux.HandleFunc("GET /vms/{uuid}/runstate/migrate", VmGetMigrateInfo)
-	servemux.HandleFunc("DELETE /vms/{uuid}/runstate/migrate", VmMigrateCancel)
+	servemux.HandleFunc("POST /vms", vm_create)
+	servemux.HandleFunc("GET /vms", vm_list)
+	servemux.HandleFunc("PUT /vms/{uuid}", vm_update)
+	servemux.HandleFunc("GET /vms/{uuid}", vm_get)
+	servemux.HandleFunc("DELETE /vms/{uuid}", vm_delete)
+	servemux.HandleFunc("GET /vms/{uuid}/runstate", vm_runstate_get)
+	servemux.HandleFunc("POST /vms/{uuid}/runstate/start", vm_start)
+	servemux.HandleFunc("DELETE /vms/{uuid}/runstate/start", vm_shutdown)
+	servemux.HandleFunc("POST /vms/{uuid}/runstate/pause", vm_pause)
+	servemux.HandleFunc("DELETE /vms/{uuid}/runstate/pause", vm_unpause)
+	servemux.HandleFunc("POST /vms/{uuid}/runstate/migrate", vm_migrate)
+	servemux.HandleFunc("GET /vms/{uuid}/runstate/migrate", vm_migrate_get)
+	servemux.HandleFunc("DELETE /vms/{uuid}/runstate/migrate", vm_migrate_cancel)
 
-	servemux.HandleFunc("GET /hosts", HostList)
-	servemux.HandleFunc("GET /hosts/{uuid}", HostGet) // XXX not in API yet XXX
-	servemux.HandleFunc("GET /cluster", ClusterGet)
+	servemux.HandleFunc("GET /hosts", host_list)
+	servemux.HandleFunc("GET /hosts/{uuid}", host_get) // XXX not in API yet XXX
+	servemux.HandleFunc("GET /cluster", cluster_get)
 
 	service = Service{
 		servemux: servemux,

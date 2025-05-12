@@ -12,10 +12,7 @@ import (
 	"suse.com/virtx/pkg/model"
 )
 
-func VmCreate(w http.ResponseWriter, r *http.Request) {
-}
-
-func VmList(w http.ResponseWriter, r *http.Request) {
+func vm_list(w http.ResponseWriter, r *http.Request) {
 	service.m.RLock()
 	defer service.m.RUnlock()
 	var (
@@ -81,62 +78,4 @@ vmloop:
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(buf.Bytes())
-}
-
-func VmUpdate(w http.ResponseWriter, r *http.Request) {
-}
-func VmGet(w http.ResponseWriter, r *http.Request) {
-}
-func VmDelete(w http.ResponseWriter, r *http.Request) {
-}
-func VmGetRunstate(w http.ResponseWriter, r *http.Request) {
-	service.m.RLock()
-	defer service.m.RUnlock()
-	var (
-		err error
-		ok bool
-		uuid string
-		vmstat hypervisor.VmStat
-		runinfo openapi.Vmruninfo
-		buf bytes.Buffer
-	)
-	uuid = r.PathValue("uuid")
-	if (uuid == "") {
-		http.Error(w, "VmGetRunstate: Failed to decode parameters", http.StatusBadRequest)
-		return
-	}
-	vmstat, ok = service.vmstats[uuid]
-	if (!ok) {
-		http.Error(w, "VmGetRunstate: No such VM", http.StatusNotFound)
-		return
-	}
-	runinfo = vmstat.Runinfo
-	err = json.NewEncoder(&buf).Encode(&runinfo)
-	if (err != nil) {
-		http.Error(w, "VmGetRunstate: Failed to encode JSON", http.StatusInternalServerError)
-        return
-    }
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(buf.Bytes())
-}
-func VmStart(w http.ResponseWriter, r *http.Request) {
-}
-func VmShutdown(w http.ResponseWriter, r *http.Request) {
-}
-func VmPause(w http.ResponseWriter, r *http.Request) {
-}
-func VmUnpause(w http.ResponseWriter, r *http.Request) {
-}
-func VmMigrate(w http.ResponseWriter, r *http.Request) {
-}
-func VmGetMigrateInfo(w http.ResponseWriter, r *http.Request) {
-}
-func VmMigrateCancel(w http.ResponseWriter, r *http.Request) {
-}
-func HostList(w http.ResponseWriter, r *http.Request) {
-}
-func HostGet(w http.ResponseWriter, r *http.Request) {
-}
-func ClusterGet(w http.ResponseWriter, r *http.Request) {
 }
