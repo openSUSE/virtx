@@ -34,3 +34,16 @@ seems necessary before starting virtxd, otherwise the old pre-1.22 go behavior i
 and no API handler works. Arg.
 
 Adding to the go.mod a section that seems to fix it, hopefully this will work.
+
+# CODE STYLE
+
+The "standard" code style for Golang is to have CamelCase everywhere which is a readability
+disaster for me being used to C (and probably one of the worst style choices of Go).
+
+So in most places (function names, variable names, struct fields etc),
+I used instead the convention of using _ as it should be.
+
+The first letter case expresses the visibility of the symbol, which is even more readable this way.
+
+I made an exception for types: type names are CamelCase since code generators use that convention,
+and it would be too cumbersome to do otherwise.
