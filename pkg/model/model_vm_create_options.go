@@ -23,6 +23,8 @@ var _ MappedNullable = &VmCreateOptions{}
 // VmCreateOptions struct for VmCreateOptions
 type VmCreateOptions struct {
 	Vmdef Vmdef `json:"vmdef"`
+	// Unique Identifier for VMs, Hosts, Networks; RFC 4122
+	Host string `json:"host"`
 }
 
 type _VmCreateOptions VmCreateOptions
@@ -31,13 +33,14 @@ type _VmCreateOptions VmCreateOptions
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVmCreateOptions(vmdef Vmdef) *VmCreateOptions {
+func NewVmCreateOptions(vmdef Vmdef, host string) *VmCreateOptions {
 	this := VmCreateOptions{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
     var _ = bytes.NewBuffer
 
 	this.Vmdef = vmdef
+	this.Host = host
 	return &this
 }
 
@@ -73,9 +76,34 @@ func (o *VmCreateOptions) SetVmdef(v Vmdef) {
 	o.Vmdef = v
 }
 
+// GetHost returns the Host field value
+func (o *VmCreateOptions) GetHost() string {
+	if o == nil {
+		var ret string
+		return ret
+	}
+
+	return o.Host
+}
+
+// GetHostOk returns a tuple with the Host field value
+// and a boolean to check if the value has been set.
+func (o *VmCreateOptions) GetHostOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Host, true
+}
+
+// SetHost sets field value
+func (o *VmCreateOptions) SetHost(v string) {
+	o.Host = v
+}
+
 func (o VmCreateOptions) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["vmdef"] = o.Vmdef
+	toSerialize["host"] = o.Host
 	return toSerialize, nil
 }
 
