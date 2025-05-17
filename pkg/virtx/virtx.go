@@ -31,6 +31,17 @@ import (
 	. "suse.com/virtx/pkg/constants"
 )
 
+const (
+	VMS_DIR = "/vms/"
+	VM_NAME_MAX = 32
+	NET_NAME_MAX = 32
+	CPU_NAME_MAX = 32
+	GENID_LEN = 36
+	DISKS_MAX = 20
+	NETS_MAX = 8
+	MAC_LEN = 17
+)
+
 type VmStats map[string]hypervisor.VmStat
 type Hosts map[string]openapi.Host
 

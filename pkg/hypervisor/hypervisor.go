@@ -265,6 +265,28 @@ func (hv *Hypervisor) Stop_listening() {
 	hv.callback_id = -1
 }
 
+func Define_domain(uri string, xml string) (string, error) {
+	var (
+		err error
+		conn *libvirt.Connect
+		domain *libvirt.Domain
+		uuid string
+	)
+	conn, err = libvirt.NewConnect(uri)
+	if (err != nil) {
+		return "", err
+	}
+	domain, err = conn.DomainDefineXML(xml)
+	if (err != nil) {
+		return "", err
+	}
+	uuid, err = domain.GetUUIDString()
+	if (err != nil) {
+		return "", err
+	}
+	return uuid, nil
+}
+
 /* Calculate and return HostInfo and VMInfo for this host we are running on */
 
 type xmlSysInfo struct {
@@ -373,7 +395,7 @@ func (hv *Hypervisor) get_system_info(si *SystemInfo) error {
 		vm.Runinfo.Host = host.Uuid
 		total_memory_capacity += vm.Memory_capacity
 		total_memory_used += vm.Memory_used
-		total_cpus += uint32(vm.Cpus) /* XXX maybe we should use Topology and exclude threads? XXX */
+		total_cpus += uint32(vm.Cpus) /* should be equal to Topology Sockets * Cores, since we do not use threads */
 		//cpuPercent := float64(delta) / (15.0 * float64(cpus) * 1e9) * 100.0
 		vm.Ts = ts
 		vmstats = append(vmstats, vm)
