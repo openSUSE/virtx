@@ -33,6 +33,9 @@ const (
 	libvirt_uri = "qemu:///system"
 )
 
+/* the Uuid of this host */
+var Uuid string
+
 type VmEvent struct {
 	Uuid string
 	State openapi.Vmrunstate
@@ -193,10 +196,12 @@ func (hv *Hypervisor) system_info_loop(seconds int) error {
 
 	err = hv.get_system_info(&si)
 	if (err != nil) {
-		logger.Log(err.Error())
-	} else {
-		hv.system_info_ch <- si
+		logger.Fatal(err.Error())
 	}
+	/* set and remember this host Uuid */
+	Uuid = si.Host.Uuid
+
+	hv.system_info_ch <- si
 	for range ticker.C {
 		err = hv.get_system_info(&si)
 		if (err != nil) {
