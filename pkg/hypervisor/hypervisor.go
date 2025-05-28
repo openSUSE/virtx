@@ -223,7 +223,7 @@ func (hv *Hypervisor) Start_listening(seconds int) error {
 		)
 		name, uuid, state, err = get_domain_info(d)
 		if (err != nil) {
-			if e.Event == libvirt.DOMAIN_EVENT_UNDEFINED {
+			if (e.Event == libvirt.DOMAIN_EVENT_UNDEFINED) {
 				/* XXX handle this XXX */
 			} else {
 				logger.Log(err.Error())
