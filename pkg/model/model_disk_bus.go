@@ -21,7 +21,7 @@ type DiskBus int16
 
 // List of disk_bus
 const (
-	BUS_VIRTIO DiskBus = 0
+	BUS_VIRTIO_BLK DiskBus = 0
 	BUS_VIRTIO_SCSI DiskBus = 1
 	BUS_SATA DiskBus = 2
 	BUS_SCSI DiskBus = 3
