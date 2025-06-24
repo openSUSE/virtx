@@ -345,7 +345,6 @@ func (hv *Hypervisor) get_system_info(si *SystemInfo) error {
 	host.Def.Cpuarch.Arch = caps.Host.CPU.Arch
 	host.Def.Cpuarch.Vendor = caps.Host.CPU.Vendor
 	host.Def.Cpudef.Model = caps.Host.CPU.Model
-	host.Def.Cpudef.Nodes = int16(info.Nodes)
 	host.Def.Cpudef.Sockets = int16(info.Sockets)
 	host.Def.Cpudef.Cores = int16(info.Cores)
 	host.Def.Cpudef.Threads = int16(info.Threads)
@@ -417,7 +416,7 @@ func (hv *Hypervisor) get_system_info(si *SystemInfo) error {
 
 	/* like VMWare, we calculate the total Mhz as (total_cores * frequency) (excluding threads) */
 	/* XXX no overcommit is currently implemented XXX */
-	host.Resources.Cpu.Total = int32(uint(info.Nodes * info.Sockets * info.Cores) * info.MHz)
+	host.Resources.Cpu.Total = int32(uint(info.Sockets * info.Cores) * info.MHz)
 	host.Resources.Cpu.Used = 0 /* XXX */
 	host.Resources.Cpu.Free = host.Resources.Cpu.Total - host.Resources.Cpu.Used
 	host.Resources.Cpu.Reservedos = 0  /* XXX */

@@ -65,6 +65,7 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 		o openapi.VmCreateOptions
 		libvirt_uri string
 		main_disk int
+		host openapi.Host
 	)
 	err = json.NewDecoder(r.Body).Decode(&o)
 	if (err != nil) {
@@ -72,19 +73,24 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if (o.Host != "") {
-		var host openapi.Host
 		host, ok = service.hosts[o.Host]
 		if (!ok) {
 			http.Error(w, "vm_create: could not find host", http.StatusUnprocessableEntity)
 			return
 		}
-		if (host.State != openapi.HOST_ACTIVE) {
-			http.Error(w, "vm_create: host is not active", http.StatusUnprocessableEntity)
-			return
-		}
 		libvirt_uri = "qemu+ssh://" + host.Def.Name + "/system"
 	} else {
+		host, ok = service.hosts[hypervisor.Uuid]
+		if (!ok) {
+			logger.Log("vm_create: could not find my own host in service")
+			http.Error(w, "vm_create: invalid service state", http.StatusInternalServerError)
+			return
+		}
 		libvirt_uri = "qemu:///system"
+	}
+	if (host.State != openapi.HOST_ACTIVE) {
+		http.Error(w, "vm_create: host is not active", http.StatusUnprocessableEntity)
+		return
 	}
 
 	/* Main validation of parameters supplied */
@@ -101,12 +107,11 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "vm_create: no Cpu model provided", http.StatusBadRequest)
 		return
 	}
-	if (o.Vmdef.Cpudef.Nodes < 1 || o.Vmdef.Cpudef.Sockets < 1 ||
-		o.Vmdef.Cpudef.Cores < 1 || o.Vmdef.Cpudef.Threads < 1) {
+	if (o.Vmdef.Cpudef.Sockets < 1 || o.Vmdef.Cpudef.Cores < 1 || o.Vmdef.Cpudef.Threads < 1) {
 		http.Error(w, "vm_create: no Cpu topology provided", http.StatusBadRequest)
 		return
 	}
-	if (o.Vmdef.Cpudef.Nodes > 1 || o.Vmdef.Cpudef.Threads > 1) {
+	if (o.Vmdef.Cpudef.Threads > 1) {
 		http.Error(w, "vm_create: unsupported Cpu topology", http.StatusNotImplemented)
 		return
 	}
@@ -176,12 +181,6 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 	args = append(args, "--graphics", "vnc")
 
 	/* use virtio-vga for x86 and virtio-gpu-pci for AArch64 */
-	host, ok := service.hosts[hypervisor.Uuid]
-	if (!ok) {
-		logger.Log("vm_create: could not find my own host in service")
-		http.Error(w, "vm_create: invalid service state", http.StatusInternalServerError)
-		return
-	}
 	var video string = "none"
 	switch (host.Def.Cpuarch.Arch) {
 	case "x86_64":
