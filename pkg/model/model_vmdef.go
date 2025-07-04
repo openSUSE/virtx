@@ -25,6 +25,7 @@ type Vmdef struct {
 	Name string `json:"name"`
 	Cpudef Cpudef `json:"cpudef"`
 	Memory VmdefMemory `json:"memory"`
+	Numa Numa `json:"numa"`
 	// disks attached to the VM
 	Disks []Disk `json:"disks"`
 	// networks and bridges attached to the VM
@@ -44,7 +45,7 @@ type _Vmdef Vmdef
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVmdef(name string, cpudef Cpudef, memory VmdefMemory, disks []Disk, nets []Net, vlanid int16, firmware FirmwareType, genid string, custom []CustomField) *Vmdef {
+func NewVmdef(name string, cpudef Cpudef, memory VmdefMemory, numa Numa, disks []Disk, nets []Net, vlanid int16, firmware FirmwareType, genid string, custom []CustomField) *Vmdef {
 	this := Vmdef{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
@@ -53,6 +54,7 @@ func NewVmdef(name string, cpudef Cpudef, memory VmdefMemory, disks []Disk, nets
 	this.Name = name
 	this.Cpudef = cpudef
 	this.Memory = memory
+	this.Numa = numa
 	this.Disks = disks
 	this.Nets = nets
 	this.Vlanid = vlanid
@@ -140,6 +142,30 @@ func (o *Vmdef) GetMemoryOk() (*VmdefMemory, bool) {
 // SetMemory sets field value
 func (o *Vmdef) SetMemory(v VmdefMemory) {
 	o.Memory = v
+}
+
+// GetNuma returns the Numa field value
+func (o *Vmdef) GetNuma() Numa {
+	if o == nil {
+		var ret Numa
+		return ret
+	}
+
+	return o.Numa
+}
+
+// GetNumaOk returns a tuple with the Numa field value
+// and a boolean to check if the value has been set.
+func (o *Vmdef) GetNumaOk() (*Numa, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Numa, true
+}
+
+// SetNuma sets field value
+func (o *Vmdef) SetNuma(v Numa) {
+	o.Numa = v
 }
 
 // GetDisks returns the Disks field value
@@ -291,6 +317,7 @@ func (o Vmdef) ToMap() (map[string]interface{}, error) {
 	toSerialize["name"] = o.Name
 	toSerialize["cpudef"] = o.Cpudef
 	toSerialize["memory"] = o.Memory
+	toSerialize["numa"] = o.Numa
 	toSerialize["disks"] = o.Disks
 	toSerialize["nets"] = o.Nets
 	toSerialize["vlanid"] = o.Vlanid
