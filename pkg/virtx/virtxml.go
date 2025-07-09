@@ -1,0 +1,481 @@
+package virtx
+
+import (
+	"math/bits"
+	"errors"
+	"strings"
+	"path/filepath"
+
+	"suse.com/virtx/pkg/model"
+	"libvirt.org/go/libvirtxml"
+)
+
+/*
+ * Return the index of the OS disk from a Vmdef, as per virtx convention.
+ * The main OS disk is the first non-CDROM disk.
+ */
+func vmdef_find_os_disk(vmdef *openapi.Vmdef) int {
+	var i, n int = 0, len(vmdef.Disks)
+	for i = 0; i < n; i++ {
+		if (vmdef.Disks[i].Device == openapi.DEVICE_DISK) {
+			return i
+		}
+	}
+	return -1
+}
+
+/* calculate the virtxml path from the os disk */
+func vmdef_xml_path(vmdef *openapi.Vmdef) string {
+	var os_disk int = vmdef_find_os_disk(vmdef)
+	if (os_disk < 0) {
+		return ""
+	}
+	var p string = vmdef.Disks[os_disk].Path
+	p = strings.TrimSuffix(p, filepath.Ext(p)) + ".xml"
+	return p
+}
+
+/*
+ * Return the number of vcpus from a Vmdef
+ */
+func vmdef_get_vcpus(vmdef *openapi.Vmdef) int {
+	return int(vmdef.Cpudef.Sockets * vmdef.Cpudef.Cores * vmdef.Cpudef.Threads);
+}
+
+/* get disk driver type from path, or "" if not recognized */
+func disk_driver_from_path(p string) string {
+	var (
+		ext string
+	)
+	ext = filepath.Ext(p)
+	switch (ext) {
+	case ".qcow2":
+		return "qcow2"
+	case ".iso":
+		fallthrough
+	case ".raw":
+		return "raw"
+	}
+	return ""
+}
+
+func vmdef_to_xml(vmdef *openapi.Vmdef) (string, error) {
+	var (
+		xml string
+		err error
+		os_disk int
+	)
+	if (vmdef.Name == "" || len(vmdef.Name) > VM_NAME_MAX) {
+		return "", errors.New("invalid Name length")
+	}
+	if (vmdef.Memory.Total < 1) {
+		return "", errors.New("invalid memory size")
+	}
+	if (vmdef.Cpudef.Model == "") {
+		return "", errors.New("no cpu model provided")
+	}
+	if (vmdef.Cpudef.Sockets < 1 ||	vmdef.Cpudef.Cores < 1 || vmdef.Cpudef.Threads < 1) {
+		return "", errors.New("no cpu topology provided")
+	}
+	if (vmdef.Cpudef.Threads > 1) {
+		return "", errors.New("unsupported cpu topology")
+	}
+	if (vmdef.Genid != "" && vmdef.Genid != "auto" && len(vmdef.Genid) != 36) {
+		return "", errors.New("invalid Genid")
+	}
+	if (len(vmdef.Disks) < 1 || len(vmdef.Disks) > DISKS_MAX) {
+		return "", errors.New("invalid Disks")
+	}
+	os_disk = vmdef_find_os_disk(vmdef)
+	if (os_disk < 0) {
+		return "", errors.New("no OS Disk")
+	}
+	if (len(vmdef.Nets) > NETS_MAX) {
+		return "", errors.New("invalid Nets")
+	}
+	if (vmdef.Vlanid < 0 || vmdef.Vlanid > VLAN_MAX) {
+		return "", errors.New("invalid Vlanid")
+	}
+	domain_cpu := libvirtxml.DomainCPU{
+		Migratable: "on",
+		Check: "none",
+		MaxPhysAddr: func() *libvirtxml.DomainCPUMaxPhysAddr {
+			phys_bits := uint(bits.Len64(uint64(vmdef.Memory.Total)) + 20)
+			if (phys_bits < 40) {
+				phys_bits = 40;
+			}
+			return &libvirtxml.DomainCPUMaxPhysAddr{
+				Mode: "emulate",
+				Bits: phys_bits,
+			}
+		}(),
+		Topology: &libvirtxml.DomainCPUTopology{
+			Sockets: int(vmdef.Cpudef.Sockets),
+			Cores: int(vmdef.Cpudef.Cores),
+			Threads: int(vmdef.Cpudef.Threads),
+		},
+		Mode: func() string {
+			if (vmdef.Cpudef.Model == "host-model" || vmdef.Cpudef.Model == "host-passthrough" ||
+				vmdef.Cpudef.Model == "maximum") {
+				return vmdef.Cpudef.Model
+			}
+			return ""
+		}(),
+		Model: func() *libvirtxml.DomainCPUModel {
+			if (vmdef.Cpudef.Model == "host-model" || vmdef.Cpudef.Model == "host-passthrough" ||
+                vmdef.Cpudef.Model == "maximum") {
+				return nil
+			}
+			return &libvirtxml.DomainCPUModel{
+				Value: vmdef.Cpudef.Model,
+			}
+		}(),
+	}
+	domain_memory := libvirtxml.DomainMemory{
+		Value: uint(vmdef.Memory.Total),
+		Unit: "MiB",
+	}
+	domain_memory_backing := func() *libvirtxml.DomainMemoryBacking {
+		if (vmdef.Memory.Hp) {
+			return &libvirtxml.DomainMemoryBacking{
+				MemoryHugePages: &libvirtxml.DomainMemoryHugepages{},
+				MemoryAllocation: &libvirtxml.DomainMemoryAllocation{
+					Mode: "immediate",
+					Threads: uint(vmdef_get_vcpus(vmdef)),
+				},
+			}
+		}
+		return nil
+	}()
+	domain_numatune := func() *libvirtxml.DomainNUMATune {
+		if (vmdef.Numa.Placement) {
+			return &libvirtxml.DomainNUMATune{
+				Memory: &libvirtxml.DomainNUMATuneMemory{
+					Placement: "auto",
+				},
+			}
+		}
+		return nil
+	}()
+	domain_os := libvirtxml.DomainOS{
+		Type: &libvirtxml.DomainOSType{
+			Machine: vmdef.Firmware.Machine(), /* always use machine "pc" for BIOS and "q35" for UEFI */
+			Type: "hvm",
+		},
+		Firmware: vmdef.Firmware.String(),
+	}
+	domain_clock := libvirtxml.DomainClock{
+		Timer: []libvirtxml.DomainTimer{
+			{
+				Name: "kvmclock",
+				Present: "true",
+			},
+		},
+	}
+	domain_pm := libvirtxml.DomainPM{
+		SuspendToMem: &libvirtxml.DomainPMPolicy{
+			Enabled: "false",
+		},
+		SuspendToDisk: &libvirtxml.DomainPMPolicy{
+			Enabled: "false",
+		},
+	}
+
+	/* *** DISKS, CONTROLLERS AND INTERFACES *** */
+
+	var (
+		domain_disks []libvirtxml.DomainDisk
+		domain_controllers []libvirtxml.DomainController
+		domain_interfaces []libvirtxml.DomainInterface
+		iothread_count int
+		disk_count map[string]int
+	)
+	disk_count = make(map[string]int)
+	for _, disk := range vmdef.Disks {
+		if (disk.Size < 0) {
+			return "", errors.New("invalid Disk Size")
+		}
+		if (disk.Path == "" || !filepath.IsAbs(disk.Path)) {
+			return "", errors.New("invalid Disk Path")
+		}
+		var path string = filepath.Clean(disk.Path)
+		path, err = filepath.EvalSymlinks(path)
+		if (err != nil) {
+			return "", errors.New("invalid Disk Path")
+		}
+		var disk_driver string = disk_driver_from_path(path)
+		if (path != disk.Path || !strings.HasPrefix(disk.Path, VMS_DIR) || disk_driver == "") {
+			/* symlink shenanigans, or not starting with /vms/ or invalid ext : bail */
+			return "", errors.New("invalid Disk Path")
+		}
+		if (!disk.Device.IsValid()) {
+			return "", errors.New("invalid Disk Device")
+		}
+		if (!disk.Bus.IsValid()) {
+			return "", errors.New("invalid Disk Bus")
+		}
+		if (!disk.Createmode.IsValid()) {
+			return "", errors.New("invalid Disk Createmode")
+		}
+		/* keep track of how many disks require a specific bus type */
+		/* XXX TODO: Handle Disk Creation, Size XXX */
+		var (
+			ctrl_type string
+			ctrl_model string
+			use_iothread bool
+		)
+		switch (disk.Bus) {
+		case openapi.BUS_SCSI:
+			ctrl_type = "scsi"
+			ctrl_model = "auto"
+		case openapi.BUS_VIRTIO_SCSI:
+			ctrl_type = "scsi"
+			ctrl_model = "virtio-scsi"
+			use_iothread = true
+		case openapi.BUS_SATA:
+			ctrl_type = "sata"
+			ctrl_model = ""
+		case openapi.BUS_VIRTIO_BLK:
+			ctrl_type = "virtio"
+			ctrl_model = ""
+			use_iothread = true
+		}
+		var controller_index uint = uint(disk_count[ctrl_type])
+		if (ctrl_type != "virtio") { /* no controller for virtio-blk */
+			domain_controller := libvirtxml.DomainController{
+				/* XMLName: */
+				Type: ctrl_type,
+				Index: &controller_index,
+				Model: ctrl_model,
+				Driver: func() *libvirtxml.DomainControllerDriver {
+					if (use_iothread) {
+						/* iothread index starts from 1! */
+						iothread_count += 1
+						return &libvirtxml.DomainControllerDriver{
+							IOThread: uint(iothread_count),
+						}
+					}
+					return nil
+				}(),
+			}
+			domain_controllers = append(domain_controllers, domain_controller)
+		}
+		domain_disk := libvirtxml.DomainDisk{
+			/* XMLName:, */
+			Device: disk.Device.String(),
+			/* Model:, */
+			Driver: &libvirtxml.DomainDiskDriver{
+				Name: "qemu",
+				Type: disk_driver,
+				Cache: "none",
+				IOThread: func() *uint {
+					if (ctrl_type == "virtio") { /* && use_iothread, but it is implicit. This is virtio-blk. */
+						iothread_count += 1
+						var iothread_index uint = uint(iothread_count)
+						return &iothread_index
+					}
+					return nil
+				}(),
+			},
+			Source: &libvirtxml.DomainDiskSource{
+				File: &libvirtxml.DomainDiskSourceFile{
+					File: disk.Path,
+				},
+			},
+			Target: &libvirtxml.DomainDiskTarget{
+				Bus: ctrl_type,
+			},
+			ReadOnly: func() *libvirtxml.DomainDiskReadOnly {
+				if (disk.Device == openapi.DEVICE_CDROM) {
+					return &libvirtxml.DomainDiskReadOnly{}
+				}
+				return nil
+			}(),
+			/* Shareable: */
+			/* Boot:, */
+			Address: func() *libvirtxml.DomainAddress {
+				if (ctrl_type == "virtio") {
+					return nil
+				}
+				return &libvirtxml.DomainAddress{
+					Drive: &libvirtxml.DomainAddressDrive{
+						Controller: &controller_index,
+					},
+				}
+			}(),
+		}
+		domain_disks = append(domain_disks, domain_disk)
+		/* controller index per type starts from 0 */
+		disk_count[ctrl_type] += 1
+	}
+
+	/* *** NETWORKS *** */
+
+	for _, net := range vmdef.Nets {
+		iothread_count += 1
+		if (net.Mac != "" && len(net.Mac) != MAC_LEN) {
+			return "", errors.New("invalid Mac")
+		}
+		if (!net.Model.IsValid()) {
+			return "", errors.New("invalid Net model")
+		}
+		domain_interface := libvirtxml.DomainInterface{
+			/* XMLName:,*/
+			/* Managed:,*/
+			/* TrustGuestRXFilters:,*/
+			MAC: func() *libvirtxml.DomainInterfaceMAC {
+				if (net.Mac != "") {
+					return &libvirtxml.DomainInterfaceMAC{
+						Address: net.Mac,
+					}
+				}
+				return nil
+			}(),
+			Source: func() *libvirtxml.DomainInterfaceSource {
+				if (net.Nettype == openapi.NET_BRIDGE) {
+					return &libvirtxml.DomainInterfaceSource{
+						Bridge: &libvirtxml.DomainInterfaceSourceBridge{
+							Bridge: net.Name,
+						},
+					}
+				}
+				if (net.Nettype == openapi.NET_LIBVIRT) {
+					return &libvirtxml.DomainInterfaceSource{
+						Network: &libvirtxml.DomainInterfaceSourceNetwork{
+							Network: net.Name,
+						},
+					}
+				}
+				return nil
+			}(),
+			VLan: func() *libvirtxml.DomainInterfaceVLan {
+				if (vmdef.Vlanid > 0) {
+					return &libvirtxml.DomainInterfaceVLan{
+						Tags: []libvirtxml.DomainInterfaceVLanTag{
+							{ ID: uint(vmdef.Vlanid), },
+						},
+					}
+				}
+				return nil
+			}(),
+			Model: &libvirtxml.DomainInterfaceModel{
+				Type: net.Model.String(),
+			},
+			Driver: &libvirtxml.DomainInterfaceDriver{
+				TXMode: "iothread", /* XXX there is no way in libvirt to assign iothread ID to specific queue or interface XXX */
+			},
+		}
+		domain_interfaces = append(domain_interfaces, domain_interface)
+	}
+	domain_devices := libvirtxml.DomainDeviceList{
+		/* Emulator:, */
+		Disks: domain_disks,
+		Controllers: domain_controllers,
+		/* Leases:, */
+		/* Filesystems:, */
+		Interfaces: domain_interfaces,
+		Serials: nil,
+		Parallels: nil,
+		Consoles: []libvirtxml.DomainConsole{
+			{
+				Target: &libvirtxml.DomainConsoleTarget{
+					Type: "serial",
+				},
+			}, {
+				Target: &libvirtxml.DomainConsoleTarget{
+					Type: "virtio",
+				},
+			},
+		},
+		Graphics: []libvirtxml.DomainGraphic{
+			{
+				VNC: &libvirtxml.DomainGraphicVNC{
+					AutoPort: "yes",
+				},
+			},
+		},
+		Audios: []libvirtxml.DomainAudio{
+			{
+				None: &libvirtxml.DomainAudioNone{},
+			},
+		},
+		Videos: []libvirtxml.DomainVideo{
+			{
+				Model: libvirtxml.DomainVideoModel{
+					Type: "ramfb",
+				},
+			}, {
+				Model: libvirtxml.DomainVideoModel{
+					Type: "virtio",
+				},
+			},
+		},
+		/* Hostdevs:, */
+		/* Watchdogs:, */
+		MemBalloon: &libvirtxml.DomainMemBalloon{
+			Model: "none",
+		},
+		RNGs: []libvirtxml.DomainRNG{
+			{
+				Model: "virtio",
+				Backend: &libvirtxml.DomainRNGBackend{
+					Random: &libvirtxml.DomainRNGBackendRandom{
+						Device: "/dev/urandom",
+					},
+				},
+			},
+		},
+		/* Panics:, */
+		/* VSock:, */
+	}
+	domain_genid := func() *libvirtxml.DomainGenID {
+		if (vmdef.Genid == "") {
+			return nil
+		}
+		if (vmdef.Genid == "auto") {
+			return &libvirtxml.DomainGenID{}
+		}
+		return &libvirtxml.DomainGenID{
+			Value: vmdef.Genid,
+		}
+	}()
+	domain_metadata_xml := `<virtx:data xmlns:virtx="virtx">`
+	xmlpath := vmdef_xml_path(vmdef)
+	if (xmlpath == "") {
+		return "", errors.New("missing DEVICE_DISK")
+	}
+	domain_metadata_xml += `<virtxml>` + xmlpath + `</virtxml>`
+	for _, custom := range vmdef.Custom {
+		if (custom.Name == "") {
+			continue
+		}
+		if (!custom.IsAlnum()) {
+			return "", errors.New("invalid Custom Field")
+		}
+		domain_metadata_xml += `<field name="` + custom.Name + `">` + custom.Value + `</field>`
+	}
+	domain_metadata_xml += `</virtx:data>`
+	/* build xml */
+	domain := libvirtxml.Domain{
+		/* XMLName:, */
+		Type: "kvm",
+		/* ID:, */
+		Name: vmdef.Name,
+		/* UUID:, */
+		GenID: domain_genid,
+		Title: vmdef.Name,
+		Description: vmdef.Name,
+		Metadata: &libvirtxml.DomainMetadata{ XML: domain_metadata_xml, },
+		Memory: &domain_memory,
+		MemoryBacking: domain_memory_backing,
+		IOThreads: uint(iothread_count),
+		NUMATune: domain_numatune,
+		OS: &domain_os,
+		CPU: &domain_cpu,
+		Clock: &domain_clock,
+		PM: &domain_pm,
+		Devices: &domain_devices,
+	}
+	xml, err = domain.Marshal()
+	return xml, err
+}
