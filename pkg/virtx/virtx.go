@@ -40,6 +40,7 @@ const (
 	DISKS_MAX = 20
 	NETS_MAX = 8
 	MAC_LEN = 17
+	VLAN_MAX = 4094
 )
 
 type VmStats map[string]hypervisor.VmStat
