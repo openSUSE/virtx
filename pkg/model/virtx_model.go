@@ -50,3 +50,46 @@ func (netmodel NetModel) String() string {
 	}
 	return ""
 }
+
+func (firmware FirmwareType) String() string {
+	switch (firmware) {
+	case FIRMWARE_BIOS:
+		return "bios"
+	case FIRMWARE_UEFI:
+		return "efi"
+	}
+	return ""
+}
+
+func (firmware FirmwareType) Machine() string {
+	switch (firmware) {
+	case FIRMWARE_BIOS:
+		return "pc"
+	case FIRMWARE_UEFI:
+		return "q35"
+	}
+	return ""
+}
+
+func custom_isalnum(s string) bool {
+	for _, c := range s {
+		if (c >= 'A' && c <= 'Z') {
+			continue
+		}
+		if (c >= 'a' && c <= 'z') {
+			continue
+		}
+		if (c >= '0' && c <= '9') {
+			continue
+		}
+		if (c == '_') {
+			continue
+		}
+		return false
+	}
+	return true
+}
+
+func (custom CustomField) IsAlnum() bool {
+	return custom_isalnum(custom.Name) && custom_isalnum(custom.Value)
+}
