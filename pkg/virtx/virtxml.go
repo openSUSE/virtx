@@ -38,8 +38,8 @@ func vmdef_xml_path(vmdef *openapi.Vmdef) string {
 /*
  * Return the number of vcpus from a Vmdef
  */
-func vmdef_get_vcpus(vmdef *openapi.Vmdef) int {
-	return int(vmdef.Cpudef.Sockets * vmdef.Cpudef.Cores * vmdef.Cpudef.Threads);
+func vmdef_get_vcpus(vmdef *openapi.Vmdef) uint {
+	return uint(vmdef.Cpudef.Sockets * vmdef.Cpudef.Cores * vmdef.Cpudef.Threads);
 }
 
 /* get disk driver type from path, or "" if not recognized */
@@ -96,6 +96,10 @@ func vmdef_to_xml(vmdef *openapi.Vmdef) (string, error) {
 	if (vmdef.Vlanid < 0 || vmdef.Vlanid > VLAN_MAX) {
 		return "", errors.New("invalid Vlanid")
 	}
+	var vcpus uint = vmdef_get_vcpus(vmdef)
+	domain_vcpu := libvirtxml.DomainVCPU{
+		Value: vcpus,
+	}
 	domain_cpu := libvirtxml.DomainCPU{
 		Migratable: "on",
 		Check: "none",
@@ -141,7 +145,7 @@ func vmdef_to_xml(vmdef *openapi.Vmdef) (string, error) {
 				MemoryHugePages: &libvirtxml.DomainMemoryHugepages{},
 				MemoryAllocation: &libvirtxml.DomainMemoryAllocation{
 					Mode: "immediate",
-					Threads: uint(vmdef_get_vcpus(vmdef)),
+					Threads: vcpus,
 				},
 			}
 		}
@@ -468,6 +472,7 @@ func vmdef_to_xml(vmdef *openapi.Vmdef) (string, error) {
 		Metadata: &libvirtxml.DomainMetadata{ XML: domain_metadata_xml, },
 		Memory: &domain_memory,
 		MemoryBacking: domain_memory_backing,
+		VCPU: &domain_vcpu,
 		IOThreads: uint(iothread_count),
 		NUMATune: domain_numatune,
 		OS: &domain_os,
