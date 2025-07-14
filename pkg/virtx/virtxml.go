@@ -176,10 +176,10 @@ func vmdef_to_xml(vmdef *openapi.Vmdef) (string, error) {
 	}
 	domain_pm := libvirtxml.DomainPM{
 		SuspendToMem: &libvirtxml.DomainPMPolicy{
-			Enabled: "false",
+			Enabled: "no",
 		},
 		SuspendToDisk: &libvirtxml.DomainPMPolicy{
-			Enabled: "false",
+			Enabled: "no",
 		},
 	}
 
