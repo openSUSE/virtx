@@ -63,7 +63,6 @@ func vmdef_to_xml(vmdef *openapi.Vmdef) (string, error) {
 	var (
 		xml string
 		err error
-		os_disk int
 	)
 	if (vmdef.Name == "" || len(vmdef.Name) > VM_NAME_MAX) {
 		return "", errors.New("invalid Name length")
@@ -86,8 +85,7 @@ func vmdef_to_xml(vmdef *openapi.Vmdef) (string, error) {
 	if (len(vmdef.Disks) < 1 || len(vmdef.Disks) > DISKS_MAX) {
 		return "", errors.New("invalid Disks")
 	}
-	os_disk = vmdef_find_os_disk(vmdef)
-	if (os_disk < 0) {
+	if (vmdef_find_os_disk(vmdef) < 0) {
 		return "", errors.New("no OS Disk")
 	}
 	if (len(vmdef.Nets) > NETS_MAX) {
