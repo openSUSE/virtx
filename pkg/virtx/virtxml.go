@@ -396,6 +396,7 @@ func vmdef_to_xml(vmdef *openapi.Vmdef) (string, error) {
 		},
 		Audios: []libvirtxml.DomainAudio{
 			{
+				ID: 1,
 				None: &libvirtxml.DomainAudioNone{},
 			},
 		},
