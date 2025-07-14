@@ -229,21 +229,19 @@ func vmdef_to_xml(vmdef *openapi.Vmdef) (string, error) {
 		switch (disk.Bus) {
 		case openapi.BUS_SCSI:
 			ctrl_type = "scsi"
-			ctrl_model = "auto"
+			ctrl_model = "lsilogic"
 		case openapi.BUS_VIRTIO_SCSI:
 			ctrl_type = "scsi"
 			ctrl_model = "virtio-scsi"
 			use_iothread = true
 		case openapi.BUS_SATA:
 			ctrl_type = "sata"
-			ctrl_model = ""
 		case openapi.BUS_VIRTIO_BLK:
 			ctrl_type = "virtio"
-			ctrl_model = ""
 			use_iothread = true
 		}
 		var controller_index uint = uint(disk_count[ctrl_type])
-		if (ctrl_type != "virtio") { /* no controller for virtio-blk */
+		if (ctrl_model != "") {
 			domain_controller := libvirtxml.DomainController{
 				/* XMLName: */
 				Type: ctrl_type,
@@ -296,7 +294,7 @@ func vmdef_to_xml(vmdef *openapi.Vmdef) (string, error) {
 			/* Shareable: */
 			/* Boot:, */
 			Address: func() *libvirtxml.DomainAddress {
-				if (ctrl_type == "virtio") {
+				if (ctrl_model == "") {
 					return nil
 				}
 				return &libvirtxml.DomainAddress{
