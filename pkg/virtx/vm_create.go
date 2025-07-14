@@ -50,10 +50,16 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "vm_create: host is not active", http.StatusUnprocessableEntity)
 		return
 	}
-
-	/* Validate vmdef and turn into XML */
+	/* Validate vmdef first */
+	err = vmdef_validate(&o.Vmdef)
+	if (err != nil) {
+		logger.Log("vm_create: vmdef_validate failed: %s", err.Error())
+		http.Error(w, "vm_create: invalid parameters", http.StatusBadRequest)
+		return
+	}
 	xml, err = vmdef_to_xml(&o.Vmdef)
 	if (err != nil) {
+		logger.Log("vm_create: vmdef_to_xml failed: %s", err.Error())
 		http.Error(w, "vm_create: invalid parameters", http.StatusBadRequest)
 		return
 	}

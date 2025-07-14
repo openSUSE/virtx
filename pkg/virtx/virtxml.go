@@ -59,41 +59,94 @@ func disk_driver_from_path(p string) string {
 	return ""
 }
 
+func vmdef_validate(vmdef *openapi.Vmdef) error {
+	var err error
+	if (vmdef.Name == "" || len(vmdef.Name) > VM_NAME_MAX) {
+		return errors.New("invalid Name length")
+	}
+	if (vmdef.Memory.Total < 1) {
+		return errors.New("invalid memory size")
+	}
+	if (vmdef.Cpudef.Model == "") {
+		return errors.New("no cpu model provided")
+	}
+	if (vmdef.Cpudef.Sockets < 1 ||	vmdef.Cpudef.Cores < 1 || vmdef.Cpudef.Threads < 1) {
+		return errors.New("no cpu topology provided")
+	}
+	if (vmdef.Cpudef.Threads > 1) {
+		return errors.New("unsupported cpu topology")
+	}
+	if (vmdef.Genid != "" && vmdef.Genid != "auto" && len(vmdef.Genid) != 36) {
+		return errors.New("invalid Genid")
+	}
+	if (len(vmdef.Disks) < 1 || len(vmdef.Disks) > DISKS_MAX) {
+		return errors.New("invalid Disks")
+	}
+	if (vmdef_find_os_disk(vmdef) < 0) {
+		return errors.New("no OS Disk")
+	}
+	if (len(vmdef.Nets) > NETS_MAX) {
+		return errors.New("invalid Nets")
+	}
+	if (vmdef.Vlanid < 0 || vmdef.Vlanid > VLAN_MAX) {
+		return errors.New("invalid Vlanid")
+	}
+	/* *** DISKS *** */
+	for _, disk := range vmdef.Disks {
+		if (disk.Size < 0) {
+			return errors.New("invalid Disk Size")
+		}
+		if (disk.Path == "" || !filepath.IsAbs(disk.Path)) {
+			return errors.New("invalid Disk Path")
+		}
+		var path string = filepath.Clean(disk.Path)
+		path, err = filepath.EvalSymlinks(path)
+		if (err != nil) {
+			return errors.New("invalid Disk Path")
+		}
+		var disk_driver string = disk_driver_from_path(path)
+		if (path != disk.Path || !strings.HasPrefix(disk.Path, VMS_DIR) || disk_driver == "") {
+			/* symlink shenanigans, or not starting with /vms/ or invalid ext : bail */
+			return errors.New("invalid Disk Path")
+		}
+		if (!disk.Device.IsValid()) {
+			return errors.New("invalid Disk Device")
+		}
+		if (!disk.Bus.IsValid()) {
+			return errors.New("invalid Disk Bus")
+		}
+		if (!disk.Createmode.IsValid()) {
+			return errors.New("invalid Disk Createmode")
+		}
+	}
+
+	/* *** NETWORKS *** */
+	for _, net := range vmdef.Nets {
+		if (net.Mac != "" && len(net.Mac) != MAC_LEN) {
+			return errors.New("invalid Mac")
+		}
+		if (!net.Model.IsValid()) {
+			return errors.New("invalid Net model")
+		}
+	}
+	/* *** CUSTOM FIELDS *** */
+	for _, custom := range vmdef.Custom {
+		if (custom.Name == "") {
+			continue
+		}
+		if (!custom.IsAlnum()) {
+			return errors.New("invalid Custom Field")
+		}
+	}
+	return nil
+}
+
+/* vmdef_validate needs to be called before this! */
 func vmdef_to_xml(vmdef *openapi.Vmdef) (string, error) {
 	var (
 		xml string
 		err error
 	)
-	if (vmdef.Name == "" || len(vmdef.Name) > VM_NAME_MAX) {
-		return "", errors.New("invalid Name length")
-	}
-	if (vmdef.Memory.Total < 1) {
-		return "", errors.New("invalid memory size")
-	}
-	if (vmdef.Cpudef.Model == "") {
-		return "", errors.New("no cpu model provided")
-	}
-	if (vmdef.Cpudef.Sockets < 1 ||	vmdef.Cpudef.Cores < 1 || vmdef.Cpudef.Threads < 1) {
-		return "", errors.New("no cpu topology provided")
-	}
-	if (vmdef.Cpudef.Threads > 1) {
-		return "", errors.New("unsupported cpu topology")
-	}
-	if (vmdef.Genid != "" && vmdef.Genid != "auto" && len(vmdef.Genid) != 36) {
-		return "", errors.New("invalid Genid")
-	}
-	if (len(vmdef.Disks) < 1 || len(vmdef.Disks) > DISKS_MAX) {
-		return "", errors.New("invalid Disks")
-	}
-	if (vmdef_find_os_disk(vmdef) < 0) {
-		return "", errors.New("no OS Disk")
-	}
-	if (len(vmdef.Nets) > NETS_MAX) {
-		return "", errors.New("invalid Nets")
-	}
-	if (vmdef.Vlanid < 0 || vmdef.Vlanid > VLAN_MAX) {
-		return "", errors.New("invalid Vlanid")
-	}
 	var vcpus uint = vmdef_get_vcpus(vmdef)
 	domain_vcpu := libvirtxml.DomainVCPU{
 		Value: vcpus,
@@ -193,12 +246,6 @@ func vmdef_to_xml(vmdef *openapi.Vmdef) (string, error) {
 	)
 	disk_count := make(map[string]int)      /* keep track of how many disks require a bus type */
 	for _, disk := range vmdef.Disks {
-		if (disk.Size < 0) {
-			return "", errors.New("invalid Disk Size")
-		}
-		if (disk.Path == "" || !filepath.IsAbs(disk.Path)) {
-			return "", errors.New("invalid Disk Path")
-		}
 		var path string = filepath.Clean(disk.Path)
 		path, err = filepath.EvalSymlinks(path)
 		if (err != nil) {
@@ -208,15 +255,6 @@ func vmdef_to_xml(vmdef *openapi.Vmdef) (string, error) {
 		if (path != disk.Path || !strings.HasPrefix(disk.Path, VMS_DIR) || disk_driver == "") {
 			/* symlink shenanigans, or not starting with /vms/ or invalid ext : bail */
 			return "", errors.New("invalid Disk Path")
-		}
-		if (!disk.Device.IsValid()) {
-			return "", errors.New("invalid Disk Device")
-		}
-		if (!disk.Bus.IsValid()) {
-			return "", errors.New("invalid Disk Bus")
-		}
-		if (!disk.Createmode.IsValid()) {
-			return "", errors.New("invalid Disk Createmode")
 		}
 		var (
 			ctrl_type, ctrl_model string
@@ -321,15 +359,8 @@ func vmdef_to_xml(vmdef *openapi.Vmdef) (string, error) {
 	}
 
 	/* *** NETWORKS *** */
-
 	for _, net := range vmdef.Nets {
 		iothread_count += 1
-		if (net.Mac != "" && len(net.Mac) != MAC_LEN) {
-			return "", errors.New("invalid Mac")
-		}
-		if (!net.Model.IsValid()) {
-			return "", errors.New("invalid Net model")
-		}
 		domain_interface := libvirtxml.DomainInterface{
 			/* XMLName:,*/
 			/* Managed:,*/
@@ -460,9 +491,6 @@ func vmdef_to_xml(vmdef *openapi.Vmdef) (string, error) {
 	for _, custom := range vmdef.Custom {
 		if (custom.Name == "") {
 			continue
-		}
-		if (!custom.IsAlnum()) {
-			return "", errors.New("invalid Custom Field")
 		}
 		domain_metadata_xml += `<field name="` + custom.Name + `">` + custom.Value + `</field>`
 	}
