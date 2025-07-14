@@ -103,8 +103,8 @@ func vmdef_to_xml(vmdef *openapi.Vmdef) (string, error) {
 		Check: "none",
 		MaxPhysAddr: func() *libvirtxml.DomainCPUMaxPhysAddr {
 			phys_bits := uint(bits.Len64(uint64(vmdef.Memory.Total)) + 20)
-			if (phys_bits < 40) {
-				phys_bits = 40;
+			if (phys_bits < 36) { /* minimum required by AMD64 spec */
+				phys_bits = 36;
 			}
 			return &libvirtxml.DomainCPUMaxPhysAddr{
 				Mode: "emulate",
