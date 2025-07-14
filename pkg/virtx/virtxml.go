@@ -269,7 +269,7 @@ func vmdef_to_xml(vmdef *openapi.Vmdef) (string, error) {
 				Type: disk_driver,
 				Cache: "none",
 				IOThread: func() *uint {
-					if (ctrl_type == "virtio") { /* && use_iothread, but it is implicit. This is virtio-blk. */
+					if (ctrl_type == "virtio" && use_iothread) { /* virtio-blk. */
 						iothread_count += 1
 						var iothread_index uint = uint(iothread_count)
 						return &iothread_index
