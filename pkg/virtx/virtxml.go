@@ -222,25 +222,37 @@ func vmdef_to_xml(vmdef *openapi.Vmdef) (string, error) {
 		/* keep track of how many disks require a specific bus type */
 		/* XXX TODO: Handle Disk Creation, Size XXX */
 		var (
-			ctrl_type string
-			ctrl_model string
+			ctrl_type, ctrl_model string
 			use_iothread bool
+			device_prefix, device_name string
 		)
 		switch (disk.Bus) {
 		case openapi.BUS_SCSI:
+			device_prefix = "sd"
 			ctrl_type = "scsi"
 			ctrl_model = "lsilogic"
+			device_prefix = "sd"
 		case openapi.BUS_VIRTIO_SCSI:
+			device_prefix = "sd"
 			ctrl_type = "scsi"
 			ctrl_model = "virtio-scsi"
 			use_iothread = true
 		case openapi.BUS_SATA:
+			device_prefix = "sd"
 			ctrl_type = "sata"
 		case openapi.BUS_VIRTIO_BLK:
+			device_prefix = "vd"
 			ctrl_type = "virtio"
 			use_iothread = true
 		}
 		var controller_index uint = uint(disk_count[ctrl_type])
+		var r rune
+		if (ctrl_type == "virtio") {
+			r = rune('a' + disk_count[ctrl_type])
+		} else {
+			r = rune('a' + disk_count["scsi"] + disk_count["sata"])
+		}
+		device_name = device_prefix + string(r);
 		if (ctrl_model != "") {
 			domain_controller := libvirtxml.DomainController{
 				/* XMLName: */
@@ -283,6 +295,7 @@ func vmdef_to_xml(vmdef *openapi.Vmdef) (string, error) {
 				},
 			},
 			Target: &libvirtxml.DomainDiskTarget{
+				Dev: device_name,
 				Bus: ctrl_type,
 			},
 			ReadOnly: func() *libvirtxml.DomainDiskReadOnly {
