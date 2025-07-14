@@ -190,9 +190,8 @@ func vmdef_to_xml(vmdef *openapi.Vmdef) (string, error) {
 		domain_controllers []libvirtxml.DomainController
 		domain_interfaces []libvirtxml.DomainInterface
 		iothread_count int
-		disk_count map[string]int
 	)
-	disk_count = make(map[string]int)
+	disk_count := make(map[string]int)      /* keep track of how many disks require a bus type */
 	for _, disk := range vmdef.Disks {
 		if (disk.Size < 0) {
 			return "", errors.New("invalid Disk Size")
@@ -219,8 +218,6 @@ func vmdef_to_xml(vmdef *openapi.Vmdef) (string, error) {
 		if (!disk.Createmode.IsValid()) {
 			return "", errors.New("invalid Disk Createmode")
 		}
-		/* keep track of how many disks require a specific bus type */
-		/* XXX TODO: Handle Disk Creation, Size XXX */
 		var (
 			ctrl_type, ctrl_model string
 			use_iothread bool
