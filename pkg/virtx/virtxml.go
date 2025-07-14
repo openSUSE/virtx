@@ -272,6 +272,7 @@ func vmdef_to_xml(vmdef *openapi.Vmdef) (string, error) {
 			}
 			domain_controllers = append(domain_controllers, domain_controller)
 		}
+		domain_controllers = append(domain_controllers, libvirtxml.DomainController{ Type: "usb", Model: "none" })
 		domain_disk := libvirtxml.DomainDisk{
 			/* XMLName:, */
 			Device: disk.Device.String(),
