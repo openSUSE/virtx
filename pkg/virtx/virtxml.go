@@ -170,7 +170,7 @@ func vmdef_to_xml(vmdef *openapi.Vmdef) (string, error) {
 		Timer: []libvirtxml.DomainTimer{
 			{
 				Name: "kvmclock",
-				Present: "true",
+				Present: "yes",
 			},
 		},
 	}
