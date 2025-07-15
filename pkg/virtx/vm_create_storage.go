@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"suse.com/virtx/pkg/model"
+	"suse.com/virtx/pkg/logger"
 )
 
 func vm_create_storage(vmdef *openapi.Vmdef) error {
@@ -48,9 +49,12 @@ func vm_create_storage(vmdef *openapi.Vmdef) error {
 			args = append(args, "-o", "lazy_refcounts=off")
 		}
 		args = append(args, path, fmt.Sprintf("%dM", disk.Size))
+		logger.Log("qemu-img %v", args)
 		var cmd *exec.Cmd = exec.Command("/usr/bin/qemu-img", args...)
-		err = cmd.Run()
+		var output []byte
+		output, err = cmd.CombinedOutput()
 		if (err != nil) {
+			logger.Log("%s\n", string(output))
 			return err
 		}
 	}
