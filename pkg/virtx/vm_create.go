@@ -57,6 +57,13 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "vm_create: invalid parameters", http.StatusBadRequest)
 		return
 	}
+	/* create storage if needed */
+	err = vm_create_storage(&o.Vmdef)
+	if (err != nil) {
+		logger.Log("vm_create: vmdef_create_storage failed: %s", err.Error())
+		http.Error(w, "vm_create: storage creation failed", http.StatusInsufficientStorage)
+		return
+	}
 	xml, err = vmdef_to_xml(&o.Vmdef)
 	if (err != nil) {
 		logger.Log("vm_create: vmdef_to_xml failed: %s", err.Error())
