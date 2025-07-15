@@ -567,7 +567,7 @@ func init() {
 		panic(err)
 	}
 	go func() {
-		logger.Log("hypervisor: init(): Entering event loop")
+		logger.Log("init(): Entering event loop")
 		for {
 			err = libvirt.EventRunDefaultImpl()
 			if (err != nil) {
@@ -575,6 +575,6 @@ func init() {
 			}
 			// XXX exit properly from the event loop somehow
 		}
-		logger.Log("hypervisor: init(): Exiting event loop")
+		logger.Log("init(): Exiting event loop")
 	}()
 }
