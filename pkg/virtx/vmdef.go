@@ -99,10 +99,12 @@ func vmdef_validate(vmdef *openapi.Vmdef) error {
 			return errors.New("invalid Disk Path")
 		}
 		var path string = filepath.Clean(disk.Path)
+		/* XXX disable for now
 		path, err = filepath.EvalSymlinks(path)
 		if (err != nil) {
 			return errors.New("invalid Disk Path")
 		}
+		*/
 		var disk_driver string = disk_driver_from_path(path)
 		if (path != disk.Path || !strings.HasPrefix(disk.Path, VMS_DIR) || disk_driver == "") {
 			/* symlink shenanigans, or not starting with /vms/ or invalid ext : bail */
@@ -137,5 +139,5 @@ func vmdef_validate(vmdef *openapi.Vmdef) error {
 			return errors.New("invalid Custom Field")
 		}
 	}
-	return nil
+	return err
 }

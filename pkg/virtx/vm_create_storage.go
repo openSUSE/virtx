@@ -18,10 +18,12 @@ func vm_create_storage(vmdef *openapi.Vmdef) error {
 			continue;
 		}
 		var path string = filepath.Clean(disk.Path)
+		/* XXX disable for now
 		path, err = filepath.EvalSymlinks(path)
 		if (err != nil) {
 			return errors.New("invalid Disk Path")
 		}
+		*/
 		var disk_driver string = disk_driver_from_path(path)
 		if (path != disk.Path || !strings.HasPrefix(disk.Path, VMS_DIR) ||
 			(disk_driver != "qcow2" && disk_driver != "raw")) {
