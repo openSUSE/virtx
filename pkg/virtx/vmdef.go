@@ -452,10 +452,6 @@ func vmdef_to_xml(vmdef *openapi.Vmdef) (string, error) {
 		Videos: []libvirtxml.DomainVideo{
 			{
 				Model: libvirtxml.DomainVideoModel{
-					Type: "ramfb",
-				},
-			}, {
-				Model: libvirtxml.DomainVideoModel{
 					Type: "virtio",
 				},
 			},
