@@ -83,11 +83,13 @@ type Hypervisor struct {
 	vm_event_ch chan VmEvent
 	system_info_ch chan SystemInfo
 }
+var hv = Hypervisor{
+	conn: nil,
+	callback_id: -1,
+}
 
 /*
- * Create a Hypervisor type instance,
  * connect to libvirt and return the instance.
- *
  * vm_event_ch is the channel used to communicate VmEvent from the callback
  * returned by virConnectDomainEventRegisterAny
  *
@@ -95,22 +97,21 @@ type Hypervisor struct {
  *
  * Note that only one callback is registered for all Domain Events.
  */
-func New() (*Hypervisor, error) {
+func Connect() error {
 	conn, err := libvirt.NewConnect(libvirt_uri)
 	if (err != nil) {
-		return nil, err
+		return err
 	}
-	var hv *Hypervisor = new(Hypervisor)
 	hv.conn = conn
 	hv.vm_event_ch = nil
 	hv.system_info_ch = nil
 	hv.callback_id = -1
-	return hv, nil
+	return nil
 }
 
-func (hv *Hypervisor) Shutdown() {
+func Shutdown() {
 	logger.Log("Deregistering event handlers")
-	hv.Stop_listening()
+	Stop_listening()
 	logger.Log("Closing libvirt connection")
 	_, err := hv.conn.Close();
 	if (err != nil) {
@@ -185,7 +186,7 @@ out:
 /*
  * Regularly fetch all system information (host info and vms info), and send it via system_info_ch.
  */
-func (hv *Hypervisor) system_info_loop(seconds int) error {
+func system_info_loop(seconds int) error {
 	var (
 		si SystemInfo
 		err error
@@ -194,7 +195,7 @@ func (hv *Hypervisor) system_info_loop(seconds int) error {
 	ticker = time.NewTicker(time.Duration(seconds) * time.Second)
 	defer ticker.Stop()
 
-	err = hv.get_system_info(&si)
+	err = get_system_info(&si)
 	if (err != nil) {
 		logger.Fatal(err.Error())
 	}
@@ -203,7 +204,7 @@ func (hv *Hypervisor) system_info_loop(seconds int) error {
 
 	hv.system_info_ch <- si
 	for range ticker.C {
-		err = hv.get_system_info(&si)
+		err = get_system_info(&si)
 		if (err != nil) {
 			logger.Log(err.Error())
 			continue
@@ -219,7 +220,7 @@ func (hv *Hypervisor) system_info_loop(seconds int) error {
  * Sets the callback_id, vm_event_ch and system_info_ch fields of the Hypervisor struct.
  * Collects system information every "seconds" seconds.
  */
-func (hv *Hypervisor) Start_listening(seconds int) error {
+func Start_listening(seconds int) error {
 	lifecycleCb := func(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventLifecycle) {
 		var (
 			name, uuid string
@@ -244,11 +245,11 @@ func (hv *Hypervisor) Start_listening(seconds int) error {
 	if (err != nil) {
 		return err
 	}
-	go hv.system_info_loop(seconds)
+	go system_info_loop(seconds)
 	return nil
 }
 
-func (hv *Hypervisor) Stop_listening() {
+func Stop_listening() {
 	if (hv.callback_id < 0) {
 		/* already stopped */
 		logger.Log("StopListening(): already stopped.")
@@ -302,7 +303,7 @@ type xmlEntry struct {
 	Value string `xml:",chardata"`
 }
 
-func (hv *Hypervisor) get_system_info(si *SystemInfo) error {
+func get_system_info(si *SystemInfo) error {
 	var (
 		host openapi.Host
 		vmstats []VmStat
@@ -538,12 +539,12 @@ func getDomainStats(d *libvirt.Domain, vm *VmStat) error {
 }
 
 /* Return the libvirt domain Events Channel */
-func (hv *Hypervisor)GetVmEventCh() (chan VmEvent) {
+func GetVmEventCh() (chan VmEvent) {
 	return hv.vm_event_ch
 }
 
 /* Return the systemInfo Events Channel */
-func (hv *Hypervisor)GetSystemInfoCh() (chan SystemInfo) {
+func GetSystemInfoCh() (chan SystemInfo) {
 	return hv.system_info_ch
 }
 

@@ -36,21 +36,20 @@ const (
 func main() {
 	var (
 		err error
-		hv *hypervisor.Hypervisor
 		service *virtx.Service
 	)
 	/* hypervisor: initialize and start listening to hypervisor events */
-	hv, err = hypervisor.New()
+	err = hypervisor.Connect()
 	if (err != nil) {
 		logger.Fatal(err.Error())
 	}
-	defer hv.Shutdown()
+	defer hypervisor.Shutdown()
 
 	/* service: initialize */
 	service = virtx.New()
 
 	/* start listening for VMEvents (directly forwarded), and SystemInfo (to be sent every 15 seconds) */
-	err = hv.Start_listening(15)
+	err = hypervisor.Start_listening(15)
 	if (err != nil) {
 		logger.Fatal(err.Error())
 	}
@@ -72,8 +71,8 @@ func main() {
      * start listening for outgoing VMEvents and SystemInfo and incoming serf events.
 	 */
 	serfcomm.Start_listening(
-		hv.GetVmEventCh(), vmEventShutdownCh,
-		hv.GetSystemInfoCh(), systemInfoShutdownCh,
+		hypervisor.GetVmEventCh(), vmEventShutdownCh,
+		hypervisor.GetSystemInfoCh(), systemInfoShutdownCh,
 		serfShutdownCh, service)
 
 	/* create server subroutine to listen for API requests */
