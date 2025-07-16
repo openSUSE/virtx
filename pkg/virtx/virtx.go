@@ -58,7 +58,7 @@ type Service struct {
 
 var service Service
 
-func New() *Service {
+func Init() {
 	var servemux *http.ServeMux = http.NewServeMux()
 	servemux.HandleFunc("POST /vms", vm_create)
 	servemux.HandleFunc("GET /vms", vm_list)
@@ -89,83 +89,82 @@ func New() *Service {
 		hosts:     make(Hosts),
 		vmstats:   make(VmStats),
 	}
-	return &service
 }
 
-func (s *Service) Shutdown(ctx context.Context) error {
-	return s.server.Shutdown(ctx)
+func Shutdown(ctx context.Context) error {
+	return service.server.Shutdown(ctx)
 }
 
-func (s *Service) Close() error {
-	return s.server.Close()
+func Close() error {
+	return service.server.Close()
 }
 
-func (s *Service) Update_host(host *openapi.Host) error {
-	s.m.Lock()
-	defer s.m.Unlock()
+func Update_host(host *openapi.Host) error {
+	service.m.Lock()
+	defer service.m.Unlock()
 
-	return s.update_host(host)
+	return update_host(host)
 }
 
-func (s *Service) update_host(host *openapi.Host) error {
+func update_host(host *openapi.Host) error {
 	var (
 		present bool
 		old openapi.Host
 	)
-	if (s.hosts == nil) {
-		s.hosts = make(map[string]openapi.Host)
+	if (service.hosts == nil) {
+		service.hosts = make(map[string]openapi.Host)
 	}
-	old, present = s.hosts[host.Uuid]
+	old, present = service.hosts[host.Uuid]
 	if (present && old.Ts > host.Ts) {
 		logger.Log("Host %s: ignoring obsolete Host information: ts %d > %d",
 			old.Def.Name, old.Ts, host.Ts)
 		return nil
 	}
-	s.hosts[host.Uuid] = *host
+	service.hosts[host.Uuid] = *host
 	return nil
 }
 
-func (s *Service) Set_host_state(uuid string, newstate openapi.Hoststate) error {
-	s.m.Lock()
-	defer s.m.Unlock()
+func Set_host_state(uuid string, newstate openapi.Hoststate) error {
+	service.m.Lock()
+	defer service.m.Unlock()
 
-	return s.set_host_state(uuid, newstate)
+	return set_host_state(uuid, newstate)
 }
 
-func (s *Service) set_host_state(uuid string, newstate openapi.Hoststate) error {
-	host, ok := s.hosts[uuid]
+func set_host_state(uuid string, newstate openapi.Hoststate) error {
+	host, ok := service.hosts[uuid]
 	if !ok {
 		return fmt.Errorf("no such host %s", uuid)
 	}
 	host.State = newstate
-	s.hosts[uuid] = host
+	service.hosts[uuid] = host
 	return nil
 }
 
-func (s *Service) Update_vm_state(e *hypervisor.VmEvent) error {
-	s.m.Lock()
-	defer s.m.Unlock()
-	vmstat, ok := s.vmstats[e.Uuid]
+func Update_vm_state(e *hypervisor.VmEvent) error {
+	service.m.Lock()
+	defer service.m.Unlock()
+	vmstat, ok := service.vmstats[e.Uuid]
 	if !ok {
 		return fmt.Errorf("no such VM %s", e.Uuid)
 	}
 	vmstat.Runinfo.Runstate = openapi.Vmrunstate(e.State)
-	s.vmstats[e.Uuid] = vmstat
+	service.vmstats[e.Uuid] = vmstat
 	return nil
 }
 
-func (s *Service) Update_vm(vmstat *hypervisor.VmStat) error {
-	s.m.Lock()
-	defer s.m.Unlock()
+func Update_vm(vmstat *hypervisor.VmStat) error {
+	service.m.Lock()
+	defer service.m.Unlock()
 
-	return s.update_vm(vmstat)
+	return update_vm(vmstat)
 }
 
-func (s *Service) update_vm(vmstat *hypervisor.VmStat) error {
-	if (s.vmstats == nil) {
-		s.vmstats = make(map[string]hypervisor.VmStat)
+func update_vm(vmstat *hypervisor.VmStat) error {
+	if (service.vmstats == nil) {
+		service.vmstats = make(map[string]hypervisor.VmStat)
 	}
-	if old, ok := s.vmstats[vmstat.Uuid]; ok {
+	if old, ok := service.vmstats[vmstat.Uuid]; ok {
 		if (old.Ts > vmstat.Ts) {
 			logger.Log("Ignoring old guest info: ts %d > %d %s %s",
 				old.Ts, vmstat.Ts, vmstat.Uuid, vmstat.Name,
@@ -204,13 +203,13 @@ func (s *Service) update_vm(vmstat *hypervisor.VmStat) error {
 			}
 		}
 	}
-	s.vmstats[vmstat.Uuid] = *vmstat
+	service.vmstats[vmstat.Uuid] = *vmstat
 	return nil
 }
 
-func (s *Service) Start_listening() {
+func Start_listening() {
 	go func() {
-		var err error = s.server.ListenAndServe()
+		var err error = service.server.ListenAndServe()
 		if (err != nil && errors.Is(err, http.ErrServerClosed)) {
 			logger.Log(err.Error())
 		} else {

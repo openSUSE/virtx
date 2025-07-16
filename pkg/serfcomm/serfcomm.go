@@ -89,10 +89,7 @@ func send_vm_event(e *hypervisor.VmEvent) error {
 	return serf.c.UserEvent(label_vm_event, serf.enc_buffer[:eventsize], false)
 }
 
-func recv_serf_events(
-	s *virtx.Service,
-	shutdown_ch chan<- struct{},
-) {
+func recv_serf_events(shutdown_ch chan<- struct{}) {
 	var err error
 	logger.Log("RecvSerfEvents loop start...")
 	for e := range serf.channel {
@@ -111,7 +108,7 @@ func recv_serf_events(
 					continue
 				}
 				logger.Log("Host %s OFFLINE", uuid)
-				err = s.Set_host_state(uuid, newstate)
+				err = virtx.Set_host_state(uuid, newstate)
 				if (err != nil) {
 					logger.Log(err.Error())
 				}
@@ -136,7 +133,7 @@ func recv_serf_events(
 				logger.Log("Decode %s: ERR '%s' at offset %d", name, err.Error(), size)
 			} else {
 				logger.Log("Decode %s: OK  %d %s %s", name, hi.Ts, hi.Uuid, hi.Def.Name)
-				err = s.Update_host(&hi)
+				err = virtx.Update_host(&hi)
 				if (err != nil) {
 					logger.Log(err.Error())
 				}
@@ -151,7 +148,7 @@ func recv_serf_events(
 				logger.Log("Decode %s: ERR '%s' at offset %d", name, err.Error(), size)
 			} else {
 				logger.Log("Decode %s: OK  %d %s %s", name, ve.Ts, ve.Uuid, ve.State)
-				err = s.Update_vm_state(&ve)
+				err = virtx.Update_vm_state(&ve)
 				if (err != nil) {
 					logger.Log(err.Error())
 				}
@@ -166,7 +163,7 @@ func recv_serf_events(
 				logger.Log("Decode %s: ERR '%s' at offset %d", name, err.Error(), size)
 			} else {
 				logger.Log("Decode %s: OK  %d %s %s %d", name, vm.Ts, vm.Uuid, vm.Name, vm.Runinfo.Runstate)
-				err = s.Update_vm(&vm)
+				err = virtx.Update_vm(&vm)
 				if (err != nil) {
 					logger.Log(err.Error())
 				}
@@ -244,12 +241,11 @@ func Init(rpcAddr string) error {
 func Start_listening(
 	vm_event_ch chan hypervisor.VmEvent, vm_event_shutdown_ch chan struct{},
 	system_info_ch chan hypervisor.SystemInfo, system_info_shutdown_ch chan struct{},
-	serf_shutdown_ch chan struct{},
-	service *virtx.Service) {
+	serf_shutdown_ch chan struct{}) {
 	/* create subroutines to send and process events */
 	go send_vm_events(vm_event_ch, vm_event_shutdown_ch)
 	go send_system_info(system_info_ch, system_info_shutdown_ch)
-	go recv_serf_events(service, serf_shutdown_ch)
+	go recv_serf_events(serf_shutdown_ch)
 }
 
 func Shutdown() {
