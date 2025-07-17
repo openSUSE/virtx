@@ -56,17 +56,11 @@ func main() {
 		logger.Fatal(err.Error())
 	}
 	defer serfcomm.Shutdown()
-
-	vmEventShutdownCh := make(chan struct{})
-	systemInfoShutdownCh := make(chan struct{})
-	serfShutdownCh := make(chan struct{})
+	serf_shutdown_ch := make(chan struct{})
 	/*
      * start listening for outgoing VMEvents and SystemInfo and incoming serf events.
 	 */
-	serfcomm.Start_listening(
-		hypervisor.GetVmEventCh(), vmEventShutdownCh,
-		hypervisor.GetSystemInfoCh(), systemInfoShutdownCh,
-		serfShutdownCh)
+	serfcomm.Start_listening(hypervisor.GetVmEventCh(), hypervisor.GetSystemInfoCh(), serf_shutdown_ch)
 
 	/* create server subroutine to listen for API requests */
 	virtx.Start_listening()
@@ -91,11 +85,7 @@ func main() {
 	select {
 	case sig := <-c:
 		logger.Log("Got signal: %d", sig)
-	case <-vmEventShutdownCh:
-		logger.Log("Hypervisor vmEvent shutdown")
-	case <-systemInfoShutdownCh:
-		logger.Log("Hypervisor systemInfo shutdown")
-	case <-serfShutdownCh:
+	case <-serf_shutdown_ch:
 		logger.Log("Serf shutdown")
 	}
 }

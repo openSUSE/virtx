@@ -176,7 +176,7 @@ func recv_serf_events(shutdown_ch chan<- struct{}) {
 	close(shutdown_ch)
 }
 
-func send_system_info(ch <-chan hypervisor.SystemInfo, shutdown_ch chan<- struct{}) {
+func send_system_info(ch <-chan hypervisor.SystemInfo) {
 	var (
 		err error
 		si hypervisor.SystemInfo
@@ -198,22 +198,17 @@ func send_system_info(ch <-chan hypervisor.SystemInfo, shutdown_ch chan<- struct
 			}
 		}
 	}
-	logger.Log("SendSystemInfo loop exit!")
-	close(shutdown_ch)
+	logger.Fatal("SendSystemInfo loop exit! (Should never happen!)")
 }
 
-func send_vm_events(
-	eventCh <-chan hypervisor.VmEvent,
-	shutdown_ch chan<- struct{},
-) {
+func send_vm_events(eventCh <-chan hypervisor.VmEvent) {
 	logger.Log("SendVmEvents loop start...")
 	for e := range eventCh {
 		if err := send_vm_event(&e); err != nil {
 			logger.Log(err.Error())
 		}
 	}
-	logger.Log("SendVmEvents loop exit!")
-	close(shutdown_ch)
+	logger.Fatal("SendVmEvents loop exit! (Should never happen!)")
 }
 
 func update_tags(host *openapi.Host) error {
@@ -239,12 +234,10 @@ func Init(rpcAddr string) error {
 }
 
 func Start_listening(
-	vm_event_ch chan hypervisor.VmEvent, vm_event_shutdown_ch chan struct{},
-	system_info_ch chan hypervisor.SystemInfo, system_info_shutdown_ch chan struct{},
-	serf_shutdown_ch chan struct{}) {
+	vm_event_ch chan hypervisor.VmEvent, system_info_ch chan hypervisor.SystemInfo, serf_shutdown_ch chan struct{}) {
 	/* create subroutines to send and process events */
-	go send_vm_events(vm_event_ch, vm_event_shutdown_ch)
-	go send_system_info(system_info_ch, system_info_shutdown_ch)
+	go send_vm_events(vm_event_ch)
+	go send_system_info(system_info_ch)
 	go recv_serf_events(serf_shutdown_ch)
 }
 
