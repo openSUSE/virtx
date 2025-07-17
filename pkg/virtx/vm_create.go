@@ -19,35 +19,17 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 	defer service.m.RUnlock()
 	var (
 		err error
-		ok bool
 		o openapi.VmCreateOptions
-		libvirt_uri string
-		host openapi.Host
-		xml, uuid string
+		libvirt_uri, xml, uuid string
 	)
 	err = json.NewDecoder(r.Body).Decode(&o)
 	if (err != nil) {
 		http.Error(w, "failed to decode JSON in Request Body", http.StatusBadRequest)
 		return
 	}
-	if (o.Host != "") {
-		host, ok = service.hosts[o.Host]
-		if (!ok) {
-			http.Error(w, "could not find host", http.StatusUnprocessableEntity)
-			return
-		}
-		libvirt_uri = "qemu+ssh://" + host.Def.Name + "/system"
-	} else {
-		host, ok = service.hosts[hypervisor.Uuid]
-		if (!ok) {
-			logger.Log("could not find my own host in service")
-			http.Error(w, "invalid service state", http.StatusInternalServerError)
-			return
-		}
-		libvirt_uri = "qemu:///system"
-	}
-	if (host.State != openapi.HOST_ACTIVE) {
-		http.Error(w, "host is not active", http.StatusUnprocessableEntity)
+	libvirt_uri, err = libvirt_uri_from_host(o.Host)
+	if (err != nil) {
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
 	}
 	/* Validate vmdef first */

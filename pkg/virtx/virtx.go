@@ -207,6 +207,29 @@ func update_vm(vmstat *hypervisor.VmStat) error {
 	return nil
 }
 
+func libvirt_uri_from_host(uuid string) (string, error) {
+	var (
+		host openapi.Host
+		ok bool
+	)
+	if (uuid == "") {
+		host, ok = service.hosts[hypervisor.Uuid]
+	} else {
+		host, ok = service.hosts[uuid]
+	}
+	if (!ok) {
+		return "", errors.New("could not find host")
+	}
+	if (host.State != openapi.HOST_ACTIVE) {
+		return "", errors.New("host is not active")
+	}
+	if (uuid == "") {
+		return "qemu:///system", nil
+	} else {
+		return "qemu+ssh://" + host.Def.Name + "/system", nil
+	}
+}
+
 func Start_listening() {
 	go func() {
 		var err error = service.server.ListenAndServe()
