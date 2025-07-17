@@ -46,12 +46,6 @@ func main() {
 
 	/* virtx service: initialize */
 	virtx.Init()
-
-	/* start listening for VMEvents (directly forwarded), and SystemInfo (to be sent every 15 seconds) */
-	err = hypervisor.Start_listening(15)
-	if (err != nil) {
-		logger.Fatal(err.Error())
-	}
 	/*
      * serf: initialize communication package, and then
 	 * the actual serf client for RPC bi-directional comm,

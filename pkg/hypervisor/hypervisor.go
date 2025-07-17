@@ -20,6 +20,8 @@ package hypervisor
 import (
 	"time"
 	"encoding/xml"
+	"sync"
+	"sync/atomic"
 
 	"libvirt.org/go/libvirt"
 	"libvirt.org/go/libvirtxml"
@@ -31,6 +33,8 @@ import (
 
 const (
 	libvirt_uri = "qemu:///system"
+	libvirt_reconnect_seconds = 5
+	libvirt_system_info_seconds = 15
 )
 
 /* the Uuid of this host */
@@ -43,7 +47,7 @@ type VmEvent struct {
 }
 
 /*
- * VmStat are statistics collected every 15 seconds
+ * VmStat are statistics collected every libvirt_stats_seconds
  */
 
 type VmStat struct {
@@ -78,49 +82,60 @@ type SystemInfo struct {
 }
 
 type Hypervisor struct {
+	is_connected atomic.Bool
+	m sync.RWMutex
+
 	conn *libvirt.Connect
-	callback_id int
+	lifecycle_id int
 	vm_event_ch chan VmEvent
 	system_info_ch chan SystemInfo
 }
 var hv = Hypervisor{
-	conn: nil,
-	callback_id: -1,
+	m: sync.RWMutex{},
+	lifecycle_id: -1,
 }
 
 /*
- * connect to libvirt and return the instance.
- * vm_event_ch is the channel used to communicate VmEvent from the callback
- * returned by virConnectDomainEventRegisterAny
- *
- * https://libvirt.org/html/libvirt-libvirt-domain.html#virConnectDomainEventRegisterAny
- *
- * Note that only one callback is registered for all Domain Events.
+ * Connect to libvirt.
  */
 func Connect() error {
+	hv.m.Lock()
+	defer hv.m.Unlock()
+
+	if (hv.conn != nil) {
+		/* Reconnect */
+		stop_listening()
+		hv.conn.Close()
+		hv.is_connected.Store(false)
+	}
 	conn, err := libvirt.NewConnect(libvirt_uri)
 	if (err != nil) {
 		return err
 	}
 	hv.conn = conn
-	hv.vm_event_ch = nil
-	hv.system_info_ch = nil
-	hv.callback_id = -1
-	return nil
+	hv.is_connected.Store(true)
+	err = start_listening()
+	return err
 }
 
 func Shutdown() {
-	logger.Log("Deregistering event handlers")
-	Stop_listening()
-	logger.Log("Closing libvirt connection")
-	_, err := hv.conn.Close();
-	if (err != nil) {
-		logger.Log(err.Error())
-	}
+	hv.m.Lock()
+	defer hv.m.Unlock()
+	logger.Log("shutdown started...")
+	stop_listening()
+	hv.conn.Close();
+	close(hv.vm_event_ch)
+	close(hv.system_info_ch)
+	hv.conn = nil
+	hv.vm_event_ch = nil
+	hv.system_info_ch = nil
+	hv.lifecycle_id = -1
+	logger.Log("shutdown complete.")
 }
 
 /* get basic information about a Domain */
 func get_domain_info(d *libvirt.Domain) (string, string, openapi.Vmrunstate, error) {
+	/* assert (hv.m.IsRLocked) */
 	var (
 		name string
 		uuid string
@@ -192,78 +207,77 @@ func system_info_loop(seconds int) error {
 		err error
 		ticker *time.Ticker
 	)
+	logger.Log("system_info_loop starting...")
+	defer logger.Log("system_info_loop exit")
 	ticker = time.NewTicker(time.Duration(seconds) * time.Second)
 	defer ticker.Stop()
 
 	err = get_system_info(&si)
 	if (err != nil) {
-		logger.Fatal(err.Error())
+		return err
 	}
 	/* set and remember this host Uuid */
 	Uuid = si.Host.Uuid
-
 	hv.system_info_ch <- si
+
 	for range ticker.C {
 		err = get_system_info(&si)
 		if (err != nil) {
-			logger.Log(err.Error())
-			continue
+			return err
 		}
 		hv.system_info_ch <- si
 	}
-	logger.Log("system_info_loop Exiting!")
 	return nil
+}
+
+func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventLifecycle) {
+	var (
+		name, uuid string
+		state openapi.Vmrunstate
+		err error
+	)
+	/*
+	 * I think we need to lock here because we could be connecting, and the use of libvirt.Domain
+	 * can access the connection whose data structure may be in the process of updating.
+	 */
+	hv.m.RLock()
+	name, uuid, state, err = get_domain_info(d)
+	hv.m.RUnlock()
+
+	if (err != nil) {
+		if (e.Event == libvirt.DOMAIN_EVENT_UNDEFINED) {
+			/* XXX handle this XXX */
+		} else {
+			logger.Log(err.Error())
+		}
+	}
+	logger.Log("[VmEvent] %s/%s: %v state: %d", name, uuid, e, state)
+	hv.vm_event_ch <- VmEvent{ Uuid: uuid, State: state, Ts: time.Now().UTC().UnixMilli() }
 }
 
 /*
  * Start listening for domain events and collecting system information.
- * Sets the callback_id, vm_event_ch and system_info_ch fields of the Hypervisor struct.
+ * Sets the lifecycle_id, vm_event_ch and system_info_ch fields of the Hypervisor struct.
  * Collects system information every "seconds" seconds.
  */
-func Start_listening(seconds int) error {
-	lifecycleCb := func(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventLifecycle) {
-		var (
-			name, uuid string
-			state openapi.Vmrunstate
-			err error
-		)
-		name, uuid, state, err = get_domain_info(d)
-		if (err != nil) {
-			if (e.Event == libvirt.DOMAIN_EVENT_UNDEFINED) {
-				/* XXX handle this XXX */
-			} else {
-				logger.Log(err.Error())
-			}
-		}
-		logger.Log("[VmEvent] %s/%s: %v state: %d", name, uuid, e, state)
-		hv.vm_event_ch <- VmEvent{ Uuid: uuid, State: state, Ts: time.Now().UTC().UnixMilli() }
-	}
+func start_listening() error {
+	/* assert(hv.m.IsLocked()) */
 	var err error
-	hv.vm_event_ch = make(chan VmEvent, 64)
-	hv.system_info_ch = make(chan SystemInfo, 64)
-	hv.callback_id, err = hv.conn.DomainEventLifecycleRegister(nil, lifecycleCb)
+	hv.lifecycle_id, err = hv.conn.DomainEventLifecycleRegister(nil, lifecycle_cb)
 	if (err != nil) {
 		return err
 	}
-	go system_info_loop(seconds)
 	return nil
 }
 
-func Stop_listening() {
-	if (hv.callback_id < 0) {
+func stop_listening() {
+	/* assert(hv.m.IsLocked()) */
+	if (hv.lifecycle_id < 0) {
 		/* already stopped */
-		logger.Log("StopListening(): already stopped.")
 		return
 	}
-	logger.Log("StopListening(): deregister libvirt CallbackId: %d", hv.callback_id)
-	var err error = hv.conn.DomainEventDeregister(hv.callback_id)
-	if (err != nil) {
-		logger.Log(err.Error())
-	}
-	close(hv.vm_event_ch)
-	close(hv.system_info_ch)
-	hv.vm_event_ch = nil /* assume runtime will garbage collect */
-	hv.callback_id = -1
+	_ = hv.conn.DomainEventDeregister(hv.lifecycle_id)
+	hv.lifecycle_id = -1
 }
 
 func Define_domain(uri string, xml string) (string, error) {
@@ -306,6 +320,8 @@ type xmlEntry struct {
 }
 
 func get_system_info(si *SystemInfo) error {
+	hv.m.RLock()
+	defer hv.m.RUnlock()
 	var (
 		host openapi.Host
 		vmstats []VmStat
@@ -556,28 +572,60 @@ func freeDomains(doms []libvirt.Domain) {
 	}
 }
 
+func init_vm_event_loop() {
+	var err error
+	logger.Log("init_vm_event_loop: Entering")
+	for {
+		err = libvirt.EventRunDefaultImpl()
+		if (err != nil) {
+			panic(err)
+		}
+	}
+	logger.Fatal("init vm_event_loop: Exiting (should never happen!)")
+}
+
+func init_system_info_loop() {
+	logger.Log("init_vm_system_info_loop: Waiting for a libvirt connection...")
+	for ; hv.is_connected.Load() == false; {
+		time.Sleep(time.Duration(1) * time.Second)
+	}
+	for {
+		var (
+			err error
+			libvirt_err libvirt.Error
+			ok bool
+		)
+		err = system_info_loop(libvirt_system_info_seconds)
+		libvirt_err, ok = err.(libvirt.Error)
+		if (ok) {
+			if (libvirt_err.Level >= libvirt.ERR_ERROR) {
+				logger.Log(err.Error())
+				logger.Log("reconnect, attempt every %d seconds...", libvirt_reconnect_seconds)
+				for ; err != nil; err = Connect() {
+					time.Sleep(time.Duration(libvirt_reconnect_seconds) * time.Second)
+				}
+			}
+		} else {
+			logger.Log(err.Error())
+		}
+	}
+	logger.Fatal("init vm_system_info_loop (should never happen!)")
+}
+
 /*
- * XXX this is terrible, but libvirt forces us to run this before connecting.
- * And how to guarantee that we have reached the right point in EventRunDefaultImpl()
- * before actually calling connect?
- * Using a goroutine does not work, because we would have to send to a channel inside
- * EventRunDefaultImpl().
+ * init() is guaranteed to be called before main starts, so we can guarantee that EventRegisterDefaultImpl
+ * is always called before Connect() in main.
  */
 func init() {
+	hv.m.Lock()
+	defer hv.m.Unlock()
 	var err error
 	err = libvirt.EventRegisterDefaultImpl();
 	if (err != nil) {
 		panic(err)
 	}
-	go func() {
-		logger.Log("init(): Entering event loop")
-		for {
-			err = libvirt.EventRunDefaultImpl()
-			if (err != nil) {
-				panic(err)
-			}
-			// XXX exit properly from the event loop somehow
-		}
-		logger.Log("init(): Exiting event loop")
-	}()
+	hv.vm_event_ch = make(chan VmEvent, 64)
+	hv.system_info_ch = make(chan SystemInfo, 64)
+	go init_vm_event_loop()
+	go init_system_info_loop()
 }
