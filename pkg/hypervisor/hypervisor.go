@@ -277,10 +277,12 @@ func Define_domain(uri string, xml string) (string, error) {
 	if (err != nil) {
 		return "", err
 	}
+	defer conn.Close()
 	domain, err = conn.DomainDefineXML(xml)
 	if (err != nil) {
 		return "", err
 	}
+	defer domain.Free()
 	uuid, err = domain.GetUUIDString()
 	if (err != nil) {
 		return "", err
