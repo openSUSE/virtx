@@ -22,12 +22,14 @@ import (
 	"encoding/xml"
 	"sync"
 	"sync/atomic"
+	"errors"
 
 	"libvirt.org/go/libvirt"
 	"libvirt.org/go/libvirtxml"
 
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/logger"
+	"suse.com/virtx/pkg/encoding/hexstring"
 	. "suse.com/virtx/pkg/constants"
 )
 
@@ -302,6 +304,36 @@ func Define_domain(uri string, xml string) (string, error) {
 		return "", err
 	}
 	return uuid, nil
+}
+
+func Dumpxml(uri string, uuid string) (string, error) {
+	var (
+		err error
+		conn *libvirt.Connect
+		domain *libvirt.Domain
+		xml string
+		bytes [16]byte
+		len int
+	)
+	conn, err = libvirt.NewConnect(uri)
+	if (err != nil) {
+		return "", err
+	}
+	defer conn.Close()
+	len = hexstring.Encode(bytes[:], uuid)
+	if (len <= 0) {
+		return "", errors.New("failed to encode uuid from hexstring")
+	}
+	domain, err = conn.LookupDomainByUUID(bytes[:])
+	if (err != nil) {
+		return "", err
+	}
+	defer domain.Free()
+	xml, err = domain.GetXMLDesc(0)
+	if (err != nil) {
+		return "", err
+	}
+	return xml, nil
 }
 
 /* Calculate and return HostInfo and VMInfo for this host we are running on */
