@@ -17,6 +17,10 @@
  */
 package openapi
 
+import (
+	"errors"
+)
+
 /* some adjustments to the model for virtx */
 
 func (device DiskDevice) String() string {
@@ -27,6 +31,18 @@ func (device DiskDevice) String() string {
 		return "cdrom"
 	}
 	return ""
+}
+
+func (device DiskDevice) Parse(s string) error {
+	switch (s) {
+	case "cdrom":
+		device = DEVICE_CDROM
+		return nil
+	case "disk":
+		device = DEVICE_DISK
+		return nil
+	}
+	return errors.New("could not parse disk device")
 }
 
 func (nettype NetType) String() string {
@@ -51,6 +67,21 @@ func (netmodel NetModel) String() string {
 	return ""
 }
 
+func (netmodel NetModel) Parse(s string) error {
+	switch (s) {
+	case "virtio":
+		netmodel = NET_MODEL_VIRTIO
+		return nil
+	case "e1000e":
+		netmodel = NET_MODEL_E1000E
+		return nil
+	case "e1000":
+		netmodel = NET_MODEL_E1000
+		return nil
+	}
+	return errors.New("could not parse net model")
+}
+
 func (firmware FirmwareType) String() string {
 	switch (firmware) {
 	case FIRMWARE_BIOS:
@@ -61,6 +92,18 @@ func (firmware FirmwareType) String() string {
 	return ""
 }
 
+func (firmware FirmwareType) Parse(s string) error {
+	switch (s) {
+	case "bios":
+		firmware = FIRMWARE_BIOS
+		return nil
+	case "efi":
+		firmware = FIRMWARE_UEFI
+		return nil
+	}
+	return errors.New("could not parse firmware type")
+}
+
 func (firmware FirmwareType) Machine() string {
 	switch (firmware) {
 	case FIRMWARE_BIOS:
@@ -69,6 +112,25 @@ func (firmware FirmwareType) Machine() string {
 		return "q35"
 	}
 	return ""
+}
+
+func (bus DiskBus) Parse(ctrl_type string, ctrl_model string) error {
+	switch (ctrl_type) {
+	case "virtio":
+		bus = BUS_VIRTIO_BLK
+		return nil
+	case "sata":
+		bus = BUS_SATA
+		return nil
+	case "scsi":
+		if (ctrl_model == "virtio-scsi") {
+			bus = BUS_VIRTIO_SCSI
+		} else {
+			bus = BUS_SCSI
+		}
+		return nil
+	}
+	return errors.New("could not parse disk bus")
 }
 
 func custom_isalnum(s string) bool {
