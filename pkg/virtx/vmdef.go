@@ -5,8 +5,11 @@ import (
 	"errors"
 	"strings"
 	"path/filepath"
+	"fmt"
+	"encoding/xml"
 
 	"suse.com/virtx/pkg/model"
+	. "suse.com/virtx/pkg/constants"
 	"libvirt.org/go/libvirtxml"
 )
 
@@ -351,6 +354,9 @@ func vmdef_to_xml(vmdef *openapi.Vmdef) (string, error) {
 			}(),
 			/* Shareable: */
 			/* Boot:, */
+			Alias: &libvirtxml.DomainAlias{
+				Name: fmt.Sprintf("ua-%s_%s_%d", ctrl_type, ctrl_model, disk_count[ctrl_type]),
+			},
 			Address: func() *libvirtxml.DomainAddress {
 				if (ctrl_model == "") {
 					return nil
@@ -524,4 +530,152 @@ func vmdef_to_xml(vmdef *openapi.Vmdef) (string, error) {
 	}
 	xml, err = domain.Marshal()
 	return xml, err
+}
+
+type Metadata struct {
+	XMLName xml.Name `xml:"virtx data"`
+	Fields []MetadataField `xml:"field"`
+}
+
+type MetadataField struct {
+	Name string `xml:"name,attr"`
+	Value string `xml:",chardata"`
+}
+
+func vmdef_from_xml(xmlstr string) (*openapi.Vmdef, error) {
+	var (
+		err error
+		vmdef openapi.Vmdef
+		domain libvirtxml.Domain
+	)
+	/* unmarshal the XML into the libvirtxml Domain configuration */
+    err = domain.Unmarshal(xmlstr)
+	if (err != nil) {
+		return nil, err
+	}
+	vmdef.Name = vmdef.Name
+	if (domain.CPU == nil || domain.CPU.Topology == nil) {
+		return nil, errors.New("missing CPU.Topology")
+	}
+	vmdef.Cpudef.Sockets = int16(domain.CPU.Topology.Sockets)
+	vmdef.Cpudef.Cores = int16(domain.CPU.Topology.Cores)
+	vmdef.Cpudef.Threads = int16(domain.CPU.Topology.Threads)
+	if (domain.CPU.Mode != "") {
+		vmdef.Cpudef.Model = domain.CPU.Mode
+	} else if (domain.CPU.Model != nil) {
+		vmdef.Cpudef.Model = domain.CPU.Model.Value
+	} else {
+		return nil, errors.New("missing CPU.Mode or CPU.Model")
+	}
+	if (domain.Memory == nil) {
+		return nil, errors.New("missing Memory");
+	}
+	vmdef.Memory.Total = int32(domain.Memory.Value / KiB) /* convert from KiB to MiB */
+	if (domain.MemoryBacking != nil) {
+		vmdef.Memory.Hp = true
+	}
+	if (domain.NUMATune != nil) {
+		vmdef.Numa.Placement = true
+	}
+	if (domain.OS == nil) {
+		return nil, errors.New("missing OS");
+	}
+	err = vmdef.Firmware.Parse(domain.OS.Firmware)
+	if (err != nil) {
+		return nil, err
+	}
+	/* DEVICES */
+	if (domain.Devices == nil) {
+		return nil, errors.New("missing Devices");
+	}
+	/* DISKS */
+	vmdef.Disks = []openapi.Disk{}
+	for _, domain_disk := range domain.Devices.Disks {
+		var (
+			disk openapi.Disk
+			ctrl_type, ctrl_model string
+		)
+		if (domain_disk.Source == nil || domain_disk.Source.File == nil) {
+			return nil, errors.New("missing Disk Source File")
+		}
+		disk.Path = domain_disk.Source.File.File
+		err = disk.Device.Parse(domain_disk.Device)
+		if (err != nil) {
+			return nil, err
+		}
+		if (domain_disk.Target == nil) {
+			return nil, errors.New("missing Disk Target")
+		}
+		if (domain_disk.Alias == nil) {
+			return nil, errors.New("missing Disk Alias")
+		}
+		if (len(domain_disk.Alias.Name) < 5) {
+			return nil, errors.New("Disk Alias too short")
+		}
+		fields := strings.SplitN(domain_disk.Alias.Name[3:], "_", 3)
+		if (len(fields) != 3) {
+			return nil, errors.New("invalid Disk Alias")
+		}
+		ctrl_type = fields[0]
+		ctrl_model = fields[1]
+		err = disk.Bus.Parse(ctrl_type, ctrl_model)
+		if (err != nil) {
+			return nil, err
+		}
+		vmdef.Disks = append(vmdef.Disks, disk)
+	}
+	/* Networks */
+	vmdef.Nets = []openapi.Net{}
+	for _, domain_interface := range domain.Devices.Interfaces {
+		var net openapi.Net
+		if (domain_interface.MAC != nil) {
+			net.Mac = domain_interface.MAC.Address
+		}
+		if (domain_interface.Source == nil) {
+			return nil, errors.New("missing Interface Source")
+		}
+		if (domain_interface.Source.Bridge != nil) {
+			net.Name = domain_interface.Source.Bridge.Bridge
+		} else if (domain_interface.Source.Network != nil) {
+			net.Name = domain_interface.Source.Network.Network
+		} else {
+			return nil, errors.New("missing Interface Source Bridge or Network")
+		}
+		if (domain_interface.VLan != nil && len(domain_interface.VLan.Tags) > 0) {
+			vmdef.Vlanid = int16(domain_interface.VLan.Tags[0].ID)
+		} else {
+			vmdef.Vlanid = 0
+		}
+		if (domain_interface.Model == nil) {
+			return nil, errors.New("missing Interface Model")
+		}
+		err = net.Model.Parse(domain_interface.Model.Type)
+		if (err != nil) {
+			return nil, err
+		}
+		vmdef.Nets = append(vmdef.Nets, net)
+	}
+	if (domain.GenID != nil) {
+		vmdef.Genid = domain.GenID.Value
+	}
+	/* METADATA */
+	/*
+	 * for now we ignore the <virtxml>path</virtxml> since we assume we can reconstruct it
+	 * from the first disk path.
+	 */
+	if (domain.Metadata == nil) {
+		return nil, errors.New("missing Metadata")
+	}
+	var meta Metadata
+	err = xml.Unmarshal([]byte(domain.Metadata.XML), &meta)
+	if (err != nil) {
+		return nil, err
+	}
+	for _, field := range meta.Fields {
+		vmdef.Custom = append(vmdef.Custom, openapi.CustomField{
+			Name: field.Name,
+			Value: field.Value,
+		})
+	}
+	return &vmdef, nil
 }
