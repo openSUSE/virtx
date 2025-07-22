@@ -133,6 +133,33 @@ func (bus DiskBus) Parse(ctrl_type string, ctrl_model string) error {
 	return errors.New("could not parse disk bus")
 }
 
+func (mode DiskCreateMode) String() string {
+	switch (mode) {
+	case DISK_NOCREATE:
+		return "U"
+	case DISK_CREATE_THIN:
+		return "t"
+	case DISK_CREATE_THICK:
+		return "T"
+	}
+	return ""
+}
+
+func (mode DiskCreateMode) Parse(c byte) error {
+	switch (c) {
+	case 'U':
+		mode = DISK_NOCREATE /* disk was not created via API, so Unknown */
+		return nil
+	case 't':
+		mode = DISK_CREATE_THIN
+		return nil
+	case 'T':
+		mode = DISK_CREATE_THICK
+		return nil
+	}
+	return errors.New("could not parse disk creation mode")
+}
+
 func custom_isalnum(s string) bool {
 	for _, c := range s {
 		if (c >= 'A' && c <= 'Z') {

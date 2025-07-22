@@ -355,7 +355,8 @@ func vmdef_to_xml(vmdef *openapi.Vmdef) (string, error) {
 			/* Shareable: */
 			/* Boot:, */
 			Alias: &libvirtxml.DomainAlias{
-				Name: fmt.Sprintf("ua-%s_%s_%d", ctrl_type, ctrl_model, disk_count[ctrl_type]),
+				Name: fmt.Sprintf("ua-%s_%s_%s_%d",
+					disk.Createmode.String(), ctrl_type, ctrl_model, disk_count[ctrl_type]),
 			},
 			Address: func() *libvirtxml.DomainAddress {
 				if (ctrl_model == "") {
@@ -593,7 +594,7 @@ func vmdef_from_xml(xmlstr string) (*openapi.Vmdef, error) {
 	for _, domain_disk := range domain.Devices.Disks {
 		var (
 			disk openapi.Disk
-			ctrl_type, ctrl_model string
+			ctrl_type, ctrl_model, create_mode string
 		)
 		if (domain_disk.Source == nil || domain_disk.Source.File == nil) {
 			return nil, errors.New("missing Disk Source File")
@@ -612,12 +613,17 @@ func vmdef_from_xml(xmlstr string) (*openapi.Vmdef, error) {
 		if (len(domain_disk.Alias.Name) < 5) {
 			return nil, errors.New("Disk Alias too short")
 		}
-		fields := strings.SplitN(domain_disk.Alias.Name[3:], "_", 3)
-		if (len(fields) != 3) {
+		fields := strings.SplitN(domain_disk.Alias.Name[3:], "_", 4)
+		if (len(fields) != 4) {
 			return nil, errors.New("invalid Disk Alias")
 		}
-		ctrl_type = fields[0]
-		ctrl_model = fields[1]
+		create_mode = fields[0]
+		err = disk.Createmode.Parse(create_mode[0])
+		if (err != nil) {
+			return nil, err
+		}
+		ctrl_type = fields[1]
+		ctrl_model = fields[2]
 		err = disk.Bus.Parse(ctrl_type, ctrl_model)
 		if (err != nil) {
 			return nil, err
