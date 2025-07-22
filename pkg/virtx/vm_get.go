@@ -15,7 +15,7 @@ func vm_get(w http.ResponseWriter, r *http.Request) {
 	var (
 		err error
 		uuid, libvirt_uri, xml string
-		vmdef *openapi.Vmdef
+		vmdef openapi.Vmdef
 		buf bytes.Buffer
 	)
 	uuid = r.PathValue("uuid")
@@ -39,7 +39,7 @@ func vm_get(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not get VM", http.StatusInternalServerError)
 		return
 	}
-	vmdef, err = vmdef_from_xml(xml)
+	err = vmdef_from_xml(&vmdef, xml)
 	if (err != nil) {
 		logger.Log("vmdef_from_xml failed: %s", err.Error())
 		http.Error(w, "invalid VM data", http.StatusInternalServerError)

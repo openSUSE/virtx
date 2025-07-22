@@ -543,20 +543,19 @@ type MetadataField struct {
 	Value string `xml:",chardata"`
 }
 
-func vmdef_from_xml(xmlstr string) (*openapi.Vmdef, error) {
+func vmdef_from_xml(vmdef *openapi.Vmdef, xmlstr string) error {
 	var (
 		err error
-		vmdef openapi.Vmdef
 		domain libvirtxml.Domain
 	)
 	/* unmarshal the XML into the libvirtxml Domain configuration */
     err = domain.Unmarshal(xmlstr)
 	if (err != nil) {
-		return nil, err
+		return err
 	}
 	vmdef.Name = domain.Name
 	if (domain.CPU == nil || domain.CPU.Topology == nil) {
-		return nil, errors.New("missing CPU.Topology")
+		return errors.New("missing CPU.Topology")
 	}
 	vmdef.Cpudef.Sockets = int16(domain.CPU.Topology.Sockets)
 	vmdef.Cpudef.Cores = int16(domain.CPU.Topology.Cores)
@@ -566,10 +565,10 @@ func vmdef_from_xml(xmlstr string) (*openapi.Vmdef, error) {
 	} else if (domain.CPU.Model != nil) {
 		vmdef.Cpudef.Model = domain.CPU.Model.Value
 	} else {
-		return nil, errors.New("missing CPU.Mode or CPU.Model")
+		return errors.New("missing CPU.Mode or CPU.Model")
 	}
 	if (domain.Memory == nil) {
-		return nil, errors.New("missing Memory");
+		return errors.New("missing Memory");
 	}
 	vmdef.Memory.Total = int32(domain.Memory.Value / KiB) /* convert from KiB to MiB */
 	if (domain.MemoryBacking != nil) {
@@ -579,15 +578,15 @@ func vmdef_from_xml(xmlstr string) (*openapi.Vmdef, error) {
 		vmdef.Numa.Placement = true
 	}
 	if (domain.OS == nil) {
-		return nil, errors.New("missing OS");
+		return errors.New("missing OS");
 	}
 	err = vmdef.Firmware.Parse(domain.OS.Firmware)
 	if (err != nil) {
-		return nil, err
+		return err
 	}
 	/* DEVICES */
 	if (domain.Devices == nil) {
-		return nil, errors.New("missing Devices");
+		return errors.New("missing Devices");
 	}
 	/* DISKS */
 	vmdef.Disks = []openapi.Disk{}
@@ -597,36 +596,36 @@ func vmdef_from_xml(xmlstr string) (*openapi.Vmdef, error) {
 			ctrl_type, ctrl_model, create_mode string
 		)
 		if (domain_disk.Source == nil || domain_disk.Source.File == nil) {
-			return nil, errors.New("missing Disk Source File")
+			return errors.New("missing Disk Source File")
 		}
 		disk.Path = domain_disk.Source.File.File
 		err = disk.Device.Parse(domain_disk.Device)
 		if (err != nil) {
-			return nil, err
+			return err
 		}
 		if (domain_disk.Target == nil) {
-			return nil, errors.New("missing Disk Target")
+			return errors.New("missing Disk Target")
 		}
 		if (domain_disk.Alias == nil) {
-			return nil, errors.New("missing Disk Alias")
+			return errors.New("missing Disk Alias")
 		}
 		if (len(domain_disk.Alias.Name) < 5) {
-			return nil, errors.New("Disk Alias too short")
+			return errors.New("Disk Alias too short")
 		}
 		fields := strings.SplitN(domain_disk.Alias.Name[3:], "_", 4)
 		if (len(fields) != 4) {
-			return nil, errors.New("invalid Disk Alias")
+			return errors.New("invalid Disk Alias")
 		}
 		create_mode = fields[0]
 		err = disk.Createmode.Parse(create_mode[0])
 		if (err != nil) {
-			return nil, err
+			return err
 		}
 		ctrl_type = fields[1]
 		ctrl_model = fields[2]
 		err = disk.Bus.Parse(ctrl_type, ctrl_model)
 		if (err != nil) {
-			return nil, err
+			return err
 		}
 		vmdef.Disks = append(vmdef.Disks, disk)
 	}
@@ -638,14 +637,14 @@ func vmdef_from_xml(xmlstr string) (*openapi.Vmdef, error) {
 			net.Mac = domain_interface.MAC.Address
 		}
 		if (domain_interface.Source == nil) {
-			return nil, errors.New("missing Interface Source")
+			return errors.New("missing Interface Source")
 		}
 		if (domain_interface.Source.Bridge != nil) {
 			net.Name = domain_interface.Source.Bridge.Bridge
 		} else if (domain_interface.Source.Network != nil) {
 			net.Name = domain_interface.Source.Network.Network
 		} else {
-			return nil, errors.New("missing Interface Source Bridge or Network")
+			return errors.New("missing Interface Source Bridge or Network")
 		}
 		if (domain_interface.VLan != nil && len(domain_interface.VLan.Tags) > 0) {
 			vmdef.Vlanid = int16(domain_interface.VLan.Tags[0].ID)
@@ -653,11 +652,11 @@ func vmdef_from_xml(xmlstr string) (*openapi.Vmdef, error) {
 			vmdef.Vlanid = 0
 		}
 		if (domain_interface.Model == nil) {
-			return nil, errors.New("missing Interface Model")
+			return errors.New("missing Interface Model")
 		}
 		err = net.Model.Parse(domain_interface.Model.Type)
 		if (err != nil) {
-			return nil, err
+			return err
 		}
 		vmdef.Nets = append(vmdef.Nets, net)
 	}
@@ -670,12 +669,12 @@ func vmdef_from_xml(xmlstr string) (*openapi.Vmdef, error) {
 	 * from the first disk path.
 	 */
 	if (domain.Metadata == nil) {
-		return nil, errors.New("missing Metadata")
+		return errors.New("missing Metadata")
 	}
 	var meta Metadata
 	err = xml.Unmarshal([]byte(domain.Metadata.XML), &meta)
 	if (err != nil) {
-		return nil, err
+		return err
 	}
 	for _, field := range meta.Fields {
 		vmdef.Custom = append(vmdef.Custom, openapi.CustomField{
@@ -683,5 +682,5 @@ func vmdef_from_xml(xmlstr string) (*openapi.Vmdef, error) {
 			Value: field.Value,
 		})
 	}
-	return &vmdef, nil
+	return nil
 }
