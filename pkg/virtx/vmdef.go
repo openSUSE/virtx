@@ -553,7 +553,7 @@ func vmdef_from_xml(xmlstr string) (*openapi.Vmdef, error) {
 	if (err != nil) {
 		return nil, err
 	}
-	vmdef.Name = vmdef.Name
+	vmdef.Name = domain.Name
 	if (domain.CPU == nil || domain.CPU.Topology == nil) {
 		return nil, errors.New("missing CPU.Topology")
 	}
