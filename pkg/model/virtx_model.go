@@ -33,13 +33,13 @@ func (device DiskDevice) String() string {
 	return ""
 }
 
-func (device DiskDevice) Parse(s string) error {
+func (device *DiskDevice) Parse(s string) error {
 	switch (s) {
 	case "cdrom":
-		device = DEVICE_CDROM
+		*device = DEVICE_CDROM
 		return nil
 	case "disk":
-		device = DEVICE_DISK
+		*device = DEVICE_DISK
 		return nil
 	}
 	return errors.New("could not parse disk device")
@@ -67,16 +67,16 @@ func (netmodel NetModel) String() string {
 	return ""
 }
 
-func (netmodel NetModel) Parse(s string) error {
+func (netmodel *NetModel) Parse(s string) error {
 	switch (s) {
 	case "virtio":
-		netmodel = NET_MODEL_VIRTIO
+		*netmodel = NET_MODEL_VIRTIO
 		return nil
 	case "e1000e":
-		netmodel = NET_MODEL_E1000E
+		*netmodel = NET_MODEL_E1000E
 		return nil
 	case "e1000":
-		netmodel = NET_MODEL_E1000
+		*netmodel = NET_MODEL_E1000
 		return nil
 	}
 	return errors.New("could not parse net model")
@@ -92,13 +92,13 @@ func (firmware FirmwareType) String() string {
 	return ""
 }
 
-func (firmware FirmwareType) Parse(s string) error {
+func (firmware *FirmwareType) Parse(s string) error {
 	switch (s) {
 	case "bios":
-		firmware = FIRMWARE_BIOS
+		*firmware = FIRMWARE_BIOS
 		return nil
 	case "efi":
-		firmware = FIRMWARE_UEFI
+		*firmware = FIRMWARE_UEFI
 		return nil
 	}
 	return errors.New("could not parse firmware type")
@@ -114,19 +114,19 @@ func (firmware FirmwareType) Machine() string {
 	return ""
 }
 
-func (bus DiskBus) Parse(ctrl_type string, ctrl_model string) error {
+func (bus *DiskBus) Parse(ctrl_type string, ctrl_model string) error {
 	switch (ctrl_type) {
 	case "virtio":
-		bus = BUS_VIRTIO_BLK
+		*bus = BUS_VIRTIO_BLK
 		return nil
 	case "sata":
-		bus = BUS_SATA
+		*bus = BUS_SATA
 		return nil
 	case "scsi":
 		if (ctrl_model == "virtio-scsi") {
-			bus = BUS_VIRTIO_SCSI
+			*bus = BUS_VIRTIO_SCSI
 		} else {
-			bus = BUS_SCSI
+			*bus = BUS_SCSI
 		}
 		return nil
 	}
@@ -145,16 +145,16 @@ func (mode DiskCreateMode) String() string {
 	return ""
 }
 
-func (mode DiskCreateMode) Parse(c byte) error {
+func (mode *DiskCreateMode) Parse(c byte) error {
 	switch (c) {
 	case 'U':
-		mode = DISK_NOCREATE /* disk was not created via API, so Unknown */
+		*mode = DISK_NOCREATE /* disk was not created via API, so Unknown */
 		return nil
 	case 't':
-		mode = DISK_CREATE_THIN
+		*mode = DISK_CREATE_THIN
 		return nil
 	case 'T':
-		mode = DISK_CREATE_THICK
+		*mode = DISK_CREATE_THICK
 		return nil
 	}
 	return errors.New("could not parse disk creation mode")
