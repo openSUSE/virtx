@@ -14,7 +14,7 @@ func vm_get(w http.ResponseWriter, r *http.Request) {
 	defer service.m.RUnlock()
 	var (
 		err error
-		uuid, libvirt_uri, xml string
+		uuid, xml string
 		vmdef openapi.Vmdef
 		buf bytes.Buffer
 	)
@@ -28,12 +28,11 @@ func vm_get(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "vm_get: unknown uuid", http.StatusBadRequest)
 		return
 	}
-	libvirt_uri, err = libvirt_uri_from_host(vmstat.Runinfo.Host)
-	if (err != nil) {
-		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+	if (host_is_remote(vmstat.Runinfo.Host)) {
+		proxy_request(vmstat.Runinfo.Host, w, r)
 		return
 	}
-	xml, err = hypervisor.Dumpxml(libvirt_uri, uuid)
+	xml, err = hypervisor.Dumpxml(uuid)
 	if (err != nil) {
 		logger.Log("hypervisor.Dumpxml failed: %s", err.Error())
 		http.Error(w, "could not get VM", http.StatusInternalServerError)

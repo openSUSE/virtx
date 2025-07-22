@@ -19,11 +19,15 @@ package virtx
 
 import (
 	"fmt"
+	"net"
 	"net/http"
+	"net/url"
 	"sync"
 	"errors"
 	"math"
 	"context"
+	"time"
+	"io"
 
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/hypervisor"
@@ -41,6 +45,11 @@ const (
 	NETS_MAX = 8
 	MAC_LEN = 17
 	VLAN_MAX = 4094
+	CLIENT_TIMEOUT = 10
+	CLIENT_IDLE_CONN_MAX = 100
+	CLIENT_IDLE_CONN_MAX_PER_HOST = 10
+	CLIENT_IDLE_TIMEOUT = 15
+	CLIENT_TLS_TIMEOUT = 5
 )
 
 type VmStats map[string]hypervisor.VmStat
@@ -49,6 +58,7 @@ type Hosts map[string]openapi.Host
 type Service struct {
 	servemux *http.ServeMux
 	server http.Server
+	client http.Client
 	m      sync.RWMutex
 
 	cluster openapi.Cluster
@@ -84,6 +94,15 @@ func Init() {
 			Addr: ":8080",
 			Handler: servemux,
 		},
+		client: http.Client{
+			Timeout: CLIENT_TIMEOUT * time.Second,
+			Transport: &http.Transport{
+				MaxIdleConns: CLIENT_IDLE_CONN_MAX,
+				MaxIdleConnsPerHost: CLIENT_IDLE_CONN_MAX_PER_HOST,
+				IdleConnTimeout: CLIENT_IDLE_TIMEOUT * time.Second,
+				TLSHandshakeTimeout: CLIENT_TLS_TIMEOUT * time.Second,
+			},
+		},
 		m:         sync.RWMutex{},
 		cluster:   openapi.Cluster{},
 		hosts:     make(Hosts),
@@ -92,7 +111,19 @@ func Init() {
 }
 
 func Shutdown(ctx context.Context) error {
-	return service.server.Shutdown(ctx)
+	var err error
+	err = service.server.Shutdown(ctx)
+	if (err != nil) {
+		return err
+	}
+	transport, ok := service.client.Transport.(*http.Transport)
+	if (ok) {
+		transport.CloseIdleConnections()
+	}
+	if (err != nil) {
+		return err
+	}
+	return nil
 }
 
 func Close() error {
@@ -207,27 +238,76 @@ func update_vm(vmstat *hypervisor.VmStat) error {
 	return nil
 }
 
-func libvirt_uri_from_host(uuid string) (string, error) {
+func host_is_remote(uuid string) bool {
+	return uuid != "" && uuid != hypervisor.Uuid
+}
+
+func proxy_request(uuid string, w http.ResponseWriter, r *http.Request) {
+	/* assert (service.m.isRLocked()) */
 	var (
 		host openapi.Host
+		newaddr url.URL
 		ok bool
+		err error
 	)
-	if (uuid == "") {
-		host, ok = service.hosts[hypervisor.Uuid]
-	} else {
-		host, ok = service.hosts[uuid]
-	}
+	host, ok = service.hosts[uuid]
 	if (!ok) {
-		return "", errors.New("could not find host")
+		http.Error(w, "unknown host", http.StatusUnprocessableEntity)
+		return
 	}
-	if (host.State != openapi.HOST_ACTIVE) {
-		return "", errors.New("host is not active")
+	if (r.Header.Get("X-VirtX-Loop") != "") {
+		logger.Log("proxy_request loop detected")
+		http.Error(w, "loop detected", http.StatusLoopDetected)
+		return
 	}
-	if (uuid == "") {
-		return "qemu:///system", nil
+	newaddr = *r.URL
+	newaddr.Host = host.Def.Name + ":8080"
+	if (r.TLS != nil) {
+		newaddr.Scheme = "https"
 	} else {
-		return "qemu+ssh://" + host.Def.Name + "/system", nil
+		newaddr.Scheme = "http"
 	}
+	proxyreq, err := http.NewRequest(r.Method, newaddr.String(), r.Body)
+	if (err != nil) {
+		logger.Log("proxy_request http.NewRequest failed: %s", err.Error())
+		http.Error(w, "failed to forward request", http.StatusInternalServerError)
+		return
+	}
+
+	proxyreq.Header = r.Header.Clone()
+	client_ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	if (err != nil) {
+		logger.Log("proxy_request could not decode client address")
+		http.Error(w, "failed to forward request", http.StatusInternalServerError)
+		return
+	}
+	xff := proxyreq.Header.Get("X-Forwarded-For")
+	if (xff != "") {
+		xff = xff + ", " + client_ip
+	} else {
+		xff = client_ip
+	}
+	proxyreq.Header.Set("X-Forwarded-For", xff)
+	proxyreq.Header.Set("X-VirtX-Loop", "1")
+
+	/* we unlock here to prevent other goroutines to make progress while we wait for the response */
+	service.m.RUnlock()
+	resp, err := service.client.Do(proxyreq)
+	service.m.RLock()
+
+	if (err != nil) {
+		logger.Log("proxy_request failed: %s", err.Error())
+		http.Error(w, "failed to forward request", http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+	for name, values := range resp.Header {
+		for _, value := range values {
+			w.Header().Add(name, value)
+		}
+	}
+	w.WriteHeader(resp.StatusCode)
+	io.Copy(w, resp.Body)
 }
 
 func Start_listening() {

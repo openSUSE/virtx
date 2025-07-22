@@ -20,16 +20,15 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 	var (
 		err error
 		o openapi.VmCreateOptions
-		libvirt_uri, xml, uuid string
+		xml, uuid string
 	)
 	err = json.NewDecoder(r.Body).Decode(&o)
 	if (err != nil) {
 		http.Error(w, "failed to decode JSON in Request Body", http.StatusBadRequest)
 		return
 	}
-	libvirt_uri, err = libvirt_uri_from_host(o.Host)
-	if (err != nil) {
-		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+	if (host_is_remote(o.Host)) { /* need to proxy */
+		proxy_request(o.Host, w, r)
 		return
 	}
 	/* Validate vmdef first */
@@ -59,7 +58,7 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not write XML", http.StatusInternalServerError)
 		return
 	}
-	uuid, err = hypervisor.Define_domain(libvirt_uri, xml)
+	uuid, err = hypervisor.Define_domain(xml)
 	if (err != nil) {
 		logger.Log("hypervisor.Define_domain failed: %s", err.Error())
 		http.Error(w, "could not define VM", http.StatusInternalServerError)

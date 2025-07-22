@@ -282,14 +282,14 @@ func stop_listening() {
 	hv.lifecycle_id = -1
 }
 
-func Define_domain(uri string, xml string) (string, error) {
+func Define_domain(xml string) (string, error) {
 	var (
 		err error
 		conn *libvirt.Connect
 		domain *libvirt.Domain
 		uuid string
 	)
-	conn, err = libvirt.NewConnect(uri)
+	conn, err = libvirt.NewConnect(libvirt_uri)
 	if (err != nil) {
 		return "", err
 	}
@@ -306,7 +306,7 @@ func Define_domain(uri string, xml string) (string, error) {
 	return uuid, nil
 }
 
-func Dumpxml(uri string, uuid string) (string, error) {
+func Dumpxml(uuid string) (string, error) {
 	var (
 		err error
 		conn *libvirt.Connect
@@ -315,7 +315,7 @@ func Dumpxml(uri string, uuid string) (string, error) {
 		bytes [16]byte
 		len int
 	)
-	conn, err = libvirt.NewConnect(uri)
+	conn, err = libvirt.NewConnect(libvirt_uri)
 	if (err != nil) {
 		return "", err
 	}
