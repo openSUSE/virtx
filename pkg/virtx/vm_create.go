@@ -12,8 +12,6 @@ import (
 )
 
 
-/* we use virt-install for now for simplicity while possible */
-
 func vm_create(w http.ResponseWriter, r *http.Request) {
 	service.m.RLock()
 	defer service.m.RUnlock()
