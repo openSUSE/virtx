@@ -31,7 +31,7 @@ import (
 
 const (
 	label_host_info string = "HI"
-	label_vm_stat string = "VS"
+	label_vm_stat string = "VI"
 	label_vm_event string = "VE"
 	max_message_size uint = 1024
 )
