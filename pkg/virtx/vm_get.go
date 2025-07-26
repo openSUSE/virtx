@@ -25,7 +25,7 @@ func vm_get(w http.ResponseWriter, r *http.Request) {
 	}
 	vmstat, ok := service.vmstats[uuid]
 	if (!ok) {
-		http.Error(w, "unknown uuid", http.StatusBadRequest)
+		http.Error(w, "unknown uuid", http.StatusNotFound)
 		return
 	}
 	if (host_is_remote(vmstat.Runinfo.Host)) {
