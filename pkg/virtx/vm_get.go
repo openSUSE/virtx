@@ -20,12 +20,12 @@ func vm_get(w http.ResponseWriter, r *http.Request) {
 	)
 	uuid = r.PathValue("uuid")
 	if (uuid == "") {
-		http.Error(w, "vm_get: could not get uuid", http.StatusBadRequest)
+		http.Error(w, "could not get uuid", http.StatusBadRequest)
 		return
 	}
 	vmstat, ok := service.vmstats[uuid]
 	if (!ok) {
-		http.Error(w, "vm_get: unknown uuid", http.StatusBadRequest)
+		http.Error(w, "unknown uuid", http.StatusBadRequest)
 		return
 	}
 	if (host_is_remote(vmstat.Runinfo.Host)) {
@@ -46,7 +46,7 @@ func vm_get(w http.ResponseWriter, r *http.Request) {
 	}
 	err = json.NewEncoder(&buf).Encode(&vmdef)
 	if (err != nil) {
-		http.Error(w, "vm_get: Failed to encode JSON", http.StatusInternalServerError)
+		http.Error(w, "Failed to encode JSON", http.StatusInternalServerError)
         return
     }
 
