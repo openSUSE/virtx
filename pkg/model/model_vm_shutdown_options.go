@@ -22,8 +22,8 @@ var _ MappedNullable = &VmShutdownOptions{}
 
 // VmShutdownOptions struct for VmShutdownOptions
 type VmShutdownOptions struct {
-	// if true, destroy the vm immediately without any graceful shutdown (not recommended).
-	Force bool `json:"force"`
+	// if 0, send ACPI signal for the guest to gracefully shutdown. If 1, SIGTERM, if 2, SIGKILL.
+	Force int16 `json:"force"`
 }
 
 type _VmShutdownOptions VmShutdownOptions
@@ -32,7 +32,7 @@ type _VmShutdownOptions VmShutdownOptions
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVmShutdownOptions(force bool) *VmShutdownOptions {
+func NewVmShutdownOptions(force int16) *VmShutdownOptions {
 	this := VmShutdownOptions{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
@@ -51,9 +51,9 @@ func NewVmShutdownOptionsWithDefaults() *VmShutdownOptions {
 }
 
 // GetForce returns the Force field value
-func (o *VmShutdownOptions) GetForce() bool {
+func (o *VmShutdownOptions) GetForce() int16 {
 	if o == nil {
-		var ret bool
+		var ret int16
 		return ret
 	}
 
@@ -62,7 +62,7 @@ func (o *VmShutdownOptions) GetForce() bool {
 
 // GetForceOk returns a tuple with the Force field value
 // and a boolean to check if the value has been set.
-func (o *VmShutdownOptions) GetForceOk() (*bool, bool) {
+func (o *VmShutdownOptions) GetForceOk() (*int16, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -70,7 +70,7 @@ func (o *VmShutdownOptions) GetForceOk() (*bool, bool) {
 }
 
 // SetForce sets field value
-func (o *VmShutdownOptions) SetForce(v bool) {
+func (o *VmShutdownOptions) SetForce(v int16) {
 	o.Force = v
 }
 
