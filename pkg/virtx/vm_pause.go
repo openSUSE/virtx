@@ -2,15 +2,36 @@ package virtx
 
 import (
 	"net/http"
-	//"encoding/json"
-	//"strings"
-	//"bytes"
-	//"io"
-
-	//"suse.com/virtx/pkg/hypervisor"
-	//"suse.com/virtx/pkg/logger"
-	//"suse.com/virtx/pkg/model"
+	"suse.com/virtx/pkg/hypervisor"
+	"suse.com/virtx/pkg/logger"
 )
 
 func vm_pause(w http.ResponseWriter, r *http.Request) {
+	service.m.RLock()
+	defer service.m.RUnlock()
+	var (
+		err error
+		uuid string
+	)
+	uuid = r.PathValue("uuid")
+	if (uuid == "") {
+		http.Error(w, "could not get uuid", http.StatusBadRequest)
+		return
+	}
+	vmstat, ok := service.vmstats[uuid]
+	if (!ok) {
+		http.Error(w, "unknown uuid", http.StatusNotFound)
+		return
+	}
+	if (host_is_remote(vmstat.Runinfo.Host)) {
+		proxy_request(vmstat.Runinfo.Host, w, r)
+		return
+	}
+	err = hypervisor.Pause_domain(uuid)
+	if (err != nil) {
+		logger.Log("hypervisor.Pause_domain failed: %s", err.Error())
+		http.Error(w, "could not pause VM", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }

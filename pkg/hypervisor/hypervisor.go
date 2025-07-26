@@ -365,6 +365,64 @@ func Start_domain(uuid string) error {
 	return nil
 }
 
+func Pause_domain(uuid string) error {
+	var (
+		err error
+		conn *libvirt.Connect
+		domain *libvirt.Domain
+		bytes [16]byte
+		len int
+	)
+	conn, err = libvirt.NewConnect(libvirt_uri)
+	if (err != nil) {
+		return err
+	}
+	defer conn.Close()
+	len = hexstring.Encode(bytes[:], uuid)
+	if (len <= 0) {
+		return errors.New("failed to encode uuid from hexstring")
+	}
+	domain, err = conn.LookupDomainByUUID(bytes[:])
+	if (err != nil) {
+		return err
+	}
+	defer domain.Free()
+	err = domain.Suspend()
+	if (err != nil) {
+		return err
+	}
+	return nil
+}
+
+func Unpause_domain(uuid string) error {
+	var (
+		err error
+		conn *libvirt.Connect
+		domain *libvirt.Domain
+		bytes [16]byte
+		len int
+	)
+	conn, err = libvirt.NewConnect(libvirt_uri)
+	if (err != nil) {
+		return err
+	}
+	defer conn.Close()
+	len = hexstring.Encode(bytes[:], uuid)
+	if (len <= 0) {
+		return errors.New("failed to encode uuid from hexstring")
+	}
+	domain, err = conn.LookupDomainByUUID(bytes[:])
+	if (err != nil) {
+		return err
+	}
+	defer domain.Free()
+	err = domain.Resume()
+	if (err != nil) {
+		return err
+	}
+	return nil
+}
+
 func Shutdown_domain(uuid string, force int16) error {
 	var (
 		err error
