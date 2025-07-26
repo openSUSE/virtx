@@ -13,4 +13,5 @@ import (
 )
 
 func vm_migrate_cancel(w http.ResponseWriter, r *http.Request) {
+	http.Error(w, "not implemented yet", http.StatusNotImplemented)
 }
