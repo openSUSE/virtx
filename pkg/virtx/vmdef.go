@@ -166,8 +166,8 @@ func vmdef_to_xml(vmdef *openapi.Vmdef) (string, error) {
 				phys_bits = 36;
 			}
 			return &libvirtxml.DomainCPUMaxPhysAddr{
-				Mode: "emulate",
-				Bits: phys_bits,
+				Mode: "passthrough",
+				Limit: phys_bits,
 			}
 		}(),
 		Topology: &libvirtxml.DomainCPUTopology{
