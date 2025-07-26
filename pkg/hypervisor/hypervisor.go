@@ -143,8 +143,8 @@ func get_domain_info(d *libvirt.Domain) (string, string, openapi.Vmrunstate, err
 		uuid string
 		reason int
 		state libvirt.DomainState
-		enum_state openapi.Vmrunstate
 		err error
+		enum_state openapi.Vmrunstate = openapi.RUNSTATE_NONE
 	)
 	name, err = d.GetName()
 	if (err != nil) {
@@ -160,7 +160,7 @@ func get_domain_info(d *libvirt.Domain) (string, string, openapi.Vmrunstate, err
 	}
 	logger.Log("get_domain_info: state %d, reason %d", state, reason)
 	switch (state) {
-	//case libvirt.DOMAIN_NOSTATE: /* ?XXX? */
+	//case libvirt.DOMAIN_NOSTATE: /* leave enum_state RUNSTATE_NONE */
 	case libvirt.DOMAIN_RUNNING:
 		fallthrough
 	case libvirt.DOMAIN_BLOCKED: /* ?XXX? */
@@ -243,18 +243,27 @@ func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventL
 	 * can access the connection whose data structure may be in the process of updating.
 	 */
 	hv.m.RLock()
-	name, uuid, state, err = get_domain_info(d)
-	hv.m.RUnlock()
-
-	if (err != nil) {
-		if (e.Event == libvirt.DOMAIN_EVENT_UNDEFINED) {
-			/* XXX handle this XXX */
+	if (e.Event == libvirt.DOMAIN_EVENT_UNDEFINED) {
+		/* VM has been DELETED */
+		uuid, err = d.GetUUIDString()
+		if (err != nil) {
+			logger.Log("DOMAIN_EVENT_UNDEFINED GetUUIDString error: %s", err.Error())
+			err = nil
 		} else {
-			logger.Log(err.Error())
+			logger.Log("DOMAIN_EVENT_UNDEFINED GetUUIDString: %s", uuid)
+			state = openapi.RUNSTATE_DELETED
 		}
+	} else {
+		name, uuid, state, err = get_domain_info(d)
 	}
-	logger.Log("[VmEvent] %s/%s: %v state: %d", name, uuid, e, state)
-	hv.vm_event_ch <- VmEvent{ Uuid: uuid, State: state, Ts: time.Now().UTC().UnixMilli() }
+	hv.m.RUnlock()
+	if (err != nil) {
+		logger.Log(err.Error())
+	}
+	if (state != openapi.RUNSTATE_NONE) {
+		logger.Log("[VmEvent] %s/%s: %v state: %d", name, uuid, e, state)
+		hv.vm_event_ch <- VmEvent{ Uuid: uuid, State: state, Ts: time.Now().UTC().UnixMilli() }
+	}
 }
 
 /*
@@ -452,6 +461,47 @@ func Shutdown_domain(uuid string, force int16) error {
 	} else {
 		err = domain.DestroyFlags(0)
 	}
+	return err
+}
+
+func Delete_domain(uuid string) error {
+	var (
+		err error
+		conn *libvirt.Connect
+		domain *libvirt.Domain
+		bytes [16]byte
+		len int
+	)
+	conn, err = libvirt.NewConnect(libvirt_uri)
+	if (err != nil) {
+		return err
+	}
+	defer conn.Close()
+	len = hexstring.Encode(bytes[:], uuid)
+	if (len <= 0) {
+		return errors.New("failed to encode uuid from hexstring")
+	}
+	domain, err = conn.LookupDomainByUUID(bytes[:])
+	if (err != nil) {
+		return err
+	}
+	defer domain.Free()
+	var (
+		ds libvirt.DomainState
+		//reason int
+	)
+	ds, _, err = domain.GetState()
+	if (err != nil) {
+		return err
+	}
+	if (ds != libvirt.DOMAIN_SHUTOFF) {
+		return errors.New("libvirt domain is not in SHUTOFF state")
+	}
+	err = domain.UndefineFlags(libvirt.DOMAIN_UNDEFINE_MANAGED_SAVE |
+		libvirt.DOMAIN_UNDEFINE_SNAPSHOTS_METADATA |
+		libvirt.DOMAIN_UNDEFINE_NVRAM |
+		libvirt.DOMAIN_UNDEFINE_CHECKPOINTS_METADATA)
+	//libvirt.DOMAIN_UNDEFINE_TPM
 	return err
 }
 

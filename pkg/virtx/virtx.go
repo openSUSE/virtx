@@ -180,7 +180,11 @@ func Update_vm_state(e *hypervisor.VmEvent) error {
 		return fmt.Errorf("no such VM %s", e.Uuid)
 	}
 	vmstat.Runinfo.Runstate = openapi.Vmrunstate(e.State)
-	service.vmstats[e.Uuid] = vmstat
+	if (vmstat.Runinfo.Runstate == openapi.RUNSTATE_DELETED) {
+		delete(service.vmstats, e.Uuid)
+	} else {
+		service.vmstats[e.Uuid] = vmstat
+	}
 	return nil
 }
 
