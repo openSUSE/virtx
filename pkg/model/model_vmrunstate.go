@@ -22,14 +22,15 @@ type Vmrunstate int16
 // List of vmrunstate
 const (
 	RUNSTATE_NONE Vmrunstate = 0
-	RUNSTATE_POWEROFF Vmrunstate = 1
-	RUNSTATE_STARTUP Vmrunstate = 2
-	RUNSTATE_RUNNING Vmrunstate = 3
-	RUNSTATE_PAUSED Vmrunstate = 4
-	RUNSTATE_MIGRATING Vmrunstate = 5
-	RUNSTATE_TERMINATING Vmrunstate = 6
-	RUNSTATE_PMSUSPENDED Vmrunstate = 7
-	RUNSTATE_CRASHED Vmrunstate = 8
+	RUNSTATE_DELETED Vmrunstate = 1
+	RUNSTATE_POWEROFF Vmrunstate = 2
+	RUNSTATE_STARTUP Vmrunstate = 3
+	RUNSTATE_RUNNING Vmrunstate = 4
+	RUNSTATE_PAUSED Vmrunstate = 5
+	RUNSTATE_MIGRATING Vmrunstate = 6
+	RUNSTATE_TERMINATING Vmrunstate = 7
+	RUNSTATE_PMSUSPENDED Vmrunstate = 8
+	RUNSTATE_CRASHED Vmrunstate = 9
 )
 
 // All allowed values of Vmrunstate enum
@@ -43,6 +44,7 @@ var AllowedVmrunstateEnumValues = []Vmrunstate{
 	6,
 	7,
 	8,
+	9,
 }
 
 func (v *Vmrunstate) UnmarshalJSON(src []byte) error {
