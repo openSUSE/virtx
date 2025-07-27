@@ -21,10 +21,11 @@ type Hoststate int16
 
 // List of hoststate
 const (
-	HOST_ACTIVE Hoststate = 0
-	HOST_EVICTING Hoststate = 1
-	HOST_LEFT Hoststate = 2
-	HOST_FAILED Hoststate = 3
+	HOST_INVALID Hoststate = 0
+	HOST_ACTIVE Hoststate = 1
+	HOST_EVICTING Hoststate = 2
+	HOST_LEFT Hoststate = 3
+	HOST_FAILED Hoststate = 4
 )
 
 // All allowed values of Hoststate enum
@@ -33,6 +34,7 @@ var AllowedHoststateEnumValues = []Hoststate{
 	1,
 	2,
 	3,
+	4,
 }
 
 func (v *Hoststate) UnmarshalJSON(src []byte) error {
