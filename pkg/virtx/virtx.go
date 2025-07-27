@@ -85,7 +85,7 @@ func Init() {
 	servemux.HandleFunc("DELETE /vms/{uuid}/runstate/migrate", vm_migrate_cancel)
 
 	servemux.HandleFunc("GET /hosts", host_list)
-	servemux.HandleFunc("GET /hosts/{uuid}", host_get) // XXX not in API yet XXX
+	servemux.HandleFunc("GET /hosts/{uuid}", host_get)
 	servemux.HandleFunc("GET /cluster", cluster_get)
 
 	service = Service{
