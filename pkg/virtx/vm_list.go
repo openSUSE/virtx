@@ -65,6 +65,7 @@ vmloop:
 				Host: vm.Runinfo.Host,
 				Runstate: vm.Runinfo.Runstate,
 				Vlanid: vm.Vlanid,
+				Custom: o.Filter.Custom,
 			},
 		}
 		vm_list.Items = append(vm_list.Items, item)
