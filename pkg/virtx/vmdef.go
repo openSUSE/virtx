@@ -9,6 +9,7 @@ import (
 	"encoding/xml"
 
 	"suse.com/virtx/pkg/model"
+	"suse.com/virtx/pkg/hypervisor"
 	. "suse.com/virtx/pkg/constants"
 	"libvirt.org/go/libvirtxml"
 )
@@ -152,10 +153,26 @@ func vmdef_to_xml(vmdef *openapi.Vmdef) (string, error) {
 	var (
 		xml string
 		err error
+		domain_features *libvirtxml.DomainFeatureList
 	)
 	var vcpus uint = vmdef_get_vcpus(vmdef)
 	domain_vcpu := libvirtxml.DomainVCPU{
 		Value: vcpus,
+	}
+	switch (hypervisor.Arch()) {
+	case "aarch64":
+		domain_features = &libvirtxml.DomainFeatureList{
+			ACPI: &libvirtxml.DomainFeature{},
+		}
+	case "x86_64":
+		domain_features = &libvirtxml.DomainFeatureList{
+			ACPI: &libvirtxml.DomainFeature{},
+			APIC: &libvirtxml.DomainFeatureAPIC{ EOI: "on" },
+			VMPort: &libvirtxml.DomainFeatureState{ State: "off" },
+			IOAPIC: &libvirtxml.DomainFeatureIOAPIC{},
+		}
+	default:
+		return "", errors.New("invalid architecture")
 	}
 	domain_cpu := libvirtxml.DomainCPU{
 		Migratable: "on",
@@ -524,6 +541,7 @@ func vmdef_to_xml(vmdef *openapi.Vmdef) (string, error) {
 		IOThreads: uint(iothread_count),
 		NUMATune: domain_numatune,
 		OS: &domain_os,
+		Features: domain_features,
 		CPU: &domain_cpu,
 		Clock: &domain_clock,
 		PM: &domain_pm,
