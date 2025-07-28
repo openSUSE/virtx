@@ -23,6 +23,11 @@ import (
 	"sync"
 	"sync/atomic"
 	"errors"
+	"os"
+	"bytes"
+	"bufio"
+	"strings"
+	"strconv"
 
 	"libvirt.org/go/libvirt"
 	"libvirt.org/go/libvirtxml"
@@ -91,6 +96,8 @@ type Hypervisor struct {
 
 	uuid string /* the UUID of this host */
 	cpuarch openapi.Cpuarch /* the Arch and Vendor */
+
+	vcpu_load_factor float32
 }
 var hv = Hypervisor{
 	m: sync.RWMutex{},
@@ -820,8 +827,54 @@ func init() {
 	}
 	hv.vm_event_ch = make(chan VmEvent, 64)
 	hv.system_info_ch = make(chan SystemInfo, 64)
+	hv.vcpu_load_factor = read_numa_preplace_conf()
+	logger.Log("init, vcpu_load_factor %f", hv.vcpu_load_factor)
 	go init_vm_event_loop()
 	go init_system_info_loop()
+}
+
+func read_numa_preplace_conf() float32 {
+	var (
+		factor float32 = 25.0
+		err error
+		data []byte
+		scanner *bufio.Scanner
+	)
+	data, err = os.ReadFile("/etc/numa-preplace.conf")
+	if (err != nil) {
+		logger.Log("could not read /etc/numa-preplace.conf")
+		return factor
+	}
+	scanner = bufio.NewScanner(bytes.NewReader(data))
+	for scanner.Scan() {
+		line := scanner.Text()
+		/* remove comments after # */
+		idx := strings.Index(line, "#")
+		if (idx >= 0) {
+			line = line[:idx]
+		}
+		line = strings.TrimSpace(line)
+		if (line == "") {
+			continue;
+		}
+		/* now split option name and value */
+		option := strings.SplitN(line, " ", 2)
+		if (len(option) != 2) {
+			logger.Log("skipping malformed line: %s", line)
+			continue
+		}
+		if (strings.TrimSpace(option[0]) == "-o") {
+			var value float64
+			value, err = strconv.ParseFloat(strings.TrimSpace(option[1]), 32)
+			if (err != nil) {
+				logger.Log("skipping malformed option value: %s", option[1])
+				continue
+			}
+			factor = float32(value)
+			break
+		}
+	}
+	return factor
 }
 
 func Arch() string {
