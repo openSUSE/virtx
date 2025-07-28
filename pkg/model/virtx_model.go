@@ -94,6 +94,7 @@ func (firmware FirmwareType) String() string {
 
 func (firmware *FirmwareType) Parse(s string) error {
 	switch (s) {
+	case "": fallthrough
 	case "bios":
 		*firmware = FIRMWARE_BIOS
 		return nil
