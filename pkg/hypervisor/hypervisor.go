@@ -681,16 +681,6 @@ type xmlDomain struct {
 
 func getDomainStats(d *libvirt.Domain, vm *VmStat) error {
 	var err error
-	/*
-	{
-		var cpustat []libvirt.DomainCPUStats
-		cpustat, err = d.GetCPUStats(-1, 1, 0)
-		if (err != nil) {
-			return err
-		}
-		Vm.Cpu_time = cpustat[0].CpuTime
-	}
-	*/
 	{
 		var info *libvirt.DomainInfo
 		var memstat []libvirt.DomainMemoryStat
