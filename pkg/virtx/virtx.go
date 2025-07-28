@@ -243,7 +243,7 @@ func update_vm(vmstat *hypervisor.VmStat) error {
 }
 
 func host_is_remote(uuid string) bool {
-	return uuid != "" && uuid != hypervisor.Uuid
+	return uuid != "" && uuid != hypervisor.Uuid()
 }
 
 func proxy_request(uuid string, w http.ResponseWriter, r *http.Request) {

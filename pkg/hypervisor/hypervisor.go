@@ -39,9 +39,6 @@ const (
 	libvirt_system_info_seconds = 15
 )
 
-/* the Uuid of this host */
-var Uuid string
-
 type VmEvent struct {
 	Uuid string
 	State openapi.Vmrunstate
@@ -91,6 +88,9 @@ type Hypervisor struct {
 	lifecycle_id int
 	vm_event_ch chan VmEvent
 	system_info_ch chan SystemInfo
+
+	uuid string /* the UUID of this host */
+	cpuarch openapi.Cpuarch /* the Arch and Vendor */
 }
 var hv = Hypervisor{
 	m: sync.RWMutex{},
@@ -218,8 +218,11 @@ func system_info_loop(seconds int) error {
 	if (err != nil) {
 		return err
 	}
-	/* set and remember this host Uuid */
-	Uuid = si.Host.Uuid
+	hv.m.Lock()
+	hv.uuid = si.Host.Uuid
+	hv.cpuarch = si.Host.Def.Cpuarch
+	hv.m.Unlock()
+
 	hv.system_info_ch <- si
 
 	for range ticker.C {
@@ -829,4 +832,16 @@ func init() {
 	hv.system_info_ch = make(chan SystemInfo, 64)
 	go init_vm_event_loop()
 	go init_system_info_loop()
+}
+
+func Arch() string {
+	hv.m.RLock()
+	defer hv.m.RUnlock()
+	return hv.cpuarch.Arch
+}
+
+func Uuid() string {
+	hv.m.RLock()
+	defer hv.m.RUnlock()
+	return hv.uuid
 }
