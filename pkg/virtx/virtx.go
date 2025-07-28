@@ -207,7 +207,8 @@ func update_vm(vmstat *hypervisor.VmStat) error {
 			return nil
 		}
 		/* calculate deltas from previous Vm info */
-		if (int(vmstat.Runinfo.Runstate) > 1) {
+		if (vmstat.Runinfo.Runstate > openapi.RUNSTATE_POWEROFF &&
+			old.Runinfo.Runstate > openapi.RUNSTATE_POWEROFF) {
 			var delta uint64
 			if (vmstat.Cpu_time >= old.Cpu_time) {
 				delta = vmstat.Cpu_time - old.Cpu_time
