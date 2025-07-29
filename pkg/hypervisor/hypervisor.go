@@ -97,7 +97,7 @@ type Hypervisor struct {
 	uuid string /* the UUID of this host */
 	cpuarch openapi.Cpuarch /* the Arch and Vendor */
 
-	vcpu_load_factor float32
+	vcpu_load_factor float64
 }
 var hv = Hypervisor{
 	m: sync.RWMutex{},
@@ -833,9 +833,9 @@ func init() {
 	go init_system_info_loop()
 }
 
-func read_numa_preplace_conf() float32 {
+func read_numa_preplace_conf() float64 {
 	var (
-		factor float32 = 25.0
+		factor float64 = 25.0
 		err error
 		data []byte
 		scanner *bufio.Scanner
@@ -865,12 +865,12 @@ func read_numa_preplace_conf() float32 {
 		}
 		if (strings.TrimSpace(option[0]) == "-o") {
 			var value float64
-			value, err = strconv.ParseFloat(strings.TrimSpace(option[1]), 32)
+			value, err = strconv.ParseFloat(strings.TrimSpace(option[1]), 64)
 			if (err != nil) {
 				logger.Log("skipping malformed option value: %s", option[1])
 				continue
 			}
-			factor = float32(value)
+			factor = value
 			break
 		}
 	}
