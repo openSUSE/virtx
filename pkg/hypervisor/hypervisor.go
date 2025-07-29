@@ -83,6 +83,10 @@ type VmStat struct {
 type SystemInfo struct {
 	Host openapi.Host
 	Vm_stats []VmStat
+	/* overall counters for host cpu nanoseconds (for host stats) */
+	cpu_idle_ns uint64
+	cpu_kernel_ns uint64
+	cpu_user_ns uint64
 }
 
 type Hypervisor struct {
@@ -212,7 +216,7 @@ out:
  */
 func system_info_loop(seconds int) error {
 	var (
-		si SystemInfo
+		old, si SystemInfo
 		err error
 		ticker *time.Ticker
 	)
@@ -221,19 +225,20 @@ func system_info_loop(seconds int) error {
 	ticker = time.NewTicker(time.Duration(seconds) * time.Second)
 	defer ticker.Stop()
 
-	err = get_system_info(&si)
+	err = get_system_info(&old, nil)
 	if (err != nil) {
 		return err
 	}
 	hv.m.Lock()
-	hv.uuid = si.Host.Uuid
-	hv.cpuarch = si.Host.Def.Cpuarch
+	hv.uuid = old.Host.Uuid
+	hv.cpuarch = old.Host.Def.Cpuarch
 	hv.m.Unlock()
 
-	hv.system_info_ch <- si
+	/* this first info is missing vm cpu stats and host cpu stats */
+	hv.system_info_ch <- old
 
 	for range ticker.C {
-		err = get_system_info(&si)
+		err = get_system_info(&si, &old)
 		if (err != nil) {
 			return err
 		}
@@ -530,7 +535,7 @@ type xmlEntry struct {
 	Value string `xml:",chardata"`
 }
 
-func get_system_info(si *SystemInfo) error {
+func get_system_info(si *SystemInfo, old *SystemInfo) error {
 	hv.m.RLock()
 	defer hv.m.RUnlock()
 	var (
@@ -551,7 +556,9 @@ func get_system_info(si *SystemInfo) error {
 		free_memory uint64
 		total_memory_capacity uint64
 		total_memory_used uint64
-		total_cpus uint32
+		total_vcpus uint32
+		total_cpus_used_percent uint32
+		cpustats *libvirt.NodeCPUStats
 	)
 
 	/* 1. set the general host information */
@@ -624,36 +631,56 @@ func get_system_info(si *SystemInfo) error {
 		vm.Runinfo.Host = host.Uuid
 		total_memory_capacity += vm.Memory_capacity
 		total_memory_used += vm.Memory_used
-		total_cpus += uint32(vm.Cpus) /* should be equal to Topology Sockets * Cores, since we do not use threads */
-		//cpuPercent := float64(delta) / (15.0 * float64(cpus) * 1e9) * 100.0
+		total_vcpus += uint32(vm.Cpus) /* should be equal to Topology Sockets * Cores, since we do not use threads */
+		total_cpus_used_percent += uint32(vm.Cpu_utilization)
 		vm.Ts = ts
 		vmstats = append(vmstats, vm)
 	}
 	/* now calculate host resources */
-	host.Resources.Memory.Total = int32(info.Memory / KiB) /* info returns memory in KiB, translate to MiB */
 	free_memory, err = hv.conn.GetFreeMemory()
 	if (err != nil) {
 		goto out
 	}
-	/* XXX no overcommit is currently implemented XXX */
+	cpustats, err = hv.conn.GetCPUStats(-1, 0)
+	if (err != nil) {
+		goto out
+	}
+
+	/* Memory */
+	host.Resources.Memory.Total = int32(info.Memory / KiB) /* info returns memory in KiB, translate to MiB */
 	host.Resources.Memory.Free = int32(free_memory / MiB) /* this returns in bytes, translate to MiB */
 	host.Resources.Memory.Used = host.Resources.Memory.Total - host.Resources.Memory.Free
-	host.Resources.Memory.Reservedos = 0  /* XXX need to implement XXX */
+	host.Resources.Memory.Reservedos = 0  /* XXX NOT IMPLEMENTED XXX */
 	host.Resources.Memory.Reservedvms = int32(total_memory_capacity)
 	host.Resources.Memory.Usedvms = int32(total_memory_used)
-	host.Resources.Memory.Availablevms = host.Resources.Memory.Total -
-		host.Resources.Memory.Reservedos - host.Resources.Memory.Reservedvms
+	host.Resources.Memory.Availablevms = host.Resources.Memory.Total - host.Resources.Memory.Reservedvms - host.Resources.Memory.Reservedos
 
-	/* like VMWare, we calculate the total Mhz as (total_cores * frequency) (excluding threads) */
-	/* XXX no overcommit is currently implemented XXX */
+	/* CPU */
 	host.Resources.Cpu.Total = int32(uint(info.Sockets * info.Cores) * info.MHz)
-	host.Resources.Cpu.Used = 0 /* XXX */
-	host.Resources.Cpu.Free = host.Resources.Cpu.Total - host.Resources.Cpu.Used
-	host.Resources.Cpu.Reservedos = 0  /* XXX */
-	host.Resources.Cpu.Reservedvms = int32(total_cpus * uint32(info.MHz))
-	host.Resources.Cpu.Usedvms = 0 /* XXX */
-	host.Resources.Cpu.Availablevms = host.Resources.Cpu.Free - host.Resources.Cpu.Reservedvms
+	host.Resources.Cpu.Reservedvms = int32(float64(total_vcpus) * hv.vcpu_load_factor * float64(info.MHz) / 100)
+	si.cpu_idle_ns = cpustats.Idle
+	si.cpu_kernel_ns = cpustats.Kernel
+	si.cpu_user_ns = cpustats.User
 
+	/* some of the data we can only calculate as comparison from the previous measurement */
+	if (old != nil) {
+		interval := float64(host.Ts - old.Host.Ts)
+		if (interval <= 0.0) {
+			logger.Log("get_system_info: host timestamps not in order?")
+		} else {
+			delta := float64(Counter_delta_uint64(si.cpu_idle_ns, old.cpu_idle_ns))
+			host.Resources.Cpu.Free = int32(delta / interval * float64(info.MHz))
+			host.Resources.Cpu.Used = host.Resources.Cpu.Total - host.Resources.Cpu.Free
+
+			delta = float64(Counter_delta_uint64(si.cpu_kernel_ns, old.cpu_kernel_ns))
+			host.Resources.Cpu.Reservedos = int32(delta / interval * float64(info.MHz))
+			delta = float64(Counter_delta_uint64(si.cpu_user_ns, old.cpu_user_ns))
+			host.Resources.Cpu.Reservedos += int32(delta / interval * float64(info.MHz))
+
+			host.Resources.Cpu.Usedvms = int32(total_cpus_used_percent * uint32(info.MHz) / 100)
+			host.Resources.Cpu.Availablevms = host.Resources.Cpu.Total - host.Resources.Cpu.Reservedvms - host.Resources.Cpu.Reservedos
+		}
+	}
 out:
 	si.Host = host
 	si.Vm_stats = vmstats
