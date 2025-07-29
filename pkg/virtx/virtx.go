@@ -24,7 +24,6 @@ import (
 	"net/url"
 	"sync"
 	"errors"
-	"math"
 	"context"
 	"time"
 	"io"
@@ -209,31 +208,17 @@ func update_vm(vmstat *hypervisor.VmStat) error {
 		/* calculate deltas from previous Vm info */
 		if (vmstat.Runinfo.Runstate > openapi.RUNSTATE_POWEROFF &&
 			old.Runinfo.Runstate > openapi.RUNSTATE_POWEROFF) {
-			var delta uint64
-			if (vmstat.Cpu_time >= old.Cpu_time) {
-				delta = vmstat.Cpu_time - old.Cpu_time
-			} else {
-				delta = (math.MaxUint64 - old.Cpu_time) + vmstat.Cpu_time + 1
-			}
+			var delta uint64 = hypervisor.Counter_delta_uint64(vmstat.Cpu_time, old.Cpu_time)
 			if (delta > 0 && (vmstat.Ts - old.Ts) > 0 && vmstat.Cpus > 0) {
 				vmstat.Cpu_utilization = int16((delta * 100) / (uint64(vmstat.Ts - old.Ts) * uint64(vmstat.Cpus) * 1000000))
 			}
 		}
 		{
-			var delta int64
-			if (vmstat.Net_rx >= old.Net_rx) {
-				delta = vmstat.Net_rx - old.Net_rx
-			} else {
-				delta = (math.MaxInt64 - old.Net_rx) + (vmstat.Net_rx - math.MinInt64) + 1
-			}
+			var delta int64 = hypervisor.Counter_delta_int64(vmstat.Net_rx, old.Net_rx)
 			if (delta > 0 && (vmstat.Ts - old.Ts) > 0) {
 				vmstat.Net_rx_bw = int32((delta * 1000) / ((vmstat.Ts - old.Ts) * KiB))
 			}
-			if (vmstat.Net_tx >= old.Net_tx) {
-				delta = vmstat.Net_tx - old.Net_tx
-			} else {
-				delta = (math.MaxInt64 - old.Net_tx) + (vmstat.Net_tx - math.MinInt64) + 1
-			}
+			delta = hypervisor.Counter_delta_int64(vmstat.Net_tx, old.Net_tx)
 			if (delta > 0 && (vmstat.Ts - old.Ts) > 0) {
 				vmstat.Net_tx_bw = int32((delta * 1000) / ((vmstat.Ts - old.Ts) * KiB))
 			}
