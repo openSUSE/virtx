@@ -59,14 +59,14 @@ func send_host_info(host_info *openapi.Host) error {
 	return serf.c.UserEvent(label_host_info, serf.enc_buffer[:eventsize], false)
 }
 
-func send_vm_stat(VmStat *hypervisor.VmStat) error {
+func send_vm_stat(vmdata *hypervisor.Vmdata) error {
 	serf.enc_mux.Lock()
 	defer serf.enc_mux.Unlock()
 	var (
 		eventsize int
 		err error
 	)
-	eventsize, err = sbinary.Encode(serf.enc_buffer[:], binary.LittleEndian, VmStat)
+	eventsize, err = sbinary.Encode(serf.enc_buffer[:], binary.LittleEndian, vmdata)
 	if (err != nil) {
 		return err
 	}
@@ -155,7 +155,7 @@ func recv_serf_events(shutdown_ch chan<- struct{}) {
 			}
 		case label_vm_stat:
 			var (
-				vm hypervisor.VmStat
+				vm hypervisor.Vmdata
 				size int
 			)
 			size, err = sbinary.Decode(payload, binary.LittleEndian, &vm)
@@ -191,8 +191,8 @@ func send_system_info(ch <-chan hypervisor.SystemInfo) {
 		if (err != nil) {
 			logger.Log(err.Error())
 		}
-		for _, vmstat := range si.Vm_stats {
-			err = send_vm_stat(&vmstat)
+		for _, vmdata := range si.Vmdata {
+			err = send_vm_stat(&vmdata)
 			if (err != nil) {
 				logger.Log(err.Error())
 			}

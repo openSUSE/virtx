@@ -18,7 +18,7 @@ func vm_list(w http.ResponseWriter, r *http.Request) {
 	var (
 		err error
 		o openapi.VmListOptions
-		vm hypervisor.VmStat
+		vm hypervisor.Vmdata
 		vm_list openapi.VmList
 		buf bytes.Buffer
 	)
@@ -29,7 +29,7 @@ func vm_list(w http.ResponseWriter, r *http.Request) {
 	}
 
 vmloop:
-	for _, vm = range service.vmstats {
+	for _, vm = range service.vmdata {
 		if (o.Filter.Name != "" && !strings.Contains(vm.Name, o.Filter.Name)) {
 			continue
 		}

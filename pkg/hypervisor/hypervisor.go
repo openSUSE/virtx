@@ -51,38 +51,28 @@ type VmEvent struct {
 }
 
 /*
- * VmStat are statistics collected every libvirt_stats_seconds
+ * VmData is the raw Vm data collected every libvirt_stats_seconds
  */
 
-type VmStat struct {
+type Vmdata struct {
 	Uuid string                 /* VM Uuid */
 	Name string                 /* VM Name */
 	Runinfo openapi.Vmruninfo   /* host running the VM and VM runstate */
 	Vlanid int16                /* XXX need requirements engineering for Vlans XXX */
 	Custom []openapi.CustomField
+	Stats openapi.Vmstats
 
-	Cpus int16                  /* Total number of vcpus for the domain from libvirt.DomainInfo */
 	Cpu_time uint64             /* Total cpu time consumed in nanoseconds from libvirt.DomainCPUStats.CpuTime */
-	Cpu_utilization int16       /* % of total cpu resources used */
-
-	Memory_capacity uint64       /* Memory assigned to VM in MiB from virDomainInfo->memory / 1024 */
-	Memory_used uint64           /* Memory in MiB of the QEMU RSS process, VIR_DOMAIN_MEMORY_STAT_RSS / 1024 */
-
-	Disk_capacity uint64         /* Disk Total virtual capacity (MiB) from virDomainBlockInfo->capacity / MiB*/
-	Disk_allocation uint64       /* Disk Allocated on host (MiB) from Info->allocation / MiB */
-	Disk_physical uint64         /* Disk Physical on host (MiB) from Info->physical, including metadata */
-
-	Net_rx int64                 /* Net Rx bytes */
-	Net_tx int64                 /* Net Tx bytes */
-	Net_rx_bw int32              /* Net Rx KiB/s */
-	Net_tx_bw int32              /* Net Tx KiB/s */
+	Net_rx int64                /* Net Rx bytes */
+	Net_tx int64                /* Net Tx bytes */
 
 	Ts int64
 }
 
 type SystemInfo struct {
 	Host openapi.Host
-	Vm_stats []VmStat
+	Vmdata []Vmdata
+
 	/* overall counters for host cpu nanoseconds (for host stats) */
 	cpu_idle_ns uint64
 	cpu_kernel_ns uint64
@@ -540,7 +530,7 @@ func get_system_info(si *SystemInfo, old *SystemInfo) error {
 	defer hv.m.RUnlock()
 	var (
 		host openapi.Host
-		vmstats []VmStat
+		vmdata []Vmdata
 		err error
 		xmldata string
 		caps libvirtxml.Caps
@@ -556,8 +546,8 @@ func get_system_info(si *SystemInfo, old *SystemInfo) error {
 		free_memory uint64
 		total_memory_capacity uint64
 		total_memory_used uint64
-		total_vcpus uint32
-		total_cpus_used_percent uint32
+		total_vcpus_mhz uint32
+		total_cpus_used_percent int32
 		cpustats *libvirt.NodeCPUStats
 	)
 
@@ -617,10 +607,10 @@ func get_system_info(si *SystemInfo, old *SystemInfo) error {
 	}
 	defer freeDomains(doms)
 
-	vmstats = make([]VmStat, 0, len(doms))
+	vmdata = make([]Vmdata, 0, len(doms))
 	for _, d = range doms {
 		var (
-			vm VmStat
+			vm Vmdata
 		)
 		vm.Name, vm.Uuid, vm.Runinfo.Runstate, err = get_domain_info(&d)
 		if (err != nil) {
@@ -629,12 +619,12 @@ func get_system_info(si *SystemInfo, old *SystemInfo) error {
 		}
 		err = get_domain_stats(&d, &vm)
 		vm.Runinfo.Host = host.Uuid
-		total_memory_capacity += vm.Memory_capacity
-		total_memory_used += vm.Memory_used
-		total_vcpus += uint32(vm.Cpus) /* should be equal to Topology Sockets * Cores, since we do not use threads */
-		total_cpus_used_percent += uint32(vm.Cpu_utilization)
+		total_memory_capacity += uint64(vm.Stats.MemoryCapacity)
+		total_memory_used += uint64(vm.Stats.MemoryUsed)
+		total_vcpus_mhz += uint32(vm.Stats.Vcpus) * uint32(info.MHz) /* should be equal to Topology Sockets * Cores, since we do not use threads */
+		total_cpus_used_percent += vm.Stats.CpuUtilization
 		vm.Ts = ts
-		vmstats = append(vmstats, vm)
+		vmdata = append(vmdata, vm)
 	}
 	/* now calculate host resources */
 	free_memory, err = hv.conn.GetFreeMemory()
@@ -657,7 +647,7 @@ func get_system_info(si *SystemInfo, old *SystemInfo) error {
 
 	/* CPU */
 	host.Resources.Cpu.Total = int32(uint(info.Sockets * info.Cores) * info.MHz)
-	host.Resources.Cpu.Reservedvms = int32(float64(total_vcpus) * hv.vcpu_load_factor * float64(info.MHz) / 100)
+	host.Resources.Cpu.Reservedvms = int32((float64(total_vcpus_mhz) / 100.0) * hv.vcpu_load_factor)
 	si.cpu_idle_ns = cpustats.Idle
 	si.cpu_kernel_ns = cpustats.Kernel
 	si.cpu_user_ns = cpustats.User
@@ -677,13 +667,13 @@ func get_system_info(si *SystemInfo, old *SystemInfo) error {
 			delta = float64(Counter_delta_uint64(si.cpu_user_ns, old.cpu_user_ns))
 			host.Resources.Cpu.Reservedos += int32(delta / interval * float64(info.MHz))
 
-			host.Resources.Cpu.Usedvms = int32(total_cpus_used_percent * uint32(info.MHz) / 100)
+			host.Resources.Cpu.Usedvms = total_cpus_used_percent * int32(info.MHz) / 100
 			host.Resources.Cpu.Availablevms = host.Resources.Cpu.Total - host.Resources.Cpu.Reservedvms - host.Resources.Cpu.Reservedos
 		}
 	}
 out:
 	si.Host = host
-	si.Vm_stats = vmstats
+	si.Vmdata = vmdata
 	return err
 }
 
@@ -713,7 +703,7 @@ type xmlDomain struct {
 	} `xml:"devices"`
 }
 
-func get_domain_stats(d *libvirt.Domain, vm *VmStat) error {
+func get_domain_stats(d *libvirt.Domain, vm *Vmdata) error {
 	var err error
 	{
 		var info *libvirt.DomainInfo
@@ -722,16 +712,16 @@ func get_domain_stats(d *libvirt.Domain, vm *VmStat) error {
 		if (err != nil) {
 			return err
 		}
-		vm.Cpus = int16(info.NrVirtCpu)
+		vm.Stats.Vcpus = int16(info.NrVirtCpu)
 		vm.Cpu_time = info.CpuTime
-		vm.Memory_capacity = info.Memory / KiB /* convert from KiB to MiB */
+		vm.Stats.MemoryCapacity = int64(info.Memory / KiB) /* convert from KiB to MiB */
 		memstat, err = d.MemoryStats(20, 0)
 		if (err != nil) {
 			return err
 		}
 		for _, stat := range memstat {
 			if (libvirt.DomainMemoryStatTags(stat.Tag) == libvirt.DOMAIN_MEMORY_STAT_RSS) {
-				vm.Memory_used = stat.Val / KiB /* convert from KiB to MiB */
+				vm.Stats.MemoryUsed = int64(stat.Val / KiB) /* convert from KiB to MiB */
 				break
 			}
 		}
@@ -757,9 +747,9 @@ func get_domain_stats(d *libvirt.Domain, vm *VmStat) error {
 				if (err != nil) {
 					return err
 				}
-				vm.Disk_capacity += blockinfo.Capacity / MiB
-				vm.Disk_allocation += blockinfo.Allocation / MiB
-				vm.Disk_physical += blockinfo.Physical / MiB
+				vm.Stats.DiskCapacity += int64(blockinfo.Capacity / MiB)
+				vm.Stats.DiskAllocation += int64(blockinfo.Allocation / MiB)
+				vm.Stats.DiskPhysical += int64(blockinfo.Physical / MiB)
 			}
 		}
 		for _, net := range xd.Devices.Interfaces {

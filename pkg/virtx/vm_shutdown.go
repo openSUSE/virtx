@@ -32,13 +32,13 @@ func vm_shutdown(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid force field", http.StatusBadRequest)
 		return
 	}
-	vmstat, ok := service.vmstats[uuid]
+	vmdata, ok := service.vmdata[uuid]
 	if (!ok) {
 		http.Error(w, "unknown uuid", http.StatusNotFound)
 		return
 	}
-	if (host_is_remote(vmstat.Runinfo.Host)) {
-		proxy_request(vmstat.Runinfo.Host, w, r)
+	if (host_is_remote(vmdata.Runinfo.Host)) {
+		proxy_request(vmdata.Runinfo.Host, w, r)
 		return
 	}
 	err = hypervisor.Shutdown_domain(uuid, o.Force)

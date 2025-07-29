@@ -15,7 +15,7 @@ func vm_get(w http.ResponseWriter, r *http.Request) {
 	var (
 		err error
 		uuid, xml string
-		vmdef openapi.Vmdef
+		vm openapi.Vm
 		buf bytes.Buffer
 	)
 	uuid = r.PathValue("uuid")
@@ -23,13 +23,13 @@ func vm_get(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not get uuid", http.StatusBadRequest)
 		return
 	}
-	vmstat, ok := service.vmstats[uuid]
+	vmdata, ok := service.vmdata[uuid]
 	if (!ok) {
 		http.Error(w, "unknown uuid", http.StatusNotFound)
 		return
 	}
-	if (host_is_remote(vmstat.Runinfo.Host)) {
-		proxy_request(vmstat.Runinfo.Host, w, r)
+	if (host_is_remote(vmdata.Runinfo.Host)) {
+		proxy_request(vmdata.Runinfo.Host, w, r)
 		return
 	}
 	xml, err = hypervisor.Dumpxml(uuid)
@@ -38,18 +38,22 @@ func vm_get(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not get VM", http.StatusInternalServerError)
 		return
 	}
-	err = vmdef_from_xml(&vmdef, xml)
+	err = vmdef_from_xml(&vm.Def, xml)
 	if (err != nil) {
 		logger.Log("vmdef_from_xml failed: %s", err.Error())
 		http.Error(w, "invalid VM data", http.StatusInternalServerError)
 		return
 	}
-	err = json.NewEncoder(&buf).Encode(&vmdef)
+	vm.Uuid = uuid
+	vm.Runinfo = vmdata.Runinfo
+	vm.Stats = vmdata.Stats
+	vm.Ts = vmdata.Ts
+
+	err = json.NewEncoder(&buf).Encode(&vm)
 	if (err != nil) {
 		http.Error(w, "Failed to encode JSON", http.StatusInternalServerError)
         return
     }
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(buf.Bytes())

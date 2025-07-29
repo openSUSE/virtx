@@ -51,7 +51,7 @@ const (
 	CLIENT_TLS_TIMEOUT = 5
 )
 
-type VmStats map[string]hypervisor.VmStat
+type Vmdata map[string]hypervisor.Vmdata
 type Hosts map[string]openapi.Host
 
 type Service struct {
@@ -62,7 +62,7 @@ type Service struct {
 
 	cluster openapi.Cluster
 	hosts   Hosts
-	vmstats VmStats
+	vmdata  Vmdata
 }
 
 var service Service
@@ -105,7 +105,7 @@ func Init() {
 		m:         sync.RWMutex{},
 		cluster:   openapi.Cluster{},
 		hosts:     make(Hosts),
-		vmstats:   make(VmStats),
+		vmdata:    make(Vmdata),
 	}
 }
 
@@ -174,57 +174,57 @@ func set_host_state(uuid string, newstate openapi.Hoststate) error {
 func Update_vm_state(e *hypervisor.VmEvent) error {
 	service.m.Lock()
 	defer service.m.Unlock()
-	vmstat, ok := service.vmstats[e.Uuid]
+	vmdata, ok := service.vmdata[e.Uuid]
 	if !ok {
 		return fmt.Errorf("no such VM %s", e.Uuid)
 	}
-	vmstat.Runinfo.Runstate = openapi.Vmrunstate(e.State)
-	if (vmstat.Runinfo.Runstate == openapi.RUNSTATE_DELETED) {
-		delete(service.vmstats, e.Uuid)
+	vmdata.Runinfo.Runstate = openapi.Vmrunstate(e.State)
+	if (vmdata.Runinfo.Runstate == openapi.RUNSTATE_DELETED) {
+		delete(service.vmdata, e.Uuid)
 	} else {
-		service.vmstats[e.Uuid] = vmstat
+		service.vmdata[e.Uuid] = vmdata
 	}
 	return nil
 }
 
-func Update_vm(vmstat *hypervisor.VmStat) error {
+func Update_vm(vmdata *hypervisor.Vmdata) error {
 	service.m.Lock()
 	defer service.m.Unlock()
 
-	return update_vm(vmstat)
+	return update_vm(vmdata)
 }
 
-func update_vm(vmstat *hypervisor.VmStat) error {
-	if (service.vmstats == nil) {
-		service.vmstats = make(map[string]hypervisor.VmStat)
+func update_vm(vmdata *hypervisor.Vmdata) error {
+	if (service.vmdata == nil) {
+		service.vmdata = make(map[string]hypervisor.Vmdata)
 	}
-	if old, ok := service.vmstats[vmstat.Uuid]; ok {
-		if (old.Ts > vmstat.Ts) {
+	if old, ok := service.vmdata[vmdata.Uuid]; ok {
+		if (old.Ts > vmdata.Ts) {
 			logger.Log("Ignoring old guest info: ts %d > %d %s %s",
-				old.Ts, vmstat.Ts, vmstat.Uuid, vmstat.Name,
+				old.Ts, vmdata.Ts, vmdata.Uuid, vmdata.Name,
 			)
 			return nil
 		}
 		/* calculate deltas from previous Vm info */
-		if (vmstat.Runinfo.Runstate > openapi.RUNSTATE_POWEROFF &&
+		if (vmdata.Runinfo.Runstate > openapi.RUNSTATE_POWEROFF &&
 			old.Runinfo.Runstate > openapi.RUNSTATE_POWEROFF) {
-			var delta uint64 = hypervisor.Counter_delta_uint64(vmstat.Cpu_time, old.Cpu_time)
-			if (delta > 0 && (vmstat.Ts - old.Ts) > 0 && vmstat.Cpus > 0) {
-				vmstat.Cpu_utilization = int16((delta * 100) / (uint64(vmstat.Ts - old.Ts) * uint64(vmstat.Cpus) * 1000000))
+			var delta uint64 = hypervisor.Counter_delta_uint64(vmdata.Cpu_time, old.Cpu_time)
+			if (delta > 0 && (vmdata.Ts - old.Ts) > 0 && vmdata.Stats.Vcpus > 0) {
+				vmdata.Stats.CpuUtilization = int32((delta * 100) / (uint64(vmdata.Ts - old.Ts) * uint64(vmdata.Stats.Vcpus) * 1000000))
 			}
 		}
 		{
-			var delta int64 = hypervisor.Counter_delta_int64(vmstat.Net_rx, old.Net_rx)
-			if (delta > 0 && (vmstat.Ts - old.Ts) > 0) {
-				vmstat.Net_rx_bw = int32((delta * 1000) / ((vmstat.Ts - old.Ts) * KiB))
+			var delta int64 = hypervisor.Counter_delta_int64(vmdata.Net_rx, old.Net_rx)
+			if (delta > 0 && (vmdata.Ts - old.Ts) > 0) {
+				vmdata.Stats.NetRxBw = int32((delta * 1000) / ((vmdata.Ts - old.Ts) * KiB))
 			}
-			delta = hypervisor.Counter_delta_int64(vmstat.Net_tx, old.Net_tx)
-			if (delta > 0 && (vmstat.Ts - old.Ts) > 0) {
-				vmstat.Net_tx_bw = int32((delta * 1000) / ((vmstat.Ts - old.Ts) * KiB))
+			delta = hypervisor.Counter_delta_int64(vmdata.Net_tx, old.Net_tx)
+			if (delta > 0 && (vmdata.Ts - old.Ts) > 0) {
+				vmdata.Stats.NetTxBw = int32((delta * 1000) / ((vmdata.Ts - old.Ts) * KiB))
 			}
 		}
 	}
-	service.vmstats[vmstat.Uuid] = *vmstat
+	service.vmdata[vmdata.Uuid] = *vmdata
 	return nil
 }
 

@@ -18,13 +18,13 @@ func vm_start(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not get uuid", http.StatusBadRequest)
 		return
 	}
-	vmstat, ok := service.vmstats[uuid]
+	vmdata, ok := service.vmdata[uuid]
 	if (!ok) {
 		http.Error(w, "unknown uuid", http.StatusNotFound)
 		return
 	}
-	if (host_is_remote(vmstat.Runinfo.Host)) {
-		proxy_request(vmstat.Runinfo.Host, w, r)
+	if (host_is_remote(vmdata.Runinfo.Host)) {
+		proxy_request(vmdata.Runinfo.Host, w, r)
 		return
 	}
 	err = hypervisor.Start_domain(uuid)

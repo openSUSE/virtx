@@ -17,7 +17,7 @@ func vm_runstate_get(w http.ResponseWriter, r *http.Request) {
 		err error
 		ok bool
 		uuid string
-		vmstat hypervisor.VmStat
+		vmdata hypervisor.Vmdata
 		runinfo openapi.Vmruninfo
 		buf bytes.Buffer
 	)
@@ -26,12 +26,12 @@ func vm_runstate_get(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "vm_runstate_get: Failed to decode parameters", http.StatusBadRequest)
 		return
 	}
-	vmstat, ok = service.vmstats[uuid]
+	vmdata, ok = service.vmdata[uuid]
 	if (!ok) {
 		http.Error(w, "vm_runstate_get: No such VM", http.StatusNotFound)
 		return
 	}
-	runinfo = vmstat.Runinfo
+	runinfo = vmdata.Runinfo
 	err = json.NewEncoder(&buf).Encode(&runinfo)
 	if (err != nil) {
 		http.Error(w, "vm_runstate_get: Failed to encode JSON", http.StatusInternalServerError)
