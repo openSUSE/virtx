@@ -210,7 +210,7 @@ func update_vm(vmdata *hypervisor.Vmdata) error {
 			old.Runinfo.Runstate > openapi.RUNSTATE_POWEROFF) {
 			var delta uint64 = hypervisor.Counter_delta_uint64(vmdata.Cpu_time, old.Cpu_time)
 			if (delta > 0 && (vmdata.Ts - old.Ts) > 0 && vmdata.Stats.Vcpus > 0) {
-				vmdata.Stats.CpuUtilization = int32((delta * 100) / (uint64(vmdata.Ts - old.Ts) * uint64(vmdata.Stats.Vcpus) * 1000000))
+				vmdata.Stats.CpuUtilization = int32((delta * 100) / (uint64(vmdata.Ts - old.Ts) * 1000000))
 			}
 		}
 		{
