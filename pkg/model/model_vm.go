@@ -26,6 +26,7 @@ type Vm struct {
 	Uuid string `json:"uuid"`
 	Def Vmdef `json:"def"`
 	Runinfo Vmruninfo `json:"runinfo"`
+	Stats Vmstats `json:"stats"`
 	// 64bit UTC Unix timestamp in milliseconds since Epoc.
 	Ts int64 `json:"ts"`
 }
@@ -36,7 +37,7 @@ type _Vm Vm
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVm(uuid string, def Vmdef, runinfo Vmruninfo, ts int64) *Vm {
+func NewVm(uuid string, def Vmdef, runinfo Vmruninfo, stats Vmstats, ts int64) *Vm {
 	this := Vm{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
@@ -45,6 +46,7 @@ func NewVm(uuid string, def Vmdef, runinfo Vmruninfo, ts int64) *Vm {
 	this.Uuid = uuid
 	this.Def = def
 	this.Runinfo = runinfo
+	this.Stats = stats
 	this.Ts = ts
 	return &this
 }
@@ -129,6 +131,30 @@ func (o *Vm) SetRuninfo(v Vmruninfo) {
 	o.Runinfo = v
 }
 
+// GetStats returns the Stats field value
+func (o *Vm) GetStats() Vmstats {
+	if o == nil {
+		var ret Vmstats
+		return ret
+	}
+
+	return o.Stats
+}
+
+// GetStatsOk returns a tuple with the Stats field value
+// and a boolean to check if the value has been set.
+func (o *Vm) GetStatsOk() (*Vmstats, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Stats, true
+}
+
+// SetStats sets field value
+func (o *Vm) SetStats(v Vmstats) {
+	o.Stats = v
+}
+
 // GetTs returns the Ts field value
 func (o *Vm) GetTs() int64 {
 	if o == nil {
@@ -158,6 +184,7 @@ func (o Vm) ToMap() (map[string]interface{}, error) {
 	toSerialize["uuid"] = o.Uuid
 	toSerialize["def"] = o.Def
 	toSerialize["runinfo"] = o.Runinfo
+	toSerialize["stats"] = o.Stats
 	toSerialize["ts"] = o.Ts
 	return toSerialize, nil
 }
