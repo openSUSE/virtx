@@ -620,7 +620,7 @@ func get_system_info(si *SystemInfo) error {
 			logger.Log("could not get_domain_info: %s", err.Error())
 			continue
 		}
-		err = getDomainStats(&d, &vm)
+		err = get_domain_stats(&d, &vm)
 		vm.Runinfo.Host = host.Uuid
 		total_memory_capacity += vm.Memory_capacity
 		total_memory_used += vm.Memory_used
@@ -686,7 +686,7 @@ type xmlDomain struct {
 	} `xml:"devices"`
 }
 
-func getDomainStats(d *libvirt.Domain, vm *VmStat) error {
+func get_domain_stats(d *libvirt.Domain, vm *VmStat) error {
 	var err error
 	{
 		var info *libvirt.DomainInfo
