@@ -517,6 +517,7 @@ func vmdef_to_xml(vmdef *openapi.Vmdef) (string, error) {
 		return "", errors.New("missing DEVICE_DISK")
 	}
 	domain_metadata_xml += `<virtxml>` + xmlpath + `</virtxml>`
+	domain_metadata_xml += `<firmware type="` + vmdef.Firmware.String() + `"></firmware>`
 	for _, custom := range vmdef.Custom {
 		if (custom.Name == "") {
 			continue
@@ -553,7 +554,12 @@ func vmdef_to_xml(vmdef *openapi.Vmdef) (string, error) {
 
 type Metadata struct {
 	XMLName xml.Name `xml:"virtx data"`
+	Firmware MetadataFirmware `xml:"firmware"`
 	Fields []MetadataField `xml:"field"`
+}
+
+type MetadataFirmware struct {
+	Type string `xml:"type,attr"`
 }
 
 type MetadataField struct {
@@ -597,10 +603,6 @@ func vmdef_from_xml(vmdef *openapi.Vmdef, xmlstr string) error {
 	}
 	if (domain.OS == nil) {
 		return errors.New("missing OS");
-	}
-	err = vmdef.Firmware.Parse(domain.OS.Firmware)
-	if (err != nil) {
-		return err
 	}
 	/* DEVICES */
 	if (domain.Devices == nil) {
@@ -691,6 +693,10 @@ func vmdef_from_xml(vmdef *openapi.Vmdef, xmlstr string) error {
 	}
 	var meta Metadata
 	err = xml.Unmarshal([]byte(domain.Metadata.XML), &meta)
+	if (err != nil) {
+		return err
+	}
+	err = vmdef.Firmware.Parse(meta.Firmware.Type)
 	if (err != nil) {
 		return err
 	}
