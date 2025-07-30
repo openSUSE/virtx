@@ -640,17 +640,17 @@ func get_system_info(si *SystemInfo, old *SystemInfo) error {
 	host.Resources.Memory.Total = int32(info.Memory / KiB) /* info returns memory in KiB, translate to MiB */
 	host.Resources.Memory.Free = int32(free_memory / MiB) /* this returns in bytes, translate to MiB */
 	host.Resources.Memory.Used = host.Resources.Memory.Total - host.Resources.Memory.Free
-	host.Resources.Memory.Reservedos = 0  /* XXX NOT IMPLEMENTED XXX */
 	host.Resources.Memory.Reservedvms = int32(total_memory_capacity)
 	host.Resources.Memory.Usedvms = int32(total_memory_used)
-	host.Resources.Memory.Availablevms = host.Resources.Memory.Total - host.Resources.Memory.Reservedvms - host.Resources.Memory.Reservedos
+	host.Resources.Memory.Usedos = host.Resources.Memory.Used - host.Resources.Memory.Usedvms
+	host.Resources.Memory.Availablevms = host.Resources.Memory.Total - host.Resources.Memory.Reservedvms - host.Resources.Memory.Usedos
 
 	/* CPU */
-	host.Resources.Cpu.Total = int32(uint(info.Sockets * info.Cores) * info.MHz)
+	host.Resources.Cpu.Total = int32(uint(info.Sockets * info.Cores * info.Threads) * info.MHz)
 	host.Resources.Cpu.Reservedvms = int32((float64(total_vcpus_mhz) / 100.0) * hv.vcpu_load_factor)
 	si.cpu_idle_ns = cpustats.Idle
 	si.cpu_kernel_ns = cpustats.Kernel
-	si.cpu_user_ns = cpustats.User
+	si.cpu_user_ns = cpustats.User /* unfortunately this includes guest time */
 
 	/* some of the data we can only calculate as comparison from the previous measurement */
 	if (old != nil) {
@@ -658,17 +658,18 @@ func get_system_info(si *SystemInfo, old *SystemInfo) error {
 		if (interval <= 0.0) {
 			logger.Log("get_system_info: host timestamps not in order?")
 		} else {
-			delta := float64(Counter_delta_uint64(si.cpu_idle_ns, old.cpu_idle_ns))
-			host.Resources.Cpu.Free = int32(delta / interval * float64(info.MHz))
+			var delta float64 = float64(Counter_delta_uint64(si.cpu_idle_ns, old.cpu_idle_ns))
+			host.Resources.Cpu.Free = int32(delta / (interval * 1000000) * float64(info.MHz))
 			host.Resources.Cpu.Used = host.Resources.Cpu.Total - host.Resources.Cpu.Free
 
 			delta = float64(Counter_delta_uint64(si.cpu_kernel_ns, old.cpu_kernel_ns))
-			host.Resources.Cpu.Reservedos = int32(delta / interval * float64(info.MHz))
+			host.Resources.Cpu.Usedos = int32(delta / (interval * 1000000) * float64(info.MHz))
 			delta = float64(Counter_delta_uint64(si.cpu_user_ns, old.cpu_user_ns))
-			host.Resources.Cpu.Reservedos += int32(delta / interval * float64(info.MHz))
+			host.Resources.Cpu.Usedos += int32(delta / (interval * 1000000) * float64(info.MHz))
 
 			host.Resources.Cpu.Usedvms = total_cpus_used_percent * int32(info.MHz) / 100
-			host.Resources.Cpu.Availablevms = host.Resources.Cpu.Total - host.Resources.Cpu.Reservedvms - host.Resources.Cpu.Reservedos
+			host.Resources.Cpu.Usedos -= host.Resources.Cpu.Usedvms
+			host.Resources.Cpu.Availablevms = host.Resources.Cpu.Total - host.Resources.Cpu.Reservedvms - host.Resources.Cpu.Usedos
 		}
 	}
 out:
