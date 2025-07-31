@@ -60,7 +60,7 @@ func vm_delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if (o.Deletestorage) {
-		err = vm_delete_storage(&vmdef)
+		err = vm_storage_delete(&vmdef)
 		if (err != nil) {
 			http.Error(w, "Failed to delete virtual disk storage", http.StatusInternalServerError)
 			return

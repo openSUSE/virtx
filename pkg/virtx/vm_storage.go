@@ -12,7 +12,7 @@ import (
 	"suse.com/virtx/pkg/logger"
 )
 
-func vm_create_storage(vmdef *openapi.Vmdef) error {
+func vm_storage_create(vmdef *openapi.Vmdef) error {
 	var err error
 	for _, disk := range vmdef.Disks {
 		/* ignore anything that is not a virtual disk to create */
@@ -62,7 +62,7 @@ func vm_create_storage(vmdef *openapi.Vmdef) error {
 	return nil
 }
 
-func vm_delete_storage(vmdef *openapi.Vmdef) error {
+func vm_storage_delete(vmdef *openapi.Vmdef) error {
 	var err error
 	for _, disk := range vmdef.Disks {
 		/* ignore anything that is not a virtual disk to delete */
