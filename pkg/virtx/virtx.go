@@ -85,7 +85,6 @@ func Init() {
 
 	servemux.HandleFunc("GET /hosts", host_list)
 	servemux.HandleFunc("GET /hosts/{uuid}", host_get)
-	servemux.HandleFunc("GET /cluster", cluster_get)
 
 	service = Service{
 		servemux: servemux,
