@@ -28,6 +28,20 @@ func vmdef_find_os_disk(vmdef *openapi.Vmdef) int {
 	return -1
 }
 
+/*
+ * check if the vmdef contains a certain path.
+ * Initially implemented for the vm_update procedure for storage.
+ */
+func vmdef_has_path(vmdef *openapi.Vmdef, path string) bool {
+	for _, disk := range vmdef.Disks {
+		var this string = filepath.Clean(disk.Path)
+		if (path == this) {
+			return true
+		}
+	}
+	return false
+}
+
 /* calculate the virtxml path from the os disk */
 func vmdef_xml_path(vmdef *openapi.Vmdef) string {
 	var os_disk int = vmdef_find_os_disk(vmdef)
