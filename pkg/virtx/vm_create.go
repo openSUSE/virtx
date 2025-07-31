@@ -42,13 +42,6 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid parameters", http.StatusBadRequest)
 		return
 	}
-	/* Write the xml to disk, owner RW, group R, others - */
-	err = os.WriteFile(vmdef_xml_path(&o.Vmdef), []byte(xml), 0640)
-	if (err != nil) {
-		logger.Log("os.WriteFile failed: %s", err.Error())
-		http.Error(w, "could not write XML", http.StatusInternalServerError)
-		return
-	}
 	/* create storage if needed */
 	err = vm_create_storage(&o.Vmdef)
 	if (err != nil) {
@@ -62,7 +55,13 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not define VM", http.StatusInternalServerError)
 		return
 	}
-
+	/* Write the xml to disk, owner RW, group R, others - */
+	err = os.WriteFile(vmdef_xml_path(&o.Vmdef), []byte(xml), 0640)
+	if (err != nil) {
+		logger.Log("os.WriteFile failed: %s", err.Error())
+		http.Error(w, "could not write XML", http.StatusInternalServerError)
+		return
+	}
 	var buf bytes.Buffer
 	err = json.NewEncoder(&buf).Encode(&uuid)
 	if (err != nil) {
