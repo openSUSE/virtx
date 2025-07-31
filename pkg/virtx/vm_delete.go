@@ -53,18 +53,18 @@ func vm_delete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid VM data", http.StatusInternalServerError)
 		return
 	}
+	err = hypervisor.Delete_domain(uuid)
+	if (err != nil) {
+		logger.Log("Delete_domain failed: %s", err.Error())
+		http.Error(w, "Failed to delete VM", http.StatusInternalServerError)
+		return
+	}
 	if (o.Deletestorage) {
 		err = vm_delete_storage(&vmdef)
 		if (err != nil) {
 			http.Error(w, "Failed to delete virtual disk storage", http.StatusInternalServerError)
 			return
 		}
-	}
-	err = hypervisor.Delete_domain(uuid)
-	if (err != nil) {
-		logger.Log("Delete_domain failed: %s", err.Error())
-		http.Error(w, "Failed to delete VM", http.StatusInternalServerError)
-		return
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
