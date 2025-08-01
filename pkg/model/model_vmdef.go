@@ -26,7 +26,9 @@ type Vmdef struct {
 	Cpudef Cpudef `json:"cpudef"`
 	Memory VmdefMemory `json:"memory"`
 	Numa Numa `json:"numa"`
-	// disks attached to the VM
+	// the primary disk attached to the VM that is attempted to boot first, before cdroms etc
+	Osdisk Disk `json:"osdisk"`
+	// additional disks attached to the VM
 	Disks []Disk `json:"disks"`
 	// networks and bridges attached to the VM
 	Nets []Net `json:"nets"`
@@ -45,7 +47,7 @@ type _Vmdef Vmdef
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVmdef(name string, cpudef Cpudef, memory VmdefMemory, numa Numa, disks []Disk, nets []Net, vlanid int16, firmware FirmwareType, genid string, custom []CustomField) *Vmdef {
+func NewVmdef(name string, cpudef Cpudef, memory VmdefMemory, numa Numa, osdisk Disk, disks []Disk, nets []Net, vlanid int16, firmware FirmwareType, genid string, custom []CustomField) *Vmdef {
 	this := Vmdef{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
@@ -55,6 +57,7 @@ func NewVmdef(name string, cpudef Cpudef, memory VmdefMemory, numa Numa, disks [
 	this.Cpudef = cpudef
 	this.Memory = memory
 	this.Numa = numa
+	this.Osdisk = osdisk
 	this.Disks = disks
 	this.Nets = nets
 	this.Vlanid = vlanid
@@ -166,6 +169,30 @@ func (o *Vmdef) GetNumaOk() (*Numa, bool) {
 // SetNuma sets field value
 func (o *Vmdef) SetNuma(v Numa) {
 	o.Numa = v
+}
+
+// GetOsdisk returns the Osdisk field value
+func (o *Vmdef) GetOsdisk() Disk {
+	if o == nil {
+		var ret Disk
+		return ret
+	}
+
+	return o.Osdisk
+}
+
+// GetOsdiskOk returns a tuple with the Osdisk field value
+// and a boolean to check if the value has been set.
+func (o *Vmdef) GetOsdiskOk() (*Disk, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Osdisk, true
+}
+
+// SetOsdisk sets field value
+func (o *Vmdef) SetOsdisk(v Disk) {
+	o.Osdisk = v
 }
 
 // GetDisks returns the Disks field value
@@ -318,6 +345,7 @@ func (o Vmdef) ToMap() (map[string]interface{}, error) {
 	toSerialize["cpudef"] = o.Cpudef
 	toSerialize["memory"] = o.Memory
 	toSerialize["numa"] = o.Numa
+	toSerialize["osdisk"] = o.Osdisk
 	toSerialize["disks"] = o.Disks
 	toSerialize["nets"] = o.Nets
 	toSerialize["vlanid"] = o.Vlanid
