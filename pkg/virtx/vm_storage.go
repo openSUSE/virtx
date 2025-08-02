@@ -10,6 +10,7 @@ import (
 
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/logger"
+	. "suse.com/virtx/pkg/constants"
 )
 
 
@@ -21,7 +22,7 @@ func vm_storage_create_disk(disk *openapi.Disk) error {
 	path = filepath.Clean(disk.Path)
 	disk_driver = disk_driver_from_path(path)
 
-	if (path != disk.Path || !strings.HasPrefix(disk.Path, VMS_DIR) ||
+	if (path != disk.Path || !strings.HasPrefix(disk.Path, DS_DIR) ||
 		(disk_driver != "qcow2" && disk_driver != "raw")) {
 		/* symlink shenanigans, or not starting with /vms/ or invalid ext : bail */
 		return errors.New("invalid Disk Path")
@@ -62,7 +63,7 @@ func vm_storage_delete_disk(disk *openapi.Disk) error {
 	)
 	path = filepath.Clean(disk.Path)
 	disk_driver = disk_driver_from_path(path)
-	if (path != disk.Path || !strings.HasPrefix(disk.Path, VMS_DIR) ||
+	if (path != disk.Path || !strings.HasPrefix(disk.Path, DS_DIR) ||
 		(disk_driver != "qcow2" && disk_driver != "raw")) {
 		/* symlink shenanigans, or not starting with /vms/ or invalid ext : bail */
 		return errors.New("invalid Disk Path")

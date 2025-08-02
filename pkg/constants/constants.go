@@ -23,3 +23,16 @@ const (
 	GiB = 1024 * MiB
 	TiB = 1024 * GiB
 )
+
+const (
+	REG_DIR = "/vms/xml/"
+	DS_DIR = "/vms/ds/"
+	VM_NAME_MAX = 32
+	NET_NAME_MAX = 32
+	CPU_NAME_MAX = 32
+	GENID_LEN = 36
+	DISKS_MAX = 20
+	NETS_MAX = 8
+	MAC_LEN = 17
+	VLAN_MAX = 4094
+)

@@ -126,7 +126,7 @@ func vmdef_validate(vmdef *openapi.Vmdef) error {
 		}
 		*/
 		var disk_driver string = disk_driver_from_path(path)
-		if (path != disk.Path || !strings.HasPrefix(disk.Path, VMS_DIR) || disk_driver == "") {
+		if (path != disk.Path || !strings.HasPrefix(disk.Path, DS_DIR) || disk_driver == "") {
 			/* symlink shenanigans, or not starting with /vms/ or invalid ext : bail */
 			return errors.New("invalid Disk Path")
 		}
@@ -295,7 +295,7 @@ func vmdef_to_xml(vmdef *openapi.Vmdef) (string, error) {
 		}
 		*/
 		var disk_driver string = disk_driver_from_path(path)
-		if (path != disk.Path || !strings.HasPrefix(disk.Path, VMS_DIR) || disk_driver == "") {
+		if (path != disk.Path || !strings.HasPrefix(disk.Path, DS_DIR) || disk_driver == "") {
 			/* symlink shenanigans, or not starting with /vms/ or invalid ext : bail */
 			return "", errors.New("invalid Disk Path")
 		}
