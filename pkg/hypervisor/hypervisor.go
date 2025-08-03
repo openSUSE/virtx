@@ -28,12 +28,14 @@ import (
 	"bufio"
 	"strings"
 	"strconv"
+	"fmt"
 
 	"libvirt.org/go/libvirt"
 	"libvirt.org/go/libvirtxml"
 
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/logger"
+	"suse.com/virtx/pkg/vmreg"
 	"suse.com/virtx/pkg/encoding/hexstring"
 	. "suse.com/virtx/pkg/constants"
 )
@@ -222,6 +224,10 @@ func system_info_loop(seconds int) error {
 	hv.m.Lock()
 	hv.uuid = old.Host.Uuid
 	hv.cpuarch = old.Host.Def.Cpuarch
+	err = os.MkdirAll(fmt.Sprintf("%s/%s", REG_DIR, old.Host.Uuid), 0750)
+	if (err != nil) {
+		logger.Fatal("could not write %s/%s: %s", REG_DIR, old.Host.Uuid, err.Error())
+	}
 	hv.m.Unlock()
 
 	/* this first info is missing vm cpu stats and host cpu stats */
@@ -314,6 +320,15 @@ func Define_domain(xml string) (string, error) {
 	}
 	defer domain.Free()
 	uuid, err = domain.GetUUIDString()
+	if (err != nil) {
+		return "", err
+	}
+	xml, err = domain.GetXMLDesc(libvirt.DOMAIN_XML_SECURE | libvirt.DOMAIN_XML_INACTIVE | libvirt.DOMAIN_XML_MIGRATABLE)
+	if (err != nil) {
+		return "", err
+	}
+	/* store the processed XML in /vms/xml/host-uuid/vm-uuid.xml */
+	err = vmreg.Save(hv.uuid, uuid, xml)
 	if (err != nil) {
 		return "", err
 	}
@@ -507,7 +522,15 @@ func Delete_domain(uuid string) error {
 		libvirt.DOMAIN_UNDEFINE_NVRAM |
 		libvirt.DOMAIN_UNDEFINE_CHECKPOINTS_METADATA)
 	//libvirt.DOMAIN_UNDEFINE_TPM
-	return err
+	if (err != nil) {
+		return err
+	}
+	/* remove the registered xml file */
+	err = vmreg.Delete(hv.uuid, uuid)
+	if (err != nil) {
+		return err
+	}
+	return nil
 }
 
 /* Calculate and return HostInfo and VMInfo for this host we are running on */
