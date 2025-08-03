@@ -37,7 +37,12 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid parameters", http.StatusBadRequest)
 		return
 	}
-	xml, err = vmdef.To_xml(&o.Vmdef)
+	uuid = New_uuid()
+	if (uuid == "") {
+		http.Error(w, "failed", http.StatusInternalServerError)
+		return
+	}
+	xml, err = vmdef.To_xml(&o.Vmdef, uuid)
 	if (err != nil) {
 		logger.Log("vmdef.To_xml failed: %s", err.Error())
 		http.Error(w, "invalid parameters", http.StatusBadRequest)
@@ -62,7 +67,7 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not write XML", http.StatusInternalServerError)
 		return
 	}
-	uuid, err = hypervisor.Define_domain(xml)
+	err = hypervisor.Define_domain(xml, uuid)
 	if (err != nil) {
 		logger.Log("hypervisor.Define_domain failed: %s", err.Error())
 		http.Error(w, "could not define VM", http.StatusInternalServerError)

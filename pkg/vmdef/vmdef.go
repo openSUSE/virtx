@@ -308,7 +308,7 @@ func vmdef_disk_to_xml(disk *openapi.Disk, disk_count map[string]int, iothread_c
 /*
  * vmdef_validate needs to be called before this!
  */
-func To_xml(vmdef *openapi.Vmdef) (string, error) {
+func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 	var (
 		xml string
 		err error
@@ -582,10 +582,10 @@ func To_xml(vmdef *openapi.Vmdef) (string, error) {
 		/* XMLName:, */
 		Type: "kvm",
 		/* ID:, */
-		Name: vmdef.Name,
-		/* UUID:, */
+		Name: uuid, /* libvirt Name clashes can be a pain to solve, so just use the uuid */
+		UUID: uuid,
 		GenID: domain_genid,
-		Title: vmdef.Name,
+		Title: vmdef.Name,		/* this will be used for all effects as the actual Name */
 		Description: vmdef.Name,
 		Metadata: &libvirtxml.DomainMetadata{ XML: domain_metadata_xml, },
 		Memory: &domain_memory,
@@ -629,7 +629,7 @@ func From_xml(vmdef *openapi.Vmdef, xmlstr string) error {
 	if (err != nil) {
 		return err
 	}
-	vmdef.Name = domain.Name
+	vmdef.Name = domain.Title
 	if (domain.CPU == nil || domain.CPU.Topology == nil) {
 		return errors.New("missing CPU.Topology")
 	}

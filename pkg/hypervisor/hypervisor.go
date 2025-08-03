@@ -149,7 +149,7 @@ func get_domain_info(d *libvirt.Domain) (string, string, openapi.Vmrunstate, err
 		err error
 		enum_state openapi.Vmrunstate = openapi.RUNSTATE_NONE
 	)
-	name, err = d.GetName()
+	name, err = d.GetMetadata(libvirt.DOMAIN_METADATA_TITLE, "", libvirt.DOMAIN_AFFECT_CONFIG)
 	if (err != nil) {
 		goto out
 	}
@@ -302,37 +302,32 @@ func stop_listening() {
 	hv.lifecycle_id = -1
 }
 
-func Define_domain(xml string) (string, error) {
+func Define_domain(xml string, uuid string) error {
 	var (
 		err error
 		conn *libvirt.Connect
 		domain *libvirt.Domain
-		uuid string
 	)
 	conn, err = libvirt.NewConnect(libvirt_uri)
 	if (err != nil) {
-		return "", err
+		return err
 	}
 	defer conn.Close()
 	domain, err = conn.DomainDefineXML(xml)
 	if (err != nil) {
-		return "", err
+		return err
 	}
 	defer domain.Free()
-	uuid, err = domain.GetUUIDString()
-	if (err != nil) {
-		return "", err
-	}
 	xml, err = domain.GetXMLDesc(libvirt.DOMAIN_XML_SECURE | libvirt.DOMAIN_XML_INACTIVE | libvirt.DOMAIN_XML_MIGRATABLE)
 	if (err != nil) {
-		return "", err
+		return err
 	}
 	/* store the processed XML in /vms/xml/host-uuid/vm-uuid.xml */
 	err = vmreg.Save(hv.uuid, uuid, xml)
 	if (err != nil) {
-		return "", err
+		return err
 	}
-	return uuid, nil
+	return nil
 }
 
 func Dumpxml(uuid string) (string, error) {

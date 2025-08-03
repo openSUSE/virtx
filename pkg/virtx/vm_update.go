@@ -22,19 +22,19 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		err error
 		o openapi.VmUpdateOptions
 		old openapi.Vmdef
-		xml, uuid, uuidnew string
+		xml, uuid_old, uuid_new string
 	)
 	err = json.NewDecoder(r.Body).Decode(&o)
 	if (err != nil) {
 		http.Error(w, "failed to decode JSON in Request Body", http.StatusBadRequest)
 		return
 	}
-	uuid = r.PathValue("uuid")
-	if (uuid == "") {
+	uuid_old = r.PathValue("uuid")
+	if (uuid_old == "") {
 		http.Error(w, "could not get uuid", http.StatusBadRequest)
 		return
 	}
-	vmdata, ok := service.vmdata[uuid]
+	vmdata, ok := service.vmdata[uuid_old]
 	if (!ok) {
 		http.Error(w, "unknown uuid", http.StatusNotFound)
 		return
@@ -62,9 +62,9 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	/* read the configuration of the VM from the registry on disk */
-	xml, err = vmreg.Load(vmdata.Runinfo.Host, uuid)
+	xml, err = vmreg.Load(vmdata.Runinfo.Host, uuid_old)
 	if (err != nil) {
-		logger.Log("vmreg.Load(%s, %s) failed: %s", vmdata.Runinfo.Host, uuid, err.Error())
+		logger.Log("vmreg.Load(%s, %s) failed: %s", vmdata.Runinfo.Host, uuid_old, err.Error())
 		http.Error(w, "could not Load VM", http.StatusInternalServerError)
 		return
 	}
@@ -74,7 +74,12 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid VM data", http.StatusInternalServerError)
 		return
 	}
-	xml, err = vmdef.To_xml(&o.Vmdef)
+	uuid_new = New_uuid()
+	if (uuid_new == "") {
+		http.Error(w, "failed", http.StatusInternalServerError)
+		return
+	}
+	xml, err = vmdef.To_xml(&o.Vmdef, uuid_new)
 	if (err != nil) {
 		logger.Log("vmdef_to_xml failed: %s", err.Error())
 		http.Error(w, "invalid parameters", http.StatusBadRequest)
@@ -88,7 +93,7 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	/* define new domain */
-	uuidnew, err = hypervisor.Define_domain(xml)
+	err = hypervisor.Define_domain(xml, uuid_new)
 	if (err != nil) {
 		logger.Log("hypervisor.Define_domain failed: %s", err.Error())
 		http.Error(w, "could not define VM", http.StatusInternalServerError)
@@ -108,9 +113,9 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 	}
 	if (!host_is_remote(vmdata.Runinfo.Host)) {
 		/* host is local */
-		err = hypervisor.Delete_domain(uuid)
+		err = hypervisor.Delete_domain(uuid_old)
 		if (err != nil) {
-			logger.Log("could not undefine previous domain: %s", uuid)
+			logger.Log("could not undefine previous domain: %s", uuid_old)
 			http.Error(w, "could not undefine VM", http.StatusInternalServerError)
 			return
 		}
@@ -127,7 +132,8 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "failed to encode JSON", http.StatusInternalServerError)
 			return
 		}
-		response, err = do_request(vmdata.Runinfo.Host, "DELETE", fmt.Sprintf("/vms/%s", uuid), &delete_opts)
+		response, err = do_request(vmdata.Runinfo.Host, "DELETE",
+			fmt.Sprintf("/vms/%s", uuid_old), &delete_opts)
 		if (err != nil) {
 			logger.Log("do_request failed: %s", err.Error())
 			http.Error(w, "failed to request deletion", http.StatusInternalServerError)
@@ -141,7 +147,7 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	var buf bytes.Buffer
-	err = json.NewEncoder(&buf).Encode(&uuidnew)
+	err = json.NewEncoder(&buf).Encode(&uuid_new)
 	if (err != nil) {
 		http.Error(w, "failed to encode JSON", http.StatusInternalServerError)
 		return

@@ -30,6 +30,8 @@ import (
 	"bytes"
 	"encoding/json"
 
+	g_uuid "github.com/google/uuid"
+
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/hypervisor"
 	"suse.com/virtx/pkg/model"
@@ -61,6 +63,13 @@ type Service struct {
 var service Service
 
 func Init() {
+	/*
+	 * configure UUID generation to not use the RandPool.
+	 * This is a tradeoff. If we notice that uuid generation is a hot path,
+	 * change this to .EnableRandPool()
+	 */
+	g_uuid.DisableRandPool()
+
 	var servemux *http.ServeMux = http.NewServeMux()
 	servemux.HandleFunc("POST /vms", vm_create)
 	servemux.HandleFunc("GET /vms", vm_list)
@@ -99,6 +108,19 @@ func Init() {
 		hosts:     make(Hosts),
 		vmdata:    make(Vmdata),
 	}
+}
+
+func New_uuid() string {
+	var (
+		g g_uuid.UUID
+		err error
+	)
+	g, err = g_uuid.NewRandom()
+	if (err != nil) {
+		logger.Log("g_uuid.NewRandom() failed: %s", err.Error())
+		return ""
+	}
+	return g.String()
 }
 
 func Shutdown(ctx context.Context) error {
