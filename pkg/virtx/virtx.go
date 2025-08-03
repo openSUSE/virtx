@@ -27,6 +27,8 @@ import (
 	"context"
 	"time"
 	"io"
+	"bytes"
+	"encoding/json"
 
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/hypervisor"
@@ -222,6 +224,42 @@ func host_is_remote(uuid string) bool {
 	return uuid != "" && uuid != hypervisor.Uuid()
 }
 
+func do_request(uuid string, method string, path string, arg any) (*http.Response, error) {
+	/* assert (service.m.isRLocked()) */
+	var (
+		host openapi.Host
+		addr url.URL
+		ok bool
+		buf bytes.Buffer
+		err error
+	)
+	host, ok = service.hosts[uuid]
+	if (!ok) {
+		return nil, errors.New("unknown host")
+	}
+	addr.Path = path
+	addr.Host = host.Def.Name + ":8080"
+	addr.Scheme = "http"
+	err = json.NewEncoder(&buf).Encode(arg)
+	if (err != nil) {
+		return nil, err
+	}
+	req, err := http.NewRequest(method, addr.String(), &buf)
+	if (err != nil) {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	/* we unlock here to allow other goroutines to make progress while we wait for the response */
+	service.m.RUnlock()
+	resp, err := service.client.Do(req)
+	service.m.RLock()
+	if (err != nil) {
+		return nil, err
+	}
+	return resp, nil
+}
+
 func proxy_request(uuid string, w http.ResponseWriter, r *http.Request) {
 	/* assert (service.m.isRLocked()) */
 	var (
@@ -270,7 +308,7 @@ func proxy_request(uuid string, w http.ResponseWriter, r *http.Request) {
 	proxyreq.Header.Set("X-Forwarded-For", xff)
 	proxyreq.Header.Set("X-VirtX-Loop", "1")
 
-	/* we unlock here to prevent other goroutines to make progress while we wait for the response */
+	/* we unlock here to allow other goroutines to make progress while we wait for the response */
 	service.m.RUnlock()
 	resp, err := service.client.Do(proxyreq)
 	service.m.RLock()
