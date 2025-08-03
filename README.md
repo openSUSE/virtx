@@ -1,15 +1,25 @@
 # LICENSE
 
-The code is under the GPLv2 license. See LICENSE file for details.
+This code is under the GPLv2 license. See LICENSE file for details.
+
+The following dependencies are included:
+
+serf client library, Copyright (c) 2013 HashiCorp, Inc.
+https://pkg.go.dev/github.com/hashicorp/serf/client
+license: MPL-2.0, see serf-client-license.txt
+
+google uuid, Copyright (c) 2009,2014 Google Inc.
+https://pkg.go.dev/github.com/google/uuid
+license: BSD-3-Clause, see google-uuid-license.txt
+
 
 # virtxd
 
-The service monitors the state of local VMs via libvirt,
-and offers a REST API backend to connect to.
+The service monitors the state of local VMs via libvirt, and offers a REST API backend to connect to.
 
 serf agent and libvirt must be already running when starting virtxd.
 If libvirt disconnects, virtx will attempt to reconnect,
-while for now a serf agent failure will make virtx quit. (TODO)
+while for now a serf agent failure will make virtx quit. (TODO?)
 
 get serf source code (tested version 0.8.2) from
 
@@ -26,11 +36,11 @@ $ sudo cp main /usr/local/bin/serf
 Serf will be listening by default on port 7373 for the RPC user messages,
 while it will listen on port 7946 (TCP and UDP) for serf itself.
 
-while the API service will be listening on port 8080.
+The virtx API service will be listening on port 8080.
 
 # BUGS
 
-For some reason on OpenSUSE Go version go1.23.8 the old pre-1.22 net/http behavior is triggered,
+For some reason for me version go1.23.8 the old pre-1.22 net/http behavior is triggered,
 and no 1.22+ API handler works. Arg.
 
 To work around this, I have added in go.mod:
@@ -48,12 +58,24 @@ but for now the go.mod trick seems to work.
 # CODE STYLE
 
 The "standard" code style for Golang is to have CamelCase everywhere which is a readability
-disaster for me being used to C (and probably one of the worst style choices of Go IMO).
+disaster for me being used to C.
 
 So in most places (function names, variable names, struct fields etc),
-I used instead the convention of using _ as it should be.
+I used instead the convention of using _.
 
-The first letter case expresses the visibility of the symbol (argh).
+For symbols only visible within the package, I use a short prefix for the package.
+For symbols exported, the first letter needs to be upper case, and I do not prepend the package prefix.
 
-I made an exception for types: type names are CamelCase since code generators use that convention,
-and it would be too cumbersome to do otherwise.
+This way, within the package, package-private symbols will look like this:
+
+vmdef_disk_to_xml()
+
+and global ones will look like this:
+
+import (
+ .../vmdef
+)
+
+vmdef.To_xml()
+
+Type names are CamelCase since code generators use that convention, and it would be too cumbersome to do otherwise.
