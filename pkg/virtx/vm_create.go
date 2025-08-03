@@ -9,6 +9,7 @@ import (
 	"suse.com/virtx/pkg/hypervisor"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/model"
+	"suse.com/virtx/pkg/vmdef"
 )
 
 
@@ -30,15 +31,15 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	/* Validate vmdef first */
-	err = vmdef_validate(&o.Vmdef)
+	err = vmdef.Validate(&o.Vmdef)
 	if (err != nil) {
-		logger.Log("vmdef_validate failed: %s", err.Error())
+		logger.Log("vmdef.Validate failed: %s", err.Error())
 		http.Error(w, "invalid parameters", http.StatusBadRequest)
 		return
 	}
-	xml, err = vmdef_to_xml(&o.Vmdef)
+	xml, err = vmdef.To_xml(&o.Vmdef)
 	if (err != nil) {
-		logger.Log("vmdef_to_xml failed: %s", err.Error())
+		logger.Log("vmdef.To_xml failed: %s", err.Error())
 		http.Error(w, "invalid parameters", http.StatusBadRequest)
 		return
 	}
@@ -49,17 +50,22 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "storage creation failed", http.StatusInsufficientStorage)
 		return
 	}
+	/*
+	 * Write the xml to disk near the OS disk for convenience in its original form
+	 * (not processed by libvirt), so it can be used as reference for the future,
+	 * and help with debugging.
+	 * This is in addition to the processed XML which is stored in /vms/xml/
+	 */
+	err = os.WriteFile(vmdef.Osdisk_xml(&o.Vmdef), []byte(xml), 0640)
+	if (err != nil) {
+		logger.Log("os.WriteFile failed: %s", err.Error())
+		http.Error(w, "could not write XML", http.StatusInternalServerError)
+		return
+	}
 	uuid, err = hypervisor.Define_domain(xml)
 	if (err != nil) {
 		logger.Log("hypervisor.Define_domain failed: %s", err.Error())
 		http.Error(w, "could not define VM", http.StatusInternalServerError)
-		return
-	}
-	/* Write the xml to disk, owner RW, group R, others - */
-	err = os.WriteFile(vmdef_xml_path(&o.Vmdef), []byte(xml), 0640)
-	if (err != nil) {
-		logger.Log("os.WriteFile failed: %s", err.Error())
-		http.Error(w, "could not write XML", http.StatusInternalServerError)
 		return
 	}
 	var buf bytes.Buffer

@@ -11,6 +11,7 @@ import (
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/logger"
 	. "suse.com/virtx/pkg/constants"
+	"suse.com/virtx/pkg/vmdef"
 )
 
 
@@ -20,7 +21,7 @@ func vm_storage_create_disk(disk *openapi.Disk) error {
 		path, disk_driver, prealloc string
 	)
 	path = filepath.Clean(disk.Path)
-	disk_driver = disk_driver_from_path(path)
+	disk_driver = vmdef.Disk_driver(path)
 
 	if (path != disk.Path || !strings.HasPrefix(disk.Path, DS_DIR) ||
 		(disk_driver != "qcow2" && disk_driver != "raw")) {
@@ -62,7 +63,7 @@ func vm_storage_delete_disk(disk *openapi.Disk) error {
 		path, disk_driver string
 	)
 	path = filepath.Clean(disk.Path)
-	disk_driver = disk_driver_from_path(path)
+	disk_driver = vmdef.Disk_driver(path)
 	if (path != disk.Path || !strings.HasPrefix(disk.Path, DS_DIR) ||
 		(disk_driver != "qcow2" && disk_driver != "raw")) {
 		/* symlink shenanigans, or not starting with /vms/ or invalid ext : bail */
@@ -106,14 +107,14 @@ func vm_storage_delete(vmdef *openapi.Vmdef) error {
 	return nil
 }
 
-func vm_storage_update(vmdef *openapi.Vmdef, old *openapi.Vmdef) error {
+func vm_storage_update(vm *openapi.Vmdef, old *openapi.Vmdef) error {
 	var err error
-	for _, disk := range vmdef.Disks {
+	for _, disk := range vm.Disks {
 		/* ignore anything that is not a virtual disk to create */
 		if (disk.Device != openapi.DEVICE_DISK || disk.Createmode == openapi.DISK_NOCREATE) {
 			continue;
 		}
-		if (vmdef_has_path(old, disk.Path)) {
+		if (vmdef.Has_path(old, disk.Path)) {
 			/* already in the previous definition, not new */
 			continue
 		}

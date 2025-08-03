@@ -7,6 +7,7 @@ import (
 	"suse.com/virtx/pkg/hypervisor"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/model"
+	"suse.com/virtx/pkg/vmdef"
 )
 
 func vm_get(w http.ResponseWriter, r *http.Request) {
@@ -38,9 +39,9 @@ func vm_get(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not get VM", http.StatusInternalServerError)
 		return
 	}
-	err = vmdef_from_xml(&vm.Def, xml)
+	err = vmdef.From_xml(&vm.Def, xml)
 	if (err != nil) {
-		logger.Log("vmdef_from_xml failed: %s", err.Error())
+		logger.Log("vmdef.From_xml failed: %s", err.Error())
 		http.Error(w, "invalid VM data", http.StatusInternalServerError)
 		return
 	}

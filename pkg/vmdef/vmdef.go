@@ -1,4 +1,22 @@
-package virtx
+/*
+ * Copyright (c) 2024-2025 SUSE LLC
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, see
+ * <https://www.gnu.org/licenses/>
+ */
+
+package vmdef
 
 import (
 	"math/bits"
@@ -10,45 +28,32 @@ import (
 
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/hypervisor"
-	. "suse.com/virtx/pkg/constants"
 	"libvirt.org/go/libvirtxml"
+	. "suse.com/virtx/pkg/constants"
 )
-
-/*
- * Return the index of the OS disk from a Vmdef, as per virtx convention.
- * The main OS disk is the first non-CDROM disk.
- */
-func vmdef_find_os_disk(vmdef *openapi.Vmdef) int {
-	var i, n int = 0, len(vmdef.Disks)
-	for i = 0; i < n; i++ {
-		if (vmdef.Disks[i].Device == openapi.DEVICE_DISK) {
-			return i
-		}
-	}
-	return -1
-}
 
 /*
  * check if the vmdef contains a certain path.
  * Initially implemented for the vm_update procedure for storage.
  */
-func vmdef_has_path(vmdef *openapi.Vmdef, path string) bool {
+func Has_path(vmdef *openapi.Vmdef, path string) bool {
+	if (path == vmdef.Osdisk.Path) {
+		return true
+	}
 	for _, disk := range vmdef.Disks {
-		var this string = filepath.Clean(disk.Path)
-		if (path == this) {
+		if (path == disk.Path) {
 			return true
 		}
 	}
 	return false
 }
 
-/* calculate the virtxml path from the os disk */
-func vmdef_xml_path(vmdef *openapi.Vmdef) string {
-	var os_disk int = vmdef_find_os_disk(vmdef)
-	if (os_disk < 0) {
-		return ""
-	}
-	var p string = vmdef.Disks[os_disk].Path
+/*
+ * get the path to the unprocessed xml file close to the OS disk, which is stored
+ * for convenience for the user.
+ */
+func Osdisk_xml(vmdef *openapi.Vmdef) string {
+	var p string = vmdef.Osdisk.Path
 	p = strings.TrimSuffix(p, filepath.Ext(p)) + ".xml"
 	return p
 }
@@ -61,7 +66,7 @@ func vmdef_get_vcpus(vmdef *openapi.Vmdef) uint {
 }
 
 /* get disk driver type from path, or "" if not recognized */
-func disk_driver_from_path(p string) string {
+func Disk_driver(p string) string {
 	var (
 		ext string
 	)
@@ -77,8 +82,45 @@ func disk_driver_from_path(p string) string {
 	return ""
 }
 
+/* validate a disk path and return the driver for the disk, or "" on error */
+func vmdef_validate_disk_path(path string) string {
+	if (path == "" || !filepath.IsAbs(path)) {
+		return ""
+	}
+	if (filepath.Clean(path) != path) {
+		return ""
+	}
+	if (!strings.HasPrefix(path, DS_DIR)) {
+		return ""
+	}
+	return Disk_driver(path)
+}
+
+func vmdef_validate_disk(disk *openapi.Disk) error {
+	var (
+		disk_driver string
+	)
+	if (disk.Size < 0) {
+		return errors.New("invalid Disk Size")
+	}
+	disk_driver = vmdef_validate_disk_path(disk.Path)
+	if (disk_driver == "") {
+		return errors.New("invalid Disk Path")
+	}
+	if (!disk.Device.IsValid()) {
+		return errors.New("invalid Disk Device")
+	}
+	if (!disk.Bus.IsValid()) {
+		return errors.New("invalid Disk Bus")
+	}
+	if (!disk.Createmode.IsValid()) {
+		return errors.New("invalid Disk Createmode")
+	}
+	return nil
+}
+
 /* validate before generating the xml */
-func vmdef_validate(vmdef *openapi.Vmdef) error {
+func Validate(vmdef *openapi.Vmdef) error {
 	var err error
 	if (vmdef.Name == "" || len(vmdef.Name) > VM_NAME_MAX) {
 		return errors.New("invalid Name length")
@@ -98,11 +140,11 @@ func vmdef_validate(vmdef *openapi.Vmdef) error {
 	if (vmdef.Genid != "" && vmdef.Genid != "auto" && len(vmdef.Genid) != 36) {
 		return errors.New("invalid Genid")
 	}
-	if (len(vmdef.Disks) < 1 || len(vmdef.Disks) > DISKS_MAX) {
-		return errors.New("invalid Disks")
-	}
-	if (vmdef_find_os_disk(vmdef) < 0) {
+	if (vmdef.Osdisk.Path == "") {
 		return errors.New("no OS Disk")
+	}
+	if (len(vmdef.Disks) > DISKS_MAX) {
+		return errors.New("invalid Disks")
 	}
 	if (len(vmdef.Nets) > NETS_MAX) {
 		return errors.New("invalid Nets")
@@ -111,36 +153,16 @@ func vmdef_validate(vmdef *openapi.Vmdef) error {
 		return errors.New("invalid Vlanid")
 	}
 	/* *** DISKS *** */
+	err = vmdef_validate_disk(&vmdef.Osdisk)
+	if (err != nil) {
+		return err
+	}
 	for _, disk := range vmdef.Disks {
-		if (disk.Size < 0) {
-			return errors.New("invalid Disk Size")
-		}
-		if (disk.Path == "" || !filepath.IsAbs(disk.Path)) {
-			return errors.New("invalid Disk Path")
-		}
-		var path string = filepath.Clean(disk.Path)
-		/* XXX disable for now
-		path, err = filepath.EvalSymlinks(path)
+		err = vmdef_validate_disk(&disk)
 		if (err != nil) {
-			return errors.New("invalid Disk Path")
-		}
-		*/
-		var disk_driver string = disk_driver_from_path(path)
-		if (path != disk.Path || !strings.HasPrefix(disk.Path, DS_DIR) || disk_driver == "") {
-			/* symlink shenanigans, or not starting with /vms/ or invalid ext : bail */
-			return errors.New("invalid Disk Path")
-		}
-		if (!disk.Device.IsValid()) {
-			return errors.New("invalid Disk Device")
-		}
-		if (!disk.Bus.IsValid()) {
-			return errors.New("invalid Disk Bus")
-		}
-		if (!disk.Createmode.IsValid()) {
-			return errors.New("invalid Disk Createmode")
+			return err
 		}
 	}
-
 	/* *** NETWORKS *** */
 	for _, net := range vmdef.Nets {
 		if (net.Mac != "" && len(net.Mac) != MAC_LEN) {
@@ -162,8 +184,131 @@ func vmdef_validate(vmdef *openapi.Vmdef) error {
 	return err
 }
 
-/* vmdef_validate needs to be called before this! */
-func vmdef_to_xml(vmdef *openapi.Vmdef) (string, error) {
+func vmdef_disk_to_xml(disk *openapi.Disk, disk_count map[string]int, iothread_count *uint,
+	domain_disks []libvirtxml.DomainDisk, domain_controllers []libvirtxml.DomainController, order int) error {
+	var (
+		domain_disk libvirtxml.DomainDisk
+		domain_controller libvirtxml.DomainController
+		ctrl_type, ctrl_model, device_prefix, device_name string
+		use_iothread bool
+		disk_driver string = vmdef_validate_disk_path(disk.Path)
+	)
+	if (disk_driver == "") {
+		return errors.New("invalid Disk Path")
+	}
+	switch (disk.Bus) {
+	case openapi.BUS_SCSI:
+		device_prefix = "sd"
+		ctrl_type = "scsi"
+		ctrl_model = "lsilogic"
+		device_prefix = "sd"
+	case openapi.BUS_VIRTIO_SCSI:
+		device_prefix = "sd"
+		ctrl_type = "scsi"
+		ctrl_model = "virtio-scsi"
+		use_iothread = true
+	case openapi.BUS_SATA:
+		device_prefix = "sd"
+		ctrl_type = "sata"
+	case openapi.BUS_VIRTIO_BLK:
+		device_prefix = "vd"
+		ctrl_type = "virtio"
+		use_iothread = true
+	}
+	var controller_index uint = uint(disk_count[ctrl_type])
+	var r rune
+	if (ctrl_type == "virtio") {
+		r = rune('a' + disk_count[ctrl_type])
+	} else {
+		r = rune('a' + disk_count["scsi"] + disk_count["sata"])
+	}
+	device_name = device_prefix + string(r);
+	if (ctrl_model != "") {
+		domain_controller = libvirtxml.DomainController{
+			/* XMLName: */
+			Type: ctrl_type,
+			Index: &controller_index,
+			Model: ctrl_model,
+			Driver: func() *libvirtxml.DomainControllerDriver {
+				if (use_iothread) {
+					/* iothread index starts from 1! */
+					*iothread_count += 1
+					return &libvirtxml.DomainControllerDriver{
+						IOThread: *iothread_count,
+					}
+				}
+				return nil
+			}(),
+		}
+		domain_controllers = append(domain_controllers, domain_controller)
+	}
+	domain_disk = libvirtxml.DomainDisk{
+		/* XMLName:, */
+		Device: disk.Device.String(),
+		/* Model:, */
+		Driver: &libvirtxml.DomainDiskDriver{
+			Name: "qemu",
+			Type: disk_driver,
+			Cache: "none",
+			IOThread: func() *uint {
+				if (ctrl_type == "virtio" && use_iothread) { /* virtio-blk. */
+					*iothread_count += 1
+					var iothread_index uint = *iothread_count
+					return &iothread_index
+				}
+				return nil
+			}(),
+		},
+		Source: &libvirtxml.DomainDiskSource{
+			File: &libvirtxml.DomainDiskSourceFile{
+				File: disk.Path,
+			},
+		},
+		Target: &libvirtxml.DomainDiskTarget{
+			Dev: device_name,
+			Bus: ctrl_type,
+		},
+		ReadOnly: func() *libvirtxml.DomainDiskReadOnly {
+			if (disk.Device == openapi.DEVICE_CDROM) {
+				return &libvirtxml.DomainDiskReadOnly{}
+			}
+			return nil
+		}(),
+		/* Shareable: */
+		Boot: func() *libvirtxml.DomainDeviceBoot {
+			if (order <= 0) {
+				return nil
+			} else {
+				return &libvirtxml.DomainDeviceBoot{
+					Order: uint(order),
+				}
+			}
+		}(),
+		Alias: &libvirtxml.DomainAlias{
+			Name: fmt.Sprintf("ua-%s_%s_%s_%d",
+				disk.Createmode.String(), ctrl_type, ctrl_model, disk_count[ctrl_type]),
+		},
+		Address: func() *libvirtxml.DomainAddress {
+			if (ctrl_model == "") {
+				return nil
+			}
+			return &libvirtxml.DomainAddress{
+				Drive: &libvirtxml.DomainAddressDrive{
+					Controller: &controller_index,
+				},
+			}
+		}(),
+	}
+	domain_disks = append(domain_disks, domain_disk)
+	/* controller index per type starts from 0 */
+	disk_count[ctrl_type] += 1
+	return nil
+}
+
+/*
+ * vmdef_validate needs to be called before this!
+ */
+func To_xml(vmdef *openapi.Vmdef) (string, error) {
 	var (
 		xml string
 		err error
@@ -255,10 +400,12 @@ func vmdef_to_xml(vmdef *openapi.Vmdef) (string, error) {
 			Type: "hvm",
 		},
 		Firmware: vmdef.Firmware.String(),
+		/* - not used anymore, we use explicit boot order for each disk
 		BootDevices: []libvirtxml.DomainBootDevice{
 			{ Dev: "hd" },
 			{ Dev: "cdrom" },
 		},
+		*/
 	}
 	domain_clock := libvirtxml.DomainClock{
 		Timer: []libvirtxml.DomainTimer{
@@ -283,128 +430,24 @@ func vmdef_to_xml(vmdef *openapi.Vmdef) (string, error) {
 		domain_disks []libvirtxml.DomainDisk
 		domain_controllers []libvirtxml.DomainController
 		domain_interfaces []libvirtxml.DomainInterface
-		iothread_count int
+		iothread_count uint
+		boot_order int = 1						/* primary disk first, then the cdroms */
 	)
-	disk_count := make(map[string]int)      /* keep track of how many disks require a bus type */
+	disk_count := make(map[string]int)          /* keep track of how many disks require a bus type */
+	err = vmdef_disk_to_xml(&vmdef.Osdisk, disk_count, &iothread_count, domain_disks, domain_controllers, boot_order)
 	for _, disk := range vmdef.Disks {
-		var path string = filepath.Clean(disk.Path)
-		/* XXX disable for now
-		path, err = filepath.EvalSymlinks(path)
-		if (err != nil) {
-			return "", errors.New("invalid Disk Path")
-		}
-		*/
-		var disk_driver string = disk_driver_from_path(path)
-		if (path != disk.Path || !strings.HasPrefix(disk.Path, DS_DIR) || disk_driver == "") {
-			/* symlink shenanigans, or not starting with /vms/ or invalid ext : bail */
-			return "", errors.New("invalid Disk Path")
-		}
-		var (
-			ctrl_type, ctrl_model string
-			use_iothread bool
-			device_prefix, device_name string
-		)
-		switch (disk.Bus) {
-		case openapi.BUS_SCSI:
-			device_prefix = "sd"
-			ctrl_type = "scsi"
-			ctrl_model = "lsilogic"
-			device_prefix = "sd"
-		case openapi.BUS_VIRTIO_SCSI:
-			device_prefix = "sd"
-			ctrl_type = "scsi"
-			ctrl_model = "virtio-scsi"
-			use_iothread = true
-		case openapi.BUS_SATA:
-			device_prefix = "sd"
-			ctrl_type = "sata"
-		case openapi.BUS_VIRTIO_BLK:
-			device_prefix = "vd"
-			ctrl_type = "virtio"
-			use_iothread = true
-		}
-		var controller_index uint = uint(disk_count[ctrl_type])
-		var r rune
-		if (ctrl_type == "virtio") {
-			r = rune('a' + disk_count[ctrl_type])
+		var order int
+		if (disk.Device == openapi.DEVICE_CDROM) {
+			boot_order += 1
+			order = boot_order
 		} else {
-			r = rune('a' + disk_count["scsi"] + disk_count["sata"])
+			order = -1			/* other disks are not bootable */
 		}
-		device_name = device_prefix + string(r);
-		if (ctrl_model != "") {
-			domain_controller := libvirtxml.DomainController{
-				/* XMLName: */
-				Type: ctrl_type,
-				Index: &controller_index,
-				Model: ctrl_model,
-				Driver: func() *libvirtxml.DomainControllerDriver {
-					if (use_iothread) {
-						/* iothread index starts from 1! */
-						iothread_count += 1
-						return &libvirtxml.DomainControllerDriver{
-							IOThread: uint(iothread_count),
-						}
-					}
-					return nil
-				}(),
-			}
-			domain_controllers = append(domain_controllers, domain_controller)
+		err = vmdef_disk_to_xml(&disk, disk_count, &iothread_count, domain_disks, domain_controllers, order)
+		if (err != nil) {
+			return "", err
 		}
-		//domain_controllers = append(domain_controllers, libvirtxml.DomainController{ Type: "usb", Model: "none" })
-		domain_disk := libvirtxml.DomainDisk{
-			/* XMLName:, */
-			Device: disk.Device.String(),
-			/* Model:, */
-			Driver: &libvirtxml.DomainDiskDriver{
-				Name: "qemu",
-				Type: disk_driver,
-				Cache: "none",
-				IOThread: func() *uint {
-					if (ctrl_type == "virtio" && use_iothread) { /* virtio-blk. */
-						iothread_count += 1
-						var iothread_index uint = uint(iothread_count)
-						return &iothread_index
-					}
-					return nil
-				}(),
-			},
-			Source: &libvirtxml.DomainDiskSource{
-				File: &libvirtxml.DomainDiskSourceFile{
-					File: disk.Path,
-				},
-			},
-			Target: &libvirtxml.DomainDiskTarget{
-				Dev: device_name,
-				Bus: ctrl_type,
-			},
-			ReadOnly: func() *libvirtxml.DomainDiskReadOnly {
-				if (disk.Device == openapi.DEVICE_CDROM) {
-					return &libvirtxml.DomainDiskReadOnly{}
-				}
-				return nil
-			}(),
-			/* Shareable: */
-			/* Boot:, */
-			Alias: &libvirtxml.DomainAlias{
-				Name: fmt.Sprintf("ua-%s_%s_%s_%d",
-					disk.Createmode.String(), ctrl_type, ctrl_model, disk_count[ctrl_type]),
-			},
-			Address: func() *libvirtxml.DomainAddress {
-				if (ctrl_model == "") {
-					return nil
-				}
-				return &libvirtxml.DomainAddress{
-					Drive: &libvirtxml.DomainAddressDrive{
-						Controller: &controller_index,
-					},
-				}
-			}(),
-		}
-		domain_disks = append(domain_disks, domain_disk)
-		/* controller index per type starts from 0 */
-		disk_count[ctrl_type] += 1
 	}
-
 	/* *** NETWORKS *** */
 	for _, net := range vmdef.Nets {
 		iothread_count += 1
@@ -526,11 +569,6 @@ func vmdef_to_xml(vmdef *openapi.Vmdef) (string, error) {
 		}
 	}()
 	domain_metadata_xml := `<virtx:data xmlns:virtx="virtx">`
-	xmlpath := vmdef_xml_path(vmdef)
-	if (xmlpath == "") {
-		return "", errors.New("missing DEVICE_DISK")
-	}
-	domain_metadata_xml += `<virtxml>` + xmlpath + `</virtxml>`
 	domain_metadata_xml += `<firmware type="` + vmdef.Firmware.String() + `"></firmware>`
 	for _, custom := range vmdef.Custom {
 		if (custom.Name == "") {
@@ -581,7 +619,7 @@ type MetadataField struct {
 	Value string `xml:",chardata"`
 }
 
-func vmdef_from_xml(vmdef *openapi.Vmdef, xmlstr string) error {
+func From_xml(vmdef *openapi.Vmdef, xmlstr string) error {
 	var (
 		err error
 		domain libvirtxml.Domain
@@ -661,7 +699,11 @@ func vmdef_from_xml(vmdef *openapi.Vmdef, xmlstr string) error {
 		if (err != nil) {
 			return err
 		}
-		vmdef.Disks = append(vmdef.Disks, disk)
+		if (domain_disk.Boot != nil && domain_disk.Boot.Order == 1) {
+			vmdef.Osdisk = disk	/* the primary OS disk */
+		} else {
+			vmdef.Disks = append(vmdef.Disks, disk)
+		}
 	}
 	/* Networks */
 	vmdef.Nets = []openapi.Net{}

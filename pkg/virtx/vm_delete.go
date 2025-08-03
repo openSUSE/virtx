@@ -7,6 +7,7 @@ import (
 	"suse.com/virtx/pkg/hypervisor"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/model"
+	"suse.com/virtx/pkg/vmdef"
 )
 
 func vm_delete(w http.ResponseWriter, r *http.Request) {
@@ -16,7 +17,7 @@ func vm_delete(w http.ResponseWriter, r *http.Request) {
 		err error
 		o openapi.VmDeleteOptions
 		uuid, xml string
-		vmdef openapi.Vmdef
+		vm openapi.Vmdef
 	)
 	err = json.NewDecoder(r.Body).Decode(&o)
 	if (err != nil && err != io.EOF) {
@@ -47,9 +48,9 @@ func vm_delete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not Get VM XML", http.StatusInternalServerError)
 		return
 	}
-	err = vmdef_from_xml(&vmdef, xml)
+	err = vmdef.From_xml(&vm, xml)
 	if (err != nil) {
-		logger.Log("vmdef_from_xml failed: %s", err.Error())
+		logger.Log("vmdef.From_xml failed: %s", err.Error())
 		http.Error(w, "invalid VM data", http.StatusInternalServerError)
 		return
 	}
@@ -60,7 +61,7 @@ func vm_delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if (o.Deletestorage) {
-		err = vm_storage_delete(&vmdef)
+		err = vm_storage_delete(&vm)
 		if (err != nil) {
 			http.Error(w, "Failed to delete virtual disk storage", http.StatusInternalServerError)
 			return
