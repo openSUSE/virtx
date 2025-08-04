@@ -83,7 +83,7 @@ func Disk_driver(p string) string {
 }
 
 /* validate a disk path and return the driver for the disk, or "" on error */
-func vmdef_validate_disk_path(path string) string {
+func Validate_disk_path(path string) string {
 	if (path == "" || !filepath.IsAbs(path)) {
 		return ""
 	}
@@ -103,7 +103,7 @@ func vmdef_validate_disk(disk *openapi.Disk) error {
 	if (disk.Size < 0) {
 		return errors.New("invalid Disk Size")
 	}
-	disk_driver = vmdef_validate_disk_path(disk.Path)
+	disk_driver = Validate_disk_path(disk.Path)
 	if (disk_driver == "") {
 		return errors.New("invalid Disk Path")
 	}
@@ -191,7 +191,7 @@ func vmdef_disk_to_xml(disk *openapi.Disk, disk_count map[string]int, iothread_c
 		domain_controller libvirtxml.DomainController
 		ctrl_type, ctrl_model, device_prefix, device_name string
 		use_iothread bool
-		disk_driver string = vmdef_validate_disk_path(disk.Path)
+		disk_driver string = Validate_disk_path(disk.Path)
 	)
 	if (disk_driver == "") {
 		return errors.New("invalid Disk Path")

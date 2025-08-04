@@ -5,12 +5,10 @@ import (
 	"os/exec"
 	"path/filepath"
 	"errors"
-	"strings"
 	"fmt"
 
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/logger"
-	. "suse.com/virtx/pkg/constants"
 	"suse.com/virtx/pkg/vmdef"
 )
 
@@ -18,15 +16,15 @@ import (
 func vm_storage_create_disk(disk *openapi.Disk) error {
 	var (
 		err error
-		path, disk_driver, prealloc string
+		disk_driver, prealloc string
 	)
-	path = filepath.Clean(disk.Path)
-	disk_driver = vmdef.Disk_driver(path)
-
-	if (path != disk.Path || !strings.HasPrefix(disk.Path, DS_DIR) ||
-		(disk_driver != "qcow2" && disk_driver != "raw")) {
-		/* symlink shenanigans, or not starting with /vms/ or invalid ext : bail */
+	disk_driver = vmdef.Validate_disk_path(disk.Path)
+	if (disk_driver == "") {
 		return errors.New("invalid Disk Path")
+	}
+	err = os.MkdirAll(filepath.Dir(disk.Path), 0750)
+	if (err != nil) {
+		return errors.New("could not create path")
 	}
 	prealloc = func () string {
 		if (disk_driver == "qcow2") {
@@ -45,7 +43,7 @@ func vm_storage_create_disk(disk *openapi.Disk) error {
 	if (disk_driver == "qcow2") {
 		args = append(args, "-o", "lazy_refcounts=off")
 	}
-	args = append(args, path, fmt.Sprintf("%dM", disk.Size))
+	args = append(args, disk.Path, fmt.Sprintf("%dM", disk.Size))
 	logger.Log("qemu-img %v", args)
 	var cmd *exec.Cmd = exec.Command("/usr/bin/qemu-img", args...)
 	var output []byte
@@ -60,17 +58,14 @@ func vm_storage_create_disk(disk *openapi.Disk) error {
 func vm_storage_delete_disk(disk *openapi.Disk) error {
 	var (
 		err error
-		path, disk_driver string
+		disk_driver string
 	)
-	path = filepath.Clean(disk.Path)
-	disk_driver = vmdef.Disk_driver(path)
-	if (path != disk.Path || !strings.HasPrefix(disk.Path, DS_DIR) ||
-		(disk_driver != "qcow2" && disk_driver != "raw")) {
-		/* symlink shenanigans, or not starting with /vms/ or invalid ext : bail */
+	disk_driver = vmdef.Validate_disk_path(disk.Path)
+	if (disk_driver == "") {
 		return errors.New("invalid Disk Path")
 	}
-	logger.Log("deleting %s", path)
-	err = os.Remove(path)
+	logger.Log("deleting %s", disk.Path)
+	err = os.Remove(disk.Path)
 	if (err != nil) {
 		return err
 	}
