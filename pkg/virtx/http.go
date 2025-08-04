@@ -29,7 +29,55 @@ import (
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/hypervisor"
 	"suse.com/virtx/pkg/model"
+	. "suse.com/virtx/pkg/constants"
 )
+
+/*
+ * every handler needs to call this, whether it needs to read a body or not,
+ * since the request might contain a body to read and ignore, but the body
+ * needs to be .Close()d because unfortunately r.Body is an io.ReadCloser().
+ * Otherwise connections may stay open.
+ */
+
+type VirtxRequest struct {
+	r *http.Request
+	body []byte
+}
+
+func http_decode_body(r *http.Request, arg any) (VirtxRequest, error) {
+	var (
+		err error
+		vr VirtxRequest
+	)
+	vr.r = r
+	if (r.Body == nil) {     /* no body found */
+		if (arg == nil) {
+			return vr, nil       /* ok, did not expect any */
+		}
+		return vr, errors.New("no body")
+	}
+	if (r.ContentLength <= 0) {
+		r.Body.Close()
+		return vr, errors.New("content-length <= 0")
+	}
+	if (r.ContentLength >= HTTP_MAX_BODY_LEN) {
+		r.Body.Close()
+		return vr, errors.New("content-length exceeded")
+	}
+	vr.body, err = io.ReadAll(io.LimitReader(r.Body, HTTP_MAX_BODY_LEN))
+	r.Body.Close()
+	if (err != nil) {
+		return vr, errors.New("failed to read body")
+	}
+	if (int64(len(vr.body)) > r.ContentLength) {
+		return vr, errors.New("body len exceeds content-length")
+	}
+	err = json.NewDecoder(bytes.NewReader(vr.body)).Decode(arg)
+	if (err != nil) {
+		return vr, err
+	}
+	return vr, nil
+}
 
 func http_host_is_remote(uuid string) bool {
 	return uuid != "" && uuid != hypervisor.Uuid()
@@ -71,7 +119,7 @@ func http_do_request(uuid string, method string, path string, arg any) (*http.Re
 	return resp, nil
 }
 
-func http_proxy_request(uuid string, w http.ResponseWriter, r *http.Request) {
+func http_proxy_request(uuid string, w http.ResponseWriter, vr VirtxRequest) {
 	/* assert (service.m.isRLocked()) */
 	var (
 		host openapi.Host
@@ -84,27 +132,27 @@ func http_proxy_request(uuid string, w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unknown host", http.StatusUnprocessableEntity)
 		return
 	}
-	if (r.Header.Get("X-VirtX-Loop") != "") {
+	if (vr.r.Header.Get("X-VirtX-Loop") != "") {
 		logger.Log("proxy_request loop detected")
 		http.Error(w, "loop detected", http.StatusLoopDetected)
 		return
 	}
-	newaddr = *r.URL
+	newaddr = *vr.r.URL
 	newaddr.Host = host.Def.Name + ":8080"
-	if (r.TLS != nil) {
+	if (vr.r.TLS != nil) {
 		newaddr.Scheme = "https"
 	} else {
 		newaddr.Scheme = "http"
 	}
-	proxyreq, err := http.NewRequest(r.Method, newaddr.String(), r.Body)
+	proxyreq, err := http.NewRequest(vr.r.Method, newaddr.String(), bytes.NewReader(vr.body))
 	if (err != nil) {
 		logger.Log("proxy_request http.NewRequest failed: %s", err.Error())
 		http.Error(w, "failed to forward request", http.StatusInternalServerError)
 		return
 	}
 
-	proxyreq.Header = r.Header.Clone()
-	client_ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	proxyreq.Header = vr.r.Header.Clone()
+	client_ip, _, err := net.SplitHostPort(vr.r.RemoteAddr)
 	if (err != nil) {
 		logger.Log("proxy_request could not decode client address")
 		http.Error(w, "failed to forward request", http.StatusInternalServerError)

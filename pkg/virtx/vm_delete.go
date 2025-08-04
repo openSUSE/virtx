@@ -18,6 +18,7 @@ func vm_delete(w http.ResponseWriter, r *http.Request) {
 		o openapi.VmDeleteOptions
 		uuid, xml string
 		vm openapi.Vmdef
+		vr VirtxRequest
 	)
 	err = json.NewDecoder(r.Body).Decode(&o)
 	if (err != nil && err != io.EOF) {
@@ -39,7 +40,7 @@ func vm_delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if (http_host_is_remote(vmdata.Runinfo.Host)) {
-		http_proxy_request(vmdata.Runinfo.Host, w, r)
+		http_proxy_request(vmdata.Runinfo.Host, w, vr)
 		return
 	}
 	xml, err = hypervisor.Dumpxml(uuid)

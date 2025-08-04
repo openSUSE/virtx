@@ -17,6 +17,7 @@ func vm_shutdown(w http.ResponseWriter, r *http.Request) {
 		err error
 		uuid string
 		o openapi.VmShutdownOptions
+		vr VirtxRequest
 	)
 	err = json.NewDecoder(r.Body).Decode(&o)
 	if (err != nil && err != io.EOF) {
@@ -38,7 +39,7 @@ func vm_shutdown(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if (http_host_is_remote(vmdata.Runinfo.Host)) {
-		http_proxy_request(vmdata.Runinfo.Host, w, r)
+		http_proxy_request(vmdata.Runinfo.Host, w, vr)
 		return
 	}
 	err = hypervisor.Shutdown_domain(uuid, o.Force)

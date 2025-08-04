@@ -20,14 +20,16 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 		err error
 		o openapi.VmCreateOptions
 		xml, uuid string
+		vr VirtxRequest
 	)
-	err = json.NewDecoder(r.Body).Decode(&o)
+	vr, err = http_decode_body(r, &o)
 	if (err != nil) {
-		http.Error(w, "failed to decode JSON in Request Body", http.StatusBadRequest)
+		logger.Log(err.Error())
+		http.Error(w, "failed to decode body", http.StatusBadRequest)
 		return
 	}
 	if (http_host_is_remote(o.Host)) { /* need to proxy */
-		http_proxy_request(o.Host, w, r)
+		http_proxy_request(o.Host, w, vr)
 		return
 	}
 	/* Validate vmdef first */

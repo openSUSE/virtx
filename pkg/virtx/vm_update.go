@@ -23,10 +23,12 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		o openapi.VmUpdateOptions
 		old openapi.Vmdef
 		xml, uuid_old, uuid_new string
+		vr VirtxRequest
 	)
-	err = json.NewDecoder(r.Body).Decode(&o)
+	vr, err = http_decode_body(r, &o)
 	if (err != nil) {
-		http.Error(w, "failed to decode JSON in Request Body", http.StatusBadRequest)
+		logger.Log(err.Error())
+		http.Error(w, "failed to decode body", http.StatusBadRequest)
 		return
 	}
 	uuid_old = r.PathValue("uuid")
@@ -47,7 +49,7 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		o.Host = vmdata.Runinfo.Host
 	}
 	if (http_host_is_remote(o.Host)) { /* need to proxy */
-		http_proxy_request(o.Host, w, r)
+		http_proxy_request(o.Host, w, vr)
 		return
 	}
 	err = vmdef.Validate(&o.Vmdef)

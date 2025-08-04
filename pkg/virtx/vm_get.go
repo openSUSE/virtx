@@ -18,6 +18,7 @@ func vm_get(w http.ResponseWriter, r *http.Request) {
 		uuid, xml string
 		vm openapi.Vm
 		buf bytes.Buffer
+		vr VirtxRequest
 	)
 	uuid = r.PathValue("uuid")
 	if (uuid == "") {
@@ -30,7 +31,7 @@ func vm_get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if (http_host_is_remote(vmdata.Runinfo.Host)) {
-		http_proxy_request(vmdata.Runinfo.Host, w, r)
+		http_proxy_request(vmdata.Runinfo.Host, w, vr)
 		return
 	}
 	xml, err = hypervisor.Dumpxml(uuid)

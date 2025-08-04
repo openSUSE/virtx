@@ -12,6 +12,7 @@ func vm_pause(w http.ResponseWriter, r *http.Request) {
 	var (
 		err error
 		uuid string
+		vr VirtxRequest
 	)
 	uuid = r.PathValue("uuid")
 	if (uuid == "") {
@@ -24,7 +25,7 @@ func vm_pause(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if (http_host_is_remote(vmdata.Runinfo.Host)) {
-		http_proxy_request(vmdata.Runinfo.Host, w, r)
+		http_proxy_request(vmdata.Runinfo.Host, w, vr)
 		return
 	}
 	err = hypervisor.Pause_domain(uuid)
