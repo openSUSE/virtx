@@ -50,11 +50,6 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		proxy_request(o.Host, w, r)
 		return
 	}
-	/* Validate vmdef first */
-	if (o.Vmdef.Name == vmdata.Name && o.Host == vmdata.Runinfo.Host) {
-		/* avoid name collision on the same host in the new VM definition */
-		o.Vmdef.Name = vmdata.Name + "_"
-	}
 	err = vmdef.Validate(&o.Vmdef)
 	if (err != nil) {
 		logger.Log("vmdef_validate failed: %s", err.Error())
