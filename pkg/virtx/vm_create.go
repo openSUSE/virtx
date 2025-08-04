@@ -26,8 +26,8 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to decode JSON in Request Body", http.StatusBadRequest)
 		return
 	}
-	if (host_is_remote(o.Host)) { /* need to proxy */
-		proxy_request(o.Host, w, r)
+	if (http_host_is_remote(o.Host)) { /* need to proxy */
+		http_proxy_request(o.Host, w, r)
 		return
 	}
 	/* Validate vmdef first */

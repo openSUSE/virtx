@@ -46,8 +46,8 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 	if (o.Host == "") {
 		o.Host = vmdata.Runinfo.Host
 	}
-	if (host_is_remote(o.Host)) { /* need to proxy */
-		proxy_request(o.Host, w, r)
+	if (http_host_is_remote(o.Host)) { /* need to proxy */
+		http_proxy_request(o.Host, w, r)
 		return
 	}
 	err = vmdef.Validate(&o.Vmdef)
@@ -106,7 +106,7 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not define VM", http.StatusInternalServerError)
 		return
 	}
-	if (!host_is_remote(vmdata.Runinfo.Host)) {
+	if (!http_host_is_remote(vmdata.Runinfo.Host)) {
 		/* host is local */
 		err = hypervisor.Delete_domain(uuid_old)
 		if (err != nil) {
@@ -127,7 +127,7 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "failed to encode JSON", http.StatusInternalServerError)
 			return
 		}
-		response, err = do_request(vmdata.Runinfo.Host, "DELETE",
+		response, err = http_do_request(vmdata.Runinfo.Host, "DELETE",
 			fmt.Sprintf("/vms/%s", uuid_old), &delete_opts)
 		if (err != nil) {
 			logger.Log("do_request failed: %s", err.Error())

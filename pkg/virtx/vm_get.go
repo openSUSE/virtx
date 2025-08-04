@@ -29,8 +29,8 @@ func vm_get(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unknown uuid", http.StatusNotFound)
 		return
 	}
-	if (host_is_remote(vmdata.Runinfo.Host)) {
-		proxy_request(vmdata.Runinfo.Host, w, r)
+	if (http_host_is_remote(vmdata.Runinfo.Host)) {
+		http_proxy_request(vmdata.Runinfo.Host, w, r)
 		return
 	}
 	xml, err = hypervisor.Dumpxml(uuid)
