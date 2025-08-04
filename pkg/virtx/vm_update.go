@@ -87,13 +87,6 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "storage update failed", http.StatusInsufficientStorage)
 		return
 	}
-	/* define new domain */
-	err = hypervisor.Define_domain(xml, uuid_new)
-	if (err != nil) {
-		logger.Log("hypervisor.Define_domain failed: %s", err.Error())
-		http.Error(w, "could not define VM", http.StatusInternalServerError)
-		return
-	}
 	/*
 	 * Write the xml to disk near the OS disk for convenience in its original form
 	 * (not processed by libvirt), so it can be used as reference for the future,
@@ -104,6 +97,13 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 	if (err != nil) {
 		logger.Log("os.WriteFile failed: %s", err.Error())
 		http.Error(w, "could not write XML", http.StatusInternalServerError)
+		return
+	}
+	/* define new domain */
+	err = hypervisor.Define_domain(xml, uuid_new)
+	if (err != nil) {
+		logger.Log("hypervisor.Define_domain failed: %s", err.Error())
+		http.Error(w, "could not define VM", http.StatusInternalServerError)
 		return
 	}
 	if (!host_is_remote(vmdata.Runinfo.Host)) {
