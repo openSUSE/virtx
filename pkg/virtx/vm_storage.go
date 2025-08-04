@@ -12,6 +12,10 @@ import (
 	"suse.com/virtx/pkg/vmdef"
 )
 
+/* is this is a virtual disk managed by virtx, created using the API ? */
+func vm_storage_is_managed_disk(disk *openapi.Disk) bool {
+	return disk.Device == openapi.DEVICE_DISK && disk.Createmode != openapi.DISK_NOCREATE
+}
 
 func vm_storage_create_disk(disk *openapi.Disk) error {
 	var (
@@ -72,31 +76,39 @@ func vm_storage_delete_disk(disk *openapi.Disk) error {
 	return nil
 }
 
-func vm_storage_create(vmdef *openapi.Vmdef) error {
+func vm_storage_create(vm *openapi.Vmdef) error {
 	var err error
-	for _, disk := range vmdef.Disks {
-		/* ignore anything that is not a virtual disk to create */
-		if (disk.Device != openapi.DEVICE_DISK || disk.Createmode == openapi.DISK_NOCREATE) {
-			continue;
-		}
-		err = vm_storage_create_disk(&disk)
+	if (vm_storage_is_managed_disk(&vm.Osdisk)) {
+		err = vm_storage_create_disk(&vm.Osdisk)
 		if (err != nil) {
 			return err
+		}
+	}
+	for _, disk := range vm.Disks {
+		if (vm_storage_is_managed_disk(&disk)) {
+			err = vm_storage_create_disk(&disk)
+			if (err != nil) {
+				return err
+			}
 		}
 	}
 	return nil
 }
 
-func vm_storage_delete(vmdef *openapi.Vmdef) error {
+func vm_storage_delete(vm *openapi.Vmdef) error {
 	var err error
-	for _, disk := range vmdef.Disks {
-		/* ignore anything that is not a virtual disk to delete */
-		if (disk.Device != openapi.DEVICE_DISK) {
-			continue;
-		}
-		err = vm_storage_delete_disk(&disk)
+	if (vm_storage_is_managed_disk(&vm.Osdisk)) {
+		err = vm_storage_delete_disk(&vm.Osdisk)
 		if (err != nil) {
 			return err
+		}
+	}
+	for _, disk := range vm.Disks {
+		if (vm_storage_is_managed_disk(&disk)) {
+			err = vm_storage_delete_disk(&disk)
+			if (err != nil) {
+				return err
+			}
 		}
 	}
 	return nil
@@ -104,18 +116,18 @@ func vm_storage_delete(vmdef *openapi.Vmdef) error {
 
 func vm_storage_update(vm *openapi.Vmdef, old *openapi.Vmdef) error {
 	var err error
-	for _, disk := range vm.Disks {
-		/* ignore anything that is not a virtual disk to create */
-		if (disk.Device != openapi.DEVICE_DISK || disk.Createmode == openapi.DISK_NOCREATE) {
-			continue;
-		}
-		if (vmdef.Has_path(old, disk.Path)) {
-			/* already in the previous definition, not new */
-			continue
-		}
-		err = vm_storage_create_disk(&disk)
+	if (vm_storage_is_managed_disk(&vm.Osdisk) && !vmdef.Has_path(old, vm.Osdisk.Path)) {
+		err = vm_storage_create_disk(&vm.Osdisk)
 		if (err != nil) {
 			return err
+		}
+	}
+	for _, disk := range vm.Disks {
+		if (vm_storage_is_managed_disk(&disk) && !vmdef.Has_path(old, disk.Path)) {
+			err = vm_storage_create_disk(&disk)
+			if (err != nil) {
+				return err
+			}
 		}
 	}
 	return nil
