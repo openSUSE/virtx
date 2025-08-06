@@ -6,7 +6,7 @@ import (
 	"suse.com/virtx/pkg/logger"
 )
 
-func vm_unpause(w http.ResponseWriter, r *http.Request) {
+func vm_resume(w http.ResponseWriter, r *http.Request) {
 	service.m.RLock()
 	defer service.m.RUnlock()
 	var (
@@ -28,7 +28,7 @@ func vm_unpause(w http.ResponseWriter, r *http.Request) {
 		http_proxy_request(vmdata.Runinfo.Host, w, vr)
 		return
 	}
-	err = hypervisor.Unpause_domain(uuid)
+	err = hypervisor.Resume_domain(uuid)
 	if (err != nil) {
 		logger.Log("hypervisor.Unpause_domain failed: %s", err.Error())
 		http.Error(w, "could not unpause VM", http.StatusInternalServerError)

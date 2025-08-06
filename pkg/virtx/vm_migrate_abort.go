@@ -12,6 +12,6 @@ import (
 	//"suse.com/virtx/pkg/model"
 )
 
-func vm_migrate_cancel(w http.ResponseWriter, r *http.Request) {
+func vm_migrate_abort(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "not implemented yet", http.StatusNotImplemented)
 }

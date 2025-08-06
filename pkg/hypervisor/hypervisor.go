@@ -360,7 +360,7 @@ func Dumpxml(uuid string) (string, error) {
 	return xml, nil
 }
 
-func Start_domain(uuid string) error {
+func Boot_domain(uuid string) error {
 	var (
 		err error
 		conn *libvirt.Connect
@@ -418,7 +418,7 @@ func Pause_domain(uuid string) error {
 	return nil
 }
 
-func Unpause_domain(uuid string) error {
+func Resume_domain(uuid string) error {
 	var (
 		err error
 		conn *libvirt.Connect
