@@ -18,9 +18,52 @@
 package main
 
 import (
-	"suse.com/virtx/pkg/logger"
+	"fmt"
+	"os"
+	"time"
+	"net/http"
+	"suse.com/virtx/pkg/model"
 )
 
+const (
+	CLIENT_TIMEOUT = 10
+	CLIENT_IDLE_CONN_MAX = 100
+	CLIENT_IDLE_CONN_MAX_PER_HOST = 10
+	CLIENT_IDLE_TIMEOUT = 15
+	CLIENT_TLS_TIMEOUT = 5
+)
+type VirtxClient struct {
+	path string                 // relative path of the REST request we will do
+	api_server string           // the API server (default VIRTX_API_SERVER env)
+	client http.Client          // the HTTP client
+
+	force int                   // how much force to apply
+	host_list_options openapi.HostListOptions
+	vm_list_options openapi.VmListOptions
+	vm_create_options openapi.VmCreateOptions
+	vm_update_options openapi.VmUpdateOptions
+	vm_shutdown_options openapi.VmShutdownOptions
+	vm_delete_options openapi.VmDeleteOptions
+	vm_migrate_options openapi.VmMigrateOptions
+}
+var virtx VirtxClient = VirtxClient{
+	client: http.Client{
+		Timeout: CLIENT_TIMEOUT * time.Second,
+		Transport: &http.Transport{
+			MaxIdleConns: CLIENT_IDLE_CONN_MAX,
+			MaxIdleConnsPerHost: CLIENT_IDLE_CONN_MAX_PER_HOST,
+			IdleConnTimeout: CLIENT_IDLE_TIMEOUT * time.Second,
+			TLSHandshakeTimeout: CLIENT_TLS_TIMEOUT * time.Second,
+		},
+	},
+}
+
 func main() {
-	logger.Log("Hello world!")
+	var err error
+	err = cmd_exec()
+	if (err != nil) {
+		fmt.Fprintf(os.Stderr, "failed to execute: %s\n",err.Error())
+		os.Exit(1)
+	}
+	os.Exit(0)
 }

@@ -12,6 +12,9 @@ google uuid, Copyright (c) 2009,2014 Google Inc.
 https://pkg.go.dev/github.com/google/uuid
 license: BSD-3-Clause, see google-uuid-license.txt
 
+cobra library, Copyright 2013-2023 The Cobra Authors
+https://pkg.go.dev/github.com/spf13/cobra
+license: Apache-2.0, see cobra-license.txt
 
 # virtxd
 
