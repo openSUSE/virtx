@@ -182,3 +182,19 @@ func custom_isalnum(s string) bool {
 func (custom CustomField) IsAlnum() bool {
 	return custom_isalnum(custom.Name) && custom_isalnum(custom.Value)
 }
+
+func (state Hoststate) String() string {
+	switch (state) {
+	case HOST_INVALID:
+		return "invalid"
+	case HOST_ACTIVE:
+		return "active"
+	case HOST_EVICTING:
+		return "evicting"
+	case HOST_LEFT:
+		return "left"
+	case HOST_FAILED:
+		return "failed"
+	}
+	return ""
+}
