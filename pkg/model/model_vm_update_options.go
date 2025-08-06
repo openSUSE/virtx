@@ -25,7 +25,7 @@ type VmUpdateOptions struct {
 	Vmdef Vmdef `json:"vmdef"`
 	// Unique Identifier for VMs, Hosts, Networks; RFC 4122
 	Host string `json:"host"`
-	// if true, storage disks that are not referenced anymore will be deleted
+	// (NOT IMPLEMENTED) if true, storage disks that are not referenced anymore will be deleted
 	Deletestorage bool `json:"deletestorage"`
 }
 

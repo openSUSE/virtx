@@ -24,6 +24,8 @@ var _ MappedNullable = &VmMigrateOptions{}
 type VmMigrateOptions struct {
 	// Unique Identifier for VMs, Hosts, Networks; RFC 4122
 	Host string `json:"host"`
+	// (NOT IMPLEMENTED) if false, the op is equal to vm_update with a different host
+	Live bool `json:"live"`
 }
 
 type _VmMigrateOptions VmMigrateOptions
@@ -32,13 +34,14 @@ type _VmMigrateOptions VmMigrateOptions
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVmMigrateOptions(host string) *VmMigrateOptions {
+func NewVmMigrateOptions(host string, live bool) *VmMigrateOptions {
 	this := VmMigrateOptions{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
     var _ = bytes.NewBuffer
 
 	this.Host = host
+	this.Live = live
 	return &this
 }
 
@@ -74,9 +77,34 @@ func (o *VmMigrateOptions) SetHost(v string) {
 	o.Host = v
 }
 
+// GetLive returns the Live field value
+func (o *VmMigrateOptions) GetLive() bool {
+	if o == nil {
+		var ret bool
+		return ret
+	}
+
+	return o.Live
+}
+
+// GetLiveOk returns a tuple with the Live field value
+// and a boolean to check if the value has been set.
+func (o *VmMigrateOptions) GetLiveOk() (*bool, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Live, true
+}
+
+// SetLive sets field value
+func (o *VmMigrateOptions) SetLive(v bool) {
+	o.Live = v
+}
+
 func (o VmMigrateOptions) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["host"] = o.Host
+	toSerialize["live"] = o.Live
 	return toSerialize, nil
 }
 
