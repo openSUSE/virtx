@@ -198,3 +198,29 @@ func (state Hoststate) String() string {
 	}
 	return ""
 }
+
+func (state Vmrunstate) String() string {
+	switch (state) {
+	case RUNSTATE_NONE:
+		return "none"
+	case RUNSTATE_DELETED:
+		return "deleted"
+	case RUNSTATE_POWEROFF:
+		return "poweroff"
+	case RUNSTATE_STARTUP:
+		return "startup"
+	case RUNSTATE_RUNNING:
+		return "running"
+	case RUNSTATE_PAUSED:
+		return "paused"
+	case RUNSTATE_MIGRATING:
+		return "migrating"
+	case RUNSTATE_TERMINATING:
+		return "terminating"
+	case RUNSTATE_PMSUSPENDED:
+		return "pmsuspended"
+	case RUNSTATE_CRASHED:
+		return "crashed"
+	}
+	return ""
+}
