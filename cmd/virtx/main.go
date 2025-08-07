@@ -18,11 +18,11 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"time"
 	"net/http"
 	"suse.com/virtx/pkg/model"
+	"suse.com/virtx/pkg/logger"
 )
 
 const (
@@ -62,8 +62,11 @@ func main() {
 	var err error
 	err = cmd_exec()
 	if (err != nil) {
-		fmt.Fprintf(os.Stderr, "failed to execute: %s\n",err.Error())
+		logger.Log("failed to parse command: %s\n", err.Error())
 		os.Exit(1)
 	}
-	os.Exit(0)
+	if (virtx.path == "") {
+		/* nothing else to do. */
+		os.Exit(0)
+	}
 }
