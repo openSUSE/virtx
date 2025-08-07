@@ -2,12 +2,11 @@ package virtx
 
 import (
 	"net/http"
-	"encoding/json"
-	"io"
 	"suse.com/virtx/pkg/hypervisor"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/vmdef"
+	"suse.com/virtx/pkg/httpx"
 )
 
 func vm_delete(w http.ResponseWriter, r *http.Request) {
@@ -18,11 +17,12 @@ func vm_delete(w http.ResponseWriter, r *http.Request) {
 		o openapi.VmDeleteOptions
 		uuid, xml string
 		vm openapi.Vmdef
-		vr VirtxRequest
+		vr httpx.Request
 	)
-	err = json.NewDecoder(r.Body).Decode(&o)
-	if (err != nil && err != io.EOF) {
-		http.Error(w, "Failed to decode JSON in Request Body", http.StatusBadRequest)
+	vr, err = httpx.Decode_request_body(r, &o)
+	if (err != nil) {
+		logger.Log(err.Error())
+		http.Error(w, "failed to decode body", http.StatusBadRequest)
 		return
 	}
 	uuid = r.PathValue("uuid")

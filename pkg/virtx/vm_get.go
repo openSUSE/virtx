@@ -8,6 +8,7 @@ import (
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/vmdef"
+	"suse.com/virtx/pkg/httpx"
 )
 
 func vm_get(w http.ResponseWriter, r *http.Request) {
@@ -18,8 +19,14 @@ func vm_get(w http.ResponseWriter, r *http.Request) {
 		uuid, xml string
 		vm openapi.Vm
 		buf bytes.Buffer
-		vr VirtxRequest
+		vr httpx.Request
 	)
+	vr, err = httpx.Decode_request_body(r, nil)
+	if (err != nil) {
+		logger.Log(err.Error())
+		http.Error(w, "failed to decode body", http.StatusBadRequest)
+		return
+	}
 	uuid = r.PathValue("uuid")
 	if (uuid == "") {
 		http.Error(w, "could not get uuid", http.StatusBadRequest)

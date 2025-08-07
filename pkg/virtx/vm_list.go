@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"strings"
 	"bytes"
-	"io"
 
 	"suse.com/virtx/pkg/hypervisor"
-	//	"suse.com/virtx/pkg/logger"
+	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/model"
+	"suse.com/virtx/pkg/httpx"
 )
 
 func vm_list(w http.ResponseWriter, r *http.Request) {
@@ -22,12 +22,12 @@ func vm_list(w http.ResponseWriter, r *http.Request) {
 		vm_list openapi.VmList
 		buf bytes.Buffer
 	)
-	err = json.NewDecoder(r.Body).Decode(&o)
-	if (err != nil && err != io.EOF) {
-		http.Error(w, "Failed to decode JSON in Request Body", http.StatusBadRequest)
+	_, err = httpx.Decode_request_body(r, &o)
+	if (err != nil) {
+		logger.Log(err.Error())
+		http.Error(w, "failed to decode body", http.StatusBadRequest)
 		return
 	}
-
 vmloop:
 	for _, vm = range service.vmdata {
 		if (o.Filter.Name != "" && !strings.Contains(vm.Name, o.Filter.Name)) {

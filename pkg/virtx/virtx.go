@@ -23,22 +23,14 @@ import (
 	"sync"
 	"errors"
 	"context"
-	"time"
 
 	g_uuid "github.com/google/uuid"
 
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/hypervisor"
 	"suse.com/virtx/pkg/model"
+	"suse.com/virtx/pkg/httpx"
 	. "suse.com/virtx/pkg/constants"
-)
-
-const (
-	CLIENT_TIMEOUT = 10
-	CLIENT_IDLE_CONN_MAX = 100
-	CLIENT_IDLE_CONN_MAX_PER_HOST = 10
-	CLIENT_IDLE_TIMEOUT = 15
-	CLIENT_TLS_TIMEOUT = 5
 )
 
 type Vmdata map[string]hypervisor.Vmdata
@@ -47,7 +39,6 @@ type Hosts map[string]openapi.Host
 type Service struct {
 	servemux *http.ServeMux
 	server http.Server
-	client http.Client
 	m      sync.RWMutex
 
 	cluster openapi.Cluster
@@ -89,15 +80,6 @@ func Init() {
 			Addr: ":8080",
 			Handler: servemux,
 		},
-		client: http.Client{
-			Timeout: CLIENT_TIMEOUT * time.Second,
-			Transport: &http.Transport{
-				MaxIdleConns: CLIENT_IDLE_CONN_MAX,
-				MaxIdleConnsPerHost: CLIENT_IDLE_CONN_MAX_PER_HOST,
-				IdleConnTimeout: CLIENT_IDLE_TIMEOUT * time.Second,
-				TLSHandshakeTimeout: CLIENT_TLS_TIMEOUT * time.Second,
-			},
-		},
 		m:         sync.RWMutex{},
 		cluster:   openapi.Cluster{},
 		hosts:     make(Hosts),
@@ -121,17 +103,9 @@ func New_uuid() string {
 func Shutdown(ctx context.Context) error {
 	var err error
 	err = service.server.Shutdown(ctx)
-	if (err != nil) {
-		return err
-	}
-	transport, ok := service.client.Transport.(*http.Transport)
-	if (ok) {
-		transport.CloseIdleConnections()
-	}
-	if (err != nil) {
-		return err
-	}
-	return nil
+	/* Shutdown the client too (used for proxy) */
+	httpx.Shutdown()
+	return err
 }
 
 func Close() error {

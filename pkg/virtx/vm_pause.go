@@ -3,6 +3,7 @@ package virtx
 import (
 	"net/http"
 	"suse.com/virtx/pkg/hypervisor"
+	"suse.com/virtx/pkg/httpx"
 	"suse.com/virtx/pkg/logger"
 )
 
@@ -12,8 +13,14 @@ func vm_pause(w http.ResponseWriter, r *http.Request) {
 	var (
 		err error
 		uuid string
-		vr VirtxRequest
+		vr httpx.Request
 	)
+	vr, err = httpx.Decode_request_body(r, nil)
+	if (err != nil) {
+		logger.Log(err.Error())
+		http.Error(w, "failed to decode body", http.StatusBadRequest)
+		return
+	}
 	uuid = r.PathValue("uuid")
 	if (uuid == "") {
 		http.Error(w, "could not get uuid", http.StatusBadRequest)

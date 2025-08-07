@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"bytes"
 	"suse.com/virtx/pkg/model"
+	"suse.com/virtx/pkg/httpx"
+	"suse.com/virtx/pkg/logger"
 )
 
 func host_get(w http.ResponseWriter, r *http.Request) {
@@ -16,6 +18,12 @@ func host_get(w http.ResponseWriter, r *http.Request) {
 		host openapi.Host
 		buf bytes.Buffer
 	)
+	_, err = httpx.Decode_request_body(r, nil)
+	if (err != nil) {
+		logger.Log(err.Error())
+		http.Error(w, "failed to decode body", http.StatusBadRequest)
+		return
+	}
 	uuid = r.PathValue("uuid")
 	if (uuid == "") {
 		http.Error(w, "could not get uuid", http.StatusBadRequest)

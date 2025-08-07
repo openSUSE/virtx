@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"strings"
 	"bytes"
-	"io"
 
-	//	"suse.com/virtx/pkg/logger"
+	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/model"
+	"suse.com/virtx/pkg/httpx"
 )
 
 func host_list(w http.ResponseWriter, r *http.Request) {
@@ -21,9 +21,10 @@ func host_list(w http.ResponseWriter, r *http.Request) {
 		host_list openapi.HostList
 		buf bytes.Buffer
 	)
-	err = json.NewDecoder(r.Body).Decode(&o)
-	if (err != nil && err != io.EOF) {
-		http.Error(w, "Failed to decode JSON in Request Body", http.StatusBadRequest)
+	_, err = httpx.Decode_request_body(r, &o)
+	if (err != nil) {
+		logger.Log(err.Error())
+		http.Error(w, "failed to decode body", http.StatusBadRequest)
 		return
 	}
 	/* filters: [name, cpuarch, cpudef, hoststate, memoryavailable] */

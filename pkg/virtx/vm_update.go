@@ -12,6 +12,7 @@ import (
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/vmreg"
 	"suse.com/virtx/pkg/vmdef"
+	"suse.com/virtx/pkg/httpx"
 )
 
 
@@ -23,9 +24,9 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		o openapi.VmUpdateOptions
 		old openapi.Vmdef
 		xml, uuid_old, uuid_new string
-		vr VirtxRequest
+		vr httpx.Request
 	)
-	vr, err = http_decode_body(r, &o)
+	vr, err = httpx.Decode_request_body(r, &o)
 	if (err != nil) {
 		logger.Log(err.Error())
 		http.Error(w, "failed to decode body", http.StatusBadRequest)

@@ -6,7 +6,8 @@ import (
 	"bytes"
 
 	"suse.com/virtx/pkg/hypervisor"
-	//	"suse.com/virtx/pkg/logger"
+	"suse.com/virtx/pkg/logger"
+	"suse.com/virtx/pkg/httpx"
 	"suse.com/virtx/pkg/model"
 )
 
@@ -21,6 +22,12 @@ func vm_runstate_get(w http.ResponseWriter, r *http.Request) {
 		runinfo openapi.Vmruninfo
 		buf bytes.Buffer
 	)
+	_, err = httpx.Decode_request_body(r, nil)
+	if (err != nil) {
+		logger.Log(err.Error())
+		http.Error(w, "failed to decode body", http.StatusBadRequest)
+		return
+	}
 	uuid = r.PathValue("uuid")
 	if (uuid == "") {
 		http.Error(w, "vm_runstate_get: Failed to decode parameters", http.StatusBadRequest)
