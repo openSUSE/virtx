@@ -106,7 +106,7 @@ func init() {
 			}
 		},
 	}
-	cmd_get_host.Flags().BoolVarP(&virtx.stats, "stats", "s", false, "Show Host statistics")
+	cmd_get_host.Flags().BoolVarP(&virtx.stat, "stat", "s", false, "Show Host statistics")
 	var cmd_get_vm = &cobra.Command{
 		Use:   "vm UUID",
 		Short: "Fetch and show all details of the VM",
@@ -125,7 +125,7 @@ func init() {
 			}
 		},
 	}
-	cmd_get_vm.Flags().BoolVarP(&virtx.stats, "stats", "s", false, "Show VM statistics")
+	cmd_get_vm.Flags().BoolVarP(&virtx.stat, "stat", "s", false, "Show VM statistics")
 	var cmd_get_runstate = &cobra.Command{
 		Use:   "runstate",
 		Short: "Show the runstate of the resource",

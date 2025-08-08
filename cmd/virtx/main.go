@@ -44,7 +44,7 @@ type VirtxClient struct {
 	ok bool                     // used by cmd to know whether to prepare the request or process the response
 	client http.Client          // the HTTP client
 	force int                   // how much force to apply
-	stats bool                  // show resource statistics
+	stat bool                   // show resource statistics
 
 	/* args */
 	host_list_options openapi.HostListOptions

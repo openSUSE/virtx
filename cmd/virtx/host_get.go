@@ -6,7 +6,7 @@ import (
 )
 
 func host_get(host *openapi.Host) {
-	if (virtx.stats) {
+	if (virtx.stat) {
 		fmt.Fprintf(virtx.w, "  CPU_TOTAL\t   CPU_USED\t   CPU_FREE\tCPU_USED_OS\t CPU_RES_VM\t CPU_AVL_VM\t  MEM_TOTAL\t   MEM_USED\t   MEM_FREE\tMEM_USED_OS\t MEM_RES_VM\t MEM_AVL_VM\n")
 		fmt.Fprintf(virtx.w, "%7d MHz\t%7d MHz\t%7d MHz\t%7d MHz\t%7d MHz\t%7d MHz\t%7d MiB\t%7d MiB\t%7d MiB\t%7d MiB\t%7d MiB\t%7d MiB\n",
 			host.Resources.Cpu.Total, host.Resources.Cpu.Used, host.Resources.Cpu.Free,
