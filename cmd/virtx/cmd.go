@@ -124,6 +124,7 @@ func init() {
 			}
 		},
 	}
+	cmd_get_vm.Flags().BoolVarP(&virtx.stats, "stats", "s", false, "Show VM statistics")
 	var cmd_get_runstate = &cobra.Command{
 		Use:   "runstate",
 		Short: "Show the runstate of the resource",
