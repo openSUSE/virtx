@@ -21,8 +21,11 @@ import (
 	"os"
 	"time"
 	"net/http"
+	"fmt"
+	"encoding/json"
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/logger"
+	"suse.com/virtx/pkg/httpx"
 )
 
 const (
@@ -33,11 +36,14 @@ const (
 	CLIENT_TLS_TIMEOUT = 5
 )
 type VirtxClient struct {
-	path string                 // relative path of the REST request we will do
 	api_server string           // the API server (default VIRTX_API_SERVER env)
+	path string                 // relative path of the REST request we will do
+	method string               // the REST method
+	ok bool                     // used by cmd to know whether to prepare the request or process the response
 	client http.Client          // the HTTP client
-
 	force int                   // how much force to apply
+
+	/* args */
 	host_list_options openapi.HostListOptions
 	vm_list_options openapi.VmListOptions
 	vm_create_options openapi.VmCreateOptions
@@ -45,6 +51,9 @@ type VirtxClient struct {
 	vm_shutdown_options openapi.VmShutdownOptions
 	vm_delete_options openapi.VmDeleteOptions
 	vm_migrate_options openapi.VmMigrateOptions
+
+	arg any                     // the argument if needed, the struct to be encoded into body of request
+	result any                  // pointer to struct to be decoded from body of the response
 }
 var virtx VirtxClient = VirtxClient{
 	client: http.Client{
@@ -59,7 +68,10 @@ var virtx VirtxClient = VirtxClient{
 }
 
 func main() {
-	var err error
+	var (
+		err error
+		response *http.Response
+	)
 	err = cmd_exec()
 	if (err != nil) {
 		logger.Log("failed to parse command: %s\n", err.Error())
@@ -68,5 +80,38 @@ func main() {
 	if (virtx.path == "") {
 		/* nothing else to do. */
 		os.Exit(0)
+	}
+	logger.Log("api_server=%s, method=%s, path=%s, arg=%v", virtx.api_server, virtx.method, virtx.path, virtx.arg)
+	response, err = httpx.Do_request(virtx.api_server, virtx.method, virtx.path, virtx.arg)
+	if (err != nil) {
+		logger.Log("failed to send request: %s", err.Error())
+		os.Exit(1)
+	}
+	if (response.Body != nil && virtx.result != nil) {
+		_, err = httpx.Decode_response_body(response, virtx.result)
+		if (err != nil) {
+			logger.Log("failed to decode response: %s", err.Error())
+			os.Exit(1)
+		}
+	}
+	if (response.StatusCode >= 200 && response.StatusCode <= 299) {
+		virtx.ok = true
+		err = cmd_exec()
+	} else {
+		fmt.Printf("%s\n", response.Status)
+	}
+}
+
+func read_json(filename string, data any) {
+	file, err := os.Open(filename)
+	if (err != nil) {
+		logger.Log("failed to open json: %s", err.Error())
+		os.Exit(1)
+	}
+	defer file.Close()
+	err = json.NewDecoder(file).Decode(data);
+	if (err != nil) {
+		logger.Log("failed to read json: %s", err.Error())
+		os.Exit(1)
 	}
 }

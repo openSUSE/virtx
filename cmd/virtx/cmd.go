@@ -21,6 +21,9 @@ import (
 	"unsafe"
 	"fmt"
 	"os"
+
+	"suse.com/virtx/pkg/model"
+
 	"github.com/spf13/cobra"
 )
 
@@ -41,7 +44,16 @@ func init() {
 		Short: "List hosts in the cluster",
 		Long:  "List all hosts in the cluster, or optionally applying filters (AND)",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Fprintf(os.Stdout, "list_host\n")
+			if (virtx.ok) {
+				if (virtx.result != nil) {
+					fmt.Printf("%v\n", *virtx.result.(*openapi.HostList))
+				}
+			} else {
+				virtx.path = "/hosts"
+				virtx.method = "GET"
+				virtx.arg = &virtx.host_list_options
+				virtx.result = &openapi.HostList{}
+			}
 		},
 	}
 	cmd_list_host.Flags().StringVarP(&virtx.host_list_options.Filter.Name, "name", "n", "", "Filter by Host Name")
@@ -54,7 +66,16 @@ func init() {
 		Short: "List VMs in the cluster",
 		Long:  "List all VMs in the cluster, or optionally applying filters (AND)",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Fprintf(os.Stdout, "list_vm\n")
+			if (virtx.ok) {
+				if (virtx.result != nil) {
+					fmt.Printf("%v\n", *virtx.result.(*openapi.VmList))
+				}
+			} else {
+				virtx.path = "/vms"
+				virtx.method = "GET"
+				virtx.arg = &virtx.vm_list_options
+				virtx.result = &openapi.VmList{}
+			}
 		},
 	}
 	cmd_list_vm.Flags().StringVarP(&virtx.vm_list_options.Filter.Name, "name", "n", "", "Filter by VM Name")
@@ -73,7 +94,16 @@ func init() {
 		Long:  "Show all details about the specified host, identified by UUID",
 		Args:  cobra.ExactArgs(1), /* UUID */
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Fprintf(os.Stdout, "get_host %s\n", args[0])
+			if (virtx.ok) {
+				if (virtx.result != nil) {
+					fmt.Printf("%v\n", *virtx.result.(*openapi.Host))
+				}
+			} else {
+				virtx.path = fmt.Sprintf("/hosts/%s", args[0])
+				virtx.method = "GET"
+				virtx.arg = nil
+				virtx.result = &openapi.Host{}
+			}
 		},
 	}
 	var cmd_get_vm = &cobra.Command{
@@ -82,7 +112,16 @@ func init() {
 		Long:  "Fetch and show all details about the specified VM, identified by UUID",
 		Args:  cobra.ExactArgs(1), /* UUID */
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Fprintf(os.Stdout, "get_vm %s\n", args[0])
+			if (virtx.ok) {
+				if (virtx.result != nil) {
+					fmt.Printf("%v\n", *virtx.result.(*openapi.Vm))
+				}
+			} else {
+				virtx.path = fmt.Sprintf("/vms/%s", args[0])
+				virtx.method = "GET"
+				virtx.arg = nil
+				virtx.result = &openapi.Vm{}
+			}
 		},
 	}
 	var cmd_get_runstate = &cobra.Command{
@@ -95,7 +134,14 @@ func init() {
 		Long:  "Show the runstate of the specified VM, identified by UUID",
 		Args:  cobra.ExactArgs(1), /* UUID */
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Fprintf(os.Stdout, "get_runstate_vm %s\n", args[0])
+			if (virtx.result != nil) {
+				fmt.Printf("%v\n", *virtx.result.(*openapi.Vmruninfo))
+			} else {
+				virtx.path = fmt.Sprintf("/vms/%s/runstate", args[0])
+				virtx.method = "GET"
+				virtx.arg = nil
+				virtx.result = &openapi.Vmruninfo{}
+			}
 		},
 	}
 	var cmd_get_migrate = &cobra.Command{
@@ -108,7 +154,16 @@ func init() {
 		Long:  "Show the migration status of the specified VM, identified by UUID",
 		Args:  cobra.ExactArgs(1), /* UUID */
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Fprintf(os.Stdout, "get_migrate_vm %s\n", args[0])
+			if (virtx.ok) {
+				if (virtx.result != nil) {
+					fmt.Printf("%v\n", *virtx.result.(*openapi.VmMigrateInfo))
+				}
+			} else {
+				virtx.path = fmt.Sprintf("/vms/%s/migrate", args[0])
+				virtx.method = "GET"
+				virtx.arg = nil
+				virtx.result = &openapi.VmMigrateInfo{}
+			}
 		},
 	}
 	var cmd_create = &cobra.Command{
@@ -121,7 +176,17 @@ func init() {
 		Long:  "Create a new VM from a JSON description in FILENAME",
 		Args:  cobra.ExactArgs(1), /* FILENAME */
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Fprintf(os.Stdout, "create_vm %s\n", args[0])
+			if (virtx.ok) {
+				if (virtx.result != nil) {
+					fmt.Printf("%v\n", *virtx.result.(*string))
+				}
+			} else {
+				read_json(args[0], &virtx.vm_create_options)
+				virtx.path = "/vms"
+				virtx.method = "POST"
+				virtx.arg = &virtx.vm_create_options
+				virtx.result = new(string)
+			}
 		},
 	}
 	var cmd_update = &cobra.Command{
@@ -134,7 +199,17 @@ func init() {
 		Long:  "Update a VM identified by UUID by redefining it from FILENAME. Changes its UUID.",
 		Args:  cobra.ExactArgs(2), /* UUID and FILENAME */
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Fprintf(os.Stdout, "update_vm %s\n", args[0])
+			if (virtx.ok) {
+				if (virtx.result != nil) {
+					fmt.Printf("%v\n", *virtx.result.(*string))
+				}
+			} else {
+				read_json(args[0], &virtx.vm_update_options)
+				virtx.path = fmt.Sprintf("/vms/%s", args[0], args[1])
+				virtx.method = "PUT"
+				virtx.arg = &virtx.vm_update_options
+				virtx.result = new(string)
+			}
 		},
 	}
 	var cmd_delete = &cobra.Command{
@@ -147,7 +222,13 @@ func init() {
 		Long:  "Delete a VM identified by UUID permanently (use with care)",
 		Args:  cobra.ExactArgs(1), /* UUID */
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Fprintf(os.Stdout, "delete_vm %s\n", args[0])
+			if (virtx.ok) {
+			} else {
+				virtx.path = fmt.Sprintf("/vms/%s", args[0])
+				virtx.method = "DELETE"
+				virtx.arg = &virtx.vm_delete_options
+				virtx.result = nil
+			}
 		},
 	}
 	cmd_delete_vm.Flags().BoolVarP(&virtx.vm_delete_options.Deletestorage, "storage", "s", false, "also delete managed storage")
@@ -161,7 +242,13 @@ func init() {
 		Long:  "Start a VM identified by UUID",
 		Args:  cobra.ExactArgs(1), /* UUID */
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Fprintf(os.Stdout, "boot_vm %s\n", args[0])
+			if (virtx.ok) {
+			} else {
+				virtx.path = fmt.Sprintf("/vms/%s/runstate/boot", args[0])
+				virtx.method = "POST"
+				virtx.arg = nil
+				virtx.result = nil
+			}
 		},
 	}
 	var cmd_shutdown = &cobra.Command{
@@ -174,8 +261,14 @@ func init() {
 		Long:  "Shutdown a VM guest gracefully with ACPI, or Poweroff with force",
 		Args:  cobra.ExactArgs(1), /* UUID */
 		Run: func(cmd *cobra.Command, args []string) {
-			virtx.vm_shutdown_options.Force = int16(virtx.force)
-			fmt.Fprintf(os.Stdout, "shutdown_vm %s force=%d\n", args[0], virtx.force)
+			if (virtx.ok) {
+			} else {
+				virtx.vm_shutdown_options.Force = int16(virtx.force)
+				virtx.path = fmt.Sprintf("/vms/%s/runstate/boot", args[0])
+				virtx.method = "DELETE"
+				virtx.arg = &virtx.vm_shutdown_options
+				virtx.result = nil
+			}
 		},
 	}
 	cmd_shutdown_vm.Flags().CountVarP(&virtx.force, "force", "f", "send the VM process a SIGTERM, or if repeated a SIGKILL")
@@ -189,7 +282,13 @@ func init() {
 		Long:  "Pause a VM identified by UUID",
 		Args:  cobra.ExactArgs(1), /* UUID */
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Fprintf(os.Stdout, "pause_vm %s\n", args[0])
+			if (virtx.ok) {
+			} else {
+				virtx.path = fmt.Sprintf("/vms/%s/runstate/pause", args[0])
+				virtx.method = "POST"
+				virtx.arg = nil
+				virtx.result = nil
+			}
 		},
 	}
 	var cmd_resume = &cobra.Command{
@@ -202,7 +301,13 @@ func init() {
 		Long:  "Resume a VM identified by UUID in paused state",
 		Args:  cobra.ExactArgs(1), /* UUID */
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Fprintf(os.Stdout, "resume_vm %s\n", args[0])
+			if (virtx.ok) {
+			} else {
+				virtx.path = fmt.Sprintf("/vms/%s/runstate/pause", args[0])
+				virtx.method = "DELETE"
+				virtx.arg = nil
+				virtx.result = nil
+			}
 		},
 	}
 	var cmd_migrate = &cobra.Command{
@@ -215,7 +320,13 @@ func init() {
 		Long:  "Migrate a VM identified by UUID to an automatically chosen or specified host",
 		Args:  cobra.MinimumNArgs(1), /* UUID and optionally HUUID */
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Fprintf(os.Stdout, "migrate_vm %s\n", args[0])
+			if (virtx.ok) {
+			} else {
+				virtx.path = fmt.Sprintf("/vms/%s/runstate/migrate", args[0])
+				virtx.method = "POST"
+				virtx.arg = &virtx.vm_migrate_options
+				virtx.result = nil
+			}
 		},
 	}
 	cmd_migrate_vm.Flags().BoolVarP(&virtx.vm_migrate_options.Live, "live", "l", false, "if true, perform live migration, otherwise offline migration")
@@ -233,7 +344,13 @@ func init() {
 		Long:  "Abort the live migration of the VM identified by UUID",
 		Args:  cobra.ExactArgs(1), /* UUID */
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Fprintf(os.Stdout, "abort_migrate_vm %s\n", args[0])
+			if (virtx.ok) {
+			} else {
+				virtx.path = fmt.Sprintf("/vms/%s/runstate/migrate", args[0])
+				virtx.method = "DELETE"
+				virtx.arg = nil
+				virtx.result = nil
+			}
 		},
 	}
 
@@ -242,6 +359,7 @@ func init() {
 	 * So as a hack we just replace -h with -?, which overrides the standard entry and
 	 * does not conflict with -h, --host.
 	 */
+	cobra.EnableCommandSorting = false
 	cmd.PersistentFlags().BoolP("help", "?", false, "")
 	cmd.AddCommand(cmd_list)
 	cmd_list.AddCommand(cmd_list_host)
