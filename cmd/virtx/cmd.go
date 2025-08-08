@@ -46,7 +46,7 @@ func init() {
 		Run: func(cmd *cobra.Command, args []string) {
 			if (virtx.ok) {
 				if (virtx.result != nil) {
-					fmt.Printf("%v\n", *virtx.result.(*openapi.HostList))
+					host_list(virtx.result.(*openapi.HostList))
 				}
 			} else {
 				virtx.path = "/hosts"
@@ -68,7 +68,7 @@ func init() {
 		Run: func(cmd *cobra.Command, args []string) {
 			if (virtx.ok) {
 				if (virtx.result != nil) {
-					fmt.Printf("%v\n", *virtx.result.(*openapi.VmList))
+					vm_list(virtx.result.(*openapi.VmList))
 				}
 			} else {
 				virtx.path = "/vms"
@@ -96,7 +96,7 @@ func init() {
 		Run: func(cmd *cobra.Command, args []string) {
 			if (virtx.ok) {
 				if (virtx.result != nil) {
-					fmt.Printf("%v\n", *virtx.result.(*openapi.Host))
+					host_get(virtx.result.(*openapi.Host))
 				}
 			} else {
 				virtx.path = fmt.Sprintf("/hosts/%s", args[0])
@@ -114,7 +114,7 @@ func init() {
 		Run: func(cmd *cobra.Command, args []string) {
 			if (virtx.ok) {
 				if (virtx.result != nil) {
-					fmt.Printf("%v\n", *virtx.result.(*openapi.Vm))
+					vm_get(virtx.result.(*openapi.Vm))
 				}
 			} else {
 				virtx.path = fmt.Sprintf("/vms/%s", args[0])
@@ -135,7 +135,7 @@ func init() {
 		Args:  cobra.ExactArgs(1), /* UUID */
 		Run: func(cmd *cobra.Command, args []string) {
 			if (virtx.result != nil) {
-				fmt.Printf("%v\n", *virtx.result.(*openapi.Vmruninfo))
+				vm_runstate_get(virtx.result.(*openapi.Vmruninfo))
 			} else {
 				virtx.path = fmt.Sprintf("/vms/%s/runstate", args[0])
 				virtx.method = "GET"
@@ -156,7 +156,7 @@ func init() {
 		Run: func(cmd *cobra.Command, args []string) {
 			if (virtx.ok) {
 				if (virtx.result != nil) {
-					fmt.Printf("%v\n", *virtx.result.(*openapi.VmMigrateInfo))
+					vm_migrate_get(virtx.result.(*openapi.VmMigrateInfo))
 				}
 			} else {
 				virtx.path = fmt.Sprintf("/vms/%s/migrate", args[0])
@@ -178,7 +178,7 @@ func init() {
 		Run: func(cmd *cobra.Command, args []string) {
 			if (virtx.ok) {
 				if (virtx.result != nil) {
-					fmt.Printf("%v\n", *virtx.result.(*string))
+					vm_create(virtx.result.(*string))
 				}
 			} else {
 				read_json(args[0], &virtx.vm_create_options)
@@ -201,7 +201,7 @@ func init() {
 		Run: func(cmd *cobra.Command, args []string) {
 			if (virtx.ok) {
 				if (virtx.result != nil) {
-					fmt.Printf("%v\n", *virtx.result.(*string))
+					vm_update(virtx.result.(*string))
 				}
 			} else {
 				read_json(args[0], &virtx.vm_update_options)
@@ -223,6 +223,7 @@ func init() {
 		Args:  cobra.ExactArgs(1), /* UUID */
 		Run: func(cmd *cobra.Command, args []string) {
 			if (virtx.ok) {
+				vm_delete()
 			} else {
 				virtx.path = fmt.Sprintf("/vms/%s", args[0])
 				virtx.method = "DELETE"
@@ -243,6 +244,7 @@ func init() {
 		Args:  cobra.ExactArgs(1), /* UUID */
 		Run: func(cmd *cobra.Command, args []string) {
 			if (virtx.ok) {
+				vm_boot()
 			} else {
 				virtx.path = fmt.Sprintf("/vms/%s/runstate/boot", args[0])
 				virtx.method = "POST"
@@ -262,6 +264,7 @@ func init() {
 		Args:  cobra.ExactArgs(1), /* UUID */
 		Run: func(cmd *cobra.Command, args []string) {
 			if (virtx.ok) {
+				vm_shutdown()
 			} else {
 				virtx.vm_shutdown_options.Force = int16(virtx.force)
 				virtx.path = fmt.Sprintf("/vms/%s/runstate/boot", args[0])
@@ -283,6 +286,7 @@ func init() {
 		Args:  cobra.ExactArgs(1), /* UUID */
 		Run: func(cmd *cobra.Command, args []string) {
 			if (virtx.ok) {
+				vm_pause()
 			} else {
 				virtx.path = fmt.Sprintf("/vms/%s/runstate/pause", args[0])
 				virtx.method = "POST"
@@ -302,6 +306,7 @@ func init() {
 		Args:  cobra.ExactArgs(1), /* UUID */
 		Run: func(cmd *cobra.Command, args []string) {
 			if (virtx.ok) {
+				vm_resume()
 			} else {
 				virtx.path = fmt.Sprintf("/vms/%s/runstate/pause", args[0])
 				virtx.method = "DELETE"
@@ -321,6 +326,7 @@ func init() {
 		Args:  cobra.MinimumNArgs(1), /* UUID and optionally HUUID */
 		Run: func(cmd *cobra.Command, args []string) {
 			if (virtx.ok) {
+				vm_migrate()
 			} else {
 				virtx.path = fmt.Sprintf("/vms/%s/runstate/migrate", args[0])
 				virtx.method = "POST"
@@ -345,6 +351,7 @@ func init() {
 		Args:  cobra.ExactArgs(1), /* UUID */
 		Run: func(cmd *cobra.Command, args []string) {
 			if (virtx.ok) {
+				vm_migrate_abort()
 			} else {
 				virtx.path = fmt.Sprintf("/vms/%s/runstate/migrate", args[0])
 				virtx.method = "DELETE"
