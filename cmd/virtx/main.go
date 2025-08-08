@@ -23,6 +23,8 @@ import (
 	"net/http"
 	"fmt"
 	"encoding/json"
+	writer "text/tabwriter"
+
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/httpx"
@@ -54,6 +56,8 @@ type VirtxClient struct {
 
 	arg any                     // the argument if needed, the struct to be encoded into body of request
 	result any                  // pointer to struct to be decoded from body of the response
+
+	w *writer.Writer
 }
 var virtx VirtxClient = VirtxClient{
 	client: http.Client{
@@ -96,7 +100,9 @@ func main() {
 	}
 	if (response.StatusCode >= 200 && response.StatusCode <= 299) {
 		virtx.ok = true
+		virtx.w = writer.NewWriter(os.Stdout, 0, 4, 1, ' ', writer.StripEscape)
 		err = cmd_exec()
+		virtx.w.Flush()
 	} else {
 		fmt.Printf("%s\n", response.Status)
 	}
