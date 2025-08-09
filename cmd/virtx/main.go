@@ -45,6 +45,7 @@ type VirtxClient struct {
 	client http.Client          // the HTTP client
 	force int                   // how much force to apply
 	stat bool                   // show resource statistics
+	disk bool                   // show VM disks
 
 	/* args */
 	host_list_options openapi.HostListOptions
