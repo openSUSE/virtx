@@ -185,7 +185,7 @@ func Validate(vmdef *openapi.Vmdef) error {
 }
 
 func vmdef_disk_to_xml(disk *openapi.Disk, disk_count map[string]int, iothread_count *uint,
-	domain_disks []libvirtxml.DomainDisk, domain_controllers []libvirtxml.DomainController, order int) error {
+	domain_disks *[]libvirtxml.DomainDisk, domain_controllers *[]libvirtxml.DomainController, order int) error {
 	var (
 		domain_disk libvirtxml.DomainDisk
 		domain_controller libvirtxml.DomainController
@@ -240,7 +240,7 @@ func vmdef_disk_to_xml(disk *openapi.Disk, disk_count map[string]int, iothread_c
 				return nil
 			}(),
 		}
-		domain_controllers = append(domain_controllers, domain_controller)
+		*domain_controllers = append(*domain_controllers, domain_controller)
 	}
 	domain_disk = libvirtxml.DomainDisk{
 		/* XMLName:, */
@@ -299,7 +299,7 @@ func vmdef_disk_to_xml(disk *openapi.Disk, disk_count map[string]int, iothread_c
 			}
 		}(),
 	}
-	domain_disks = append(domain_disks, domain_disk)
+	*domain_disks = append(*domain_disks, domain_disk)
 	/* controller index per type starts from 0 */
 	disk_count[ctrl_type] += 1
 	return nil
@@ -434,7 +434,7 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 		boot_order int = 1						/* primary disk first, then the cdroms */
 	)
 	disk_count := make(map[string]int)          /* keep track of how many disks require a bus type */
-	err = vmdef_disk_to_xml(&vmdef.Osdisk, disk_count, &iothread_count, domain_disks, domain_controllers, boot_order)
+	err = vmdef_disk_to_xml(&vmdef.Osdisk, disk_count, &iothread_count, &domain_disks, &domain_controllers, boot_order)
 	for _, disk := range vmdef.Disks {
 		var order int
 		if (disk.Device == openapi.DEVICE_CDROM) {
@@ -443,7 +443,7 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 		} else {
 			order = -1			/* other disks are not bootable */
 		}
-		err = vmdef_disk_to_xml(&disk, disk_count, &iothread_count, domain_disks, domain_controllers, order)
+		err = vmdef_disk_to_xml(&disk, disk_count, &iothread_count, &domain_disks, &domain_controllers, order)
 		if (err != nil) {
 			return "", err
 		}
