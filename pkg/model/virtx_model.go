@@ -133,6 +133,20 @@ func (bus *DiskBus) Parse(ctrl_type string, ctrl_model string) error {
 	return errors.New("could not parse disk bus")
 }
 
+func (bus DiskBus) String() string {
+	switch (bus) {
+	case BUS_VIRTIO_BLK:
+		return "virtio"
+	case BUS_SATA:
+		return "sata"
+	case BUS_VIRTIO_SCSI:
+		return "virtio-scsi"
+	case BUS_SCSI:
+		return "scsi"
+	}
+	return ""
+}
+
 func (mode DiskCreateMode) String() string {
 	switch (mode) {
 	case DISK_NOCREATE:
