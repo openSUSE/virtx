@@ -109,9 +109,8 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 	}
 	err = hypervisor.Delete_domain(uuid_old)
 	if (err != nil) {
-		logger.Log("could not undefine previous domain: %s", uuid_old)
-		http.Error(w, "could not undefine VM", http.StatusInternalServerError)
-		return
+		logger.Log("could not undefine previous domain: %s: %s", uuid_old, err.Error())
+		w.Header().Set("Warning", `299 VirtX "Old definition could not be deleted"`)
 	}
 	var buf bytes.Buffer
 	err = json.NewEncoder(&buf).Encode(&uuid_new)
