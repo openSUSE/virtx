@@ -185,7 +185,7 @@ func init() {
 					vm_create(virtx.result.(*string))
 				}
 			} else {
-				read_json(args[0], &virtx.vm_create_options)
+				read_json(args[0], &virtx.vm_create_options.Vmdef)
 				virtx.path = "/vms"
 				virtx.method = "POST"
 				virtx.arg = &virtx.vm_create_options
@@ -193,6 +193,7 @@ func init() {
 			}
 		},
 	}
+	cmd_create_vm.Flags().StringVarP(&virtx.vm_create_options.Host, "host", "h", "", "Create VM on the specified host")
 	var cmd_update = &cobra.Command{
 		Use:   "update",
 		Short: "Update a resource",
