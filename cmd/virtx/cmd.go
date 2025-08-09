@@ -209,14 +209,16 @@ func init() {
 					vm_update(virtx.result.(*string))
 				}
 			} else {
-				read_json(args[0], &virtx.vm_update_options)
-				virtx.path = fmt.Sprintf("/vms/%s", args[0], args[1])
+				read_json(args[1], &virtx.vm_update_options.Vmdef)
+				virtx.path = fmt.Sprintf("/vms/%s", args[0])
 				virtx.method = "PUT"
 				virtx.arg = &virtx.vm_update_options
 				virtx.result = new(string)
 			}
 		},
 	}
+	cmd_update_vm.Flags().BoolVarP(&virtx.vm_update_options.Deletestorage, "storage", "s", false, "Delete unused storage (NOT IMPLEMENTED)")
+
 	var cmd_delete = &cobra.Command{
 		Use:   "delete",
 		Short: "Delete a resource permanently",
