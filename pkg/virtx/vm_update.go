@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"bytes"
 	"os"
-	"fmt"
 
 	"suse.com/virtx/pkg/hypervisor"
 	"suse.com/virtx/pkg/logger"
@@ -21,6 +20,7 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 	defer service.m.RUnlock()
 	var (
 		err error
+		host string
 		o openapi.VmUpdateOptions
 		old openapi.Vmdef
 		xml, uuid_old, uuid_new string
@@ -46,11 +46,9 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "VM is not powered off", http.StatusUnprocessableEntity)
 		return
 	}
-	if (o.Host == "") {
-		o.Host = vmdata.Runinfo.Host
-	}
-	if (http_host_is_remote(o.Host)) { /* need to proxy */
-		http_proxy_request(o.Host, w, vr)
+	host = vmdata.Runinfo.Host
+	if (http_host_is_remote(host)) { /* need to proxy */
+		http_proxy_request(host, w, vr)
 		return
 	}
 	err = vmdef.Validate(&o.Vmdef)
@@ -60,9 +58,9 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	/* read the configuration of the VM from the registry on disk */
-	xml, err = vmreg.Load(vmdata.Runinfo.Host, uuid_old)
+	xml, err = vmreg.Load(host, uuid_old)
 	if (err != nil) {
-		logger.Log("vmreg.Load(%s, %s) failed: %s", vmdata.Runinfo.Host, uuid_old, err.Error())
+		logger.Log("vmreg.Load(%s, %s) failed: %s", host, uuid_old, err.Error())
 		http.Error(w, "could not Load VM", http.StatusInternalServerError)
 		return
 	}
@@ -109,40 +107,11 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not define VM", http.StatusInternalServerError)
 		return
 	}
-	if (!http_host_is_remote(vmdata.Runinfo.Host)) {
-		/* host is local */
-		err = hypervisor.Delete_domain(uuid_old)
-		if (err != nil) {
-			logger.Log("could not undefine previous domain: %s", uuid_old)
-			http.Error(w, "could not undefine VM", http.StatusInternalServerError)
-			return
-		}
-	} else {
-		/* host is remote, we have to request the old host to delete the old VM */
-		var (
-			delete_opts openapi.VmDeleteOptions
-			buf bytes.Buffer
-			response *http.Response
-		)
-		delete_opts.Deletestorage = false
-		err = json.NewEncoder(&buf).Encode(&delete_opts)
-		if (err != nil) {
-			http.Error(w, "failed to encode JSON", http.StatusInternalServerError)
-			return
-		}
-		response, err = http_do_request(vmdata.Runinfo.Host, "DELETE",
-			fmt.Sprintf("/vms/%s", uuid_old), &delete_opts)
-		if (err != nil) {
-			logger.Log("do_request failed: %s", err.Error())
-			http.Error(w, "failed to request deletion", http.StatusInternalServerError)
-			return
-		}
-		defer response.Body.Close()
-		if (response.StatusCode < 200 || response.StatusCode > 299) {
-			logger.Log("do_request failed, status %s", response.Status)
-			http.Error(w, "failed to request deletion", http.StatusInternalServerError)
-			return
-		}
+	err = hypervisor.Delete_domain(uuid_old)
+	if (err != nil) {
+		logger.Log("could not undefine previous domain: %s", uuid_old)
+		http.Error(w, "could not undefine VM", http.StatusInternalServerError)
+		return
 	}
 	var buf bytes.Buffer
 	err = json.NewEncoder(&buf).Encode(&uuid_new)
