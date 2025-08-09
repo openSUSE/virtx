@@ -15,6 +15,7 @@ func vm_get(vm *openapi.Vm) {
 			vm.Stats.NetRxBw, vm.Stats.NetTxBw,
 		)
 	} else if (virtx.disk) {
+		fmt.Fprintf(virtx.w, "PATH\tDEVICE\tBUS\tMODE\n")
 		vm_get_disk(&vm.Def.Osdisk);
 		for _, disk := range (vm.Def.Disks) {
 			vm_get_disk(&disk)
@@ -28,6 +29,5 @@ func vm_get(vm *openapi.Vm) {
 }
 
 func vm_get_disk(disk *openapi.Disk) {
-	fmt.Fprintf(virtx.w, "PATH\tDEVICE\tBUS\tMODE\tSIZE\n")
-	fmt.Fprintf(virtx.w, "%s\t%s\t%s\t%s\t%d\n", disk.Path, disk.Device, disk.Bus, disk.Createmode, disk.Size)
+	fmt.Fprintf(virtx.w, "%s\t%s\t%s\t%s\n", disk.Path, disk.Device, disk.Bus, disk.Createmode)
 }
