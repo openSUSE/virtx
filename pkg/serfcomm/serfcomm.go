@@ -246,8 +246,8 @@ func Shutdown() {
 	logger.Log("serfcomm is shutting down...")
 	err = serf.c.Stop(serf.stream)
 	if (err != nil) {
-        logger.Log(err.Error())
-    }
+		logger.Log(err.Error())
+	}
 	err = serf.c.Close()
 	if (err != nil) {
 		logger.Log(err.Error())
