@@ -312,7 +312,7 @@ func decodeArray(buf []byte, order binary.ByteOrder, val reflect.Value) (int, er
 	switch (val.Kind()) {
 	case reflect.Array:
 		if (n > val.Len()) {
-            return offset, errors.New("Array: array too small to hold data")
+			return offset, errors.New("Array: array too small to hold data")
 		}
 	case reflect.Slice:
 		slice := reflect.MakeSlice(val.Type(), n, n)
