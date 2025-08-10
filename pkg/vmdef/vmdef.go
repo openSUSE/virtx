@@ -360,7 +360,7 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 		}(),
 		Model: func() *libvirtxml.DomainCPUModel {
 			if (vmdef.Cpudef.Model == "host-model" || vmdef.Cpudef.Model == "host-passthrough" ||
-                vmdef.Cpudef.Model == "maximum") {
+				vmdef.Cpudef.Model == "maximum") {
 				return nil
 			}
 			return &libvirtxml.DomainCPUModel{
@@ -625,7 +625,7 @@ func From_xml(vmdef *openapi.Vmdef, xmlstr string) error {
 		domain libvirtxml.Domain
 	)
 	/* unmarshal the XML into the libvirtxml Domain configuration */
-    err = domain.Unmarshal(xmlstr)
+	err = domain.Unmarshal(xmlstr)
 	if (err != nil) {
 		return err
 	}
