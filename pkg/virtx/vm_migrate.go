@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"encoding/json"
 	"bytes"
-	"os"
 	"fmt"
 
 	"suse.com/virtx/pkg/hypervisor"
@@ -94,18 +93,6 @@ func vm_migrate_offline(host_new string, host_old string, uuid_old string, w htt
 	if (err != nil) {
 		logger.Log("vmdef_to_xml failed: %s", err.Error())
 		http.Error(w, "invalid parameters", http.StatusBadRequest)
-		return
-	}
-	/*
-	 * Write the xml to disk near the OS disk for convenience in its original form
-	 * (not processed by libvirt), so it can be used as reference for the future,
-	 * and help with debugging.
-	 * This is in addition to the processed XML which is stored in /vms/xml/
-	 */
-	err = os.WriteFile(vmdef.Osdisk_xml(&def), []byte(xml), 0640)
-	if (err != nil) {
-		logger.Log("os.WriteFile failed: %s", err.Error())
-		http.Error(w, "could not write XML", http.StatusInternalServerError)
 		return
 	}
 	/* define new domain */

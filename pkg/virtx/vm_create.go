@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"encoding/json"
 	"bytes"
-	"os"
 
 	"suse.com/virtx/pkg/hypervisor"
 	"suse.com/virtx/pkg/logger"
@@ -58,17 +57,9 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "storage creation failed", http.StatusInsufficientStorage)
 		return
 	}
-	/*
-	 * Write the xml to disk near the OS disk for convenience in its original form
-	 * (not processed by libvirt), so it can be used as reference for the future,
-	 * and help with debugging.
-	 * This is in addition to the processed XML which is stored in /vms/xml/
-	 */
-	err = os.WriteFile(vmdef.Osdisk_xml(&o.Vmdef), []byte(xml), 0640)
+	err = vmdef.Write_osdisk_json(&o.Vmdef)
 	if (err != nil) {
-		logger.Log("os.WriteFile failed: %s", err.Error())
-		http.Error(w, "could not write XML", http.StatusInternalServerError)
-		return
+		logger.Log("warning: Write_osdisk_json failed: %s", err.Error())
 	}
 	err = hypervisor.Define_domain(xml, uuid)
 	if (err != nil) {
