@@ -73,8 +73,8 @@ vmloop:
 	err = json.NewEncoder(&buf).Encode(&vm_list)
 	if (err != nil) {
 		http.Error(w, "Failed to encode JSON", http.StatusInternalServerError)
-        return
-    }
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)

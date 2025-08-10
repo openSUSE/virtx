@@ -42,8 +42,8 @@ func vm_runstate_get(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(&buf).Encode(&runinfo)
 	if (err != nil) {
 		http.Error(w, "vm_runstate_get: Failed to encode JSON", http.StatusInternalServerError)
-        return
-    }
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(buf.Bytes())
