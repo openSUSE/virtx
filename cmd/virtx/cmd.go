@@ -343,6 +343,7 @@ func init() {
 		},
 	}
 	cmd_migrate_vm.Flags().BoolVarP(&virtx.vm_migrate_options.Live, "live", "l", false, "if true, perform live migration, otherwise offline migration")
+	cmd_migrate_vm.Flags().StringVarP(&virtx.vm_migrate_options.Host, "host", "h", "", "a specific host to migrate to")
 	var cmd_abort = &cobra.Command{
 		Use:   "abort",
 		Short: "Abort an ongoing operation",
