@@ -20,6 +20,11 @@ func vm_get(vm *openapi.Vm) {
 		for _, disk := range (vm.Def.Disks) {
 			vm_get_disk(&disk)
 		}
+	} else if (virtx.net) {
+		fmt.Fprintf(virtx.w, "NAME\tTYPE\tMODEL\tMAC\n")
+		for _, net := range (vm.Def.Nets) {
+			vm_get_net(&net)
+		}
 	} else {
 		fmt.Fprintf(virtx.w, "NAME\tHOST\tSTATE\tVLAN\tCPU_MODEL\tVCPUS\t \n")
 		fmt.Fprintf(virtx.w, "%s\t%s\t%s\t%4d\t%s\t%5d\t%v\n",
@@ -30,4 +35,8 @@ func vm_get(vm *openapi.Vm) {
 
 func vm_get_disk(disk *openapi.Disk) {
 	fmt.Fprintf(virtx.w, "%s\t%s\t%s\t%s\n", disk.Path, disk.Device, disk.Bus, disk.Createmode)
+}
+
+func vm_get_net(net *openapi.Net) {
+	fmt.Fprintf(virtx.w, "%s\t%s\t%s\t%s\n", net.Name, net.Nettype, net.Model, net.Mac)
 }
