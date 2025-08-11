@@ -13,6 +13,6 @@ func host_list(list *openapi.HostList) {
 		fmt.Fprintf(virtx.w, "%s\t%s\t%s\t%s\t%s\t%5d\t%5d\t%2d\t%s\t%7d MiB\n", item.Uuid, item.Fields.Name,
 			item.Fields.Cpuarch.Arch, item.Fields.Cpuarch.Vendor,
 			item.Fields.Cpudef.Model, item.Fields.Cpudef.Sockets, item.Fields.Cpudef.Cores, item.Fields.Cpudef.Threads,
-			item.Fields.Hoststate.String(), item.Fields.Memoryavailable)
+			item.Fields.Hoststate, item.Fields.Memoryavailable)
 	}
 }
