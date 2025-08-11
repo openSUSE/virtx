@@ -334,12 +334,12 @@ func init() {
 		Args:  cobra.MinimumNArgs(1), /* UUID and optionally HUUID */
 		Run: func(cmd *cobra.Command, args []string) {
 			if (virtx.ok) {
-				vm_migrate()
+				vm_migrate_offline(virtx.result.(*string))
 			} else {
 				virtx.path = fmt.Sprintf("/vms/%s/runstate/migrate", args[0])
 				virtx.method = "POST"
 				virtx.arg = &virtx.vm_migrate_options
-				virtx.result = nil
+				virtx.result = new(string)
 			}
 		},
 	}
