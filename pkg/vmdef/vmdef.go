@@ -742,8 +742,10 @@ func From_xml(vmdef *openapi.Vmdef, xmlstr string) error {
 		}
 		if (domain_interface.Source.Bridge != nil) {
 			net.Name = domain_interface.Source.Bridge.Bridge
+			net.Nettype = openapi.NET_BRIDGE
 		} else if (domain_interface.Source.Network != nil) {
 			net.Name = domain_interface.Source.Network.Network
+			net.Nettype = openapi.NET_LIBVIRT
 		} else {
 			return errors.New("missing Interface Source Bridge or Network")
 		}
