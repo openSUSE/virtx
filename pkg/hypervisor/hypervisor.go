@@ -325,7 +325,7 @@ func Define_domain(xml string, uuid string) error {
 	/* store the processed XML in /vms/xml/host-uuid/vm-uuid.xml */
 	err = vmreg.Save(hv.uuid, uuid, xml)
 	if (err != nil) {
-		return err
+		logger.Log("Define_domain: failed to vmreg.Save(%s, %s)", hv.uuid, uuid)
 	}
 	return nil
 }
@@ -523,7 +523,7 @@ func Delete_domain(uuid string) error {
 	/* remove the registered xml file */
 	err = vmreg.Delete(hv.uuid, uuid)
 	if (err != nil) {
-		return err
+		logger.Log("Delete_domain: failed to vmreg.Delete(%s, %s)", hv.uuid, uuid)
 	}
 	return nil
 }
