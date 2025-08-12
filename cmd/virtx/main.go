@@ -88,7 +88,7 @@ func main() {
 		/* nothing else to do. */
 		os.Exit(0)
 	}
-	logger.Log("api_server=%s, method=%s, path=%s, arg=%v", virtx.api_server, virtx.method, virtx.path, virtx.arg)
+	//logger.Log("api_server=%s, method=%s, path=%s, arg=%v", virtx.api_server, virtx.method, virtx.path, virtx.arg)
 	response, err = httpx.Do_request(virtx.api_server, virtx.method, virtx.path, virtx.arg)
 	if (err != nil) {
 		logger.Log("failed to send request: %s", err.Error())
