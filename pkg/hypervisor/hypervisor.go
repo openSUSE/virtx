@@ -689,6 +689,17 @@ func get_system_info(si *SystemInfo, old *SystemInfo) error {
 			host.Resources.Cpu.Usedos -= host.Resources.Cpu.Usedvms
 			host.Resources.Cpu.Availablevms = host.Resources.Cpu.Total - host.Resources.Cpu.Reservedvms - host.Resources.Cpu.Usedos
 		}
+	} else {
+		/*
+		 * first run, check the registry to warn about mismatches between it and libvirt
+		 * and decide how to handle them:
+		 *
+		 * - a file exists but libvirt has no domain with that uuid. Warning?
+		 * - libvirt has a domain for which no file exists. Warning?
+		 *
+		 * We will need a feature to force creation of a libvirt domain from the xml file,
+		 * and to create the xml file from the domain?
+		 */
 	}
 out:
 	si.Host = host
