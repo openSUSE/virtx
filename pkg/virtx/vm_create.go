@@ -70,8 +70,7 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 	var buf bytes.Buffer
 	err = json.NewEncoder(&buf).Encode(&uuid)
 	if (err != nil) {
-		http.Error(w, "failed to encode JSON", http.StatusInternalServerError)
-		return
+		logger.Log("failed to encode JSON")
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
