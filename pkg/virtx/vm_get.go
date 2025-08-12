@@ -60,6 +60,7 @@ func vm_get(w http.ResponseWriter, r *http.Request) {
 
 	err = json.NewEncoder(&buf).Encode(&vm)
 	if (err != nil) {
+		logger.Log("failed to encode JSON")
 		http.Error(w, "Failed to encode JSON", http.StatusInternalServerError)
 		return
 	}

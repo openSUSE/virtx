@@ -72,6 +72,7 @@ vmloop:
 	}
 	err = json.NewEncoder(&buf).Encode(&vm_list)
 	if (err != nil) {
+		logger.Log("failed to encode JSON")
 		http.Error(w, "Failed to encode JSON", http.StatusInternalServerError)
 		return
 	}
