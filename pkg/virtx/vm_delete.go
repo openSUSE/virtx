@@ -64,8 +64,7 @@ func vm_delete(w http.ResponseWriter, r *http.Request) {
 	if (o.Deletestorage) {
 		err = vm_storage_delete(&vm)
 		if (err != nil) {
-			http.Error(w, "Failed to delete virtual disk storage", http.StatusInternalServerError)
-			return
+			w.Header().Set("Warning", `299 VirtX "storage could not be deleted"`)
 		}
 	}
 	/* we keep the xml around. It could be useful for the future and should not waste a lot of space */
