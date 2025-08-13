@@ -676,15 +676,17 @@ func get_system_info(si *SystemInfo, old *SystemInfo) error {
 		if (interval <= 0.0) {
 			logger.Log("get_system_info: host timestamps not in order?")
 		} else {
+			/* XXX accounting is different between Intel and AMD with SMT (Hyperthreads) XXX */
 			var delta float64 = float64(Counter_delta_uint64(si.cpu_idle_ns, old.cpu_idle_ns))
-			host.Resources.Cpu.Free = int32(delta / (interval * 1000000) * float64(info.MHz))
+			if (host.Def.Cpuarch.Vendor == "Intel") {
+				host.Resources.Cpu.Free = int32(delta / (interval * 1000000) * float64(info.MHz) / float64(info.Threads))
+			} else {
+				host.Resources.Cpu.Free = int32(delta / (interval * 1000000) * float64(info.MHz))
+			}
 			host.Resources.Cpu.Used = host.Resources.Cpu.Total - host.Resources.Cpu.Free
 
 			delta = float64(Counter_delta_uint64(si.cpu_kernel_ns, old.cpu_kernel_ns))
 			host.Resources.Cpu.Usedos = int32(delta / (interval * 1000000) * float64(info.MHz))
-			delta = float64(Counter_delta_uint64(si.cpu_user_ns, old.cpu_user_ns))
-			host.Resources.Cpu.Usedos += int32(delta / (interval * 1000000) * float64(info.MHz))
-
 			host.Resources.Cpu.Usedvms = total_cpus_used_percent * int32(info.MHz) / 100
 			host.Resources.Cpu.Usedos -= host.Resources.Cpu.Usedvms
 			host.Resources.Cpu.Availablevms = host.Resources.Cpu.Total - host.Resources.Cpu.Reservedvms - host.Resources.Cpu.Usedos
