@@ -328,9 +328,9 @@ func init() {
 		Short: "Migrate a runnable resource",
 	}
 	var cmd_migrate_vm = &cobra.Command{
-		Use:   "vm UUID [HUUID]",
+		Use:   "vm UUID",
 		Short: "Migrate a VM",
-		Long:  "Migrate a VM identified by UUID to an automatically chosen or specified host",
+		Long:  "Migrate a VM identified by UUID",
 		Args:  cobra.MinimumNArgs(1), /* UUID and optionally HUUID */
 		Run: func(cmd *cobra.Command, args []string) {
 			if (virtx.ok) {
