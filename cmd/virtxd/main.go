@@ -63,7 +63,7 @@ func main() {
 	serfcomm.Start_listening(hypervisor.GetVmEventCh(), hypervisor.GetSystemInfoCh(), serf_shutdown_ch)
 
 	/* create server subroutine to listen for API requests */
-	virtx.Start_listening()
+	virtx_err_ch := virtx.Start_listening()
 
 	/* prepare atexit function to shutdown service */
 	defer func() {
@@ -87,5 +87,7 @@ func main() {
 		logger.Log("Got signal: %d", sig)
 	case <-serf_shutdown_ch:
 		logger.Log("Serf shutdown")
+	case err = <-virtx_err_ch:
+		logger.Log("VirtX service error: %s", err.Error())
 	}
 }

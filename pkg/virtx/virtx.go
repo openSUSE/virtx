@@ -211,13 +211,15 @@ func update_vm(vmdata *hypervisor.Vmdata) error {
 	return nil
 }
 
-func Start_listening() {
+func Start_listening() <-chan error {
+	err_ch := make(chan error, 1)
 	go func() {
 		var err error = service.server.ListenAndServe()
-		if (err != nil && errors.Is(err, http.ErrServerClosed)) {
-			logger.Log(err.Error())
-		} else {
-			logger.Log(err.Error())
+		if (err != nil && !errors.Is(err, http.ErrServerClosed)) {
+			err_ch <- err
+			return
 		}
+		close(err_ch)
 	}()
+	return err_ch
 }
