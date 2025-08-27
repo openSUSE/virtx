@@ -29,10 +29,12 @@ func Search_hosts(f openapi.HostListFields) openapi.HostList {
 	inventory.m.RLock()
 	defer inventory.m.RUnlock()
 	var (
+		hostdata Hostdata
 		host openapi.Host
 		list openapi.HostList
 	)
-	for _, host = range inventory.hosts {
+	for _, hostdata = range inventory.hosts {
+		host = hostdata.host
 		if (f.Name != "" && !strings.Contains(host.Def.Name, f.Name)) {
 			continue
 		}

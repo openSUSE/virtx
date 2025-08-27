@@ -26,9 +26,10 @@ import (
 	. "suse.com/virtx/pkg/constants"
 )
 
-/*
- * VmData is the raw Vm data collected every libvirt_stats_seconds
- */
+type Hostdata struct {
+	host openapi.Host
+	vms map[string]struct{}		/* VM Uuid presence */
+}
 
 type Vmdata struct {
 	Uuid string                 /* VM Uuid */
@@ -51,7 +52,7 @@ type VmEvent struct {
 	Ts int64
 }
 
-type HostsInventory map[string]openapi.Host
+type HostsInventory map[string]Hostdata
 type VmsInventory map[string]Vmdata
 
 type Inventory struct {
@@ -77,13 +78,13 @@ func Get_host(uuid string) (openapi.Host, error) {
 	defer inventory.m.RUnlock()
 	var (
 		present bool
-		host openapi.Host
+		hostdata Hostdata
 	)
-	host, present = inventory.hosts[uuid]
+	hostdata, present = inventory.hosts[uuid]
 	if (present) {
-		return host, nil
+		return hostdata.host, nil
 	}
-	return host, fmt.Errorf("inventory: no such host %s", uuid)
+	return hostdata.host, fmt.Errorf("inventory: no such host %s", uuid)
 }
 
 func Get_vm(uuid string) (Vmdata, error) {
@@ -110,16 +111,23 @@ func Update_host(host *openapi.Host) {
 func update_host(host *openapi.Host) {
 	var (
 		present bool
-		old openapi.Host
+		hostdata Hostdata
 	)
-	old, present = inventory.hosts[host.Uuid]
-	if (present && old.Ts > host.Ts) {
-		logger.Log("Host %s: ignoring obsolete Host information: ts %d > %d",
-			old.Def.Name, old.Ts, host.Ts)
-		return
+	hostdata, present = inventory.hosts[host.Uuid]
+	if (present) {
+		if (hostdata.host.Ts > host.Ts) {
+			logger.Log("Host %s: ignoring obsolete Host information: ts %d > %d",
+				hostdata.host.Def.Name, hostdata.host.Ts, host.Ts)
+			return
+		}
+		hostdata.host = *host
+	} else {
+		hostdata = Hostdata{
+			host: *host,
+			vms: make(map[string]struct{}),
+		}
 	}
-	inventory.hosts[host.Uuid] = *host
-	return
+	inventory.hosts[host.Uuid] = hostdata
 }
 
 func Set_host_state(uuid string, newstate openapi.Hoststate) error {
@@ -130,24 +138,36 @@ func Set_host_state(uuid string, newstate openapi.Hoststate) error {
 }
 
 func set_host_state(uuid string, newstate openapi.Hoststate) error {
-	host, ok := inventory.hosts[uuid]
+	hostdata, ok := inventory.hosts[uuid]
 	if !ok {
 		return fmt.Errorf("no such host %s", uuid)
 	}
-	host.State = newstate
-	inventory.hosts[uuid] = host
+	hostdata.host.State = newstate
+	inventory.hosts[uuid] = hostdata
 	return nil
 }
 
 func Update_vm_state(e *VmEvent) error {
 	inventory.m.Lock()
 	defer inventory.m.Unlock()
-	vmdata, ok := inventory.vms[e.Uuid]
-	if !ok {
+	var (
+		vmdata Vmdata
+		hostdata Hostdata
+		present bool
+	)
+	vmdata, present = inventory.vms[e.Uuid]
+	if (!present) {
 		return fmt.Errorf("no such VM %s", e.Uuid)
 	}
 	vmdata.Runinfo.Runstate = openapi.Vmrunstate(e.State)
 	if (vmdata.Runinfo.Runstate == openapi.RUNSTATE_DELETED) {
+		var host_uuid string = vmdata.Runinfo.Host
+		hostdata, present = inventory.hosts[host_uuid]
+		if (present) {
+			delete(hostdata.vms, e.Uuid)
+		} else {
+			logger.Log("deleted VM %s does not appear in its host %s", e.Uuid, host_uuid)
+		}
 		delete(inventory.vms, e.Uuid)
 	} else {
 		inventory.vms[e.Uuid] = vmdata
@@ -163,7 +183,12 @@ func Update_vm(vmdata *Vmdata) error {
 }
 
 func update_vm(vmdata *Vmdata) error {
-	if old, ok := inventory.vms[vmdata.Uuid]; ok {
+	var (
+		old Vmdata
+		present bool
+	)
+	old, present = inventory.vms[vmdata.Uuid]
+	if (present) {
 		if (old.Ts > vmdata.Ts) {
 			logger.Log("Ignoring old guest info: ts %d > %d %s %s",
 				old.Ts, vmdata.Ts, vmdata.Uuid, vmdata.Name,
@@ -187,6 +212,18 @@ func update_vm(vmdata *Vmdata) error {
 			if (delta > 0 && (vmdata.Ts - old.Ts) > 0) {
 				vmdata.Stats.NetTxBw = int32((delta * 1000) / ((vmdata.Ts - old.Ts) * KiB))
 			}
+		}
+	} else { /* not present */
+		var (
+			host_uuid string = vmdata.Runinfo.Host
+			hostdata Hostdata
+		)
+		hostdata, present = inventory.hosts[host_uuid]
+		if (present) {
+			hostdata.vms[vmdata.Uuid] = struct{}{}
+			inventory.hosts[host_uuid] = hostdata
+		} else {
+			logger.Log("new VM %s assigned to nonexisting host %s", vmdata.Uuid, host_uuid)
 		}
 	}
 	inventory.vms[vmdata.Uuid] = *vmdata
