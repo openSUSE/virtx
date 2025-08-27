@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"bytes"
 
-	"suse.com/virtx/pkg/hypervisor"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/httpx"
 	"suse.com/virtx/pkg/model"
@@ -16,7 +15,7 @@ func vm_runstate_get(w http.ResponseWriter, r *http.Request) {
 	var (
 		err error
 		uuid string
-		vmdata hypervisor.Vmdata
+		vmdata inventory.Vmdata
 		runinfo openapi.Vmruninfo
 		buf bytes.Buffer
 	)

@@ -22,7 +22,7 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		o openapi.VmUpdateOptions
 		old openapi.Vmdef
 		xml, uuid_old, uuid_new string
-		vmdata hypervisor.Vmdata
+		vmdata inventory.Vmdata
 		vr httpx.Request
 	)
 	vr, err = httpx.Decode_request_body(r, &o)

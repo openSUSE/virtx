@@ -20,7 +20,6 @@ package inventory
 import (
 	"strings"
 
-	"suse.com/virtx/pkg/hypervisor"
 	"suse.com/virtx/pkg/model"
 )
 
@@ -80,7 +79,7 @@ func Search_vms(f openapi.VmListFields) openapi.VmList {
 	inventory.m.RLock()
 	defer inventory.m.RUnlock()
 	var (
-		vm hypervisor.Vmdata
+		vm Vmdata
 		list openapi.VmList
 	)
 	for _, vm = range inventory.vms {

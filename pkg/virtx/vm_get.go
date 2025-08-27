@@ -16,7 +16,7 @@ func vm_get(w http.ResponseWriter, r *http.Request) {
 	var (
 		err error
 		uuid, xml string
-		vmdata hypervisor.Vmdata
+		vmdata inventory.Vmdata
 		vm openapi.Vm
 		buf bytes.Buffer
 		vr httpx.Request

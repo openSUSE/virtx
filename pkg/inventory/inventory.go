@@ -22,19 +22,43 @@ import (
 	"sync"
 
 	"suse.com/virtx/pkg/logger"
-	"suse.com/virtx/pkg/hypervisor"
 	"suse.com/virtx/pkg/model"
 	. "suse.com/virtx/pkg/constants"
 )
 
-type Hostdata map[string]openapi.Host
-type Vmdata map[string]hypervisor.Vmdata
+/*
+ * VmData is the raw Vm data collected every libvirt_stats_seconds
+ */
+
+type Vmdata struct {
+	Uuid string                 /* VM Uuid */
+	Name string                 /* VM Name */
+	Runinfo openapi.Vmruninfo   /* host running the VM and VM runstate */
+	Vlanid int16                /* XXX need requirements engineering for Vlans XXX */
+	Custom []openapi.CustomField
+	Stats openapi.Vmstats
+
+	Cpu_time uint64             /* Total cpu time consumed in nanoseconds from libvirt.DomainCPUStats.CpuTime */
+	Net_rx int64                /* Net Rx bytes */
+	Net_tx int64                /* Net Tx bytes */
+
+	Ts int64
+}
+
+type VmEvent struct {
+	Uuid string
+	State openapi.Vmrunstate
+	Ts int64
+}
+
+type HostsInventory map[string]openapi.Host
+type VmsInventory map[string]Vmdata
 
 type Inventory struct {
 	m       sync.RWMutex
 	cluster openapi.Cluster
-	hosts   Hostdata
-	vms     Vmdata
+	hosts   HostsInventory
+	vms     VmsInventory
 }
 
 var inventory Inventory
@@ -43,8 +67,8 @@ func init() {
 	inventory = Inventory{
 		m:       sync.RWMutex{},
 		cluster: openapi.Cluster{},
-		hosts:   make(Hostdata),
-		vms:     make(Vmdata),
+		hosts:   make(HostsInventory),
+		vms:     make(VmsInventory),
 	}
 }
 
@@ -62,12 +86,12 @@ func Get_host(uuid string) (openapi.Host, error) {
 	return host, fmt.Errorf("inventory: no such host %s", uuid)
 }
 
-func Get_vm(uuid string) (hypervisor.Vmdata, error) {
+func Get_vm(uuid string) (Vmdata, error) {
 	inventory.m.RLock()
 	defer inventory.m.RUnlock()
 	var (
 		present bool
-		vmdata hypervisor.Vmdata
+		vmdata Vmdata
 	)
 	vmdata, present = inventory.vms[uuid]
 	if (present) {
@@ -115,7 +139,7 @@ func set_host_state(uuid string, newstate openapi.Hoststate) error {
 	return nil
 }
 
-func Update_vm_state(e *hypervisor.VmEvent) error {
+func Update_vm_state(e *VmEvent) error {
 	inventory.m.Lock()
 	defer inventory.m.Unlock()
 	vmdata, ok := inventory.vms[e.Uuid]
@@ -131,17 +155,14 @@ func Update_vm_state(e *hypervisor.VmEvent) error {
 	return nil
 }
 
-func Update_vm(vmdata *hypervisor.Vmdata) error {
+func Update_vm(vmdata *Vmdata) error {
 	inventory.m.Lock()
 	defer inventory.m.Unlock()
 
 	return update_vm(vmdata)
 }
 
-func update_vm(vmdata *hypervisor.Vmdata) error {
-	if (inventory.vms == nil) {
-		inventory.vms = make(map[string]hypervisor.Vmdata)
-	}
+func update_vm(vmdata *Vmdata) error {
 	if old, ok := inventory.vms[vmdata.Uuid]; ok {
 		if (old.Ts > vmdata.Ts) {
 			logger.Log("Ignoring old guest info: ts %d > %d %s %s",
@@ -152,17 +173,17 @@ func update_vm(vmdata *hypervisor.Vmdata) error {
 		/* calculate deltas from previous Vm info */
 		if (vmdata.Runinfo.Runstate > openapi.RUNSTATE_POWEROFF &&
 			old.Runinfo.Runstate > openapi.RUNSTATE_POWEROFF) {
-			var delta uint64 = hypervisor.Counter_delta_uint64(vmdata.Cpu_time, old.Cpu_time)
+			var delta uint64 = Counter_delta_uint64(vmdata.Cpu_time, old.Cpu_time)
 			if (delta > 0 && (vmdata.Ts - old.Ts) > 0 && vmdata.Stats.Vcpus > 0) {
 				vmdata.Stats.CpuUtilization = int32((delta * 100) / (uint64(vmdata.Ts - old.Ts) * 1000000))
 			}
 		}
 		{
-			var delta int64 = hypervisor.Counter_delta_int64(vmdata.Net_rx, old.Net_rx)
+			var delta int64 = Counter_delta_int64(vmdata.Net_rx, old.Net_rx)
 			if (delta > 0 && (vmdata.Ts - old.Ts) > 0) {
 				vmdata.Stats.NetRxBw = int32((delta * 1000) / ((vmdata.Ts - old.Ts) * KiB))
 			}
-			delta = hypervisor.Counter_delta_int64(vmdata.Net_tx, old.Net_tx)
+			delta = Counter_delta_int64(vmdata.Net_tx, old.Net_tx)
 			if (delta > 0 && (vmdata.Ts - old.Ts) > 0) {
 				vmdata.Stats.NetTxBw = int32((delta * 1000) / ((vmdata.Ts - old.Ts) * KiB))
 			}

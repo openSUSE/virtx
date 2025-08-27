@@ -36,6 +36,7 @@ import (
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/vmreg"
+	"suse.com/virtx/pkg/inventory"
 	"suse.com/virtx/pkg/encoding/hexstring"
 	. "suse.com/virtx/pkg/constants"
 )
@@ -46,34 +47,9 @@ const (
 	libvirt_system_info_seconds = 15
 )
 
-type VmEvent struct {
-	Uuid string
-	State openapi.Vmrunstate
-	Ts int64
-}
-
-/*
- * VmData is the raw Vm data collected every libvirt_stats_seconds
- */
-
-type Vmdata struct {
-	Uuid string                 /* VM Uuid */
-	Name string                 /* VM Name */
-	Runinfo openapi.Vmruninfo   /* host running the VM and VM runstate */
-	Vlanid int16                /* XXX need requirements engineering for Vlans XXX */
-	Custom []openapi.CustomField
-	Stats openapi.Vmstats
-
-	Cpu_time uint64             /* Total cpu time consumed in nanoseconds from libvirt.DomainCPUStats.CpuTime */
-	Net_rx int64                /* Net Rx bytes */
-	Net_tx int64                /* Net Tx bytes */
-
-	Ts int64
-}
-
 type SystemInfo struct {
 	Host openapi.Host
-	Vmdata []Vmdata
+	Vmdata []inventory.Vmdata
 
 	/* overall counters for host cpu nanoseconds (for host stats) */
 	cpu_idle_ns uint64
@@ -87,7 +63,7 @@ type Hypervisor struct {
 
 	conn *libvirt.Connect
 	lifecycle_id int
-	vm_event_ch chan VmEvent
+	vm_event_ch chan inventory.VmEvent
 	system_info_ch chan SystemInfo
 
 	uuid string /* the UUID of this host */
@@ -273,7 +249,7 @@ func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventL
 	}
 	if (state != openapi.RUNSTATE_NONE) {
 		logger.Log("[VmEvent] %s/%s: %v state: %d", name, uuid, e, state)
-		hv.vm_event_ch <- VmEvent{ Uuid: uuid, State: state, Ts: time.Now().UTC().UnixMilli() }
+		hv.vm_event_ch <- inventory.VmEvent{ Uuid: uuid, State: state, Ts: time.Now().UTC().UnixMilli() }
 	}
 }
 
@@ -548,7 +524,7 @@ func get_system_info(si *SystemInfo, old *SystemInfo) error {
 	defer hv.m.RUnlock()
 	var (
 		host openapi.Host
-		vmdata []Vmdata
+		vmdata []inventory.Vmdata
 		err error
 		xmldata string
 		caps libvirtxml.Caps
@@ -625,10 +601,10 @@ func get_system_info(si *SystemInfo, old *SystemInfo) error {
 	}
 	defer freeDomains(doms)
 
-	vmdata = make([]Vmdata, 0, len(doms))
+	vmdata = make([]inventory.Vmdata, 0, len(doms))
 	for _, d = range doms {
 		var (
-			vm Vmdata
+			vm inventory.Vmdata
 		)
 		vm.Name, vm.Uuid, vm.Runinfo.Runstate, err = get_domain_info(&d)
 		if (err != nil) {
@@ -677,7 +653,7 @@ func get_system_info(si *SystemInfo, old *SystemInfo) error {
 			logger.Log("get_system_info: host timestamps not in order?")
 		} else {
 			/* XXX accounting is different between Intel and AMD with SMT (Hyperthreads) XXX */
-			var delta float64 = float64(Counter_delta_uint64(si.cpu_idle_ns, old.cpu_idle_ns))
+			var delta float64 = float64(inventory.Counter_delta_uint64(si.cpu_idle_ns, old.cpu_idle_ns))
 			if (host.Def.Cpuarch.Vendor == "Intel") {
 				host.Resources.Cpu.Free = int32(delta / (interval * 1000000) * float64(info.MHz) / float64(info.Threads))
 			} else {
@@ -685,7 +661,7 @@ func get_system_info(si *SystemInfo, old *SystemInfo) error {
 			}
 			host.Resources.Cpu.Used = host.Resources.Cpu.Total - host.Resources.Cpu.Free
 
-			delta = float64(Counter_delta_uint64(si.cpu_kernel_ns, old.cpu_kernel_ns))
+			delta = float64(inventory.Counter_delta_uint64(si.cpu_kernel_ns, old.cpu_kernel_ns))
 			host.Resources.Cpu.Usedos = int32(delta / (interval * 1000000) * float64(info.MHz))
 			host.Resources.Cpu.Usedvms = total_cpus_used_percent * int32(info.MHz) / 100
 			host.Resources.Cpu.Usedos -= host.Resources.Cpu.Usedvms
@@ -735,7 +711,7 @@ type xmlDomain struct {
 	} `xml:"devices"`
 }
 
-func get_domain_stats(d *libvirt.Domain, vm *Vmdata) error {
+func get_domain_stats(d *libvirt.Domain, vm *inventory.Vmdata) error {
 	var err error
 	{
 		var info *libvirt.DomainInfo
@@ -807,7 +783,7 @@ func get_domain_stats(d *libvirt.Domain, vm *Vmdata) error {
 }
 
 /* Return the libvirt domain Events Channel */
-func GetVmEventCh() (chan VmEvent) {
+func GetVmEventCh() (chan inventory.VmEvent) {
 	return hv.vm_event_ch
 }
 
@@ -874,7 +850,7 @@ func init() {
 	if (err != nil) {
 		panic(err)
 	}
-	hv.vm_event_ch = make(chan VmEvent, 64)
+	hv.vm_event_ch = make(chan inventory.VmEvent, 64)
 	hv.system_info_ch = make(chan SystemInfo, 64)
 	hv.vcpu_load_factor = read_numa_preplace_conf()
 	logger.Log("init, vcpu_load_factor %f", hv.vcpu_load_factor)

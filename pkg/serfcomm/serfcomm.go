@@ -59,7 +59,7 @@ func send_host_info(host_info *openapi.Host) error {
 	return serf.c.UserEvent(label_host_info, serf.enc_buffer[:eventsize], false)
 }
 
-func send_vm_stat(vmdata *hypervisor.Vmdata) error {
+func send_vm_stat(vmdata *inventory.Vmdata) error {
 	serf.enc_mux.Lock()
 	defer serf.enc_mux.Unlock()
 	var (
@@ -74,7 +74,7 @@ func send_vm_stat(vmdata *hypervisor.Vmdata) error {
 	return serf.c.UserEvent(label_vm_stat, serf.enc_buffer[:eventsize], false)
 }
 
-func send_vm_event(e *hypervisor.VmEvent) error {
+func send_vm_event(e *inventory.VmEvent) error {
 	serf.enc_mux.Lock()
 	defer serf.enc_mux.Unlock()
 	var (
@@ -137,7 +137,7 @@ func recv_serf_events(shutdown_ch chan<- struct{}) {
 			}
 		case label_vm_event:
 			var (
-				ve hypervisor.VmEvent
+				ve inventory.VmEvent
 				size int
 			)
 			size, err = sbinary.Decode(payload, binary.LittleEndian, &ve)
@@ -152,7 +152,7 @@ func recv_serf_events(shutdown_ch chan<- struct{}) {
 			}
 		case label_vm_stat:
 			var (
-				vm hypervisor.Vmdata
+				vm inventory.Vmdata
 				size int
 			)
 			size, err = sbinary.Decode(payload, binary.LittleEndian, &vm)
@@ -198,7 +198,7 @@ func send_system_info(ch <-chan hypervisor.SystemInfo) {
 	logger.Fatal("SendSystemInfo loop exit! (Should never happen!)")
 }
 
-func send_vm_events(eventCh <-chan hypervisor.VmEvent) {
+func send_vm_events(eventCh <-chan inventory.VmEvent) {
 	logger.Log("SendVmEvents loop start...")
 	for e := range eventCh {
 		if err := send_vm_event(&e); err != nil {
@@ -231,7 +231,7 @@ func Init(rpcAddr string) error {
 }
 
 func Start_listening(
-	vm_event_ch chan hypervisor.VmEvent, system_info_ch chan hypervisor.SystemInfo, serf_shutdown_ch chan struct{}) {
+	vm_event_ch chan inventory.VmEvent, system_info_ch chan hypervisor.SystemInfo, serf_shutdown_ch chan struct{}) {
 	/* create subroutines to send and process events */
 	go send_vm_events(vm_event_ch)
 	go send_system_info(system_info_ch)

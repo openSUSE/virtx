@@ -15,7 +15,7 @@
  * along with this program; if not, see
  * <https://www.gnu.org/licenses/>
  */
-package hypervisor
+package inventory
 
 import (
 	"math"

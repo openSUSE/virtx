@@ -15,7 +15,7 @@ func vm_delete(w http.ResponseWriter, r *http.Request) {
 		err error
 		o openapi.VmDeleteOptions
 		uuid, xml string
-		vmdata hypervisor.Vmdata
+		vmdata inventory.Vmdata
 		vm openapi.Vmdef
 		vr httpx.Request
 	)

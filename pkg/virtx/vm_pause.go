@@ -12,7 +12,7 @@ func vm_pause(w http.ResponseWriter, r *http.Request) {
 	var (
 		err error
 		uuid string
-		vmdata hypervisor.Vmdata
+		vmdata inventory.Vmdata
 		vr httpx.Request
 	)
 	vr, err = httpx.Decode_request_body(r, nil)

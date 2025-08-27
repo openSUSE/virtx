@@ -15,7 +15,7 @@ func vm_shutdown(w http.ResponseWriter, r *http.Request) {
 		err error
 		uuid string
 		o openapi.VmShutdownOptions
-		vmdata hypervisor.Vmdata
+		vmdata inventory.Vmdata
 		vr httpx.Request
 	)
 	vr, err = httpx.Decode_request_body(r, &o)

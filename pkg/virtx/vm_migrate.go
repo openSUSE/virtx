@@ -21,7 +21,7 @@ func vm_migrate(w http.ResponseWriter, r *http.Request) {
 		err error
 		o openapi.VmMigrateOptions
 		uuid, host_old string
-		vmdata hypervisor.Vmdata
+		vmdata inventory.Vmdata
 		vr httpx.Request
 	)
 	vr, err = httpx.Decode_request_body(r, &o)
