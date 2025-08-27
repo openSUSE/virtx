@@ -11,18 +11,18 @@ import (
 	"suse.com/virtx/pkg/vmreg"
 	"suse.com/virtx/pkg/vmdef"
 	"suse.com/virtx/pkg/httpx"
+	"suse.com/virtx/pkg/inventory"
 )
 
 
 func vm_update(w http.ResponseWriter, r *http.Request) {
-	service.m.RLock()
-	defer service.m.RUnlock()
 	var (
 		err error
 		host string
 		o openapi.VmUpdateOptions
 		old openapi.Vmdef
 		xml, uuid_old, uuid_new string
+		vmdata hypervisor.Vmdata
 		vr httpx.Request
 	)
 	vr, err = httpx.Decode_request_body(r, &o)
@@ -36,8 +36,8 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not get uuid", http.StatusBadRequest)
 		return
 	}
-	vmdata, ok := service.vmdata[uuid_old]
-	if (!ok) {
+	vmdata, err = inventory.Get_vm(uuid_old)
+	if (err != nil) {
 		http.Error(w, "unknown uuid", http.StatusNotFound)
 		return
 	}

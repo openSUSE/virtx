@@ -9,14 +9,12 @@ import (
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/httpx"
 	"suse.com/virtx/pkg/model"
+	"suse.com/virtx/pkg/inventory"
 )
 
 func vm_runstate_get(w http.ResponseWriter, r *http.Request) {
-	service.m.RLock()
-	defer service.m.RUnlock()
 	var (
 		err error
-		ok bool
 		uuid string
 		vmdata hypervisor.Vmdata
 		runinfo openapi.Vmruninfo
@@ -33,8 +31,8 @@ func vm_runstate_get(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "vm_runstate_get: Failed to decode parameters", http.StatusBadRequest)
 		return
 	}
-	vmdata, ok = service.vmdata[uuid]
-	if (!ok) {
+	vmdata, err = inventory.Get_vm(uuid)
+	if (err != nil) {
 		http.Error(w, "vm_runstate_get: No such VM", http.StatusNotFound)
 		return
 	}

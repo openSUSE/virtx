@@ -7,11 +7,10 @@ import (
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/httpx"
 	"suse.com/virtx/pkg/logger"
+	"suse.com/virtx/pkg/inventory"
 )
 
 func host_get(w http.ResponseWriter, r *http.Request) {
-	service.m.RLock()
-	defer service.m.RUnlock()
 	var (
 		err error
 		uuid string
@@ -29,8 +28,8 @@ func host_get(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not get uuid", http.StatusBadRequest)
 		return
 	}
-	host, ok := service.hosts[uuid]
-	if (!ok) {
+	host, err = inventory.Get_host(uuid)
+	if (err != nil) {
 		http.Error(w, "unknown uuid", http.StatusNotFound)
 		return
 	}

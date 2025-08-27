@@ -14,8 +14,6 @@ import (
 
 
 func vm_create(w http.ResponseWriter, r *http.Request) {
-	service.m.RLock()
-	defer service.m.RUnlock()
 	var (
 		err error
 		o openapi.VmCreateOptions

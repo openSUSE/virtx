@@ -23,7 +23,7 @@ import (
 	"github.com/hashicorp/serf/client"
 
 	"suse.com/virtx/pkg/hypervisor"
-	"suse.com/virtx/pkg/virtx"
+	"suse.com/virtx/pkg/inventory"
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/encoding/sbinary"
@@ -108,7 +108,7 @@ func recv_serf_events(shutdown_ch chan<- struct{}) {
 					continue
 				}
 				logger.Log("Host %s OFFLINE", uuid)
-				err = virtx.Set_host_state(uuid, newstate)
+				err = inventory.Set_host_state(uuid, newstate)
 				if (err != nil) {
 					logger.Log(err.Error())
 				}
@@ -133,10 +133,7 @@ func recv_serf_events(shutdown_ch chan<- struct{}) {
 				logger.Log("Decode %s: ERR '%s' at offset %d", name, err.Error(), size)
 			} else {
 				logger.Log("Decode %s: OK  %d %s %s", name, hi.Ts, hi.Uuid, hi.Def.Name)
-				err = virtx.Update_host(&hi)
-				if (err != nil) {
-					logger.Log(err.Error())
-				}
+				inventory.Update_host(&hi)
 			}
 		case label_vm_event:
 			var (
@@ -148,7 +145,7 @@ func recv_serf_events(shutdown_ch chan<- struct{}) {
 				logger.Log("Decode %s: ERR '%s' at offset %d", name, err.Error(), size)
 			} else {
 				logger.Log("Decode %s: OK  %d %s %s", name, ve.Ts, ve.Uuid, ve.State)
-				err = virtx.Update_vm_state(&ve)
+				err = inventory.Update_vm_state(&ve)
 				if (err != nil) {
 					logger.Log(err.Error())
 				}
@@ -163,7 +160,7 @@ func recv_serf_events(shutdown_ch chan<- struct{}) {
 				logger.Log("Decode %s: ERR '%s' at offset %d", name, err.Error(), size)
 			} else {
 				logger.Log("Decode %s: OK  %d %s %s %d", name, vm.Ts, vm.Uuid, vm.Name, vm.Runinfo.Runstate)
-				err = virtx.Update_vm(&vm)
+				err = inventory.Update_vm(&vm)
 				if (err != nil) {
 					logger.Log(err.Error())
 				}

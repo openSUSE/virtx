@@ -7,15 +7,15 @@ import (
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/httpx"
+	"suse.com/virtx/pkg/inventory"
 )
 
 func vm_shutdown(w http.ResponseWriter, r *http.Request) {
-	service.m.RLock()
-	defer service.m.RUnlock()
 	var (
 		err error
 		uuid string
 		o openapi.VmShutdownOptions
+		vmdata hypervisor.Vmdata
 		vr httpx.Request
 	)
 	vr, err = httpx.Decode_request_body(r, &o)
@@ -33,8 +33,8 @@ func vm_shutdown(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid force field", http.StatusBadRequest)
 		return
 	}
-	vmdata, ok := service.vmdata[uuid]
-	if (!ok) {
+	vmdata, err = inventory.Get_vm(uuid)
+	if (err != nil) {
 		http.Error(w, "unknown uuid", http.StatusNotFound)
 		return
 	}

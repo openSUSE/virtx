@@ -9,14 +9,14 @@ import (
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/vmdef"
 	"suse.com/virtx/pkg/httpx"
+	"suse.com/virtx/pkg/inventory"
 )
 
 func vm_get(w http.ResponseWriter, r *http.Request) {
-	service.m.RLock()
-	defer service.m.RUnlock()
 	var (
 		err error
 		uuid, xml string
+		vmdata hypervisor.Vmdata
 		vm openapi.Vm
 		buf bytes.Buffer
 		vr httpx.Request
@@ -32,8 +32,8 @@ func vm_get(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not get uuid", http.StatusBadRequest)
 		return
 	}
-	vmdata, ok := service.vmdata[uuid]
-	if (!ok) {
+	vmdata, err = inventory.Get_vm(uuid)
+	if (err != nil) {
 		http.Error(w, "unknown uuid", http.StatusNotFound)
 		return
 	}

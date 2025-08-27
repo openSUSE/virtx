@@ -18,32 +18,19 @@
 package virtx
 
 import (
-	"fmt"
 	"net/http"
-	"sync"
 	"errors"
 	"context"
 
 	g_uuid "github.com/google/uuid"
 
 	"suse.com/virtx/pkg/logger"
-	"suse.com/virtx/pkg/hypervisor"
-	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/httpx"
-	. "suse.com/virtx/pkg/constants"
 )
-
-type Vmdata map[string]hypervisor.Vmdata
-type Hosts map[string]openapi.Host
 
 type Service struct {
 	servemux *http.ServeMux
 	server http.Server
-	m      sync.RWMutex
-
-	cluster openapi.Cluster
-	hosts   Hosts
-	vmdata  Vmdata
 }
 
 var service Service
@@ -80,10 +67,6 @@ func Init() {
 			Addr: ":8080",
 			Handler: servemux,
 		},
-		m:         sync.RWMutex{},
-		cluster:   openapi.Cluster{},
-		hosts:     make(Hosts),
-		vmdata:    make(Vmdata),
 	}
 }
 
@@ -110,105 +93,6 @@ func Shutdown(ctx context.Context) error {
 
 func Close() error {
 	return service.server.Close()
-}
-
-func Update_host(host *openapi.Host) error {
-	service.m.Lock()
-	defer service.m.Unlock()
-
-	return update_host(host)
-}
-
-func update_host(host *openapi.Host) error {
-	var (
-		present bool
-		old openapi.Host
-	)
-	if (service.hosts == nil) {
-		service.hosts = make(map[string]openapi.Host)
-	}
-	old, present = service.hosts[host.Uuid]
-	if (present && old.Ts > host.Ts) {
-		logger.Log("Host %s: ignoring obsolete Host information: ts %d > %d",
-			old.Def.Name, old.Ts, host.Ts)
-		return nil
-	}
-	service.hosts[host.Uuid] = *host
-	return nil
-}
-
-func Set_host_state(uuid string, newstate openapi.Hoststate) error {
-	service.m.Lock()
-	defer service.m.Unlock()
-
-	return set_host_state(uuid, newstate)
-}
-
-func set_host_state(uuid string, newstate openapi.Hoststate) error {
-	host, ok := service.hosts[uuid]
-	if !ok {
-		return fmt.Errorf("no such host %s", uuid)
-	}
-	host.State = newstate
-	service.hosts[uuid] = host
-	return nil
-}
-
-func Update_vm_state(e *hypervisor.VmEvent) error {
-	service.m.Lock()
-	defer service.m.Unlock()
-	vmdata, ok := service.vmdata[e.Uuid]
-	if !ok {
-		return fmt.Errorf("no such VM %s", e.Uuid)
-	}
-	vmdata.Runinfo.Runstate = openapi.Vmrunstate(e.State)
-	if (vmdata.Runinfo.Runstate == openapi.RUNSTATE_DELETED) {
-		delete(service.vmdata, e.Uuid)
-	} else {
-		service.vmdata[e.Uuid] = vmdata
-	}
-	return nil
-}
-
-func Update_vm(vmdata *hypervisor.Vmdata) error {
-	service.m.Lock()
-	defer service.m.Unlock()
-
-	return update_vm(vmdata)
-}
-
-func update_vm(vmdata *hypervisor.Vmdata) error {
-	if (service.vmdata == nil) {
-		service.vmdata = make(map[string]hypervisor.Vmdata)
-	}
-	if old, ok := service.vmdata[vmdata.Uuid]; ok {
-		if (old.Ts > vmdata.Ts) {
-			logger.Log("Ignoring old guest info: ts %d > %d %s %s",
-				old.Ts, vmdata.Ts, vmdata.Uuid, vmdata.Name,
-			)
-			return nil
-		}
-		/* calculate deltas from previous Vm info */
-		if (vmdata.Runinfo.Runstate > openapi.RUNSTATE_POWEROFF &&
-			old.Runinfo.Runstate > openapi.RUNSTATE_POWEROFF) {
-			var delta uint64 = hypervisor.Counter_delta_uint64(vmdata.Cpu_time, old.Cpu_time)
-			if (delta > 0 && (vmdata.Ts - old.Ts) > 0 && vmdata.Stats.Vcpus > 0) {
-				vmdata.Stats.CpuUtilization = int32((delta * 100) / (uint64(vmdata.Ts - old.Ts) * 1000000))
-			}
-		}
-		{
-			var delta int64 = hypervisor.Counter_delta_int64(vmdata.Net_rx, old.Net_rx)
-			if (delta > 0 && (vmdata.Ts - old.Ts) > 0) {
-				vmdata.Stats.NetRxBw = int32((delta * 1000) / ((vmdata.Ts - old.Ts) * KiB))
-			}
-			delta = hypervisor.Counter_delta_int64(vmdata.Net_tx, old.Net_tx)
-			if (delta > 0 && (vmdata.Ts - old.Ts) > 0) {
-				vmdata.Stats.NetTxBw = int32((delta * 1000) / ((vmdata.Ts - old.Ts) * KiB))
-			}
-		}
-	}
-	service.vmdata[vmdata.Uuid] = *vmdata
-	return nil
 }
 
 func Start_listening() <-chan error {
