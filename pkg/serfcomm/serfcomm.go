@@ -188,7 +188,7 @@ func send_system_info(ch <-chan hypervisor.SystemInfo) {
 		if (err != nil) {
 			logger.Log(err.Error())
 		}
-		for _, vmdata := range si.Vmdata {
+		for _, vmdata := range si.Vms {
 			err = send_vm_stat(&vmdata)
 			if (err != nil) {
 				logger.Log(err.Error())

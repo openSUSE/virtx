@@ -23,7 +23,6 @@ import (
 
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/model"
-	. "suse.com/virtx/pkg/constants"
 )
 
 type Hostdata struct {
@@ -194,24 +193,6 @@ func update_vm(vmdata *Vmdata) error {
 				old.Ts, vmdata.Ts, vmdata.Uuid, vmdata.Name,
 			)
 			return nil
-		}
-		/* calculate deltas from previous Vm info */
-		if (vmdata.Runinfo.Runstate > openapi.RUNSTATE_POWEROFF &&
-			old.Runinfo.Runstate > openapi.RUNSTATE_POWEROFF) {
-			var delta uint64 = Counter_delta_uint64(vmdata.Cpu_time, old.Cpu_time)
-			if (delta > 0 && (vmdata.Ts - old.Ts) > 0 && vmdata.Stats.Vcpus > 0) {
-				vmdata.Stats.CpuUtilization = int32((delta * 100) / (uint64(vmdata.Ts - old.Ts) * 1000000))
-			}
-		}
-		{
-			var delta int64 = Counter_delta_int64(vmdata.Net_rx, old.Net_rx)
-			if (delta > 0 && (vmdata.Ts - old.Ts) > 0) {
-				vmdata.Stats.NetRxBw = int32((delta * 1000) / ((vmdata.Ts - old.Ts) * KiB))
-			}
-			delta = Counter_delta_int64(vmdata.Net_tx, old.Net_tx)
-			if (delta > 0 && (vmdata.Ts - old.Ts) > 0) {
-				vmdata.Stats.NetTxBw = int32((delta * 1000) / ((vmdata.Ts - old.Ts) * KiB))
-			}
 		}
 	} else { /* not present */
 		var (

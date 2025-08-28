@@ -49,7 +49,7 @@ const (
 
 type SystemInfo struct {
 	Host openapi.Host
-	Vmdata []inventory.Vmdata
+	Vms inventory.VmsInventory
 
 	/* overall counters for host cpu nanoseconds (for host stats) */
 	cpu_idle_ns uint64
@@ -524,7 +524,7 @@ func get_system_info(si *SystemInfo, old *SystemInfo) error {
 	defer hv.m.RUnlock()
 	var (
 		host openapi.Host
-		vmdata []inventory.Vmdata
+		vms inventory.VmsInventory
 		err error
 		xmldata string
 		caps libvirtxml.Caps
@@ -601,24 +601,33 @@ func get_system_info(si *SystemInfo, old *SystemInfo) error {
 	}
 	defer freeDomains(doms)
 
-	vmdata = make([]inventory.Vmdata, 0, len(doms))
+	vms = make(inventory.VmsInventory)
 	for _, d = range doms {
 		var (
 			vm inventory.Vmdata
+			oldvm inventory.Vmdata
+			present bool
 		)
 		vm.Name, vm.Uuid, vm.Runinfo.Runstate, err = get_domain_info(&d)
 		if (err != nil) {
 			logger.Log("could not get_domain_info: %s", err.Error())
 			continue
 		}
-		err = get_domain_stats(&d, &vm)
+		if (old != nil) {
+			oldvm, present = old.Vms[vm.Uuid]
+		}
 		vm.Runinfo.Host = host.Uuid
+		vm.Ts = ts
+		if (present) {
+			err = get_domain_stats(&d, &vm, &oldvm)
+		} else {
+			err = get_domain_stats(&d, &vm, nil)
+		}
 		total_memory_capacity += uint64(vm.Stats.MemoryCapacity)
 		total_memory_used += uint64(vm.Stats.MemoryUsed)
 		total_vcpus_mhz += uint32(vm.Stats.Vcpus) * uint32(info.MHz) /* should be equal to Topology Sockets * Cores, since we do not use threads */
 		total_cpus_used_percent += vm.Stats.CpuUtilization
-		vm.Ts = ts
-		vmdata = append(vmdata, vm)
+		vms[vm.Uuid] = vm
 	}
 	/* now calculate host resources */
 	free_memory, err = hv.conn.GetFreeMemory()
@@ -653,7 +662,7 @@ func get_system_info(si *SystemInfo, old *SystemInfo) error {
 			logger.Log("get_system_info: host timestamps not in order?")
 		} else {
 			/* XXX accounting is different between Intel and AMD with SMT (Hyperthreads) XXX */
-			var delta float64 = float64(inventory.Counter_delta_uint64(si.cpu_idle_ns, old.cpu_idle_ns))
+			var delta float64 = float64(Counter_delta_uint64(si.cpu_idle_ns, old.cpu_idle_ns))
 			if (host.Def.Cpuarch.Vendor == "Intel") {
 				host.Resources.Cpu.Free = int32(delta / (interval * 1000000) * float64(info.MHz) / float64(info.Threads))
 			} else {
@@ -661,7 +670,7 @@ func get_system_info(si *SystemInfo, old *SystemInfo) error {
 			}
 			host.Resources.Cpu.Used = host.Resources.Cpu.Total - host.Resources.Cpu.Free
 
-			delta = float64(inventory.Counter_delta_uint64(si.cpu_kernel_ns, old.cpu_kernel_ns))
+			delta = float64(Counter_delta_uint64(si.cpu_kernel_ns, old.cpu_kernel_ns))
 			host.Resources.Cpu.Usedos = int32(delta / (interval * 1000000) * float64(info.MHz))
 			host.Resources.Cpu.Usedvms = total_cpus_used_percent * int32(info.MHz) / 100
 			host.Resources.Cpu.Usedos -= host.Resources.Cpu.Usedvms
@@ -681,7 +690,7 @@ func get_system_info(si *SystemInfo, old *SystemInfo) error {
 	}
 out:
 	si.Host = host
-	si.Vmdata = vmdata
+	si.Vms = vms
 	return err
 }
 
@@ -711,7 +720,7 @@ type xmlDomain struct {
 	} `xml:"devices"`
 }
 
-func get_domain_stats(d *libvirt.Domain, vm *inventory.Vmdata) error {
+func get_domain_stats(d *libvirt.Domain, vm *inventory.Vmdata, old *inventory.Vmdata) error {
 	var err error
 	{
 		var info *libvirt.DomainInfo
@@ -731,6 +740,26 @@ func get_domain_stats(d *libvirt.Domain, vm *inventory.Vmdata) error {
 			if (libvirt.DomainMemoryStatTags(stat.Tag) == libvirt.DOMAIN_MEMORY_STAT_RSS) {
 				vm.Stats.MemoryUsed = int64(stat.Val / KiB) /* convert from KiB to MiB */
 				break
+			}
+		}
+	}
+	if (old != nil) {
+		/* calculate deltas from previous Vm info */
+		if (vm.Runinfo.Runstate > openapi.RUNSTATE_POWEROFF &&
+			old.Runinfo.Runstate > openapi.RUNSTATE_POWEROFF) {
+			var delta uint64 = Counter_delta_uint64(vm.Cpu_time, old.Cpu_time)
+			if (delta > 0 && (vm.Ts - old.Ts) > 0 && vm.Stats.Vcpus > 0) {
+				vm.Stats.CpuUtilization = int32((delta * 100) / (uint64(vm.Ts - old.Ts) * 1000000))
+			}
+		}
+		{
+			var delta int64 = Counter_delta_int64(vm.Net_rx, old.Net_rx)
+			if (delta > 0 && (vm.Ts - old.Ts) > 0) {
+				vm.Stats.NetRxBw = int32((delta * 1000) / ((vm.Ts - old.Ts) * KiB))
+			}
+			delta = Counter_delta_int64(vm.Net_tx, old.Net_tx)
+			if (delta > 0 && (vm.Ts - old.Ts) > 0) {
+				vm.Stats.NetTxBw = int32((delta * 1000) / ((vm.Ts - old.Ts) * KiB))
 			}
 		}
 	}
