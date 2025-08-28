@@ -7,10 +7,11 @@ import (
 
 func host_get(host *openapi.Host) {
 	if (virtx.stat) {
-		fmt.Fprintf(virtx.w, "  CPU_TOTAL\t   CPU_USED\t   CPU_FREE\tCPU_USED_OS\t CPU_RES_VM\t CPU_AVL_VM\t  MEM_TOTAL\t   MEM_USED\t   MEM_FREE\tMEM_USED_OS\t MEM_RES_VM\t MEM_AVL_VM\n")
-		fmt.Fprintf(virtx.w, "%7d MHz\t%7d MHz\t%7d MHz\t%7d MHz\t%7d MHz\t%7d MHz\t%7d MiB\t%7d MiB\t%7d MiB\t%7d MiB\t%7d MiB\t%7d MiB\n",
+		fmt.Fprintf(virtx.w, "  CPU_TOTAL\t   CPU_USED\t   CPU_FREE\tCPU_USED_OS\tCPU_USED_VM\t CPU_RES_VM\t CPU_AVL_VM\t  MEM_TOTAL\t   MEM_USED\t   MEM_FREE\tMEM_USED_OS\t MEM_RES_VM\t MEM_AVL_VM\n")
+		fmt.Fprintf(virtx.w, "%7d MHz\t%7d MHz\t%7d MHz\t%7d MHz\t%7d MHz\t%7d MHz\t%7d MHz\t%7d MiB\t%7d MiB\t%7d MiB\t%7d MiB\t%7d MiB\t%7d MiB\n",
 			host.Resources.Cpu.Total, host.Resources.Cpu.Used, host.Resources.Cpu.Free,
-			host.Resources.Cpu.Usedos, host.Resources.Cpu.Reservedvms, host.Resources.Cpu.Availablevms,
+			host.Resources.Cpu.Usedos, host.Resources.Cpu.Usedvms,
+			host.Resources.Cpu.Reservedvms, host.Resources.Cpu.Availablevms,
 			host.Resources.Memory.Total, host.Resources.Memory.Used, host.Resources.Memory.Free,
 			host.Resources.Memory.Usedos, host.Resources.Memory.Reservedvms, host.Resources.Memory.Availablevms,
 		)
