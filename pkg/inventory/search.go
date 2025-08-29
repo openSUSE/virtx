@@ -47,6 +47,9 @@ func Search_hosts(f openapi.HostListFields) openapi.HostList {
 		if (f.Cpudef.Model != "" && (host.Def.Cpudef.Model != f.Cpudef.Model)) {
 			continue
 		}
+		if (f.Cpudef.Nodes > 0 && (host.Def.Cpudef.Nodes < f.Cpudef.Nodes)) {
+			continue
+		}
 		if (f.Cpudef.Sockets > 0 && (host.Def.Cpudef.Sockets < f.Cpudef.Sockets)) {
 			continue
 		}

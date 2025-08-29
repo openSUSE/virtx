@@ -566,6 +566,7 @@ func get_system_info(si *SystemInfo, old *SystemInfo) error {
 	host.Def.Cpuarch.Arch = caps.Host.CPU.Arch
 	host.Def.Cpuarch.Vendor = caps.Host.CPU.Vendor
 	host.Def.Cpudef.Model = caps.Host.CPU.Model
+	host.Def.Cpudef.Nodes = int16(info.Nodes)
 	host.Def.Cpudef.Sockets = int16(info.Sockets)
 	host.Def.Cpudef.Cores = int16(info.Cores)
 	host.Def.Cpudef.Threads = int16(info.Threads)
@@ -649,7 +650,7 @@ func get_system_info(si *SystemInfo, old *SystemInfo) error {
 	host.Resources.Memory.Availablevms = host.Resources.Memory.Total - host.Resources.Memory.Reservedvms - host.Resources.Memory.Usedos
 
 	/* CPU */
-	host.Resources.Cpu.Total = int32(uint(info.Sockets * info.Cores * info.Threads) * info.MHz)
+	host.Resources.Cpu.Total = int32(uint(info.Nodes * info.Sockets * info.Cores * info.Threads) * info.MHz)
 	host.Resources.Cpu.Reservedvms = int32((float64(total_vcpus_mhz) / 100.0) * hv.vcpu_load_factor)
 	si.cpu_idle_ns = cpustats.Idle
 	si.cpu_kernel_ns = cpustats.Kernel
