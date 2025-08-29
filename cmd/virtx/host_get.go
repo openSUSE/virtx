@@ -17,10 +17,10 @@ func host_get(host *openapi.Host) {
 			host.Resources.Memory.Reservedvms, host.Resources.Memory.Availablevms,
 		)
 	} else {
-		fmt.Fprintf(virtx.w, "NAME\tCPU\tVENDOR\tMODEL\tSOCKS\tCORES\tTH\tTSC_FREQ\tFWVER\tFWDATE\tSTATE\n")
-		fmt.Fprintf(virtx.w, "%s\t%s\t%s\t%s\t%5d\t%5d\t%2d\t%d\t%s\t%s\t%s\n",
+		fmt.Fprintf(virtx.w, "NAME\tCPU\tVENDOR\tMODEL\tNODES\tSOCKS\tCORES\tTH\tTSC_FREQ\tFWVER\tFWDATE\tSTATE\n")
+		fmt.Fprintf(virtx.w, "%s\t%s\t%s\t%s\t%5d\t%5d\t%5d\t%2d\t%d\t%s\t%s\t%s\n",
 			host.Def.Name, host.Def.Cpuarch.Arch, host.Def.Cpuarch.Vendor, host.Def.Cpudef.Model,
-			host.Def.Cpudef.Sockets, host.Def.Cpudef.Cores, host.Def.Cpudef.Threads,
+			host.Def.Cpudef.Nodes, host.Def.Cpudef.Sockets, host.Def.Cpudef.Cores, host.Def.Cpudef.Threads,
 			host.Def.Tscfreq, host.Def.Sysinfo.Version, host.Def.Sysinfo.Date, host.State,
 		)
 	}
