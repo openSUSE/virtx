@@ -151,7 +151,6 @@ func Update_vm_state(e *VmEvent) error {
 	defer inventory.m.Unlock()
 	var (
 		vmdata Vmdata
-		hostdata Hostdata
 		present bool
 	)
 	vmdata, present = inventory.vms[e.Uuid]
@@ -161,9 +160,9 @@ func Update_vm_state(e *VmEvent) error {
 	vmdata.Runinfo.Runstate = openapi.Vmrunstate(e.State)
 	if (vmdata.Runinfo.Runstate == openapi.RUNSTATE_DELETED) {
 		var host_uuid string = vmdata.Runinfo.Host
-		hostdata, present = inventory.hosts[host_uuid]
+		_, present = inventory.hosts[host_uuid]
 		if (present) {
-			delete(hostdata.vms, e.Uuid)
+			delete(inventory.hosts[host_uuid].vms, e.Uuid)
 		} else {
 			logger.Log("deleted VM %s does not appear in its host %s", e.Uuid, host_uuid)
 		}
