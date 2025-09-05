@@ -24,9 +24,9 @@ var _ MappedNullable = &Cpudef{}
 type Cpudef struct {
 	// libvirt cpu model. \"\" -> not set
 	Model string `json:"model"`
-	// number of numa nodes. 0 -> not set
+	// number of NUMA nodes. 0 -> not set
 	Nodes int16 `json:"nodes"`
-	// number of sockets. 0 -> not set
+	// number of sockets per node. 0 -> not set
 	Sockets int16 `json:"sockets"`
 	// number of cores per socket. 0 -> not set
 	Cores int16 `json:"cores"`
