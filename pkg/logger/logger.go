@@ -37,7 +37,7 @@ func do_log(caller string, format string, args ...interface{}) {
 	caller = strings.TrimSuffix(caller, filepath.Ext(caller))
 
 	var now string = time.Now().UTC().Format(time.DateTime)
-	var prefix string = fmt.Sprintf("%s %s: %s: ", now, "virtXD", caller)
+	var prefix string = fmt.Sprintf("%s %s: %s: ", now, "virtx", caller)
 
 	fmt.Fprint(os.Stderr, prefix)
 	fmt.Fprintf(os.Stderr, format, args...)
