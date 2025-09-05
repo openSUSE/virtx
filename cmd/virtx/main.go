@@ -56,6 +56,7 @@ type VirtxClient struct {
 	vm_shutdown_options openapi.VmShutdownOptions
 	vm_delete_options openapi.VmDeleteOptions
 	vm_migrate_options openapi.VmMigrateOptions
+	vm_register_options openapi.VmRegisterOptions
 
 	arg any                     // the argument if needed, the struct to be encoded into body of request
 	result any                  // pointer to struct to be decoded from body of the response

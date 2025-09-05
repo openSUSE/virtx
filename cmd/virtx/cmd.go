@@ -369,6 +369,30 @@ func init() {
 			}
 		},
 	}
+	var cmd_register = &cobra.Command{
+		Use:   "register",
+		Short: "Register a resource",
+	}
+	var cmd_register_vm = &cobra.Command{
+		Use:   "vm --host HOST_UUID VM_UUID",
+		Short: "Register a VM",
+		Long:  "Register a VM identified by host and VM UUIDs if it desynced between virtx and libvirt",
+		Args:  cobra.ExactArgs(1), /* UUID */
+		Run: func(cmd *cobra.Command, args []string) {
+			if (virtx.ok) {
+				if (virtx.result != nil) {
+					//vm_register(virtx.result.(*string))
+				}
+			} else {
+				virtx.path = fmt.Sprintf("/vms/%s/register", args[0])
+				virtx.method = "PUT"
+				virtx.arg = &virtx.vm_register_options
+				virtx.result = nil
+			}
+		},
+	}
+	cmd_register_vm.Flags().StringVarP(&virtx.vm_register_options.Host, "host", "h", "", "Register VM on the specified host")
+	cmd_register_vm.MarkFlagRequired("host")
 
 	/* XXX ugh. Cobra forces the existence of -h, --help if not overridden explicitly.
 	 * This means that it's impossible to use -h for something else.
@@ -406,6 +430,8 @@ func init() {
 	cmd.AddCommand(cmd_abort)
 	cmd_abort.AddCommand(cmd_abort_migrate)
 	cmd_abort_migrate.AddCommand(cmd_abort_migrate_vm)
+	cmd.AddCommand(cmd_register)
+	cmd_register.AddCommand(cmd_register_vm)
 }
 
 func cmd_exec() error {
