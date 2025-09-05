@@ -121,6 +121,7 @@ func update_host(host *openapi.Host) {
 		}
 		hostdata.host = *host
 	} else {
+		/* this is the first time we see this host. */
 		hostdata = Hostdata{
 			host: *host,
 			vms: make(map[string]struct{}),
