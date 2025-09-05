@@ -32,6 +32,10 @@ func reg_file(host_uuid string, vm_uuid string) string {
 	return fmt.Sprintf("%s/%s/%s.xml", REG_DIR, host_uuid, vm_uuid)
 }
 
+func reg_dir(host_uuid string) string {
+	return fmt.Sprintf("%s/%s", REG_DIR, host_uuid)
+}
+
 func reg_syncdir(dirname string) error {
 	dir, err := os.Open(dirname)
 	if (err != nil) {
@@ -126,4 +130,46 @@ func Delete(host_uuid string, vm_uuid string) error {
 		return err
 	}
 	return nil
+}
+
+/*
+ * returns nil if file exists and is accessible, error otherwise.
+ * Caller can check os.IsNotExist(err) to distinguish the cases.
+ */
+func Access(host_uuid string, vm_uuid string) error {
+	_, err := os.Stat(reg_file(host_uuid, vm_uuid))
+	if (err == nil) {
+		return nil
+	}
+	return err
+}
+
+/* get all the VM Uuids for a host */
+func Uuids(host_uuid string) ([]string, error) {
+	var (
+		uuids []string
+		err error
+		entries []os.DirEntry
+		i, length int
+		name string
+	)
+	entries, err = os.ReadDir(reg_dir(host_uuid))
+	if (err != nil) {
+		return nil, err
+	}
+	for i, _ = range(entries) {
+		if (entries[i].IsDir()) {
+			continue
+		}
+		name = entries[i].Name()
+		length = len(name)
+		if (length != 40) {
+			continue
+		}
+		if (name[length - 4:] != ".xml") {
+			continue
+		}
+		uuids = append(uuids, name[:length - 4])
+	}
+	return uuids, nil
 }
