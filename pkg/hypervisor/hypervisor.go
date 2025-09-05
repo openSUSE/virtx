@@ -200,10 +200,7 @@ func system_info_loop(seconds int) error {
 	hv.m.Lock()
 	hv.uuid = old.Host.Uuid
 	hv.cpuarch = old.Host.Def.Cpuarch
-	err = os.MkdirAll(fmt.Sprintf("%s/%s", REG_DIR, old.Host.Uuid), 0750)
-	if (err != nil) {
-		logger.Fatal("could not write %s/%s: %s", REG_DIR, old.Host.Uuid, err.Error())
-	}
+	check_vmreg(hv.uuid, &old)
 	hv.m.Unlock()
 
 	/* this first info is missing vm cpu stats and host cpu stats */
@@ -940,4 +937,57 @@ func Uuid() string {
 	hv.m.RLock()
 	defer hv.m.RUnlock()
 	return hv.uuid
+}
+
+func check_vmreg(host_uuid string, si *SystemInfo) {
+	var (
+		err error
+		uuid string
+		uuids []string
+		conn *libvirt.Connect
+	)
+	err = os.MkdirAll(fmt.Sprintf("%s/%s", REG_DIR, host_uuid), 0750)
+	if (err != nil) {
+		logger.Fatal("could not create %s/%s: %s", REG_DIR, host_uuid, err.Error())
+	}
+	/* check that all vms in libvirt are registered in vmreg */
+	for uuid, _ = range(si.Vms) {
+		err = vmreg.Access(host_uuid, uuid)
+		if (err == nil) {
+			continue
+		}
+		if (!os.IsNotExist(err)) {
+			logger.Fatal("could not access file in %s/%s: %s", REG_DIR, host_uuid, err.Error())
+		}
+		/* os.IsNotExist */
+		logger.Log("WARNING: local libvirt domain %s/%s is not registered in vmreg", host_uuid, uuid)
+	}
+	uuids, err = vmreg.Uuids(host_uuid)
+	if (err != nil) {
+		logger.Fatal("could not get the list of VM uuids for host %s", host_uuid)
+	}
+	conn, err = libvirt.NewConnect(libvirt_uri)
+	if (err != nil) {
+		logger.Fatal("could not connect to libvirt: %s", err.Error())
+	}
+	defer conn.Close()
+
+	/* check that all vms in vmreg are registered in libvirt */
+	for _, uuid = range(uuids) {
+		var (
+			domain *libvirt.Domain
+			bytes [16]byte
+			len int
+		)
+		len = hexstring.Encode(bytes[:], uuid)
+		if (len <= 0) {
+			logger.Fatal("failed to encode uuid from hexstring")
+		}
+		domain, err = conn.LookupDomainByUUID(bytes[:])
+		if (err != nil) {
+			logger.Log("WARNING: vmreg VM %s/%s is not registered in libvirt", host_uuid, uuid)
+		} else {
+			domain.Free()
+		}
+	}
 }
