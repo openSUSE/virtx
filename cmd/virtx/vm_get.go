@@ -7,6 +7,10 @@ import (
 
 func vm_get(vm *openapi.Vm) {
 	if (virtx.stat) {
+		if (vm.Def.Memory.Hp) {
+			/* XXX for hugetlbfs, all huge pages are "used" from the host perspective, plus the RSS of QEMU */
+			vm.Stats.MemoryUsed += vm.Stats.MemoryCapacity
+		}
 		fmt.Fprintf(virtx.w, "VCPUS\t CPU%%\t    MEM_CAP\t   MEM_USED\t   DISK_CAP\t DISK_ALLOC\t  DISK_PHYS\t NETWORK_RX\t NETWORK_TX\n")
 		fmt.Fprintf(virtx.w, "%5d\t%5d\t%7d MiB\t%7d MiB\t%7d MiB\t%7d MiB\t%7d MiB\t%7d KiB\t%7d KiB\n",
 			vm.Stats.Vcpus, vm.Stats.CpuUtilization,
