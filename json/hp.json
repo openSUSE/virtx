@@ -1,0 +1,50 @@
+{
+    "name": "opensuse-15.5",
+    "cpudef": {
+        "model": "host-passthrough",
+        "nodes": 1,
+        "sockets": 16,
+        "cores": 1,
+        "threads": 1
+    },
+    "memory": {
+        "total": 4096,
+        "hp": true
+    },
+    "numa": {
+        "placement": false
+    },
+    "osdisk": {
+        "path": "/vms/ds/opensuse-15.5/opensuse-15.5.qcow2",
+        "device": 0,
+        "bus": 0,
+        "createmode": 1,
+        "size": 16384
+    },
+    "disks": [
+        {
+            "path": "/vms/ds/opensuse-15.5-net.iso",
+            "device": 1,
+            "bus": 2,
+            "createmode": 0,
+            "size": 0
+        }
+    ],
+    "nets": [
+        {
+            "name": "default",
+            "nettype": 0,
+            "model": 0,
+            "mac": "52:54:00:8c:25:ef"
+        }
+    ],
+    "vlanid": 0,
+    "firmware": 1,
+    "genid": "43dc0cf8-809b-4adb-9bea-a9abb5f3d90e",
+    "custom": [
+        {
+            "name": "CID",
+            "value": "1217"
+        }
+    ]
+}
