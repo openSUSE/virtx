@@ -206,15 +206,13 @@ func init() {
 		Args:  cobra.ExactArgs(2), /* UUID and FILENAME */
 		Run: func(cmd *cobra.Command, args []string) {
 			if (virtx.ok) {
-				if (virtx.result != nil) {
-					vm_update(virtx.result.(*string))
-				}
+				vm_update()
 			} else {
 				read_json(args[1], &virtx.vm_update_options.Vmdef)
 				virtx.path = fmt.Sprintf("/vms/%s", args[0])
 				virtx.method = "PUT"
 				virtx.arg = &virtx.vm_update_options
-				virtx.result = new(string)
+				virtx.result = nil
 			}
 		},
 	}

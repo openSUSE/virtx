@@ -2,8 +2,6 @@ package virtx
 
 import (
 	"net/http"
-	"encoding/json"
-	"bytes"
 
 	"suse.com/virtx/pkg/hypervisor"
 	"suse.com/virtx/pkg/logger"
@@ -21,7 +19,7 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		host string
 		o openapi.VmUpdateOptions
 		old openapi.Vmdef
-		xml, uuid_old, uuid_new string
+		xml, uuid string
 		vmdata inventory.Vmdata
 		vr httpx.Request
 	)
@@ -31,12 +29,12 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to decode body", http.StatusBadRequest)
 		return
 	}
-	uuid_old = r.PathValue("uuid")
-	if (uuid_old == "") {
+	uuid = r.PathValue("uuid")
+	if (uuid == "") {
 		http.Error(w, "could not get uuid", http.StatusBadRequest)
 		return
 	}
-	vmdata, err = inventory.Get_vm(uuid_old)
+	vmdata, err = inventory.Get_vm(uuid)
 	if (err != nil) {
 		http.Error(w, "unknown uuid", http.StatusNotFound)
 		return
@@ -57,9 +55,9 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	/* read the configuration of the VM from the registry on disk */
-	xml, err = vmreg.Load(host, uuid_old)
+	xml, err = vmreg.Load(host, uuid)
 	if (err != nil) {
-		logger.Log("vmreg.Load(%s, %s) failed: %s", host, uuid_old, err.Error())
+		logger.Log("vmreg.Load(%s, %s) failed: %s", host, uuid, err.Error())
 		http.Error(w, "could not Load VM", http.StatusInternalServerError)
 		return
 	}
@@ -69,12 +67,7 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid VM data", http.StatusInternalServerError)
 		return
 	}
-	uuid_new = New_uuid()
-	if (uuid_new == "") {
-		http.Error(w, "failed", http.StatusInternalServerError)
-		return
-	}
-	xml, err = vmdef.To_xml(&o.Vmdef, uuid_new)
+	xml, err = vmdef.To_xml(&o.Vmdef, uuid)
 	if (err != nil) {
 		logger.Log("vmdef_to_xml failed: %s", err.Error())
 		http.Error(w, "invalid parameters", http.StatusBadRequest)
@@ -91,24 +84,12 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 	if (err != nil) {
 		logger.Log("warning: Write_osdisk_json failed: %s", err.Error())
 	}
-	/* define new domain */
-	err = hypervisor.Define_domain(xml, uuid_new)
+	/* redefine the updated domain */
+	err = hypervisor.Define_domain(xml, uuid)
 	if (err != nil) {
 		logger.Log("hypervisor.Define_domain failed: %s", err.Error())
 		http.Error(w, "could not define VM", http.StatusInternalServerError)
 		return
 	}
-	err = hypervisor.Delete_domain(uuid_old)
-	if (err != nil) {
-		logger.Log("could not undefine previous domain: %s: %s", uuid_old, err.Error())
-		w.Header().Set("Warning", `299 VirtX "old domain could not be deleted"`)
-	}
-	var buf bytes.Buffer
-	err = json.NewEncoder(&buf).Encode(&uuid_new)
-	if (err != nil) {
-		logger.Log("failed to encode JSON")
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	w.Write(buf.Bytes())
+	w.WriteHeader(http.StatusNoContent)
 }
