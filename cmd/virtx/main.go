@@ -75,11 +75,15 @@ var virtx VirtxClient = VirtxClient{
 	},
 }
 
+var version string = "unknown"
+
 func main() {
 	var (
 		err error
 		response *http.Response
 	)
+	logger.Log("version %s", version)
+
 	err = cmd_exec()
 	if (err != nil) {
 		logger.Log("failed to parse command: %s\n", err.Error())

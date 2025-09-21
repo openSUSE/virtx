@@ -33,10 +33,14 @@ const (
 	SerfRPCAddr = "127.0.0.1:7373"
 )
 
+var version string = "unknown"
+
 func main() {
 	var (
 		err error
 	)
+	logger.Log("version %s", version)
+
 	/* hypervisor: initialize and start listening to hypervisor events */
 	err = hypervisor.Connect()
 	if (err != nil) {
