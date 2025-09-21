@@ -303,6 +303,66 @@ func Define_domain(xml string, uuid string) error {
 	return nil
 }
 
+func Migrate_domain(hostname string, host_uuid string, host_old string, uuid string, live bool, vcpus int) error {
+	var (
+		err error
+		conn, conn2 *libvirt.Connect
+		domain, domain2 *libvirt.Domain
+		len int
+		bytes [16]byte
+		params libvirt.DomainMigrateParameters
+		flags libvirt.DomainMigrateFlags
+	)
+	params.URI = "tcp://" + hostname
+	params.URISet = true
+	if (live) {
+		params.ParallelConnectionsSet = true
+		params.ParallelConnections = vcpus
+		flags = libvirt.MIGRATE_LIVE         |
+			libvirt.MIGRATE_PERSIST_DEST     |
+			libvirt.MIGRATE_ABORT_ON_ERROR   |
+			libvirt.MIGRATE_UNDEFINE_SOURCE  |
+			libvirt.MIGRATE_AUTO_CONVERGE    |
+			libvirt.MIGRATE_PARALLEL
+	} else {
+		flags = libvirt.MIGRATE_OFFLINE      |
+			libvirt.MIGRATE_PERSIST_DEST     |
+			libvirt.MIGRATE_ABORT_ON_ERROR   |
+			libvirt.MIGRATE_UNDEFINE_SOURCE
+	}
+	conn, err = libvirt.NewConnect(libvirt_uri)
+	if (err != nil) {
+		return err
+	}
+	defer conn.Close()
+	conn2, err = libvirt.NewConnect("qemu+tcp://" + hostname + "/system")
+	if (err != nil) {
+		return err
+	}
+	defer conn2.Close()
+	len = hexstring.Encode(bytes[:], uuid)
+	if (len <= 0) {
+		return errors.New("failed to encode uuid from hexstring")
+	}
+	domain, err = conn.LookupDomainByUUID(bytes[:])
+	if (err != nil) {
+		return err
+	}
+	defer domain.Free()
+	domain2, err = domain.Migrate3(conn2, &params, flags)
+	if (err != nil) {
+		logger.Log("Migrate_domain: failed to Migrate3")
+		return err
+	}
+	defer domain2.Free()
+	/* move the xml file to /vms/xml/host_uuid/uuid.xml */
+	err = vmreg.Move(host_uuid, host_old, uuid)
+	if (err != nil) {
+		logger.Log("Migrate_domain: failed to vmreg.Move(%s, %s, %s)", host_uuid, host_old, uuid)
+	}
+	return nil
+}
+
 func Dumpxml(uuid string) (string, error) {
 	var (
 		err error

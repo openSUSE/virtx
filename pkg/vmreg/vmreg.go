@@ -115,6 +115,38 @@ func Save(host_uuid string, vm_uuid string, xml string) error {
 	return nil
 }
 
+/*
+ * We try to atomically move to another host, to avoid corruption.
+ */
+func Move(new_host string, old_host string, uuid string) error {
+	var (
+		err error
+		dirname, filename string
+		dirname_old, filename_old string
+	)
+	/* target file for the save */
+	filename = reg_file(new_host, uuid)
+	dirname = filepath.Dir(filename)
+	/* source file for the move */
+	filename_old = reg_file(old_host, uuid)
+	dirname_old = filepath.Dir(filename_old)
+
+	/* try the atomic rename */
+	err = os.Rename(filename_old, filename)
+	if (err != nil) {
+		return err
+	}
+	err = reg_syncdir(dirname)
+	if (err != nil) {
+		return err
+	}
+	err = reg_syncdir(dirname_old)
+	if (err != nil) {
+		return err
+	}
+	return nil
+}
+
 func Delete(host_uuid string, vm_uuid string) error {
 	var (
 		err error
