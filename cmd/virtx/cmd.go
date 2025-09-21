@@ -378,9 +378,7 @@ func init() {
 		Args:  cobra.ExactArgs(1), /* UUID */
 		Run: func(cmd *cobra.Command, args []string) {
 			if (virtx.ok) {
-				if (virtx.result != nil) {
-					//vm_register(virtx.result.(*string))
-				}
+				vm_register()
 			} else {
 				virtx.path = fmt.Sprintf("/vms/%s/register", args[0])
 				virtx.method = "PUT"
