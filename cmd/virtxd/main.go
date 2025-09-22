@@ -51,9 +51,9 @@ func main() {
 	/* virtx service: initialize */
 	virtx.Init()
 	/*
-     * serf: initialize communication package, and then
+	 * serf: initialize communication package, and then
 	 * the actual serf client for RPC bi-directional comm,
-     * and add a tag entry for this host using its UUID
+	 * and add a tag entry for this host using its UUID
 	 */
 	err = serfcomm.Init(SerfRPCAddr)
 	if (err != nil) {
@@ -62,7 +62,7 @@ func main() {
 	defer serfcomm.Shutdown()
 	serf_shutdown_ch := make(chan struct{})
 	/*
-     * start listening for outgoing VMEvents and SystemInfo and incoming serf events.
+	 * start listening for outgoing VMEvents and SystemInfo and incoming serf events.
 	 */
 	serfcomm.Start_listening(hypervisor.GetVmEventCh(), hypervisor.GetSystemInfoCh(), serf_shutdown_ch)
 
