@@ -41,6 +41,13 @@ while it will listen on port 7946 (TCP and UDP) for serf itself.
 
 The virtx API service will be listening on port 8080.
 
+# TODO
+
+- migration (offline/live) needs more testing and probably changes
+- security is completely missing, implementation is just plain HTTP and libvirt TCP. No API keys, certificates etc.
+- Only NFS is implemented as shared storage (no iSCSI)
+- HA features are not implemented yet
+
 # BUGS
 
 For some reason for me version go1.23.8 the old pre-1.22 net/http behavior is triggered,
