@@ -42,12 +42,30 @@ import (
 )
 
 const (
+	max_freq_path = "/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq"
 	libvirt_uri = "qemu:///system"
 	libvirt_reconnect_seconds = 5
 	libvirt_system_info_seconds = 15
 )
 
+type SystemInfoImm struct { /* immutable fields of SystemInfo */
+	caps libvirtxml.Caps
+	/*
+	 * XXX Mhz needs to be fetched manually because libvirt does a bad job of it.
+	 * libvirt reads /proc/cpuinfo, which just shows current Mhz, not max Mhz.
+	 * So any power state change, frequency change may change results. Oh my.
+	 *
+	 * We need to call nodeinfo specifically anyway, only for the total memory size,
+	 * since there is an API to get the free memory, but not one to get total memory size. Ugh.
+	 * So we keep using nodeinfo and we keep it here, overwriting the MHz value.
+	 */
+	info *libvirt.NodeInfo
+	bios_version string
+	bios_date string
+}
+
 type SystemInfo struct {
+	imm SystemInfoImm
 	Host openapi.Host
 	Vms inventory.VmsInventory
 
@@ -576,6 +594,60 @@ type xmlEntry struct {
 	Value string `xml:",chardata"`
 }
 
+/*
+ * this information does not change after the first fetch,
+ * and is reused for all subsequent get_system_info calls
+ */
+func get_system_info_immutable(imm *SystemInfoImm) error {
+	var (
+		data string
+		smbios xmlSysInfo
+		raw []byte
+		mhz int
+		err error
+	)
+	data, err = hv.conn.GetCapabilities()
+	if (err != nil) {
+		return err
+	}
+	err = imm.caps.Unmarshal(data)
+	if (err != nil) {
+		return err
+	}
+	data, err = hv.conn.GetSysinfo(0)
+	if (err != nil) {
+		return err
+	}
+	/* workaround for libvirtxml go bindings bug/missing feature. Should behave like libvirtxml.Caps() instead. */
+	err = xml.Unmarshal([]byte(data), &smbios)
+	if (err != nil) {
+		return err
+	}
+	for _, e := range smbios.BIOS.Entries {
+		switch e.Name {
+		case "version":
+			imm.bios_version = e.Value
+		case "date":
+			imm.bios_date = e.Value
+		}
+	}
+	/* we still need nodeinfo specifically and only for the memory size. Ugh. */
+	imm.info, err = hv.conn.GetNodeInfo()
+	if (err != nil) {
+		return err
+	}
+	raw, err = os.ReadFile(max_freq_path)
+	if (err != nil) {
+		return err
+	}
+	mhz, err = strconv.Atoi(strings.TrimSpace(string(raw)))
+	if (err != nil) {
+		return err
+	}
+	imm.info.MHz = uint(mhz / 1000) /* input from sysfs is measured in Hz */
+	return nil
+}
+
 func get_system_info(si *SystemInfo, old *SystemInfo) error {
 	hv.m.RLock()
 	defer hv.m.RUnlock()
@@ -583,11 +655,8 @@ func get_system_info(si *SystemInfo, old *SystemInfo) error {
 		host openapi.Host
 		vms inventory.VmsInventory
 		err error
-		xmldata string
-		caps libvirtxml.Caps
-		smbios xmlSysInfo
+		caps *libvirtxml.Caps
 		info *libvirt.NodeInfo
-		ts int64
 	)
 	var (
 		doms []libvirt.Domain
@@ -602,19 +671,19 @@ func get_system_info(si *SystemInfo, old *SystemInfo) error {
 		cpustats *libvirt.NodeCPUStats
 	)
 
+	if (old == nil) {
+		err = get_system_info_immutable(&si.imm)
+		if (err != nil) {
+			goto out
+		}
+	} else {
+		si.imm = old.imm
+	}
+	/* for quick access */
+	caps = &si.imm.caps
+	info = si.imm.info
+
 	/* 1. set the general host information */
-	xmldata, err = hv.conn.GetCapabilities()
-	if (err != nil) {
-		goto out
-	}
-	err = caps.Unmarshal(xmldata)
-	if (err != nil) {
-		goto out
-	}
-	info, err = hv.conn.GetNodeInfo()
-	if (err != nil) {
-		goto out
-	}
 	host.Uuid = caps.Host.UUID
 	host.Def.Name, err = hv.conn.GetHostname()
 	if (err != nil) {
@@ -628,26 +697,10 @@ func get_system_info(si *SystemInfo, old *SystemInfo) error {
 	host.Def.Cpudef.Cores = int16(info.Cores)
 	host.Def.Cpudef.Threads = int16(info.Threads)
 	host.Def.Tscfreq = int64(caps.Host.CPU.Counter.Frequency)
-	xmldata, err = hv.conn.GetSysinfo(0)
-	if (err != nil) {
-		goto out
-	}
-	/* workaround for libvirtxml go bindings bug/missing feature. Should behave like libvirtxml.Caps() instead. */
-	err = xml.Unmarshal([]byte(xmldata), &smbios)
-	if (err != nil) {
-		goto out
-	}
-	for _, e := range smbios.BIOS.Entries {
-		switch e.Name {
-		case "version":
-			host.Def.Sysinfo.Version = e.Value
-		case "date":
-			host.Def.Sysinfo.Date = e.Value
-		}
-	}
+	host.Def.Sysinfo.Version = si.imm.bios_version
+	host.Def.Sysinfo.Date = si.imm.bios_date
 	host.State = openapi.HOST_ACTIVE
-	ts = time.Now().UTC().UnixMilli()
-	host.Ts = ts
+	host.Ts = time.Now().UTC().UnixMilli()
 
 	/*
 	 * 2. get information about all the domains, so that we can calculate
@@ -675,7 +728,7 @@ func get_system_info(si *SystemInfo, old *SystemInfo) error {
 			oldvm, present = old.Vms[vm.Uuid]
 		}
 		vm.Runinfo.Host = host.Uuid
-		vm.Ts = ts
+		vm.Ts = host.Ts
 		if (present) {
 			err = get_domain_stats(&d, &vm, &oldvm)
 		} else {
