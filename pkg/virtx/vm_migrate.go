@@ -65,11 +65,13 @@ func vm_migrate(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to get host", http.StatusInternalServerError)
 		return
 	}
-	err = hypervisor.Migrate_domain(host.Def.Name, o.Host, host_old, uuid, o.Live, int(vmdata.Stats.Vcpus))
-	if (err != nil) {
-		logger.Log("migration failed: %s", err.Error())
-		http.Error(w, "migration failed", http.StatusInternalServerError)
-		return
-	}
+	go func() {
+		err = hypervisor.Migrate_domain(host.Def.Name, o.Host, host_old, uuid, o.Live, int(vmdata.Stats.Vcpus))
+		if (err != nil) {
+			logger.Log("migration of domain %s failed: %s", uuid, err.Error())
+		} else {
+			logger.Log("migration of domain %s successful", uuid)
+		}
+	} ()
 	w.WriteHeader(http.StatusAccepted)
 }
