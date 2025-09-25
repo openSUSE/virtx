@@ -341,12 +341,14 @@ func Migrate_domain(hostname string, host_uuid string, host_old string, uuid str
 			libvirt.MIGRATE_ABORT_ON_ERROR   |
 			libvirt.MIGRATE_UNDEFINE_SOURCE  |
 			libvirt.MIGRATE_AUTO_CONVERGE    |
-			libvirt.MIGRATE_PARALLEL
+			libvirt.MIGRATE_PARALLEL         |
+			libvirt.MIGRATE_UNSAFE
 	} else {
 		flags = libvirt.MIGRATE_OFFLINE      |
 			libvirt.MIGRATE_PERSIST_DEST     |
 			libvirt.MIGRATE_ABORT_ON_ERROR   |
-			libvirt.MIGRATE_UNDEFINE_SOURCE
+			libvirt.MIGRATE_UNDEFINE_SOURCE  |
+			libvirt.MIGRATE_UNSAFE
 	}
 	conn, err = libvirt.NewConnect(libvirt_uri)
 	if (err != nil) {
