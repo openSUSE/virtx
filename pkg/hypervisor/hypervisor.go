@@ -20,6 +20,7 @@ package hypervisor
 import (
 	"time"
 	"encoding/xml"
+	"encoding/json"
 	"sync"
 	"sync/atomic"
 	"errors"
@@ -381,6 +382,72 @@ func Migrate_domain(hostname string, host_uuid string, host_old string, uuid str
 		logger.Log("Migrate_domain: failed to vmreg.Move(%s, %s, %s)", host_uuid, host_old, uuid)
 	}
 	return nil
+}
+
+type QemuMigrationInfo struct {
+	R struct {
+		Status string `json:"status"`
+		Ram struct {
+			Transferred int64 `json:"transferred"`
+			Remaining int64 `json:"remaining"`
+			Total int64 `json:"total"`
+			Mbps float64 `json:"mbps"`
+			Dirty_pages_rate int64 `json:"dirty-pages-rate"`
+			Page_size int64 `json:"page-size"`
+		}
+	} `json:"return"`
+}
+
+func Get_migration_info(uuid string) (openapi.MigrationInfo, error) {
+	var (
+		err error
+		conn *libvirt.Connect
+		qemu_info QemuMigrationInfo
+		info openapi.MigrationInfo
+		result_json string
+		domain *libvirt.Domain
+		len int
+		bytes [16]byte
+	)
+	conn, err = libvirt.NewConnect(libvirt_uri)
+	if (err != nil) {
+		return info, err
+	}
+	len = hexstring.Encode(bytes[:], uuid)
+	if (len <= 0) {
+		return info, errors.New("failed to encode uuid from hexstring")
+	}
+	domain, err = conn.LookupDomainByUUID(bytes[:])
+	if (err != nil) {
+		return info, err
+	}
+	defer domain.Free()
+	result_json, err = domain.QemuMonitorCommand(
+		"{ \"execute\": \"query-migrate\" }",
+		libvirt.DOMAIN_QEMU_MONITOR_COMMAND_DEFAULT,
+	)
+	if (err != nil) {
+		return info, err
+	}
+	err = json.Unmarshal([]byte(result_json), &qemu_info)
+	if (err != nil) {
+		return info, err
+	}
+	logger.Log("result_json = %s", result_json)
+	logger.Log("qemu_info.R.Status = %s", qemu_info.R.Status)
+	logger.Log("qemu_info = %+v", qemu_info)
+	err = info.State.Parse(qemu_info.R.Status)
+	if (err != nil) {
+		return info, err
+	}
+	if (info.State != openapi.MIGRATION_ACTIVE && info.State != openapi.MIGRATION_COMPLETED) {
+		return info, nil
+	}
+	info.Progress.Total = qemu_info.R.Ram.Total
+	info.Progress.Remaining = qemu_info.R.Ram.Remaining
+	info.Progress.Transferred = qemu_info.R.Ram.Transferred
+	info.Progress.Rate = float32(qemu_info.R.Ram.Mbps / 8)
+	return info, nil
 }
 
 func Dumpxml(uuid string) (string, error) {
