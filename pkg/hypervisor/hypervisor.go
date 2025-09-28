@@ -274,7 +274,7 @@ func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventL
 	}
 	if (state != openapi.RUNSTATE_NONE) {
 		logger.Log("[VmEvent] %s/%s: %v state: %d", name, uuid, e, state)
-		hv.vm_event_ch <- inventory.VmEvent{ Uuid: uuid, State: state, Ts: time.Now().UTC().UnixMilli() }
+		hv.vm_event_ch <- inventory.VmEvent{ Uuid: uuid, Host: hv.uuid, State: state, Ts: time.Now().UTC().UnixMilli() }
 	}
 }
 

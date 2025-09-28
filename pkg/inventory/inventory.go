@@ -47,6 +47,7 @@ type Vmdata struct {
 
 type VmEvent struct {
 	Uuid string
+	Host string
 	State openapi.Vmrunstate
 	Ts int64
 }
@@ -150,27 +151,61 @@ func set_host_state(uuid string, newstate openapi.Hoststate) error {
 func Update_vm_state(e *VmEvent) error {
 	inventory.m.Lock()
 	defer inventory.m.Unlock()
+	return update_vm_state(e.Uuid, openapi.Vmrunstate(e.State), e.Host, e.Ts)
+}
+
+func update_vm_state(uuid string, state openapi.Vmrunstate, host string, ts int64) error {
 	var (
 		vmdata Vmdata
 		present bool
 	)
-	vmdata, present = inventory.vms[e.Uuid]
+	vmdata, present = inventory.vms[uuid]
 	if (!present) {
-		return fmt.Errorf("no such VM %s", e.Uuid)
+		return fmt.Errorf("no such VM %s", uuid)
 	}
-	vmdata.Runinfo.Runstate = openapi.Vmrunstate(e.State)
+	if (vmdata.Ts > ts) {
+		logger.Log("Vm %s: ignoring obsolete Vm state information: ts %d > %d",	uuid, vmdata.Ts, ts)
+		return nil
+	}
+	vmdata.Runinfo.Runstate = openapi.Vmrunstate(state)
+
 	if (vmdata.Runinfo.Runstate == openapi.RUNSTATE_DELETED) {
 		var host_uuid string = vmdata.Runinfo.Host
 		_, present = inventory.hosts[host_uuid]
 		if (present) {
-			delete(inventory.hosts[host_uuid].vms, e.Uuid)
+			delete(inventory.hosts[host_uuid].vms, uuid)
 		} else {
-			logger.Log("deleted VM %s does not appear in its host %s", e.Uuid, host_uuid)
+			logger.Log("deleted VM %s does not appear in its host %s", uuid, host_uuid)
 		}
-		delete(inventory.vms, e.Uuid)
-	} else {
-		inventory.vms[e.Uuid] = vmdata
+		delete(inventory.vms, uuid)
+		return nil
 	}
+
+	/* for all other states, check to see if we have to update host */
+	var old_host string = vmdata.Runinfo.Host
+	vmdata.Runinfo.Host = host
+
+	_, present = inventory.hosts[old_host]
+	if (present) {
+		if (old_host != host) {
+			/*
+			 *  we seem to have changed hosts, which normally follows a VmEvent of a resumed migrated domain:
+			 *  (e.Event == libvirt.DOMAIN_EVENT_RESUMED && e.Detail == libvirt.DOMAIN_EVENT_RESUMED_MIGRATED)
+			 */
+			delete(inventory.hosts[old_host].vms, uuid)
+		}
+	}
+	_, present = inventory.hosts[host]
+	if (present) {
+		if (old_host != host) {
+			/* add the VM to the new host (migration or weird cases of missed events) */
+			inventory.hosts[host].vms[uuid] = struct{}{}
+		}
+	} else {
+		logger.Log("VM %s refers to nonexisting host %s", vmdata.Uuid, host)
+	}
+	/* update the vms inventory data */
+	inventory.vms[uuid] = vmdata
 	return nil
 }
 
@@ -194,6 +229,12 @@ func update_vm(vmdata *Vmdata) error {
 			)
 			return nil
 		}
+		/*
+		 * generate an artificial state change event to make sure to update the
+		 * inventory data structures, should we have missed previous events
+		 */
+		update_vm_state(vmdata.Uuid, vmdata.Runinfo.Runstate, vmdata.Runinfo.Host, vmdata.Ts)
+
 	} else { /* not present */
 		var (
 			host_uuid string = vmdata.Runinfo.Host
