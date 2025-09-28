@@ -161,13 +161,13 @@ func init() {
 		Run: func(cmd *cobra.Command, args []string) {
 			if (virtx.ok) {
 				if (virtx.result != nil) {
-					vm_migrate_get(virtx.result.(*openapi.VmMigrateInfo))
+					vm_migrate_get(virtx.result.(*openapi.MigrationInfo))
 				}
 			} else {
-				virtx.path = fmt.Sprintf("/vms/%s/migrate", args[0])
+				virtx.path = fmt.Sprintf("/vms/%s/runstate/migrate", args[0])
 				virtx.method = "GET"
 				virtx.arg = nil
-				virtx.result = &openapi.VmMigrateInfo{}
+				virtx.result = &openapi.MigrationInfo{}
 			}
 		},
 	}

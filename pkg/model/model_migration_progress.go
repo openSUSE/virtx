@@ -17,11 +17,11 @@ import (
 	"fmt"
 )
 
-// checks if the VmMigrateInfoProgress type satisfies the MappedNullable interface at compile time
-var _ MappedNullable = &VmMigrateInfoProgress{}
+// checks if the MigrationProgress type satisfies the MappedNullable interface at compile time
+var _ MappedNullable = &MigrationProgress{}
 
-// VmMigrateInfoProgress struct for VmMigrateInfoProgress
-type VmMigrateInfoProgress struct {
+// MigrationProgress struct for MigrationProgress
+type MigrationProgress struct {
 	// MiB of RAM to be trasferred
 	Total int64 `json:"total"`
 	// MiB already transferred to the migration target
@@ -32,14 +32,14 @@ type VmMigrateInfoProgress struct {
 	Rate float32 `json:"rate"`
 }
 
-type _VmMigrateInfoProgress VmMigrateInfoProgress
+type _MigrationProgress MigrationProgress
 
-// NewVmMigrateInfoProgress instantiates a new VmMigrateInfoProgress object
+// NewMigrationProgress instantiates a new MigrationProgress object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVmMigrateInfoProgress(total int64, transferred int64, remaining int64, rate float32) *VmMigrateInfoProgress {
-	this := VmMigrateInfoProgress{}
+func NewMigrationProgress(total int64, transferred int64, remaining int64, rate float32) *MigrationProgress {
+	this := MigrationProgress{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
     var _ = bytes.NewBuffer
@@ -51,16 +51,16 @@ func NewVmMigrateInfoProgress(total int64, transferred int64, remaining int64, r
 	return &this
 }
 
-// NewVmMigrateInfoProgressWithDefaults instantiates a new VmMigrateInfoProgress object
+// NewMigrationProgressWithDefaults instantiates a new MigrationProgress object
 // This constructor will only assign default values to properties that have it defined,
 // but it doesn't guarantee that properties required by API are set
-func NewVmMigrateInfoProgressWithDefaults() *VmMigrateInfoProgress {
-	this := VmMigrateInfoProgress{}
+func NewMigrationProgressWithDefaults() *MigrationProgress {
+	this := MigrationProgress{}
 	return &this
 }
 
 // GetTotal returns the Total field value
-func (o *VmMigrateInfoProgress) GetTotal() int64 {
+func (o *MigrationProgress) GetTotal() int64 {
 	if o == nil {
 		var ret int64
 		return ret
@@ -71,7 +71,7 @@ func (o *VmMigrateInfoProgress) GetTotal() int64 {
 
 // GetTotalOk returns a tuple with the Total field value
 // and a boolean to check if the value has been set.
-func (o *VmMigrateInfoProgress) GetTotalOk() (*int64, bool) {
+func (o *MigrationProgress) GetTotalOk() (*int64, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -79,12 +79,12 @@ func (o *VmMigrateInfoProgress) GetTotalOk() (*int64, bool) {
 }
 
 // SetTotal sets field value
-func (o *VmMigrateInfoProgress) SetTotal(v int64) {
+func (o *MigrationProgress) SetTotal(v int64) {
 	o.Total = v
 }
 
 // GetTransferred returns the Transferred field value
-func (o *VmMigrateInfoProgress) GetTransferred() int64 {
+func (o *MigrationProgress) GetTransferred() int64 {
 	if o == nil {
 		var ret int64
 		return ret
@@ -95,7 +95,7 @@ func (o *VmMigrateInfoProgress) GetTransferred() int64 {
 
 // GetTransferredOk returns a tuple with the Transferred field value
 // and a boolean to check if the value has been set.
-func (o *VmMigrateInfoProgress) GetTransferredOk() (*int64, bool) {
+func (o *MigrationProgress) GetTransferredOk() (*int64, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -103,12 +103,12 @@ func (o *VmMigrateInfoProgress) GetTransferredOk() (*int64, bool) {
 }
 
 // SetTransferred sets field value
-func (o *VmMigrateInfoProgress) SetTransferred(v int64) {
+func (o *MigrationProgress) SetTransferred(v int64) {
 	o.Transferred = v
 }
 
 // GetRemaining returns the Remaining field value
-func (o *VmMigrateInfoProgress) GetRemaining() int64 {
+func (o *MigrationProgress) GetRemaining() int64 {
 	if o == nil {
 		var ret int64
 		return ret
@@ -119,7 +119,7 @@ func (o *VmMigrateInfoProgress) GetRemaining() int64 {
 
 // GetRemainingOk returns a tuple with the Remaining field value
 // and a boolean to check if the value has been set.
-func (o *VmMigrateInfoProgress) GetRemainingOk() (*int64, bool) {
+func (o *MigrationProgress) GetRemainingOk() (*int64, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -127,12 +127,12 @@ func (o *VmMigrateInfoProgress) GetRemainingOk() (*int64, bool) {
 }
 
 // SetRemaining sets field value
-func (o *VmMigrateInfoProgress) SetRemaining(v int64) {
+func (o *MigrationProgress) SetRemaining(v int64) {
 	o.Remaining = v
 }
 
 // GetRate returns the Rate field value
-func (o *VmMigrateInfoProgress) GetRate() float32 {
+func (o *MigrationProgress) GetRate() float32 {
 	if o == nil {
 		var ret float32
 		return ret
@@ -143,7 +143,7 @@ func (o *VmMigrateInfoProgress) GetRate() float32 {
 
 // GetRateOk returns a tuple with the Rate field value
 // and a boolean to check if the value has been set.
-func (o *VmMigrateInfoProgress) GetRateOk() (*float32, bool) {
+func (o *MigrationProgress) GetRateOk() (*float32, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -151,11 +151,11 @@ func (o *VmMigrateInfoProgress) GetRateOk() (*float32, bool) {
 }
 
 // SetRate sets field value
-func (o *VmMigrateInfoProgress) SetRate(v float32) {
+func (o *MigrationProgress) SetRate(v float32) {
 	o.Rate = v
 }
 
-func (o VmMigrateInfoProgress) ToMap() (map[string]interface{}, error) {
+func (o MigrationProgress) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["total"] = o.Total
 	toSerialize["transferred"] = o.Transferred
@@ -164,38 +164,38 @@ func (o VmMigrateInfoProgress) ToMap() (map[string]interface{}, error) {
 	return toSerialize, nil
 }
 
-type NullableVmMigrateInfoProgress struct {
-	value *VmMigrateInfoProgress
+type NullableMigrationProgress struct {
+	value *MigrationProgress
 	isSet bool
 }
 
-func (v NullableVmMigrateInfoProgress) Get() *VmMigrateInfoProgress {
+func (v NullableMigrationProgress) Get() *MigrationProgress {
 	return v.value
 }
 
-func (v *NullableVmMigrateInfoProgress) Set(val *VmMigrateInfoProgress) {
+func (v *NullableMigrationProgress) Set(val *MigrationProgress) {
 	v.value = val
 	v.isSet = true
 }
 
-func (v NullableVmMigrateInfoProgress) IsSet() bool {
+func (v NullableMigrationProgress) IsSet() bool {
 	return v.isSet
 }
 
-func (v *NullableVmMigrateInfoProgress) Unset() {
+func (v *NullableMigrationProgress) Unset() {
 	v.value = nil
 	v.isSet = false
 }
 
-func NewNullableVmMigrateInfoProgress(val *VmMigrateInfoProgress) *NullableVmMigrateInfoProgress {
-	return &NullableVmMigrateInfoProgress{value: val, isSet: true}
+func NewNullableMigrationProgress(val *MigrationProgress) *NullableMigrationProgress {
+	return &NullableMigrationProgress{value: val, isSet: true}
 }
 
-func (v NullableVmMigrateInfoProgress) MarshalJSON() ([]byte, error) {
+func (v NullableMigrationProgress) MarshalJSON() ([]byte, error) {
 	return json.Marshal(v.value)
 }
 
-func (v *NullableVmMigrateInfoProgress) UnmarshalJSON(src []byte) error {
+func (v *NullableMigrationProgress) UnmarshalJSON(src []byte) error {
 	v.isSet = true
 	return json.Unmarshal(src, &v.value)
 }
