@@ -15,7 +15,7 @@ func vm_resume(w http.ResponseWriter, r *http.Request) {
 		vmdata inventory.Vmdata
 		vr httpx.Request
 	)
-	_, err = httpx.Decode_request_body(r, nil)
+	vr, err = httpx.Decode_request_body(r, nil)
 	if (err != nil) {
 		logger.Log(err.Error())
 		http.Error(w, "failed to decode body", http.StatusBadRequest)
