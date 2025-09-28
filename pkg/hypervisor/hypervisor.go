@@ -250,14 +250,6 @@ func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventL
 	hv.m.RLock()
 	defer hv.m.RUnlock()
 
-	persistent, err = d.IsPersistent()
-	if (err != nil) {
-		logger.Log("lifecycle_cb: IsPersistent err: %s", err.Error())
-		return
-	}
-	if (!persistent) {
-		return /* ignore transient domains (ongoing migrations) */
-	}
 	if (e.Event == libvirt.DOMAIN_EVENT_UNDEFINED) {
 		/* VM has been DELETED */
 		uuid, err = d.GetUUIDString()
@@ -267,6 +259,14 @@ func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventL
 		}
 		state = openapi.RUNSTATE_DELETED
 	} else {
+		persistent, err = d.IsPersistent()
+		if (err != nil) {
+			logger.Log("lifecycle_cb: IsPersistent err: %s", err.Error())
+			return
+		}
+		if (!persistent) {
+			return /* ignore transient domains (ongoing migrations) */
+		}
 		name, uuid, state, err = get_domain_info(d)
 	}
 	if (err != nil) {
