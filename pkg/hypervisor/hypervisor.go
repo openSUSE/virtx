@@ -236,9 +236,11 @@ func system_info_loop(seconds int) error {
 }
 
 func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventLifecycle) {
+	/* e.Detail: see all DomainEvent*DetailType types */
 	var (
 		name, uuid string
 		state openapi.Vmrunstate
+		persistent bool
 		err error
 	)
 	/*
@@ -246,22 +248,29 @@ func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventL
 	 * can access the connection whose data structure may be in the process of updating.
 	 */
 	hv.m.RLock()
+	defer hv.m.RUnlock()
+
+	persistent, err = d.IsPersistent()
+	if (err != nil) {
+		logger.Log("lifecycle_cb: IsPersistent err: %s", err.Error())
+		return
+	}
+	if (!persistent) {
+		return /* ignore transient domains (ongoing migrations) */
+	}
 	if (e.Event == libvirt.DOMAIN_EVENT_UNDEFINED) {
 		/* VM has been DELETED */
 		uuid, err = d.GetUUIDString()
 		if (err != nil) {
-			logger.Log("DOMAIN_EVENT_UNDEFINED GetUUIDString error: %s", err.Error())
-			err = nil
-		} else {
-			logger.Log("DOMAIN_EVENT_UNDEFINED GetUUIDString: %s", uuid)
-			state = openapi.RUNSTATE_DELETED
+			logger.Log("lifecycle_cb: GetUUIDString error: %s", err.Error())
+			return
 		}
+		state = openapi.RUNSTATE_DELETED
 	} else {
 		name, uuid, state, err = get_domain_info(d)
 	}
-	hv.m.RUnlock()
 	if (err != nil) {
-		logger.Log(err.Error())
+		logger.Log("lifecycle_cb: event %d: %s:", e.Event, err.Error())
 	}
 	if (state != openapi.RUNSTATE_NONE) {
 		logger.Log("[VmEvent] %s/%s: %v state: %d", name, uuid, e, state)
@@ -775,7 +784,7 @@ func get_system_info(si *SystemInfo, old *SystemInfo) error {
 	 * 2. get information about all the domains, so that we can calculate
 	 *    host resources later.
 	 */
-	doms, err = hv.conn.ListAllDomains(0)
+	doms, err = hv.conn.ListAllDomains(libvirt.CONNECT_LIST_DOMAINS_PERSISTENT)
 	if (err != nil) {
 		goto out
 	}
