@@ -238,3 +238,65 @@ func (state Vmrunstate) String() string {
 	}
 	return ""
 }
+
+func (state *MigrationState) Parse(s string) error {
+	switch (s) {
+	case "none":
+		*state = MIGRATION_NONE /* no migration in progress */
+		return nil
+	case "setup":
+		*state = MIGRATION_SETUP
+		return nil
+	case "cancelling":
+		*state = MIGRATION_CANCELLING
+		return nil
+	case "cancelled":
+		*state = MIGRATION_CANCELLED
+		return nil
+	case "active":
+		*state = MIGRATION_ACTIVE
+		return nil
+	case "completed":
+		*state = MIGRATION_COMPLETED
+		return nil
+	case "failed":
+		*state = MIGRATION_FAILED
+		return nil
+	case "pre-switchover":
+		*state = MIGRATION_PRESWITCH
+		return nil
+	case "device":
+		*state = MIGRATION_DEVICE
+		return nil
+	case "wait-unplug":
+		*state = MIGRATION_WAIT_UNPLUG
+		return nil
+	}
+	return errors.New("unknown migration state")
+}
+
+func (state MigrationState) String() string {
+	switch (state) {
+	case MIGRATION_NONE: /* no migration in progress */
+		return "none"
+	case MIGRATION_SETUP:
+		return "setup"
+	case MIGRATION_CANCELLING:
+		return "cancelling"
+	case MIGRATION_CANCELLED:
+		return "cancelled"
+	case MIGRATION_ACTIVE:
+		return "active"
+	case MIGRATION_COMPLETED:
+		return "completed"
+	case MIGRATION_FAILED:
+		return "failed"
+	case MIGRATION_PRESWITCH:
+		return "pre-switchover"
+	case MIGRATION_DEVICE:
+		return "device"
+	case MIGRATION_WAIT_UNPLUG:
+		return "wait-unplug"
+	}
+	return ""
+}
