@@ -91,5 +91,5 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not define VM", http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusNoContent)
+	httpx.Do_response(w, http.StatusNoContent, nil)
 }

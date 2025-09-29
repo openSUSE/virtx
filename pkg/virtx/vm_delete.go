@@ -68,5 +68,5 @@ func vm_delete(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	/* we keep the xml around. It could be useful for the future and should not waste a lot of space */
-	w.WriteHeader(http.StatusNoContent)
+	httpx.Do_response(w, http.StatusNoContent, nil)
 }

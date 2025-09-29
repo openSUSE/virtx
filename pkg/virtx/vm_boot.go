@@ -41,5 +41,5 @@ func vm_boot(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not start VM", http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusNoContent)
+	httpx.Do_response(w, http.StatusNoContent, nil)
 }

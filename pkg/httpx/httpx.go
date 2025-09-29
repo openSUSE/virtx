@@ -26,6 +26,7 @@ import (
 	"bytes"
 	"io"
 	"time"
+	"strconv"
 
 	"suse.com/virtx/pkg/logger"
 	. "suse.com/virtx/pkg/constants"
@@ -198,6 +199,19 @@ func Proxy_request(api_server string, w http.ResponseWriter, vr Request) {
 	}
 	w.WriteHeader(resp.StatusCode)
 	io.Copy(w, resp.Body)
+}
+
+func Do_response(w http.ResponseWriter, http_status int, buf *bytes.Buffer) {
+	if (buf != nil) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Length", strconv.Itoa(buf.Len()))
+	} else {
+		w.Header().Set("Content-Length", "0")
+	}
+	w.WriteHeader(http_status)
+	if (buf != nil) {
+		w.Write(buf.Bytes())
+	}
 }
 
 func Shutdown() {

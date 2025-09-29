@@ -73,5 +73,5 @@ func vm_migrate(w http.ResponseWriter, r *http.Request) {
 			logger.Log("migration of domain %s successful", uuid)
 		}
 	} ()
-	w.WriteHeader(http.StatusAccepted)
+	httpx.Do_response(w, http.StatusAccepted, nil)
 }

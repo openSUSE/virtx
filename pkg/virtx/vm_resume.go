@@ -41,5 +41,5 @@ func vm_resume(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not unpause VM", http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusNoContent)
+	httpx.Do_response(w, http.StatusNoContent, nil)
 }

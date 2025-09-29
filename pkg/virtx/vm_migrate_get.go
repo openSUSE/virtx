@@ -53,7 +53,5 @@ func vm_migrate_get(w http.ResponseWriter, r *http.Request) {
 	if (err != nil) {
 		logger.Log("failed to encode JSON")
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(buf.Bytes())
+	httpx.Do_response(w, http.StatusOK, &buf)
 }

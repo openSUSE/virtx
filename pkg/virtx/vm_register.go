@@ -67,7 +67,7 @@ func vm_register(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to register uuid", http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(status)
+	httpx.Do_response(w, status, nil)
 }
 
 /* register from libvirt into vmreg */

@@ -48,11 +48,13 @@ func vm_shutdown(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not shutdown VM", http.StatusInternalServerError)
 		return
 	}
+	var status int
 	if (o.Force == 0) {
 		/* domain could be shutting down or not, depends on guest ACPI */
-		w.WriteHeader(http.StatusAccepted)
+		status = http.StatusAccepted
 	} else {
 		/* if we reach here, it means that the Destroy was successful */
-		w.WriteHeader(http.StatusNoContent)
+		status = http.StatusNoContent
 	}
+	httpx.Do_response(w, status, nil)
 }
