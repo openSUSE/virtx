@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"errors"
 	"context"
+	"time"
 
 	g_uuid "github.com/google/uuid"
 
@@ -67,6 +68,7 @@ func Init() {
 		server: http.Server{
 			Addr: ":8080",
 			Handler: servemux,
+			ReadTimeout: httpx.SERVER_TIMEOUT * time.Second,
 		},
 	}
 }

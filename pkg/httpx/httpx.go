@@ -52,6 +52,8 @@ const (
 	CLIENT_IDLE_CONN_MAX_PER_HOST = 10
 	CLIENT_IDLE_TIMEOUT = 15
 	CLIENT_TLS_TIMEOUT = 5
+
+	SERVER_TIMEOUT = 10
 )
 
 var client http.Client = http.Client{
