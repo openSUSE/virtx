@@ -26,8 +26,8 @@ import (
 )
 
 type Hostdata struct {
-	host openapi.Host
-	vms map[string]struct{}		/* VM Uuid presence */
+	Host openapi.Host
+	Vms map[string]struct{}		/* VM Uuid presence */
 }
 
 type Vmdata struct {
@@ -73,6 +73,20 @@ func init() {
 	}
 }
 
+func Get_hostdata(uuid string) (Hostdata, error) {
+	inventory.m.RLock()
+    defer inventory.m.RUnlock()
+	var (
+		present bool
+		hostdata Hostdata
+	)
+	hostdata, present = inventory.hosts[uuid]
+	if (present) {
+		return hostdata, nil
+	}
+	return hostdata, fmt.Errorf("inventory: no such host %s", uuid)
+}
+
 func Get_host(uuid string) (openapi.Host, error) {
 	inventory.m.RLock()
 	defer inventory.m.RUnlock()
@@ -82,9 +96,9 @@ func Get_host(uuid string) (openapi.Host, error) {
 	)
 	hostdata, present = inventory.hosts[uuid]
 	if (present) {
-		return hostdata.host, nil
+		return hostdata.Host, nil
 	}
-	return hostdata.host, fmt.Errorf("inventory: no such host %s", uuid)
+	return hostdata.Host, fmt.Errorf("inventory: no such host %s", uuid)
 }
 
 func Get_vm(uuid string) (Vmdata, error) {
@@ -115,17 +129,17 @@ func update_host(host *openapi.Host) {
 	)
 	hostdata, present = inventory.hosts[host.Uuid]
 	if (present) {
-		if (hostdata.host.Ts > host.Ts) {
+		if (hostdata.Host.Ts > host.Ts) {
 			logger.Log("Host %s: ignoring obsolete Host information: ts %d > %d",
-				hostdata.host.Def.Name, hostdata.host.Ts, host.Ts)
+				hostdata.Host.Def.Name, hostdata.Host.Ts, host.Ts)
 			return
 		}
-		hostdata.host = *host
+		hostdata.Host = *host
 	} else {
 		/* this is the first time we see this host. */
 		hostdata = Hostdata{
-			host: *host,
-			vms: make(map[string]struct{}),
+			Host: *host,
+			Vms: make(map[string]struct{}),
 		}
 	}
 	inventory.hosts[host.Uuid] = hostdata
@@ -143,7 +157,7 @@ func set_host_state(uuid string, newstate openapi.Hoststate) error {
 	if !ok {
 		return fmt.Errorf("no such host %s", uuid)
 	}
-	hostdata.host.State = newstate
+	hostdata.Host.State = newstate
 	inventory.hosts[uuid] = hostdata
 	return nil
 }
@@ -173,7 +187,7 @@ func update_vm_state(uuid string, state openapi.Vmrunstate, host string, ts int6
 		var host_uuid string = vmdata.Runinfo.Host
 		_, present = inventory.hosts[host_uuid]
 		if (present) {
-			delete(inventory.hosts[host_uuid].vms, uuid)
+			delete(inventory.hosts[host_uuid].Vms, uuid)
 		} else {
 			logger.Log("deleted VM %s does not appear in its host %s", uuid, host_uuid)
 		}
@@ -192,14 +206,14 @@ func update_vm_state(uuid string, state openapi.Vmrunstate, host string, ts int6
 			 *  we seem to have changed hosts, which normally follows a VmEvent of a resumed migrated domain:
 			 *  (e.Event == libvirt.DOMAIN_EVENT_RESUMED && e.Detail == libvirt.DOMAIN_EVENT_RESUMED_MIGRATED)
 			 */
-			delete(inventory.hosts[old_host].vms, uuid)
+			delete(inventory.hosts[old_host].Vms, uuid)
 		}
 	}
 	_, present = inventory.hosts[host]
 	if (present) {
 		if (old_host != host) {
 			/* add the VM to the new host (migration or weird cases of missed events) */
-			inventory.hosts[host].vms[uuid] = struct{}{}
+			inventory.hosts[host].Vms[uuid] = struct{}{}
 		}
 	} else {
 		logger.Log("VM %s refers to nonexisting host %s", vmdata.Uuid, host)
@@ -242,7 +256,7 @@ func update_vm(vmdata *Vmdata) error {
 		)
 		hostdata, present = inventory.hosts[host_uuid]
 		if (present) {
-			hostdata.vms[vmdata.Uuid] = struct{}{}
+			hostdata.Vms[vmdata.Uuid] = struct{}{}
 			inventory.hosts[host_uuid] = hostdata
 		} else {
 			logger.Log("new VM %s assigned to nonexisting host %s", vmdata.Uuid, host_uuid)

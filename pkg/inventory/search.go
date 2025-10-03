@@ -34,7 +34,7 @@ func Search_hosts(f openapi.HostListFields) openapi.HostList {
 		list openapi.HostList
 	)
 	for _, hostdata = range inventory.hosts {
-		host = hostdata.host
+		host = hostdata.Host
 		if (f.Name != "" && !strings.Contains(host.Def.Name, f.Name)) {
 			continue
 		}

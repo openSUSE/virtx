@@ -235,6 +235,26 @@ func system_info_loop(seconds int) error {
 	return nil
 }
 
+func delete_ghosts(vms inventory.VmsInventory, ts int64) {
+	var (
+		idata inventory.Hostdata
+		ikey string
+		present bool
+		err error
+	)
+	idata, err = inventory.Get_hostdata(hv.uuid)
+	if (err != nil) {
+		return /* host not in inventory yet, ignore */
+	}
+	for ikey = range idata.Vms {
+		_, present = vms[ikey]
+		if (!present) {
+			logger.Log("delete_ghosts: RUNSTATE_DELETED %s", ikey)
+			hv.vm_event_ch <- inventory.VmEvent{ Uuid: ikey, Host: hv.uuid, State: openapi.RUNSTATE_DELETED, Ts: ts }
+		}
+	}
+}
+
 func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventLifecycle) {
 	/* e.Detail: see all DomainEvent*DetailType types */
 	var (
@@ -878,6 +898,8 @@ func get_system_info(si *SystemInfo, old *SystemInfo) error {
 out:
 	si.Host = host
 	si.Vms = vms
+
+	delete_ghosts(si.Vms, host.Ts)
 	return err
 }
 
