@@ -183,7 +183,9 @@ func get_domain_info(d *libvirt.Domain) (string, string, openapi.Vmrunstate, err
 		case int(libvirt.DOMAIN_SHUTOFF_CRASHED):
 			enum_state = openapi.RUNSTATE_CRASHED
 		case int(libvirt.DOMAIN_SHUTOFF_MIGRATED):
-			/* XXX what to do when domain goes away from this host? XXX */
+			/* XXX I have never seen this yet in my migration tests XXX */
+			logger.Log("XXX DOMAIN_SHUTOFF_MIGRATED encountered XXX")
+			enum_state = openapi.RUNSTATE_DELETED
 		default:
 			enum_state = openapi.RUNSTATE_POWEROFF
 		}
