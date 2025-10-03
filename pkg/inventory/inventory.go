@@ -189,7 +189,7 @@ func update_vm_state(uuid string, state openapi.Vmrunstate, host string, ts int6
 		if (present) {
 			delete(inventory.hosts[host_uuid].Vms, uuid)
 		} else {
-			logger.Log("deleted VM %s does not appear in its host %s", uuid, host_uuid)
+			logger.Log("deleted VM %s in unknown host %s", uuid, host_uuid)
 		}
 		delete(inventory.vms, uuid)
 		return nil
