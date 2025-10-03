@@ -22,6 +22,7 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		xml, uuid string
 		vmdata inventory.Vmdata
 		vr httpx.Request
+		state openapi.Vmrunstate
 	)
 	vr, err = httpx.Decode_request_body(r, &o)
 	if (err != nil) {
@@ -39,7 +40,8 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unknown uuid", http.StatusNotFound)
 		return
 	}
-	if (vmdata.Runinfo.Runstate != openapi.RUNSTATE_POWEROFF) {
+	state = vmdata.Runinfo.Runstate
+	if (state != openapi.RUNSTATE_POWEROFF && state != openapi.RUNSTATE_CRASHED) {
 		http.Error(w, "VM is not powered off", http.StatusUnprocessableEntity)
 		return
 	}

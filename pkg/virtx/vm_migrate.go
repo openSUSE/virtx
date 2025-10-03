@@ -42,7 +42,7 @@ func vm_migrate(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "VM is not running or paused", http.StatusUnprocessableEntity)
 		return
 	}
-	if (!o.Live && state != openapi.RUNSTATE_POWEROFF) {
+	if (!o.Live && state != openapi.RUNSTATE_POWEROFF && state != openapi.RUNSTATE_CRASHED) {
 		http.Error(w, "VM is not powered off", http.StatusUnprocessableEntity)
 		return
 	}

@@ -660,8 +660,8 @@ func Delete_domain(uuid string) error {
 	if (err != nil) {
 		return err
 	}
-	if (ds != libvirt.DOMAIN_SHUTOFF) {
-		return errors.New("libvirt domain is not in SHUTOFF state")
+	if (ds != libvirt.DOMAIN_SHUTOFF && ds != libvirt.DOMAIN_CRASHED) {
+		return errors.New("libvirt domain is not SHUTOFF or CRASHED")
 	}
 	err = domain.UndefineFlags(libvirt.DOMAIN_UNDEFINE_MANAGED_SAVE |
 		libvirt.DOMAIN_UNDEFINE_SNAPSHOTS_METADATA |
