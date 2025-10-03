@@ -58,6 +58,7 @@ func vm_migrate(w http.ResponseWriter, r *http.Request) {
 	}
 	if (http_host_is_remote(host_old)) { /* need to proxy */
 		http_proxy_request(host_old, w, vr);
+		return
 	}
 	host, err = inventory.Get_host(o.Host)
 	if (err != nil) {
