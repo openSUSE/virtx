@@ -956,14 +956,12 @@ func get_domain_stats(d *libvirt.Domain, vm *inventory.Vmdata, old *inventory.Vm
 	}
 	if (old != nil) {
 		/* calculate deltas from previous Vm info */
-		if (vm.Runinfo.Runstate > openapi.RUNSTATE_POWEROFF &&
-			old.Runinfo.Runstate > openapi.RUNSTATE_POWEROFF) {
-			var delta uint64 = Counter_delta_uint64(vm.Cpu_time, old.Cpu_time)
-			if (delta > 0 && (vm.Ts - old.Ts) > 0 && vm.Stats.Vcpus > 0) {
-				vm.Stats.CpuUtilization = int32((delta * 100) / (uint64(vm.Ts - old.Ts) * 1000000))
+		if (vm.Runinfo.Runstate == openapi.RUNSTATE_RUNNING &&
+			old.Runinfo.Runstate == openapi.RUNSTATE_RUNNING) {
+			var udelta uint64 = Counter_delta_uint64(vm.Cpu_time, old.Cpu_time)
+			if (udelta > 0 && (vm.Ts - old.Ts) > 0 && vm.Stats.Vcpus > 0) {
+				vm.Stats.CpuUtilization = int32((udelta * 100) / (uint64(vm.Ts - old.Ts) * 1000000))
 			}
-		}
-		{
 			var delta int64 = Counter_delta_int64(vm.Net_rx, old.Net_rx)
 			if (delta > 0 && (vm.Ts - old.Ts) > 0) {
 				vm.Stats.NetRxBw = int32((delta * 1000) / ((vm.Ts - old.Ts) * KiB))
