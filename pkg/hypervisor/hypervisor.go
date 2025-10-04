@@ -160,9 +160,10 @@ func get_domain_info(d *libvirt.Domain) (string, string, openapi.Vmrunstate, err
 	switch (state) {
 	//case libvirt.DOMAIN_NOSTATE: /* leave enum_state RUNSTATE_NONE */
 	case libvirt.DOMAIN_RUNNING:
-		fallthrough
-	case libvirt.DOMAIN_BLOCKED: /* ?XXX? */
 		enum_state = openapi.RUNSTATE_RUNNING
+	case libvirt.DOMAIN_BLOCKED: /* should be Xen only IIUC */
+		logger.Log("XXX DOMAIN_BLOCKED encountered XXX")
+		enum_state = openapi.RUNSTATE_PAUSED
 	case libvirt.DOMAIN_PAUSED:
 		switch (reason) {
 		case int(libvirt.DOMAIN_PAUSED_MIGRATION): /* paused for offline migration */
