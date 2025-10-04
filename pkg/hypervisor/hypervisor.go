@@ -234,6 +234,7 @@ func system_info_loop(seconds int) error {
 			return err
 		}
 		hv.system_info_ch <- si
+		old = si
 	}
 	return nil
 }
