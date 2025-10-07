@@ -38,7 +38,6 @@ import (
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/vmreg"
 	"suse.com/virtx/pkg/inventory"
-	"suse.com/virtx/pkg/encoding/hexstring"
 	. "suse.com/virtx/pkg/constants"
 )
 
@@ -360,8 +359,6 @@ func Migrate_domain(hostname string, host_uuid string, host_old string, uuid str
 		err error
 		conn, conn2 *libvirt.Connect
 		domain, domain2 *libvirt.Domain
-		len int
-		bytes [16]byte
 		params libvirt.DomainMigrateParameters
 		flags libvirt.DomainMigrateFlags
 	)
@@ -394,11 +391,7 @@ func Migrate_domain(hostname string, host_uuid string, host_old string, uuid str
 		return err
 	}
 	defer conn2.Close()
-	len = hexstring.Encode(bytes[:], uuid)
-	if (len <= 0) {
-		return errors.New("failed to encode uuid from hexstring")
-	}
-	domain, err = conn.LookupDomainByUUID(bytes[:])
+	domain, err = conn.LookupDomainByUUIDString(uuid)
 	if (err != nil) {
 		return err
 	}
@@ -439,18 +432,12 @@ func Get_migration_info(uuid string) (openapi.MigrationInfo, error) {
 		info openapi.MigrationInfo
 		result_json string
 		domain *libvirt.Domain
-		len int
-		bytes [16]byte
 	)
 	conn, err = libvirt.NewConnect(libvirt_uri)
 	if (err != nil) {
 		return info, err
 	}
-	len = hexstring.Encode(bytes[:], uuid)
-	if (len <= 0) {
-		return info, errors.New("failed to encode uuid from hexstring")
-	}
-	domain, err = conn.LookupDomainByUUID(bytes[:])
+	domain, err = conn.LookupDomainByUUIDString(uuid)
 	if (err != nil) {
 		return info, err
 	}
@@ -489,19 +476,13 @@ func Dumpxml(uuid string) (string, error) {
 		conn *libvirt.Connect
 		domain *libvirt.Domain
 		xml string
-		bytes [16]byte
-		len int
 	)
 	conn, err = libvirt.NewConnect(libvirt_uri)
 	if (err != nil) {
 		return "", err
 	}
 	defer conn.Close()
-	len = hexstring.Encode(bytes[:], uuid)
-	if (len <= 0) {
-		return "", errors.New("failed to encode uuid from hexstring")
-	}
-	domain, err = conn.LookupDomainByUUID(bytes[:])
+	domain, err = conn.LookupDomainByUUIDString(uuid)
 	if (err != nil) {
 		return "", err
 	}
@@ -518,19 +499,13 @@ func Boot_domain(uuid string) error {
 		err error
 		conn *libvirt.Connect
 		domain *libvirt.Domain
-		bytes [16]byte
-		len int
 	)
 	conn, err = libvirt.NewConnect(libvirt_uri)
 	if (err != nil) {
 		return err
 	}
 	defer conn.Close()
-	len = hexstring.Encode(bytes[:], uuid)
-	if (len <= 0) {
-		return errors.New("failed to encode uuid from hexstring")
-	}
-	domain, err = conn.LookupDomainByUUID(bytes[:])
+	domain, err = conn.LookupDomainByUUIDString(uuid)
 	if (err != nil) {
 		return err
 	}
@@ -547,19 +522,13 @@ func Pause_domain(uuid string) error {
 		err error
 		conn *libvirt.Connect
 		domain *libvirt.Domain
-		bytes [16]byte
-		len int
 	)
 	conn, err = libvirt.NewConnect(libvirt_uri)
 	if (err != nil) {
 		return err
 	}
 	defer conn.Close()
-	len = hexstring.Encode(bytes[:], uuid)
-	if (len <= 0) {
-		return errors.New("failed to encode uuid from hexstring")
-	}
-	domain, err = conn.LookupDomainByUUID(bytes[:])
+	domain, err = conn.LookupDomainByUUIDString(uuid)
 	if (err != nil) {
 		return err
 	}
@@ -576,19 +545,13 @@ func Resume_domain(uuid string) error {
 		err error
 		conn *libvirt.Connect
 		domain *libvirt.Domain
-		bytes [16]byte
-		len int
 	)
 	conn, err = libvirt.NewConnect(libvirt_uri)
 	if (err != nil) {
 		return err
 	}
 	defer conn.Close()
-	len = hexstring.Encode(bytes[:], uuid)
-	if (len <= 0) {
-		return errors.New("failed to encode uuid from hexstring")
-	}
-	domain, err = conn.LookupDomainByUUID(bytes[:])
+	domain, err = conn.LookupDomainByUUIDString(uuid)
 	if (err != nil) {
 		return err
 	}
@@ -605,19 +568,13 @@ func Shutdown_domain(uuid string, force int16) error {
 		err error
 		conn *libvirt.Connect
 		domain *libvirt.Domain
-		bytes [16]byte
-		len int
 	)
 	conn, err = libvirt.NewConnect(libvirt_uri)
 	if (err != nil) {
 		return err
 	}
 	defer conn.Close()
-	len = hexstring.Encode(bytes[:], uuid)
-	if (len <= 0) {
-		return errors.New("failed to encode uuid from hexstring")
-	}
-	domain, err = conn.LookupDomainByUUID(bytes[:])
+	domain, err = conn.LookupDomainByUUIDString(uuid)
 	if (err != nil) {
 		return err
 	}
@@ -637,19 +594,13 @@ func Delete_domain(uuid string) error {
 		err error
 		conn *libvirt.Connect
 		domain *libvirt.Domain
-		bytes [16]byte
-		len int
 	)
 	conn, err = libvirt.NewConnect(libvirt_uri)
 	if (err != nil) {
 		return err
 	}
 	defer conn.Close()
-	len = hexstring.Encode(bytes[:], uuid)
-	if (len <= 0) {
-		return errors.New("failed to encode uuid from hexstring")
-	}
-	domain, err = conn.LookupDomainByUUID(bytes[:])
+	domain, err = conn.LookupDomainByUUIDString(uuid)
 	if (err != nil) {
 		return err
 	}
@@ -1189,16 +1140,8 @@ func check_vmreg(host_uuid string, si *SystemInfo) {
 
 	/* check that all vms in vmreg are registered in libvirt */
 	for _, uuid = range(uuids) {
-		var (
-			domain *libvirt.Domain
-			bytes [16]byte
-			len int
-		)
-		len = hexstring.Encode(bytes[:], uuid)
-		if (len <= 0) {
-			logger.Fatal("failed to encode uuid from hexstring")
-		}
-		domain, err = conn.LookupDomainByUUID(bytes[:])
+		var domain *libvirt.Domain
+		domain, err = conn.LookupDomainByUUIDString(uuid)
 		if (err != nil) {
 			logger.Log("WARNING: vmreg VM %s/%s is not registered in libvirt", host_uuid, uuid)
 		} else {
