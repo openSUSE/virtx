@@ -1,5 +1,5 @@
 {
-    "name": "opensuse-15.5",
+    "name": "hp-placement",
     "cpudef": {
         "model": "host-passthrough",
         "nodes": 1,
@@ -15,7 +15,7 @@
         "placement": true
     },
     "osdisk": {
-        "path": "/vms/ds/opensuse-15.5/opensuse-15.5.qcow2",
+        "path": "/vms/ds/hp-placement/hp-placement.qcow2",
         "device": 0,
         "bus": 0,
         "createmode": 1,
