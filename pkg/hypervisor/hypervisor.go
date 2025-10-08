@@ -238,6 +238,12 @@ func system_info_loop(seconds int) error {
 	return nil
 }
 
+/*
+ * we may miss the DELETE event, and then we are left with ghosts of old vms
+ * in the inventory.
+ * To address this, go over the local VmsInventory and compare it with the
+ * inventory returned by libvirt, removing items unknown to libvirt.
+ */
 func delete_ghosts(vms inventory.VmsInventory, ts int64) {
 	var (
 		idata inventory.Hostdata
