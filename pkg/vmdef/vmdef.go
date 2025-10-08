@@ -335,7 +335,7 @@ func vmdef_disk_to_xml(disk *openapi.Disk, disk_count map[string]int, iothread_c
  */
 func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 	var (
-		xml string
+		xmlstring string
 		err error
 		domain_features *libvirtxml.DomainFeatureList
 	)
@@ -593,15 +593,19 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 			Value: vmdef.Genid,
 		}
 	}()
-	domain_metadata_xml := `<virtx:data xmlns:virtx="virtx">`
-	domain_metadata_xml += `<firmware type="` + vmdef.Firmware.String() + `"></firmware>`
+	var meta Metadata = Metadata{
+		XMLName: xml.Name{ Space: "virtx", Local: "data" },
+		XMLNS: "virtx",
+		Firmware: MetadataFirmware{ Type: vmdef.Firmware.String() },
+		Fields: []MetadataField{},
+	}
 	for _, custom := range vmdef.Custom {
 		if (custom.Name == "") {
 			continue
 		}
-		domain_metadata_xml += `<field name="` + custom.Name + `">` + custom.Value + `</field>`
+		meta.Fields = append(meta.Fields, MetadataField{ Name: custom.Name, Value: custom.Value})
 	}
-	domain_metadata_xml += `</virtx:data>`
+	domain_metadata_xml, err := xml.Marshal(&meta)
 	/* build xml */
 	domain := libvirtxml.Domain{
 		/* XMLName:, */
@@ -612,7 +616,7 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 		GenID: domain_genid,
 		Title: vmdef.Name,		/* this will be used for all effects as the actual Name */
 		Description: vmdef.Name,
-		Metadata: &libvirtxml.DomainMetadata{ XML: domain_metadata_xml, },
+		Metadata: &libvirtxml.DomainMetadata{ XML: string(domain_metadata_xml), },
 		Memory: &domain_memory,
 		MemoryBacking: domain_memory_backing,
 		VCPU: &domain_vcpu,
@@ -625,12 +629,13 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 		PM: &domain_pm,
 		Devices: &domain_devices,
 	}
-	xml, err = domain.Marshal()
-	return xml, err
+	xmlstring, err = domain.Marshal()
+	return xmlstring, err
 }
 
 type Metadata struct {
-	XMLName xml.Name `xml:"virtx data"`
+	XMLName xml.Name `xml:""`
+	XMLNS string `xml:"xmlns:virtx,attr"`
 	Firmware MetadataFirmware `xml:"firmware"`
 	Fields []MetadataField `xml:"field"`
 }
