@@ -466,9 +466,6 @@ func Get_migration_info(uuid string) (openapi.MigrationInfo, error) {
 	if (err != nil) {
 		return info, err
 	}
-	if (info.State != openapi.MIGRATION_ACTIVE && info.State != openapi.MIGRATION_COMPLETED) {
-		return info, nil
-	}
 	info.Progress.Total = qemu_info.R.Ram.Total
 	info.Progress.Remaining = qemu_info.R.Ram.Remaining
 	info.Progress.Transferred = qemu_info.R.Ram.Transferred
