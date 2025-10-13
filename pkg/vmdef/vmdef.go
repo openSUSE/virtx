@@ -634,7 +634,7 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 }
 
 type Metadata struct {
-	XMLName xml.Name `xml:""`
+	XMLName xml.Name `xml:"virtx data"`
 	XMLNS string `xml:"xmlns:virtx,attr"`
 	Firmware MetadataFirmware `xml:"firmware"`
 	Fields []MetadataField `xml:"field"`
