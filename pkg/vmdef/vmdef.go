@@ -460,6 +460,9 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 	)
 	disk_count := make(map[string]int)          /* keep track of how many disks require a bus type */
 	err = vmdef_disk_to_xml(&vmdef.Osdisk, disk_count, &iothread_count, &domain_disks, &domain_controllers, boot_order)
+	if (err != nil) {
+		return "", err
+	}
 	for _, disk := range vmdef.Disks {
 		var order int
 		if (disk.Device == openapi.DEVICE_CDROM) {
@@ -606,6 +609,9 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 		meta.Fields = append(meta.Fields, MetadataField{ Name: custom.Name, Value: custom.Value})
 	}
 	domain_metadata_xml, err := xml.Marshal(&meta)
+	if (err != nil) {
+		return "", nil
+	}
 	/* build xml */
 	domain := libvirtxml.Domain{
 		/* XMLName:, */
