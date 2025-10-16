@@ -82,3 +82,59 @@ type Field struct {
 	Name string `xml:"name,attr"`
 	Value string `xml:",chardata"`
 }
+
+/*
+ * operation is read and written separately from the data above.
+ * Due to a design choice of libvirt, we need to assign an entire separate namespace to it,
+ * otherwise setting or getting operation data will delete everything else in the namespace.
+ * This is why you see "virtx-vm" vs "virtx-op".
+ *
+ * Also you may notice that there is no default namespace used here in contrast to Vm,
+ * and that is because GetMetadata loses the namespace along the way.
+ * This is in my view another libvirt bug.
+ */
+type Operation struct {
+	XMLName xml.Name `xml:""`
+	Op string `xml:"op"`
+	Ts int64 `xml:"ts"`
+	Status string `xml:"status"`
+	Err string `xml:"err"`
+}
+
+func (op *Operation) To_xml(o openapi.Operation, state openapi.OperationState, e string, ts int64) (string, error) {
+	var (
+		err error
+		xmlstr []byte
+	)
+	*op = Operation{
+		XMLName: xml.Name{ Space: "virtx-op", Local: "data-op" },
+		Ts: ts,
+		Op: o.String(),
+		Status: state.String(),
+		Err: e,
+	}
+	xmlstr, err = xml.Marshal(op)
+	if (err != nil) {
+		return "", err
+	}
+	return string(xmlstr), nil
+}
+
+func (op *Operation) From_xml(xmlstr string, o *openapi.Operation, state *openapi.OperationState, errstr *string, ts *int64) error {
+	var err error
+	err = xml.Unmarshal([]byte(xmlstr), op)
+	if (err != nil) {
+		return err
+	}
+	err = o.Parse(op.Op)
+	if (err != nil) {
+		return err
+	}
+	err = state.Parse(op.Status)
+	if (err != nil) {
+		return err
+	}
+	*errstr = op.Err
+	*ts = op.Ts
+	return nil
+}
