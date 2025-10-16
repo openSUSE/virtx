@@ -22,7 +22,9 @@ var _ MappedNullable = &HostdefSysinfo{}
 
 // HostdefSysinfo struct for HostdefSysinfo
 type HostdefSysinfo struct {
+	// free-form string that may contain Core and OEM version information
 	Version string `json:"version"`
+	// mm/dd/yyyy format is required for SMBIOS version 2.3 and later
 	Date string `json:"date"`
 }
 
