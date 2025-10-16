@@ -404,7 +404,7 @@ func Migrate_domain(hostname string, host_uuid string, host_old string, uuid str
 	defer domain.Free()
 	domain2, err = domain.Migrate3(conn2, &params, flags)
 	if (err != nil) {
-		logger.Log("Migrate_domain: failed to Migrate3")
+		logger.Log("Migrate_domain: failed to Migrate3: %s", err.Error())
 		return err
 	}
 	defer domain2.Free()
