@@ -24,12 +24,13 @@ import (
 	"strings"
 	"path/filepath"
 	"fmt"
-	"encoding/xml"
 	"encoding/json"
 	"os"
 
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/hypervisor"
+	"suse.com/virtx/pkg/metadata"
+
 	"libvirt.org/go/libvirtxml"
 	. "suse.com/virtx/pkg/constants"
 )
@@ -338,6 +339,8 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 		xmlstring string
 		err error
 		domain_features *libvirtxml.DomainFeatureList
+		meta metadata.Vm
+		meta_xml string
 	)
 	var vcpus uint = vmdef_get_vcpus(vmdef)
 	domain_vcpu := libvirtxml.DomainVCPU{
@@ -596,19 +599,7 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 			Value: vmdef.Genid,
 		}
 	}()
-	var meta Metadata = Metadata{
-		XMLName: xml.Name{ Space: "virtx", Local: "data" },
-		XMLNS: "virtx",
-		Firmware: MetadataFirmware{ Type: vmdef.Firmware.String() },
-		Fields: []MetadataField{},
-	}
-	for _, custom := range vmdef.Custom {
-		if (custom.Name == "") {
-			continue
-		}
-		meta.Fields = append(meta.Fields, MetadataField{ Name: custom.Name, Value: custom.Value})
-	}
-	domain_metadata_xml, err := xml.Marshal(&meta)
+	meta_xml, err = meta.To_xml(vmdef.Firmware, vmdef.Custom)
 	if (err != nil) {
 		return "", nil
 	}
@@ -622,7 +613,7 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 		GenID: domain_genid,
 		Title: vmdef.Name,		/* this will be used for all effects as the actual Name */
 		Description: vmdef.Name,
-		Metadata: &libvirtxml.DomainMetadata{ XML: string(domain_metadata_xml), },
+		Metadata: &libvirtxml.DomainMetadata{ XML: meta_xml },
 		Memory: &domain_memory,
 		MemoryBacking: domain_memory_backing,
 		VCPU: &domain_vcpu,
@@ -639,26 +630,11 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 	return xmlstring, err
 }
 
-type Metadata struct {
-	XMLName xml.Name `xml:"virtx data"`
-	XMLNS string `xml:"xmlns:virtx,attr"`
-	Firmware MetadataFirmware `xml:"firmware"`
-	Fields []MetadataField `xml:"field"`
-}
-
-type MetadataFirmware struct {
-	Type string `xml:"type,attr"`
-}
-
-type MetadataField struct {
-	Name string `xml:"name,attr"`
-	Value string `xml:",chardata"`
-}
-
 func From_xml(vmdef *openapi.Vmdef, xmlstr string) error {
 	var (
 		err error
 		domain libvirtxml.Domain
+		meta metadata.Vm
 	)
 	/* unmarshal the XML into the libvirtxml Domain configuration */
 	err = domain.Unmarshal(xmlstr)
@@ -785,20 +761,9 @@ func From_xml(vmdef *openapi.Vmdef, xmlstr string) error {
 	if (domain.Metadata == nil) {
 		return errors.New("missing Metadata")
 	}
-	var meta Metadata
-	err = xml.Unmarshal([]byte(domain.Metadata.XML), &meta)
+	err = meta.From_xml(domain.Metadata.XML, &vmdef.Firmware, &vmdef.Custom)
 	if (err != nil) {
 		return err
-	}
-	err = vmdef.Firmware.Parse(meta.Firmware.Type)
-	if (err != nil) {
-		return err
-	}
-	for _, field := range meta.Fields {
-		vmdef.Custom = append(vmdef.Custom, openapi.CustomField{
-			Name: field.Name,
-			Value: field.Value,
-		})
 	}
 	return nil
 }
