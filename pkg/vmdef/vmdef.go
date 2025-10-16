@@ -601,7 +601,7 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 	}()
 	meta_xml, err = meta.To_xml(vmdef.Firmware, vmdef.Custom)
 	if (err != nil) {
-		return "", nil
+		return "", err
 	}
 	/* build xml */
 	domain := libvirtxml.Domain{
