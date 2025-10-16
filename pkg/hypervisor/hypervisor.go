@@ -38,6 +38,8 @@ import (
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/vmreg"
 	"suse.com/virtx/pkg/inventory"
+	"suse.com/virtx/pkg/metadata"
+
 	. "suse.com/virtx/pkg/constants"
 )
 
@@ -412,6 +414,26 @@ func Migrate_domain(hostname string, host_uuid string, host_old string, uuid str
 	err = vmreg.Move(host_uuid, host_old, uuid)
 	if (err != nil) {
 		logger.Log("Migrate_domain: failed to vmreg.Move(%s, %s, %s)", host_uuid, host_old, uuid)
+	}
+	return nil
+}
+
+/* record the domain-altering operation metadata into the domain XML */
+func record_domain_op(domain *libvirt.Domain, op openapi.Operation, state openapi.OperationState, errstr string) error {
+	var (
+		err error
+		xmlstr string
+		meta metadata.Operation
+		impact libvirt.DomainModificationImpact = libvirt.DOMAIN_AFFECT_CONFIG
+	)
+	xmlstr, err = meta.To_xml(op, state, errstr, time.Now().UTC().UnixMilli())
+	if (err != nil) {
+		return err
+	}
+	err = domain.SetMetadata(libvirt.DOMAIN_METADATA_ELEMENT, string(xmlstr),
+		meta.XMLName.Local, meta.XMLName.Space, impact)
+	if (err != nil) {
+		return err
 	}
 	return nil
 }
