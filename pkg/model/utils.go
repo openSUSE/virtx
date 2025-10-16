@@ -360,3 +360,71 @@ func newStrictDecoder(data []byte) *json.Decoder {
 func reportError(format string, a ...interface{}) error {
 	return fmt.Errorf(format, a...)
 }
+
+type Operation int16
+type OperationState int16
+
+const (
+    _ Operation = iota  // dummy first element to start iota at 1
+	OpHostGet
+	OpHostList
+	OpVmBoot
+	OpVmCreate
+	OpVmDelete
+	OpVmGet
+	OpVmList
+	OpVmMigrate
+	OpVmMigrateAbort
+	OpVmMigrateGet
+	OpVmPause
+	OpVmRegister
+	OpVmResume
+	OpVmRunstateGet
+	OpVmShutdown
+	OpVmUpdate
+)
+
+var OperationToString = map[Operation]string{
+	OpHostGet: "HostGet",
+	OpHostList: "HostList",
+	OpVmBoot: "VmBoot",
+	OpVmCreate: "VmCreate",
+	OpVmDelete: "VmDelete",
+	OpVmGet: "VmGet",
+	OpVmList: "VmList",
+	OpVmMigrate: "VmMigrate",
+	OpVmMigrateAbort: "VmMigrateAbort",
+	OpVmMigrateGet: "VmMigrateGet",
+	OpVmPause: "VmPause",
+	OpVmRegister: "VmRegister",
+	OpVmResume: "VmResume",
+	OpVmRunstateGet: "VmRunstateGet",
+	OpVmShutdown: "VmShutdown",
+	OpVmUpdate: "VmUpdate",
+}
+
+var OperationFromString = map[string]Operation{
+	"HostGet": OpHostGet,
+	"HostList": OpHostList,
+	"VmBoot": OpVmBoot,
+	"VmCreate": OpVmCreate,
+	"VmDelete": OpVmDelete,
+	"VmGet": OpVmGet,
+	"VmList": OpVmList,
+	"VmMigrate": OpVmMigrate,
+	"VmMigrateAbort": OpVmMigrateAbort,
+	"VmMigrateGet": OpVmMigrateGet,
+	"VmPause": OpVmPause,
+	"VmRegister": OpVmRegister,
+	"VmResume": OpVmResume,
+	"VmRunstateGet": OpVmRunstateGet,
+	"VmShutdown": OpVmShutdown,
+	"VmUpdate": OpVmUpdate,
+}
+
+const (
+	_ OperationState = iota
+	OPERATION_STARTED
+	OPERATION_FAILED
+	OPERATION_COMPLETED
+)

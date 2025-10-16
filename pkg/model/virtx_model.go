@@ -300,3 +300,43 @@ func (state MigrationState) String() string {
 	}
 	return ""
 }
+
+func (state OperationState) String() string {
+	switch (state) {
+	case OPERATION_STARTED:
+		return "started"
+	case OPERATION_FAILED:
+		return "failed"
+	case OPERATION_COMPLETED:
+		return "completed"
+	}
+	return ""
+}
+
+func (state *OperationState) Parse(s string) error {
+	switch (s) {
+	case "started":
+		*state = OPERATION_STARTED
+		return nil
+	case "failed":
+		*state = OPERATION_FAILED
+		return nil
+	case "completed":
+		*state = OPERATION_COMPLETED
+		return nil
+	}
+	return errors.New("unknown operation state")
+}
+
+func (o Operation) String() string {
+	return OperationToString[o]
+}
+
+func (o *Operation) Parse(s string) error {
+	var present bool
+	*o, present = OperationFromString[s]
+	if (!present) {
+		return errors.New("unknown operation")
+	}
+	return nil
+}
