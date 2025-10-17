@@ -444,6 +444,25 @@ func record_domain_op(domain *libvirt.Domain, op openapi.Operation, state openap
 	return nil
 }
 
+/* load the record from the domain XML */
+func load_domain_op(domain *libvirt.Domain, op *openapi.Operation, state *openapi.OperationState, errstr *string, ts *int64) error {
+	var (
+		err error
+		xmlstr string
+		meta metadata.Operation
+		impact libvirt.DomainModificationImpact = libvirt.DOMAIN_AFFECT_CONFIG
+	)
+	xmlstr, err = domain.GetMetadata(libvirt.DOMAIN_METADATA_ELEMENT, "virtx-op", impact)
+	if (err != nil) {
+		return err
+	}
+	err = meta.From_xml(xmlstr, op, state, errstr, ts)
+	if (err != nil) {
+		return err
+	}
+	return nil
+}
+
 type QemuMigrationInfo struct {
 	R struct {
 		Status string `json:"status"`
