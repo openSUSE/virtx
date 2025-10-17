@@ -495,6 +495,36 @@ func Get_migration_info(uuid string) (openapi.MigrationInfo, error) {
 		return info, err
 	}
 	defer domain.Free()
+
+	/*
+	 * just doing query-migrate is not enough due to the interactions
+	 * between libvirt and QEMU. An error on the libvirt side only
+	 * is not known to QEMU, so it might be happily reporting info
+	 * about an old migration, just as an example.
+	 *
+	 * So, check instead the virtx migration operation record first.
+	 */
+	var (
+		op openapi.Operation
+		state openapi.OperationState
+		errstr string
+		ts int64
+	)
+	err = load_domain_op(domain, &op, &state, &errstr, &ts)
+	if (err != nil) {
+		return info, err
+	}
+	if (op != openapi.OpVmMigrate) {
+		return info, errors.New("Get_migration_info: no OpVmMigrate operation")
+	}
+	switch (state) {
+	case openapi.OPERATION_FAILED:
+		info.State = openapi.MIGRATION_FAILED
+		return info, nil
+	case openapi.OPERATION_COMPLETED:
+		info.State = openapi.MIGRATION_COMPLETED
+		return info, nil
+	}
 	result_json, err = domain.QemuMonitorCommand(
 		"{ \"execute\": \"query-migrate\" }",
 		libvirt.DOMAIN_QEMU_MONITOR_COMMAND_DEFAULT,
@@ -506,9 +536,6 @@ func Get_migration_info(uuid string) (openapi.MigrationInfo, error) {
 	if (err != nil) {
 		return info, err
 	}
-	logger.Log("result_json = %s", result_json)
-	logger.Log("qemu_info.R.Status = %s", qemu_info.R.Status)
-	logger.Log("qemu_info = %+v", qemu_info)
 	err = info.State.Parse(qemu_info.R.Status)
 	if (err != nil) {
 		return info, err
