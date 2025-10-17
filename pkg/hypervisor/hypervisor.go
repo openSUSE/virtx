@@ -404,9 +404,14 @@ func Migrate_domain(hostname string, host_uuid string, host_old string, uuid str
 		return err
 	}
 	defer domain.Free()
+	err = record_domain_op(domain, openapi.OpVmMigrate, openapi.OPERATION_STARTED, "")
+	if (err != nil) {
+		return err
+	}
 	domain2, err = domain.Migrate3(conn2, &params, flags)
 	if (err != nil) {
 		logger.Log("Migrate_domain: failed to Migrate3: %s", err.Error())
+		_ = record_domain_op(domain, openapi.OpVmMigrate, openapi.OPERATION_FAILED, err.Error())
 		return err
 	}
 	defer domain2.Free()
@@ -415,6 +420,7 @@ func Migrate_domain(hostname string, host_uuid string, host_old string, uuid str
 	if (err != nil) {
 		logger.Log("Migrate_domain: failed to vmreg.Move(%s, %s, %s)", host_uuid, host_old, uuid)
 	}
+	_ = record_domain_op(domain2, openapi.OpVmMigrate, openapi.OPERATION_COMPLETED, "")
 	return nil
 }
 
