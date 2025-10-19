@@ -36,13 +36,13 @@ func vm_delete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unknown uuid", http.StatusNotFound)
 		return
 	}
+	if (http_host_is_remote(vmdata.Runinfo.Host)) {
+		http_proxy_request(vmdata.Runinfo.Host, w, vr)
+		return
+	}
 	state = vmdata.Runinfo.Runstate
 	if (state != openapi.RUNSTATE_POWEROFF && state != openapi.RUNSTATE_CRASHED) {
 		http.Error(w, "VM is not powered off", http.StatusUnprocessableEntity)
-		return
-	}
-	if (http_host_is_remote(vmdata.Runinfo.Host)) {
-		http_proxy_request(vmdata.Runinfo.Host, w, vr)
 		return
 	}
 	xml, err = hypervisor.Dumpxml(uuid)
