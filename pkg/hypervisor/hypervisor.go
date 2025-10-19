@@ -547,6 +547,54 @@ func Get_migration_info(uuid string) (openapi.MigrationInfo, error) {
 	return info, nil
 }
 
+func Abort_migration(uuid string) error {
+	var (
+		err error
+		conn *libvirt.Connect
+		domain *libvirt.Domain
+	)
+	conn, err = libvirt.NewConnect(libvirt_uri)
+	if (err != nil) {
+		return err
+	}
+	domain, err = conn.LookupDomainByUUIDString(uuid)
+	if (err != nil) {
+		return err
+	}
+	defer domain.Free()
+	/*
+	 * migrate_cancel always returns success, whether a migration is ongoing or not.
+	 *
+	 * So, check instead the virtx migration operation record first.
+	 */
+	var (
+		op openapi.Operation
+		state openapi.OperationState
+		errstr string
+		ts int64
+	)
+	err = load_domain_op(domain, &op, &state, &errstr, &ts)
+	if (err != nil) {
+		return err
+	}
+	if (op != openapi.OpVmMigrate) {
+		return errors.New("Abort_migration: no OpVmMigrate operation")
+	}
+	switch (state) {
+	case openapi.OPERATION_FAILED:
+		return errors.New("Abort_migration: migration already ended (FAILED)")
+	case openapi.OPERATION_COMPLETED:
+		return errors.New("Abort_migration: migration already ended (COMPLETED)")
+	case openapi.OPERATION_STARTED:
+		_, err = domain.QemuMonitorCommand(
+			"{ \"execute\": \"migrate_cancel\" }",
+			libvirt.DOMAIN_QEMU_MONITOR_COMMAND_DEFAULT,
+		)
+		return err
+	}
+	return errors.New("Abort_migration: unknown operation state")
+}
+
 func Dumpxml(uuid string) (string, error) {
 	var (
 		err error
