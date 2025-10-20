@@ -362,7 +362,13 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 		return "", errors.New("invalid architecture")
 	}
 	domain_cpu := libvirtxml.DomainCPU{
-		Migratable: "on",
+		Migratable: func() string {
+			if (vmdef.Cpudef.Model == "host-passthrough" || vmdef.Cpudef.Model == "maximum") {
+				return "on"
+			} else {
+				return ""
+			}
+		}(),
 		Check: "none",
 		MaxPhysAddr: func() *libvirtxml.DomainCPUMaxPhysAddr {
 			phys_bits := uint(bits.Len64(uint64(vmdef.Memory.Total)) + 20)
@@ -648,7 +654,7 @@ func From_xml(vmdef *openapi.Vmdef, xmlstr string) error {
 	vmdef.Cpudef.Sockets = int16(domain.CPU.Topology.Sockets)
 	vmdef.Cpudef.Cores = int16(domain.CPU.Topology.Cores)
 	vmdef.Cpudef.Threads = int16(domain.CPU.Topology.Threads)
-	if (domain.CPU.Mode != "") {
+	if (domain.CPU.Mode != "" && domain.CPU.Mode != "custom") {
 		vmdef.Cpudef.Model = domain.CPU.Mode
 	} else if (domain.CPU.Model != nil) {
 		vmdef.Cpudef.Model = domain.CPU.Model.Value
