@@ -605,7 +605,7 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 			Value: vmdef.Genid,
 		}
 	}()
-	meta_xml, err = meta.To_xml(vmdef.Firmware, vmdef.Custom)
+	meta_xml, err = meta.To_xml(vmdef.Custom)
 	if (err != nil) {
 		return "", err
 	}
@@ -673,6 +673,10 @@ func From_xml(vmdef *openapi.Vmdef, xmlstr string) error {
 	}
 	if (domain.OS == nil) {
 		return errors.New("missing OS");
+	}
+	err = vmdef.Firmware.Parse(domain.OS.Firmware)
+	if (err != nil) {
+		return err
 	}
 	/* DEVICES */
 	if (domain.Devices == nil) {
@@ -767,7 +771,7 @@ func From_xml(vmdef *openapi.Vmdef, xmlstr string) error {
 	if (domain.Metadata == nil) {
 		return errors.New("missing Metadata")
 	}
-	err = meta.From_xml(domain.Metadata.XML, &vmdef.Firmware, &vmdef.Custom)
+	err = meta.From_xml(domain.Metadata.XML, &vmdef.Custom)
 	if (err != nil) {
 		return err
 	}

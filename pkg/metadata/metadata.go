@@ -27,11 +27,10 @@ type Vm struct {
 	XMLName xml.Name `xml:"virtx-vm data-vm"`
 	XMLNS string `xml:"xmlns:virtx-vm,attr"`
 
-	Firmware Firmware `xml:"firmware"`
 	Fields []Field `xml:"field"`
 }
 
-func (vm *Vm) To_xml(firmware openapi.FirmwareType, fields []openapi.CustomField) (string, error) {
+func (vm *Vm) To_xml(fields []openapi.CustomField) (string, error) {
 	var (
 		err error
 		xmlstr []byte
@@ -39,7 +38,6 @@ func (vm *Vm) To_xml(firmware openapi.FirmwareType, fields []openapi.CustomField
 	*vm = Vm{
 		XMLName: xml.Name{ Space: "virtx-vm", Local: "data-vm" },
 		XMLNS: "virtx-vm",
-		Firmware: Firmware{ Type: firmware.String() },
 		Fields: []Field{},
 	}
 	for _, custom := range fields {
@@ -55,13 +53,12 @@ func (vm *Vm) To_xml(firmware openapi.FirmwareType, fields []openapi.CustomField
 	return string(xmlstr), nil
 }
 
-func (vm *Vm) From_xml(xmlstr string, firmware *openapi.FirmwareType, fields *[]openapi.CustomField) error {
+func (vm *Vm) From_xml(xmlstr string, fields *[]openapi.CustomField) error {
 	var err error
 	err = xml.Unmarshal([]byte(xmlstr), vm)
 	if (err != nil) {
 		return err
 	}
-	err = firmware.Parse(vm.Firmware.Type)
 	if (err != nil) {
 		return err
 	}
@@ -72,10 +69,6 @@ func (vm *Vm) From_xml(xmlstr string, firmware *openapi.FirmwareType, fields *[]
 		})
 	}
 	return nil
-}
-
-type Firmware struct {
-	Type string `xml:"type,attr"`
 }
 
 type Field struct {
