@@ -216,7 +216,7 @@ func update_vm_state(uuid string, state openapi.Vmrunstate, host string, ts int6
 			inventory.hosts[host].Vms[uuid] = struct{}{}
 		}
 	} else {
-		logger.Log("VM %s refers to nonexisting host %s", vmdata.Uuid, host)
+		logger.Log("VM %s refers to unknown host %s", vmdata.Uuid, host)
 	}
 	/* update the vms inventory data */
 	inventory.vms[uuid] = vmdata
@@ -259,7 +259,7 @@ func update_vm(vmdata *Vmdata) error {
 			hostdata.Vms[vmdata.Uuid] = struct{}{}
 			inventory.hosts[host_uuid] = hostdata
 		} else {
-			logger.Log("new VM %s assigned to nonexisting host %s", vmdata.Uuid, host_uuid)
+			logger.Log("new VM %s assigned to unknown host %s", vmdata.Uuid, host_uuid)
 		}
 	}
 	inventory.vms[vmdata.Uuid] = *vmdata
