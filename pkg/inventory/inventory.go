@@ -25,9 +25,12 @@ import (
 	"suse.com/virtx/pkg/model"
 )
 
+type nothing struct {
+}
+
 type Hostdata struct {
 	Host openapi.Host
-	Vms map[string]struct{}		/* VM Uuid presence */
+	Vms map[string]nothing		/* VM Uuid presence */
 }
 
 type Vmdata struct {
@@ -139,7 +142,7 @@ func update_host(host *openapi.Host) {
 		/* this is the first time we see this host. */
 		hostdata = Hostdata{
 			Host: *host,
-			Vms: make(map[string]struct{}),
+			Vms: make(map[string]nothing),
 		}
 	}
 	inventory.hosts[host.Uuid] = hostdata
@@ -213,7 +216,7 @@ func update_vm_state(uuid string, state openapi.Vmrunstate, host string, ts int6
 	if (present) {
 		if (old_host != host) {
 			/* add the VM to the new host (migration or weird cases of missed events) */
-			inventory.hosts[host].Vms[uuid] = struct{}{}
+			inventory.hosts[host].Vms[uuid] = nothing{}
 		}
 	} else {
 		logger.Log("VM %s refers to unknown host %s", vmdata.Uuid, host)
@@ -256,7 +259,7 @@ func update_vm(vmdata *Vmdata) error {
 		)
 		hostdata, present = inventory.hosts[host_uuid]
 		if (present) {
-			hostdata.Vms[vmdata.Uuid] = struct{}{}
+			hostdata.Vms[vmdata.Uuid] = nothing{}
 			inventory.hosts[host_uuid] = hostdata
 		} else {
 			logger.Log("new VM %s assigned to unknown host %s", vmdata.Uuid, host_uuid)
