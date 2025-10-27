@@ -46,8 +46,6 @@ func NewNuma(placement bool) *Numa {
 // but it doesn't guarantee that properties required by API are set
 func NewNumaWithDefaults() *Numa {
 	this := Numa{}
-	var placement bool = false
-	this.Placement = placement
 	return &this
 }
 

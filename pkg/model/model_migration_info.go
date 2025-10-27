@@ -23,7 +23,7 @@ var _ MappedNullable = &MigrationInfo{}
 // MigrationInfo struct for MigrationInfo
 type MigrationInfo struct {
 	State MigrationState `json:"state"`
-	Progress MigrationProgress `json:"progress"`
+	Progress TransferProgress `json:"progress"`
 }
 
 type _MigrationInfo MigrationInfo
@@ -32,7 +32,7 @@ type _MigrationInfo MigrationInfo
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewMigrationInfo(state MigrationState, progress MigrationProgress) *MigrationInfo {
+func NewMigrationInfo(state MigrationState, progress TransferProgress) *MigrationInfo {
 	this := MigrationInfo{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
@@ -76,9 +76,9 @@ func (o *MigrationInfo) SetState(v MigrationState) {
 }
 
 // GetProgress returns the Progress field value
-func (o *MigrationInfo) GetProgress() MigrationProgress {
+func (o *MigrationInfo) GetProgress() TransferProgress {
 	if o == nil {
-		var ret MigrationProgress
+		var ret TransferProgress
 		return ret
 	}
 
@@ -87,7 +87,7 @@ func (o *MigrationInfo) GetProgress() MigrationProgress {
 
 // GetProgressOk returns a tuple with the Progress field value
 // and a boolean to check if the value has been set.
-func (o *MigrationInfo) GetProgressOk() (*MigrationProgress, bool) {
+func (o *MigrationInfo) GetProgressOk() (*TransferProgress, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -95,7 +95,7 @@ func (o *MigrationInfo) GetProgressOk() (*MigrationProgress, bool) {
 }
 
 // SetProgress sets field value
-func (o *MigrationInfo) SetProgress(v MigrationProgress) {
+func (o *MigrationInfo) SetProgress(v TransferProgress) {
 	o.Progress = v
 }
 
