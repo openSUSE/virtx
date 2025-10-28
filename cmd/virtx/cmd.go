@@ -35,6 +35,7 @@ var cmd = &cobra.Command{
 
 func init() {
 	cmd.Flags().StringVarP(&virtx.api_server, "api-server", "A", os.Getenv("VIRTX_API_SERVER"), "The VIRTX_API_SERVER to use. Defaults to the env variable.")
+	cmd.PersistentFlags().BoolVarP(&virtx.debug, "debug", "D", false, "produce more verbose debug output")
 	var cmd_list = &cobra.Command{
 		Use:   "list",
 		Short: "List resources and display them in table format",

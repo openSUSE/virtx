@@ -47,6 +47,7 @@ type VirtxClient struct {
 	stat bool                   // show resource statistics
 	disk bool                   // show VM disks
 	net bool                    // show VM nets
+	debug bool                  // verbose client output
 
 	/* args */
 	host_list_options openapi.HostListOptions
@@ -82,18 +83,21 @@ func main() {
 		err error
 		response *http.Response
 	)
-	logger.Log("version %s", version)
-
 	err = cmd_exec()
 	if (err != nil) {
 		logger.Log("failed to parse command: %s\n", err.Error())
 		os.Exit(1)
 	}
+	if (virtx.debug) {
+		logger.Log("version %s", version)
+	}
 	if (virtx.path == "") {
 		/* nothing else to do. */
 		os.Exit(0)
 	}
-	//logger.Log("api_server=%s, method=%s, path=%s, arg=%v", virtx.api_server, virtx.method, virtx.path, virtx.arg)
+	if (virtx.debug) {
+		logger.Log("api_server=%s, method=%s, path=%s, arg=%v", virtx.api_server, virtx.method, virtx.path, virtx.arg)
+	}
 	response, err = httpx.Do_request(virtx.api_server, virtx.method, virtx.path, virtx.arg)
 	if (err != nil) {
 		logger.Log("failed to send request: %s", err.Error())
