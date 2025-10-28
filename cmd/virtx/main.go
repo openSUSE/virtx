@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"fmt"
 	"encoding/json"
+	"bytes"
 	writer "text/tabwriter"
 
 	"suse.com/virtx/pkg/model"
@@ -97,6 +98,13 @@ func main() {
 	}
 	if (virtx.debug) {
 		logger.Log("api_server=%s, method=%s, path=%s, arg=%v", virtx.api_server, virtx.method, virtx.path, virtx.arg)
+		if (virtx.arg != nil) {
+			var buf bytes.Buffer
+			err = json.NewEncoder(&buf).Encode(virtx.arg)
+			if (err == nil) {
+				logger.Log("JSON\n%s", buf.String())
+			}
+		}
 	}
 	response, err = httpx.Do_request(virtx.api_server, virtx.method, virtx.path, virtx.arg)
 	if (err != nil) {
