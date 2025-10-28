@@ -117,6 +117,16 @@ func main() {
 			logger.Log("failed to decode response: %s", err.Error())
 			os.Exit(1)
 		}
+		if (virtx.debug) {
+			logger.Log("result=%v", virtx.result)
+			if (virtx.result != nil) {
+				var buf bytes.Buffer
+				err = json.NewEncoder(&buf).Encode(virtx.result)
+				if (err == nil) {
+					logger.Log("JSON\n%s", buf.String())
+				}
+			}
+		}
 	}
 	if (response.StatusCode >= 200 && response.StatusCode <= 299) {
 		virtx.ok = true
