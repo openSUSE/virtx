@@ -60,7 +60,6 @@ type VmsInventory map[string]Vmdata
 
 type Inventory struct {
 	m       sync.RWMutex
-	cluster openapi.Cluster
 	hosts   HostsInventory
 	vms     VmsInventory
 }
@@ -70,7 +69,6 @@ var inventory Inventory
 func init() {
 	inventory = Inventory{
 		m:       sync.RWMutex{},
-		cluster: openapi.Cluster{},
 		hosts:   make(HostsInventory),
 		vms:     make(VmsInventory),
 	}
