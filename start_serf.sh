@@ -1,5 +1,5 @@
 #! /bin/bash
 
-sudo -u qemu -g qemu /usr/local/bin/serf agent &
+sudo -u root -g qemu ./serf agent &
 disown
 
