@@ -40,7 +40,7 @@ var serf = struct {
 	c *client.RPCClient
 	enc_buffer [max_message_size]byte
 	enc_mux sync.Mutex
-	channel chan map[string]interface{}
+	channel chan map[string]any
 	stream client.StreamHandle
 }{}
 
@@ -93,24 +93,25 @@ func recv_serf_events(shutdown_ch chan<- struct{}) {
 	var err error
 	logger.Log("RecvSerfEvents loop start...")
 	for e := range serf.channel {
-		var newstate openapi.Hoststate = openapi.HOST_FAILED
-		switch e["Event"].(string) {
+		var (
+			newstate openapi.Hoststate = openapi.HOST_FAILED
+			name string = e["Event"].(string)
+		)
+		switch (name) {
 		case "user":
 		case "member-leave":
 			newstate = openapi.HOST_LEFT
 			fallthrough
 		case "member-failed":
-			for _, m := range e["Members"].([]interface{}) {
-				tags := m.(map[interface{}]interface{})["Tags"]
-				uuid, ok := tags.(map[interface{}]interface{})["uuid"].(string)
-				if !ok {
-					logger.Log("failed to get uuid tag")
-					continue
-				}
-				logger.Log("Host %s OFFLINE", uuid)
-				err = inventory.Set_host_state(uuid, newstate)
-				if (err != nil) {
-					logger.Log(err.Error())
+			for _, m := range e["Members"].([]any) {
+				tags := m.(map[any]any)["Tags"].(map[any]any)
+				for tag := range tags {
+					var uuid string = tag.(string)
+					logger.Log("%s %s", name, uuid)
+					err = inventory.Set_host_state(uuid, newstate)
+					if (err != nil) {
+						logger.Log(err.Error())
+					}
 				}
 			}
 			fallthrough
@@ -119,7 +120,7 @@ func recv_serf_events(shutdown_ch chan<- struct{}) {
 		}
 
 		/* user event */
-		name := e["Name"].(string)
+		name = e["Name"].(string)
 		payload := e["Payload"].([]byte)
 
 		switch (name) {
@@ -222,7 +223,7 @@ func Init(rpcAddr string) error {
 	if (err != nil) {
 		return err
 	}
-	serf.channel = make(chan map[string]interface{}, 64)
+	serf.channel = make(chan map[string]any, 64)
 	serf.stream, err = serf.c.Stream("*", serf.channel)
 	if (err != nil) {
 		return err
