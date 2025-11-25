@@ -98,8 +98,12 @@ func recv_serf_events(shutdown_ch chan<- struct{}) {
 			handle_user_event(e)
 		case "member-leave":
 			handle_member_change(e, openapi.HOST_LEFT)
+		case "member-reap":
+			fallthrough
 		case "member-failed":
 			handle_member_change(e, openapi.HOST_FAILED)
+		case "member-join":
+			handle_member_change(e, openapi.HOST_ACTIVE)
 		}
 	}
 	logger.Log("RecvSerfEvents loop exit!")
