@@ -45,7 +45,7 @@ func vm_migrate_get(w http.ResponseWriter, r *http.Request) {
 	info, err = hypervisor.Get_migration_info(uuid)
 	if (err != nil) {
 		logger.Log("Get_migration_info failed: %s", err.Error())
-		http.Error(w, "could not get migration info", http.StatusInternalServerError)
+		http.Error(w, "could not get migration info", http.StatusFailedDependency)
 		return
 	}
 	var buf bytes.Buffer

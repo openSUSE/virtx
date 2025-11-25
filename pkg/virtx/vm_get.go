@@ -44,7 +44,7 @@ func vm_get(w http.ResponseWriter, r *http.Request) {
 	xml, err = hypervisor.Dumpxml(uuid)
 	if (err != nil) {
 		logger.Log("hypervisor.Dumpxml failed: %s", err.Error())
-		http.Error(w, "could not get VM", http.StatusInternalServerError)
+		http.Error(w, "could not get VM", http.StatusFailedDependency)
 		return
 	}
 	err = vmdef.From_xml(&vm.Def, xml)

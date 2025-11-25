@@ -38,7 +38,7 @@ func vm_pause(w http.ResponseWriter, r *http.Request) {
 	err = hypervisor.Pause_domain(uuid)
 	if (err != nil) {
 		logger.Log("hypervisor.Pause_domain failed: %s", err.Error())
-		http.Error(w, "could not pause VM", http.StatusInternalServerError)
+		http.Error(w, "could not pause VM", http.StatusFailedDependency)
 		return
 	}
 	httpx.Do_response(w, http.StatusNoContent, nil)

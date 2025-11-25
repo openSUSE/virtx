@@ -38,7 +38,7 @@ func vm_resume(w http.ResponseWriter, r *http.Request) {
 	err = hypervisor.Resume_domain(uuid)
 	if (err != nil) {
 		logger.Log("hypervisor.Unpause_domain failed: %s", err.Error())
-		http.Error(w, "could not unpause VM", http.StatusInternalServerError)
+		http.Error(w, "could not unpause VM", http.StatusFailedDependency)
 		return
 	}
 	httpx.Do_response(w, http.StatusNoContent, nil)

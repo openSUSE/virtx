@@ -64,7 +64,7 @@ func vm_register(w http.ResponseWriter, r *http.Request) {
 	}
 	if (err != nil) {
 		logger.Log("failed to register %s/%s: %s", o.Host, uuid, err.Error())
-		http.Error(w, "failed to register uuid", http.StatusInternalServerError)
+		http.Error(w, "failed to register uuid", http.StatusFailedDependency)
 		return
 	}
 	httpx.Do_response(w, status, nil)

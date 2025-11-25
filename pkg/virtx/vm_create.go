@@ -62,7 +62,7 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 	err = hypervisor.Define_domain(xml, uuid)
 	if (err != nil) {
 		logger.Log("hypervisor.Define_domain failed: %s", err.Error())
-		http.Error(w, "could not define VM", http.StatusInternalServerError)
+		http.Error(w, "could not define VM", http.StatusFailedDependency)
 		return
 	}
 	var buf bytes.Buffer

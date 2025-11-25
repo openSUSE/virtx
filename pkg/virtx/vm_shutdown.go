@@ -45,7 +45,7 @@ func vm_shutdown(w http.ResponseWriter, r *http.Request) {
 	err = hypervisor.Shutdown_domain(uuid, o.Force)
 	if (err != nil) {
 		logger.Log("hypervisor.Shutdown_domain failed: %s", err.Error())
-		http.Error(w, "could not shutdown VM", http.StatusInternalServerError)
+		http.Error(w, "could not shutdown VM", http.StatusFailedDependency)
 		return
 	}
 	var status int

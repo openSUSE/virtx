@@ -48,7 +48,7 @@ func vm_delete(w http.ResponseWriter, r *http.Request) {
 	xml, err = hypervisor.Dumpxml(uuid)
 	if (err != nil) {
 		logger.Log("hypervisor.Dumpxml failed: %s", err.Error())
-		http.Error(w, "could not Get VM XML", http.StatusInternalServerError)
+		http.Error(w, "could not Get VM XML", http.StatusFailedDependency)
 		return
 	}
 	err = vmdef.From_xml(&vm, xml)
@@ -60,7 +60,7 @@ func vm_delete(w http.ResponseWriter, r *http.Request) {
 	err = hypervisor.Delete_domain(uuid)
 	if (err != nil) {
 		logger.Log("Delete_domain failed: %s", err.Error())
-		http.Error(w, "Failed to delete VM", http.StatusInternalServerError)
+		http.Error(w, "Failed to delete VM", http.StatusFailedDependency)
 		return
 	}
 	if (o.Deletestorage) {
@@ -70,5 +70,9 @@ func vm_delete(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	/* we keep the xml around. It could be useful for the future and should not waste a lot of space */
-	httpx.Do_response(w, http.StatusNoContent, nil)
+	if (err != nil) {
+		httpx.Do_response(w, http.StatusOK, nil)
+	} else {
+		httpx.Do_response(w, http.StatusNoContent, nil)
+	}
 }

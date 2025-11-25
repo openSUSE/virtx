@@ -38,7 +38,7 @@ func vm_boot(w http.ResponseWriter, r *http.Request) {
 	err = hypervisor.Boot_domain(uuid)
 	if (err != nil) {
 		logger.Log("hypervisor.Boot_domain failed: %s", err.Error())
-		http.Error(w, "could not start VM", http.StatusInternalServerError)
+		http.Error(w, "could not start VM", http.StatusFailedDependency)
 		return
 	}
 	httpx.Do_response(w, http.StatusNoContent, nil)

@@ -41,7 +41,7 @@ func vm_migrate_abort(w http.ResponseWriter, r *http.Request) {
 	err = hypervisor.Abort_migration(uuid)
 	if (err != nil) {
 		logger.Log("Abort_migration failed: %s", err.Error())
-		http.Error(w, "could not abort migration", http.StatusInternalServerError)
+		http.Error(w, "could not abort migration", http.StatusFailedDependency)
 		return
 	}
 	httpx.Do_response(w, http.StatusNoContent, nil)
