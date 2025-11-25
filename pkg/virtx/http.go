@@ -34,7 +34,11 @@ func http_proxy_request(uuid string, w http.ResponseWriter, vr httpx.Request) {
 	)
 	host, err = inventory.Get_host(uuid)
 	if (err != nil) {
-		http.Error(w, "unknown host", http.StatusUnprocessableEntity)
+		http.Error(w, "unknown host", http.StatusServiceUnavailable)
+		return
+	}
+	if (host.State != openapi.HOST_ACTIVE) {
+		http.Error(w, "inactive host", http.StatusServiceUnavailable)
 		return
 	}
 	httpx.Proxy_request(host.Def.Name, w, vr)
