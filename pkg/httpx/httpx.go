@@ -168,14 +168,14 @@ func Proxy_request(api_server string, w http.ResponseWriter, vr Request) {
 	proxyreq, err := http.NewRequest(vr.r.Method, newaddr.String(), bytes.NewReader(vr.body))
 	if (err != nil) {
 		logger.Log("proxy_request http.NewRequest failed: %s", err.Error())
-		http.Error(w, "failed to forward request", http.StatusInternalServerError)
+		http.Error(w, "failed to forward request", http.StatusBadGateway)
 		return
 	}
 	proxyreq.Header = vr.r.Header.Clone()
 	client_ip, _, err := net.SplitHostPort(vr.r.RemoteAddr)
 	if (err != nil) {
 		logger.Log("proxy_request could not decode client address")
-		http.Error(w, "failed to forward request", http.StatusInternalServerError)
+		http.Error(w, "failed to forward request", http.StatusBadGateway)
 		return
 	}
 	xff := proxyreq.Header.Get("X-Forwarded-For")
@@ -190,7 +190,7 @@ func Proxy_request(api_server string, w http.ResponseWriter, vr Request) {
 	resp, err := client.Do(proxyreq)
 	if (err != nil) {
 		logger.Log("proxy_request failed: %s", err.Error())
-		http.Error(w, "failed to forward request", http.StatusInternalServerError)
+		http.Error(w, "failed to forward request", http.StatusBadGateway)
 		return
 	}
 	defer resp.Body.Close()
