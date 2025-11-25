@@ -90,88 +90,92 @@ func send_vm_event(e *inventory.VmEvent) error {
 }
 
 func recv_serf_events(shutdown_ch chan<- struct{}) {
-	var err error
 	logger.Log("RecvSerfEvents loop start...")
 	for e := range serf.channel {
-		var (
-			newstate openapi.Hoststate = openapi.HOST_FAILED
-			name string = e["Event"].(string)
-		)
+		var name string = e["Event"].(string)
 		switch (name) {
 		case "user":
+			handle_user_event(e)
 		case "member-leave":
-			newstate = openapi.HOST_LEFT
-			fallthrough
+			handle_member_change(e, openapi.HOST_LEFT)
 		case "member-failed":
-			for _, m := range e["Members"].([]any) {
-				tags := m.(map[any]any)["Tags"].(map[any]any)
-				for tag := range tags {
-					var uuid string = tag.(string)
-					logger.Log("%s %s", name, uuid)
-					err = inventory.Set_host_state(uuid, newstate)
-					if (err != nil) {
-						logger.Log(err.Error())
-					}
-				}
-			}
-			fallthrough
-		default:
-			continue
-		}
-
-		/* user event */
-		name = e["Name"].(string)
-		payload := e["Payload"].([]byte)
-
-		switch (name) {
-		case label_host_info:
-			var (
-				hi openapi.Host
-				size int
-			)
-			size, err = sbinary.Decode(payload, binary.LittleEndian, &hi)
-			if (err != nil) {
-				logger.Log("Decode %s: ERR '%s' at offset %d", name, err.Error(), size)
-			} else {
-				logger.Log("Decode %s: OK  %d %s %s", name, hi.Ts, hi.Uuid, hi.Def.Name)
-				inventory.Update_host(&hi)
-			}
-		case label_vm_event:
-			var (
-				ve inventory.VmEvent
-				size int
-			)
-			size, err = sbinary.Decode(payload, binary.LittleEndian, &ve)
-			if (err != nil) {
-				logger.Log("Decode %s: ERR '%s' at offset %d", name, err.Error(), size)
-			} else {
-				logger.Log("Decode %s: OK  %d %s %s", name, ve.Ts, ve.Uuid, ve.State)
-				err = inventory.Update_vm_state(&ve)
-				if (err != nil) {
-					logger.Log(err.Error())
-				}
-			}
-		case label_vm_stat:
-			var (
-				vm inventory.Vmdata
-				size int
-			)
-			size, err = sbinary.Decode(payload, binary.LittleEndian, &vm)
-			if (err != nil) {
-				logger.Log("Decode %s: ERR '%s' at offset %d", name, err.Error(), size)
-			} else {
-				logger.Log("Decode %s: OK  %d %s %s %d", name, vm.Ts, vm.Uuid, vm.Name, vm.Runinfo.Runstate)
-				err = inventory.Update_vm(&vm)
-				if (err != nil) {
-					logger.Log(err.Error())
-				}
-			}
-		default:
-			logger.Log("[UNKNOWN-EVENT] %s %s", name, payload)
+			handle_member_change(e, openapi.HOST_FAILED)
 		}
 	}
 	logger.Log("RecvSerfEvents loop exit!")
 	close(shutdown_ch)
+}
+
+func handle_member_change(e map[string]any, newstate openapi.Hoststate) {
+	var (
+		err error
+		name string = e["Event"].(string)
+	)
+	for _, m := range e["Members"].([]any) {
+		tags := m.(map[any]any)["Tags"].(map[any]any)
+		for tag := range tags {
+			var uuid string = tag.(string)
+			logger.Log("%s %s", name, uuid)
+			err = inventory.Set_host_state(uuid, newstate)
+			if (err != nil) {
+				logger.Log(err.Error())
+			}
+		}
+	}
+}
+
+func handle_user_event(e map[string]any) {
+	var (
+		name string = e["Name"].(string)
+		payload []byte = e["Payload"].([]byte)
+		err error
+	)
+	switch (name) {
+	case label_host_info:
+		var (
+			hi openapi.Host
+			size int
+		)
+		size, err = sbinary.Decode(payload, binary.LittleEndian, &hi)
+		if (err != nil) {
+			logger.Log("Decode %s: ERR '%s' at offset %d", name, err.Error(), size)
+		} else {
+			logger.Log("Decode %s: OK  %d %s %s", name, hi.Ts, hi.Uuid, hi.Def.Name)
+			inventory.Update_host(&hi)
+		}
+	case label_vm_event:
+		var (
+			ve inventory.VmEvent
+			size int
+		)
+		size, err = sbinary.Decode(payload, binary.LittleEndian, &ve)
+		if (err != nil) {
+			logger.Log("Decode %s: ERR '%s' at offset %d", name, err.Error(), size)
+		} else {
+			logger.Log("Decode %s: OK  %d %s %s", name, ve.Ts, ve.Uuid, ve.State)
+			err = inventory.Update_vm_state(&ve)
+			if (err != nil) {
+				logger.Log(err.Error())
+			}
+		}
+	case label_vm_stat:
+		var (
+			vm inventory.Vmdata
+			size int
+		)
+		size, err = sbinary.Decode(payload, binary.LittleEndian, &vm)
+		if (err != nil) {
+			logger.Log("Decode %s: ERR '%s' at offset %d", name, err.Error(), size)
+		} else {
+			logger.Log("Decode %s: OK  %d %s %s %d", name, vm.Ts, vm.Uuid, vm.Name, vm.Runinfo.Runstate)
+			err = inventory.Update_vm(&vm)
+			if (err != nil) {
+				logger.Log(err.Error())
+			}
+		}
+	default:
+		logger.Log("[UNKNOWN-EVENT] %s %s", name, payload)
+	}
 }
 
 func send_system_info(ch <-chan hypervisor.SystemInfo) {
