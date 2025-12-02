@@ -23,7 +23,7 @@ var _ MappedNullable = &VmUpdateOptions{}
 // VmUpdateOptions struct for VmUpdateOptions
 type VmUpdateOptions struct {
 	Vmdef Vmdef `json:"vmdef"`
-	// (NOT IMPLEMENTED) if true, storage disks that are not referenced anymore will be deleted
+	// if true, managed virtual disks that are not referenced anymore will be deleted
 	Deletestorage bool `json:"deletestorage"`
 }
 
