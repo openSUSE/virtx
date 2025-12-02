@@ -1,3 +1,5 @@
+# XXX EXPERIMENT/PROTOTYPE: DO NOT USE XXX
+
 # LICENSE
 
 This code is under the GPLv2 license. See LICENSE file for details.
@@ -47,6 +49,7 @@ The virtx API service will be listening on port 8080.
 - security is completely missing, implementation is just plain HTTP and libvirt TCP. No API keys, certificates etc.
 - Only NFS is implemented as shared storage (no iSCSI)
 - HA features are not implemented yet
+- ...
 
 # BUGS
 
@@ -66,6 +69,8 @@ export GODEBUG="httpmuxgo121=0"
 but for now the go.mod trick seems to work.
 
 # CODE STYLE
+
+Subject to change.
 
 The "standard" code style for Golang is to have CamelCase everywhere which is a readability
 disaster for me being used to C.
