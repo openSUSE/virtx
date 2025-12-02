@@ -93,5 +93,17 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not define VM", http.StatusFailedDependency)
 		return
 	}
-	httpx.Do_response(w, http.StatusNoContent, nil)
+	if (o.Deletestorage) {
+		err = vm_storage_update_delete(&o.Vmdef, &old)
+		if (err != nil) {
+			w.Header().Set("Warning", `299 VirtX "unused storage could not be deleted"`)
+		}
+	}
+	if (err != nil) {
+		/* respond with Ok (there was a Warning) */
+		httpx.Do_response(w, http.StatusOK, nil)
+	} else {
+		/* respond with NoContent (no warnings) */
+		httpx.Do_response(w, http.StatusNoContent, nil)
+	}
 }

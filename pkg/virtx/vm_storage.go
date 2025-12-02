@@ -133,3 +133,23 @@ func vm_storage_update_create(new *openapi.Vmdef, old *openapi.Vmdef) error {
 	}
 	return nil
 }
+
+/* delete the managed storage that is in the old definition and not in the new */
+func vm_storage_update_delete(new *openapi.Vmdef, old *openapi.Vmdef) error {
+	var err error
+	if (vm_storage_is_managed_disk(&old.Osdisk) && !vmdef.Has_path(new, old.Osdisk.Path)) {
+		err = vm_storage_delete_disk(&old.Osdisk)
+		if (err != nil) {
+			return err
+		}
+	}
+	for _, disk := range old.Disks {
+		if (vm_storage_is_managed_disk(&disk) && !vmdef.Has_path(new, disk.Path)) {
+			err = vm_storage_delete_disk(&disk)
+			if (err != nil) {
+				return err
+			}
+		}
+	}
+	return nil
+}
