@@ -814,13 +814,21 @@ func get_system_info_immutable(imm *SystemInfoImm) error {
 	if (err != nil) {
 		return err
 	}
+	/* now deal with calculating the node Max CPU Frequency. Failures are not fatal. */
+	defer func() {
+		if (err != nil) {
+			/* emit warning, we will not override libvirt MHz */
+			logger.Log("could not read CPU max frequency: %s", err.Error())
+			logger.Log("fallback to libvirt MHz, MHz calculations will be unreliable")
+		}
+	}()
 	raw, err = os.ReadFile(max_freq_path)
 	if (err != nil) {
-		return err
+		return nil
 	}
 	mhz, err = strconv.Atoi(strings.TrimSpace(string(raw)))
 	if (err != nil) {
-		return err
+		return nil
 	}
 	imm.info.MHz = uint(mhz / 1000) /* input from sysfs is measured in Hz */
 	return nil
