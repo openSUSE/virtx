@@ -204,7 +204,7 @@ func send_system_info(ch <-chan hypervisor.SystemInfo) {
 			}
 		}
 	}
-	logger.Fatal("SendSystemInfo loop exit! (Should never happen!)")
+	logger.Log("SendSystemInfo loop exit")
 }
 
 func send_vm_events(eventCh <-chan inventory.VmEvent) {
@@ -214,7 +214,7 @@ func send_vm_events(eventCh <-chan inventory.VmEvent) {
 			logger.Log(err.Error())
 		}
 	}
-	logger.Fatal("SendVmEvents loop exit! (Should never happen!)")
+	logger.Log("SendVmEvents loop exit")
 }
 
 func update_tags(host *openapi.Host) error {

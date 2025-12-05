@@ -1132,11 +1132,11 @@ func init_vm_event_loop() {
 			panic(err)
 		}
 	}
-	logger.Fatal("init vm_event_loop: Exiting (should never happen!)")
+	logger.Log("init_vm_event_loop: Exiting")
 }
 
 func init_system_info_loop() {
-	logger.Log("init_vm_system_info_loop: Waiting for a libvirt connection...")
+	logger.Log("init_system_info_loop: Waiting for a libvirt connection...")
 	for ; hv.is_connected.Load() == false; {
 		time.Sleep(time.Duration(1) * time.Second)
 	}
@@ -1160,7 +1160,7 @@ func init_system_info_loop() {
 			logger.Log(err.Error())
 		}
 	}
-	logger.Fatal("init vm_system_info_loop (should never happen!)")
+	logger.Log("init_system_info_loop: Exiting")
 }
 
 /*
