@@ -232,7 +232,8 @@ func system_info_loop(seconds int) error {
 	for range ticker.C {
 		err = get_system_info(&si, &old)
 		if (err != nil) {
-			return err
+			logger.Log("system_info_loop: failed to get_system_info: %s", err.Error())
+			continue
 		}
 		hv.system_info_ch <- si
 		old = si
