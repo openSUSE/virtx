@@ -157,7 +157,7 @@ func get_domain_info(d *libvirt.Domain) (string, string, openapi.Vmrunstate, err
 	if (err != nil) {
 		goto out
 	}
-	logger.Log("get_domain_info: state %d, reason %d", state, reason)
+	//logger.Log("get_domain_info: state %d, reason %d", state, reason)
 	switch (state) {
 	//case libvirt.DOMAIN_NOSTATE: /* leave enum_state RUNSTATE_NONE */
 	case libvirt.DOMAIN_RUNNING:
@@ -305,7 +305,8 @@ func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventL
 		logger.Log("lifecycle_cb: event %d: %s:", e.Event, err.Error())
 	}
 	if (state != openapi.RUNSTATE_NONE) {
-		logger.Log("[VmEvent] %s/%s: %v state: %d", name, uuid, e, state)
+		//logger.Log("[VmEvent] %s/%s: %v state: %d", name, uuid, e, state)
+		_ = name
 		hv.vm_event_ch <- inventory.VmEvent{ Uuid: uuid, Host: hv.uuid, State: state, Ts: time.Now().UTC().UnixMilli() }
 	}
 }

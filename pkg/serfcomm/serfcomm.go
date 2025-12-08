@@ -85,7 +85,7 @@ func send_host_info(host_info *openapi.Host) error {
 	if (err != nil) {
 		return err
 	}
-	logger.Log("send_host_info payload len=%d\n", eventsize)
+	//logger.Log("send_host_info payload len=%d\n", eventsize)
 	return send_user_event(label_host_info, serf.enc_buffer[:eventsize])
 }
 
@@ -100,7 +100,7 @@ func send_vm_stat(vmdata *inventory.Vmdata) error {
 	if (err != nil) {
 		return err
 	}
-	logger.Log("send_vm_stat payload len=%d\n", eventsize)
+	//logger.Log("send_vm_stat payload len=%d\n", eventsize)
 	return send_user_event(label_vm_stat, serf.enc_buffer[:eventsize])
 }
 
@@ -115,7 +115,7 @@ func send_vm_event(e *inventory.VmEvent) error {
 	if (err != nil) {
 		return err
 	}
-	logger.Log("send_vm_event payload len=%d\n", eventsize)
+	//logger.Log("send_vm_event payload len=%d\n", eventsize)
 	return send_user_event(label_vm_event, serf.enc_buffer[:eventsize])
 }
 
@@ -188,7 +188,7 @@ func handle_user_event(e map[string]any) {
 		if (err != nil) {
 			logger.Log("Decode %s: ERR '%s' at offset %d", name, err.Error(), size)
 		} else {
-			logger.Log("Decode %s: OK  %d %s %s", name, hi.Ts, hi.Uuid, hi.Def.Name)
+			//logger.Log("Decode %s: OK  %d %s %s", name, hi.Ts, hi.Uuid, hi.Def.Name)
 			inventory.Update_host(&hi)
 		}
 	case label_vm_event:
@@ -200,7 +200,7 @@ func handle_user_event(e map[string]any) {
 		if (err != nil) {
 			logger.Log("Decode %s: ERR '%s' at offset %d", name, err.Error(), size)
 		} else {
-			logger.Log("Decode %s: OK  %d %s %s", name, ve.Ts, ve.Uuid, ve.State)
+			//logger.Log("Decode %s: OK  %d %s %s", name, ve.Ts, ve.Uuid, ve.State)
 			err = inventory.Update_vm_state(&ve)
 			if (err != nil) {
 				logger.Log(err.Error())
@@ -215,7 +215,7 @@ func handle_user_event(e map[string]any) {
 		if (err != nil) {
 			logger.Log("Decode %s: ERR '%s' at offset %d", name, err.Error(), size)
 		} else {
-			logger.Log("Decode %s: OK  %d %s %s %d", name, vm.Ts, vm.Uuid, vm.Name, vm.Runinfo.Runstate)
+			//logger.Log("Decode %s: OK  %d %s %s %d", name, vm.Ts, vm.Uuid, vm.Name, vm.Runinfo.Runstate)
 			err = inventory.Update_vm(&vm)
 			if (err != nil) {
 				logger.Log(err.Error())
