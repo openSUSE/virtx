@@ -50,8 +50,8 @@ var serf = struct {
 
 /* locking version of the serf.c == nil check */
 func is_connected() bool {
-	serf.m.Lock()
-	defer serf.m.Unlock()
+	serf.m.RLock()
+	defer serf.m.RUnlock()
 	return serf.c != nil
 }
 
