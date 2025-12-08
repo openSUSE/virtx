@@ -18,8 +18,10 @@
 package serfcomm
 
 import (
+	"errors"
 	"sync"
 	"encoding/binary"
+	"time"
 	"github.com/hashicorp/serf/client"
 
 	"suse.com/virtx/pkg/hypervisor"
@@ -34,19 +36,47 @@ const (
 	label_vm_stat string = "VI"
 	label_vm_event string = "VE"
 	max_message_size uint = 1024
+	reconnect_seconds = 5
+	rpc_addr = "127.0.0.1:7373"
 )
 
 var serf = struct {
+	m sync.RWMutex
 	c *client.RPCClient
 	enc_buffer [max_message_size]byte
-	enc_mux sync.Mutex
 	channel chan map[string]any
 	stream client.StreamHandle
 }{}
 
+/* locking version of the serf.c == nil check */
+func is_connected() bool {
+	serf.m.Lock()
+	defer serf.m.Unlock()
+	return serf.c != nil
+}
+
+func send_user_event(label string, payload []byte) error {
+	if (serf.c == nil) {
+		return errors.New("RPC client closed")
+	}
+	return serf.c.UserEvent(label, payload, false)
+}
+
+func update_tags(host *openapi.Host) error {
+	serf.m.Lock()
+	defer serf.m.Unlock()
+
+	if (serf.c == nil) {
+		return errors.New("RPC client closed")
+	}
+	addTags := map[string]string { host.Uuid: "" }
+	removeTags := []string {}
+	return serf.c.UpdateTags(addTags, removeTags)
+}
+
 func send_host_info(host_info *openapi.Host) error {
-	serf.enc_mux.Lock()
-	defer serf.enc_mux.Unlock()
+	serf.m.Lock()
+	defer serf.m.Unlock()
 	var (
 		eventsize int
 		err error
@@ -56,12 +86,12 @@ func send_host_info(host_info *openapi.Host) error {
 		return err
 	}
 	logger.Log("send_host_info payload len=%d\n", eventsize)
-	return serf.c.UserEvent(label_host_info, serf.enc_buffer[:eventsize], false)
+	return send_user_event(label_host_info, serf.enc_buffer[:eventsize])
 }
 
 func send_vm_stat(vmdata *inventory.Vmdata) error {
-	serf.enc_mux.Lock()
-	defer serf.enc_mux.Unlock()
+	serf.m.Lock()
+	defer serf.m.Unlock()
 	var (
 		eventsize int
 		err error
@@ -71,12 +101,12 @@ func send_vm_stat(vmdata *inventory.Vmdata) error {
 		return err
 	}
 	logger.Log("send_vm_stat payload len=%d\n", eventsize)
-	return serf.c.UserEvent(label_vm_stat, serf.enc_buffer[:eventsize], false)
+	return send_user_event(label_vm_stat, serf.enc_buffer[:eventsize])
 }
 
 func send_vm_event(e *inventory.VmEvent) error {
-	serf.enc_mux.Lock()
-	defer serf.enc_mux.Unlock()
+	serf.m.Lock()
+	defer serf.m.Unlock()
 	var (
 		eventsize int
 		err error
@@ -86,28 +116,42 @@ func send_vm_event(e *inventory.VmEvent) error {
 		return err
 	}
 	logger.Log("send_vm_event payload len=%d\n", eventsize)
-	return serf.c.UserEvent(label_vm_event, serf.enc_buffer[:eventsize], false)
+	return send_user_event(label_vm_event, serf.enc_buffer[:eventsize])
 }
 
-func recv_serf_events(shutdown_ch chan<- struct{}) {
-	logger.Log("RecvSerfEvents loop start...")
-	for e := range serf.channel {
-		var name string = e["Event"].(string)
-		switch (name) {
-		case "user":
-			handle_user_event(e)
-		case "member-leave":
-			handle_member_change(e, openapi.HOST_LEFT)
-		case "member-reap":
-			fallthrough
-		case "member-failed":
-			handle_member_change(e, openapi.HOST_FAILED)
-		case "member-join":
-			handle_member_change(e, openapi.HOST_ACTIVE)
+func recv_serf_events() {
+	for {
+		logger.Log("RecvSerfEvents loop start...")
+
+		for e := range serf.channel {
+			var name string = e["Event"].(string)
+			switch (name) {
+			case "user":
+				handle_user_event(e)
+			case "member-leave":
+				handle_member_change(e, openapi.HOST_LEFT)
+			case "member-reap":
+				fallthrough
+			case "member-failed":
+				handle_member_change(e, openapi.HOST_FAILED)
+			case "member-join":
+				handle_member_change(e, openapi.HOST_ACTIVE)
+			}
+		}
+
+		serf.m.Lock()
+		serf.c.Stop(serf.stream)
+		serf.c.Close()
+		serf.c = nil
+		serf.m.Unlock()
+
+		logger.Log("RecvSerfEvents loop exit")
+		logger.Log("reconnect to serf, attempt every %d seconds...", reconnect_seconds)
+		var err error = errors.New("")
+		for ; err != nil; err = Connect() {
+			time.Sleep(time.Duration(reconnect_seconds) * time.Second)
 		}
 	}
-	logger.Log("RecvSerfEvents loop exit!")
-	close(shutdown_ch)
 }
 
 func handle_member_change(e map[string]any, newstate openapi.Hoststate) {
@@ -189,18 +233,22 @@ func send_system_info(ch <-chan hypervisor.SystemInfo) {
 	)
 	logger.Log("SendSystemInfo loop start...")
 	for si = range ch {
+		if (!is_connected()) {
+			/* do nothing with the systeminfo if we are not connected */
+			continue
+		}
 		err = update_tags(&si.Host)
 		if (err != nil) {
-			logger.Log(err.Error())
+			logger.Log("update_tags: " + err.Error())
 		}
 		err = send_host_info(&si.Host)
 		if (err != nil) {
-			logger.Log(err.Error())
+			logger.Log("send_host_info: " + err.Error())
 		}
 		for _, vmdata := range si.Vms {
 			err = send_vm_stat(&vmdata)
 			if (err != nil) {
-				logger.Log(err.Error())
+				logger.Log("send_vm_stat: " + err.Error())
 			}
 		}
 	}
@@ -210,6 +258,10 @@ func send_system_info(ch <-chan hypervisor.SystemInfo) {
 func send_vm_events(eventCh <-chan inventory.VmEvent) {
 	logger.Log("SendVmEvents loop start...")
 	for e := range eventCh {
+		if (!is_connected()) {
+			/* do nothing with the vm events if we are not connected */
+			continue
+		}
 		if err := send_vm_event(&e); err != nil {
 			logger.Log(err.Error())
 		}
@@ -217,46 +269,49 @@ func send_vm_events(eventCh <-chan inventory.VmEvent) {
 	logger.Log("SendVmEvents loop exit")
 }
 
-func update_tags(host *openapi.Host) error {
-	var err error
-	addTags := map[string]string { host.Uuid: "" }
-	removeTags := []string {}
-	err = serf.c.UpdateTags(addTags, removeTags)
-	return err
-}
+func Connect() error {
+	serf.m.Lock()
+	defer serf.m.Unlock()
 
-func Init(rpcAddr string) error {
 	var err error
-	serf.c, err = client.NewRPCClient(rpcAddr)
+	serf.c, err = client.NewRPCClient(rpc_addr)
 	if (err != nil) {
+		serf.c = nil
 		return err
 	}
 	serf.channel = make(chan map[string]any, 64)
 	serf.stream, err = serf.c.Stream("*", serf.channel)
 	if (err != nil) {
+		serf.c.Close()
+		serf.c = nil
 		return err
 	}
 	return nil
 }
 
 func Start_listening(
-	vm_event_ch chan inventory.VmEvent, system_info_ch chan hypervisor.SystemInfo, serf_shutdown_ch chan struct{}) {
+	vm_event_ch chan inventory.VmEvent, system_info_ch chan hypervisor.SystemInfo) {
 	/* create subroutines to send and process events */
 	go send_vm_events(vm_event_ch)
 	go send_system_info(system_info_ch)
-	go recv_serf_events(serf_shutdown_ch)
+	go recv_serf_events()
 }
 
 func Shutdown() {
+	serf.m.Lock()
+	defer serf.m.Unlock()
+
 	var err error
 	logger.Log("serfcomm is shutting down...")
-	err = serf.c.Stop(serf.stream)
-	if (err != nil) {
-		logger.Log(err.Error())
-	}
-	err = serf.c.Close()
-	if (err != nil) {
-		logger.Log(err.Error())
+	if (serf.c != nil) {
+		err = serf.c.Stop(serf.stream)
+		if (err != nil) {
+			logger.Log(err.Error())
+		}
+		err = serf.c.Close()
+		if (err != nil) {
+			logger.Log(err.Error())
+		}
 	}
 	logger.Log("serfcomm shutdown complete.")
 }

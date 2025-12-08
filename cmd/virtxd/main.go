@@ -29,10 +29,6 @@ import (
 	"suse.com/virtx/pkg/logger"
 )
 
-const (
-	SerfRPCAddr = "127.0.0.1:7373"
-)
-
 var version string = "unknown"
 
 func main() {
@@ -55,16 +51,13 @@ func main() {
 	 * the actual serf client for RPC bi-directional comm,
 	 * and add a tag entry for this host using its UUID
 	 */
-	err = serfcomm.Init(SerfRPCAddr)
+	err = serfcomm.Connect()
 	if (err != nil) {
 		logger.Fatal(err.Error())
 	}
 	defer serfcomm.Shutdown()
-	serf_shutdown_ch := make(chan struct{})
-	/*
-	 * start listening for outgoing VMEvents and SystemInfo and incoming serf events.
-	 */
-	serfcomm.Start_listening(hypervisor.GetVmEventCh(), hypervisor.GetSystemInfoCh(), serf_shutdown_ch)
+
+	serfcomm.Start_listening(hypervisor.GetVmEventCh(), hypervisor.GetSystemInfoCh())
 
 	/* create server subroutine to listen for API requests */
 	virtx_err_ch := virtx.Start_listening()
@@ -89,8 +82,6 @@ func main() {
 	select {
 	case sig := <-c:
 		logger.Log("Got signal: %d", sig)
-	case <-serf_shutdown_ch:
-		logger.Log("Serf shutdown")
 	case err = <-virtx_err_ch:
 		logger.Log("VirtX service error: %s", err.Error())
 	}
