@@ -352,7 +352,7 @@ func Define_domain(xml string, uuid string) error {
 		return err
 	}
 	defer domain.Free()
-	xml, err = domain.GetXMLDesc(libvirt.DOMAIN_XML_SECURE | libvirt.DOMAIN_XML_INACTIVE | libvirt.DOMAIN_XML_MIGRATABLE)
+	xml, err = domain.GetXMLDesc(libvirt.DOMAIN_XML_INACTIVE)
 	if (err != nil) {
 		return err
 	}
