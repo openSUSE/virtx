@@ -1243,6 +1243,7 @@ func Uuid() string {
 func check_vmreg(host_uuid string, si *SystemInfo) {
 	var (
 		err error
+		host string
 		uuid string
 		uuids []string
 		conn *libvirt.Connect
@@ -1251,18 +1252,38 @@ func check_vmreg(host_uuid string, si *SystemInfo) {
 	if (err != nil) {
 		logger.Fatal("could not create %s/%s: %s", REG_DIR, host_uuid, err.Error())
 	}
-	/* check that all vms in libvirt are registered in vmreg */
+	/* check that all vms in libvirt are registered in vmreg, and in the correct host only */
 	for uuid, _ = range(si.Vms) {
-		err = vmreg.Access(host_uuid, uuid)
-		if (err == nil) {
-			continue
+		uuids, err = vmreg.Hosts()
+		for _, host = range(uuids) {
+			err = vmreg.Access(host, uuid)
+			if (host == host_uuid) {
+				/* this is our own host directory. The vm should be registered here. */
+				if (err == nil) {
+					/* yes, ok: it is registered here */
+					continue
+				}
+				if (!os.IsNotExist(err)) {
+					/* it's here but it is not accessible (perm issues?) */
+					logger.Fatal("could not access file in %s/%s: %s", REG_DIR, host_uuid, err.Error())
+				}
+				/* os.IsNotExist */
+				logger.Log("WARNING: local libvirt domain %s/%s is not registered in vmreg", host_uuid, uuid)
+			} else {
+				/* this is not our own host directory. We should NOT find the VM here. */
+				if (err != nil && os.IsNotExist(err)) {
+					/* all ok, our vm is not in this host */
+					continue
+				}
+				if (err == nil) {
+					logger.Fatal("local libvirt domain %s is registered in remote host %s", uuid, host)
+				} else {
+					logger.Fatal("local libvirt domain %s may be registered in remote host %s and is not accessible", uuid, host)
+				}
+			}
 		}
-		if (!os.IsNotExist(err)) {
-			logger.Fatal("could not access file in %s/%s: %s", REG_DIR, host_uuid, err.Error())
-		}
-		/* os.IsNotExist */
-		logger.Log("WARNING: local libvirt domain %s/%s is not registered in vmreg", host_uuid, uuid)
 	}
+	/* now check that all vms in vmreg are registered in libvirt */
 	uuids, err = vmreg.Uuids(host_uuid)
 	if (err != nil) {
 		logger.Fatal("could not get the list of VM uuids for host %s", host_uuid)
@@ -1273,7 +1294,6 @@ func check_vmreg(host_uuid string, si *SystemInfo) {
 	}
 	defer conn.Close()
 
-	/* check that all vms in vmreg are registered in libvirt */
 	for _, uuid = range(uuids) {
 		var domain *libvirt.Domain
 		domain, err = conn.LookupDomainByUUIDString(uuid)
