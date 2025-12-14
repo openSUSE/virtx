@@ -205,3 +205,30 @@ func Uuids(host_uuid string) ([]string, error) {
 	}
 	return uuids, nil
 }
+
+/* get all the Hosts present in vmreg */
+func Hosts() ([]string, error) {
+	var (
+		uuids []string
+		err error
+		entries []os.DirEntry
+		i, length int
+		name string
+	)
+	entries, err = os.ReadDir(REG_DIR)
+	if (err != nil) {
+		return nil, err
+	}
+	for i, _ = range(entries) {
+		if (!entries[i].IsDir()) {
+			continue
+		}
+		name = entries[i].Name()
+		length = len(name)
+		if (length != 36) {
+			continue
+		}
+		uuids = append(uuids, name)
+	}
+	return uuids, nil
+}
