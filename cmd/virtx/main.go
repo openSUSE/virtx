@@ -49,6 +49,7 @@ type VirtxClient struct {
 	disk bool                   // show VM disks
 	net bool                    // show VM nets
 	debug bool                  // verbose client output
+	live bool                   // live migration
 
 	/* args */
 	host_list_options openapi.HostListOptions

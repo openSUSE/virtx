@@ -335,6 +335,11 @@ func init() {
 			if (virtx.ok) {
 				vm_migrate()
 			} else {
+				if (virtx.live) {
+					virtx.vm_migrate_options.MigrationType = openapi.MIGRATION_LIVE
+				} else {
+					virtx.vm_migrate_options.MigrationType = openapi.MIGRATION_COLD
+				}
 				virtx.path = fmt.Sprintf("/vms/%s/runstate/migrate", args[0])
 				virtx.method = "POST"
 				virtx.arg = &virtx.vm_migrate_options
@@ -342,7 +347,7 @@ func init() {
 			}
 		},
 	}
-	cmd_migrate_vm.Flags().BoolVarP(&virtx.vm_migrate_options.Live, "live", "l", false, "if true, perform live migration, otherwise offline migration")
+	cmd_migrate_vm.Flags().BoolVarP(&virtx.live, "live", "l", false, "if true, perform live migration")
 	cmd_migrate_vm.Flags().StringVarP(&virtx.vm_migrate_options.Host, "host", "h", "", "a specific host to migrate to")
 	var cmd_abort = &cobra.Command{
 		Use:   "abort",
