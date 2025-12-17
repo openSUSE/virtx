@@ -21,12 +21,10 @@ license: Apache-2.0, see cobra-license.txt
 # virtxd
 
 The service monitors the state of local VMs via libvirt, and offers a REST API backend to connect to.
+serf agent and libvirt must be already running when starting virtxd, or virtxd will not start successfully.
+If the connection to libvirt or the serf agent are subsequently lost, virtx will attempt to reconnect every 5 seconds.
 
-serf agent and libvirt must be already running when starting virtxd.
-If libvirt disconnects, virtx will attempt to reconnect,
-while for now a serf agent failure will make virtx quit. (TODO?)
-
-get serf source code (tested version 0.8.2) from
+get serf source code (tested versions 0.8.2 to 0.10.2) from
 
 https://github.com/hashicorp/serf
 
