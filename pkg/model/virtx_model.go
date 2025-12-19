@@ -29,6 +29,8 @@ func (device DiskDevice) String() string {
 		return "disk"
 	case DEVICE_CDROM:
 		return "cdrom"
+	case DEVICE_LUN:
+		return "lun"
 	}
 	return ""
 }
@@ -40,6 +42,9 @@ func (device *DiskDevice) Parse(s string) error {
 		return nil
 	case "disk":
 		*device = DEVICE_DISK
+		return nil
+	case "lun":
+		*device = DEVICE_LUN
 		return nil
 	}
 	return errors.New("could not parse disk device")
