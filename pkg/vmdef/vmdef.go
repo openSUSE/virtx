@@ -287,6 +287,13 @@ func vmdef_disk_to_xml(disk *openapi.Disk, disk_count map[string]int, iothread_c
 	domain_disk = libvirtxml.DomainDisk{
 		/* XMLName:, */
 		Device: disk.Device.String(),
+		RawIO: func() string {
+			if (disk.Device == openapi.DEVICE_LUN) {
+				return "yes"
+			} else {
+				return ""
+			}
+		}(),
 		/* Model:, */
 		Driver: &libvirtxml.DomainDiskDriver{
 			Name: "qemu",
@@ -301,11 +308,21 @@ func vmdef_disk_to_xml(disk *openapi.Disk, disk_count map[string]int, iothread_c
 				return nil
 			}(),
 		},
-		Source: &libvirtxml.DomainDiskSource{
-			File: &libvirtxml.DomainDiskSourceFile{
-				File: disk.Path,
-			},
-		},
+		Source: func() *libvirtxml.DomainDiskSource {
+			if (disk.Device == openapi.DEVICE_LUN) {
+				return &libvirtxml.DomainDiskSource{
+					Block: &libvirtxml.DomainDiskSourceBlock{
+						Dev: disk.Path,
+					},
+				}
+			} else {
+				return &libvirtxml.DomainDiskSource{
+					File: &libvirtxml.DomainDiskSourceFile{
+						File: disk.Path,
+					},
+				}
+			}
+		}(),
 		Target: &libvirtxml.DomainDiskTarget{
 			Dev: device_name,
 			Bus: ctrl_type,
@@ -705,13 +722,24 @@ func From_xml(vmdef *openapi.Vmdef, xmlstr string) error {
 			disk openapi.Disk
 			ctrl_type, ctrl_model, create_mode string
 		)
-		if (domain_disk.Source == nil || domain_disk.Source.File == nil) {
-			return errors.New("missing Disk Source File")
-		}
-		disk.Path = domain_disk.Source.File.File
 		err = disk.Device.Parse(domain_disk.Device)
 		if (err != nil) {
 			return err
+		}
+		if (domain_disk.Source == nil) {
+			return errors.New("missing Disk Source")
+		}
+		switch (disk.Device) {
+		case openapi.DEVICE_LUN:
+			if (domain_disk.Source.Block == nil) {
+				return errors.New("missing Disk Block")
+			}
+			disk.Path = domain_disk.Source.Block.Dev
+		default:
+			if (domain_disk.Source.File == nil) {
+				return errors.New("missing Disk File")
+			}
+			disk.Path = domain_disk.Source.File.File
 		}
 		if (domain_disk.Target == nil) {
 			return errors.New("missing Disk Target")
