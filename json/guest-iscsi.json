@@ -1,0 +1,47 @@
+{
+    "name": "guest-iscsi",
+    "cpudef": {
+        "model": "host-passthrough",
+        "nodes": 1,
+        "sockets": 8,
+        "cores": 1,
+        "threads": 1
+    },
+    "memory": {
+        "total": 16384,
+        "hp": false
+    },
+    "osdisk": {
+        "path": "/dev/disk/by-id/wwn-0x6001405d594364bf2bb455eaceb80934",
+        "device": 2,
+        "bus": 1,
+        "createmode": 0,
+        "size": 0
+    },
+    "disks": [
+        {
+            "path": "/vms/ds/opensuse-15.5-net.iso",
+            "device": 1,
+            "bus": 2,
+            "createmode": 0,
+            "size": 0
+        }
+    ],
+    "nets": [
+        {
+            "name": "default",
+            "nettype": 0,
+            "model": 0,
+            "mac": ""
+        }
+    ],
+    "vlanid": 0,
+    "firmware": 0,
+    "genid": "",
+    "custom": [
+        {
+            "name": "CID",
+            "value": "999"
+        }
+    ]
+}
