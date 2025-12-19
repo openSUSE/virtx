@@ -152,6 +152,9 @@ func vmdef_validate_disk(disk *openapi.Disk) error {
 			return errors.New("invalid Disk Size")
 		}
 	}
+	if (disk.Device == openapi.DEVICE_LUN && disk.Bus != openapi.BUS_VIRTIO_SCSI) {
+		return errors.New("invalid Bus type for Lun")
+	}
 	return nil
 }
 
