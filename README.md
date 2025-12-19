@@ -33,14 +33,23 @@ to control the cluster remotely, or it can be also used locally on any of the se
 On all KVM hosts, the serf service is also running, to provide the clustering layer.
 
 A separate storage product or server is providing shared storage for the cluster.
-In the current implementation, only NFS is supported. minimal iSCSI is coming in future versions.
+In the current implementation, only NFS has been implemented,
+but some minimal iSCSI code has been recently added, reaching block devices mapped to /dev/
 
-virtxd expects these directories to be mounted from remote NFS shares:
+virtxd expects this directory to be mounted, from a remote NFS4 share:
 
-/vms/ds
 /vms/xml
 
-In the simplest configuration it could be a single /vms mountpoint.
+For iSCSI, virtxd currently assumes an existing iSCSI configuration with LUNs (with multipath f.e.)
+already mapped to
+
+/dev/...
+
+For NFS4 storage, virtxd expects this additional directory to be mounted:
+
+/vms/ds
+
+In the simplest configuration with NFS, it could be a single /vms mountpoint.
 Typically the mounted directories should be owned by qemu:qemu.
 
 The virtxd daemon monitors the state of local VMs via libvirt, and offers a REST API backend to connect to.
