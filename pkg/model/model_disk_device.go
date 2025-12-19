@@ -23,12 +23,14 @@ type DiskDevice int16
 const (
 	DEVICE_DISK DiskDevice = 0
 	DEVICE_CDROM DiskDevice = 1
+	DEVICE_LUN DiskDevice = 2
 )
 
 // All allowed values of DiskDevice enum
 var AllowedDiskDeviceEnumValues = []DiskDevice{
 	0,
 	1,
+	2,
 }
 
 func (v *DiskDevice) UnmarshalJSON(src []byte) error {
