@@ -142,6 +142,16 @@ func vmdef_validate_disk(disk *openapi.Disk) error {
 	if (!disk.Createmode.IsValid()) {
 		return errors.New("invalid Disk Createmode")
 	}
+	switch (disk.Createmode) {
+	case openapi.DISK_NOCREATE:
+		if (disk.Size > 0) {
+			return errors.New("invalid Disk Size")
+		}
+	default:
+		if (disk.Size <= 0) {
+			return errors.New("invalid Disk Size")
+		}
+	}
 	return nil
 }
 
