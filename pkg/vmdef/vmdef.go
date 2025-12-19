@@ -116,6 +116,9 @@ func Validate_disk_path(path string) string {
 	if (filepath.Clean(path) != path) {
 		return ""
 	}
+	if (strings.HasPrefix(path, DEV_DIR)) {
+		return "raw"
+	}
 	if (!strings.HasPrefix(path, DS_DIR)) {
 		return ""
 	}
