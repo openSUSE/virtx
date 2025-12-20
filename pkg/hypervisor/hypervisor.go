@@ -57,8 +57,8 @@ type SystemInfoImm struct { /* immutable fields of SystemInfo */
 	 * libvirt reads /proc/cpuinfo, which just shows current Mhz, not max Mhz.
 	 * So any power state change, frequency change may change results. Oh my.
 	 *
-	 * We need to call nodeinfo specifically anyway, only for the total memory size,
-	 * since there is an API to get the free memory, but not one to get total memory size. Ugh.
+	 * We need to call nodeinfo specifically anyway, for the total memory size,
+	 * and also as a fallback frequency if max_freq is not available/readable.
 	 * So we keep using nodeinfo and we keep it here, overwriting the MHz value.
 	 */
 	info *libvirt.NodeInfo
