@@ -62,6 +62,10 @@ type SystemInfoImm struct { /* immutable fields of SystemInfo */
 	 * So we keep using nodeinfo and we keep it here, overwriting the MHz value.
 	 */
 	info *libvirt.NodeInfo
+	/* from /proc/meminfo in KiB */
+	hp_size uint64
+	hp_total uint64
+	/* from Capabilities, smbios */
 	bios_version string
 	bios_date string
 }
@@ -774,6 +778,28 @@ type xmlEntry struct {
 	Value string `xml:",chardata"`
 }
 
+/* get the specific key out of /proc/meminfo in KB */
+func get_meminfo(key string) (uint64, error) {
+	var (
+		err error
+		data []byte
+		scanner *bufio.Scanner
+	)
+	data, err = os.ReadFile("/proc/meminfo")
+	if (err != nil) {
+		return 0, err
+	}
+	scanner = bufio.NewScanner(bytes.NewReader(data))
+	for scanner.Scan() {
+		line := scanner.Text()
+		fields := strings.Fields(line)
+		if (fields[0] == key + ":") {
+			return strconv.ParseUint(fields[1], 10, 64)
+		}
+	}
+	return 0, errors.New("key not found")
+}
+
 /*
  * this information does not change after the first fetch,
  * and is reused for all subsequent get_system_info calls
@@ -816,6 +842,19 @@ func get_system_info_immutable(imm *SystemInfoImm) error {
 	if (err != nil) {
 		return err
 	}
+	/* get the hugepage size and total physical mem in KB */
+	imm.hp_size, err = get_meminfo("Hugepagesize")
+	if (err != nil) {
+		return errors.New("failed to read Hugepagesize: " + err.Error())
+	}
+	var hp_total uint64
+	hp_total, err = get_meminfo("HugePages_Total")
+	if (err != nil) {
+		return errors.New("failed to read HugePages_Total: " + err.Error())
+	}
+	/* get the total physical memory (KiB) used by default-sized hugepages */
+	imm.hp_total = hp_total * imm.hp_size
+
 	/* now deal with calculating the node Max CPU Frequency. Failures are not fatal. */
 	defer func() {
 		if (err != nil) {
@@ -851,9 +890,18 @@ func get_system_info(si *SystemInfo, old *SystemInfo) error {
 		d libvirt.Domain
 	)
 	var (
-		free_memory uint64
+		/* host memory and hp total free */
+		memory_free uint64
+		hp_free uint64
+
+		/* for normal memory backed domains */
 		total_memory_capacity uint64
 		total_memory_used uint64
+
+		/* for hugetlbfs backed domains */
+		total_hp_capacity uint64
+		total_hp_used uint64
+
 		total_vcpus_mhz uint32
 		total_cpus_used_percent int32
 		cpustats *libvirt.NodeCPUStats
@@ -905,7 +953,7 @@ func get_system_info(si *SystemInfo, old *SystemInfo) error {
 		var (
 			vm inventory.Vmdata
 			oldvm inventory.Vmdata
-			present bool
+			present, hp bool
 		)
 		vm.Name, vm.Uuid, vm.Runinfo.Runstate, err = get_domain_info(&d)
 		if (err != nil) {
@@ -918,29 +966,52 @@ func get_system_info(si *SystemInfo, old *SystemInfo) error {
 		vm.Runinfo.Host = host.Uuid
 		vm.Ts = host.Ts
 		if (present) {
-			err = get_domain_stats(&d, &vm, &oldvm)
+			err = get_domain_stats(&d, &vm, &oldvm, &hp)
 		} else {
-			err = get_domain_stats(&d, &vm, nil)
+			err = get_domain_stats(&d, &vm, nil, &hp)
 		}
-		total_memory_capacity += uint64(vm.Stats.MemoryCapacity)
-		total_memory_used += uint64(vm.Stats.MemoryUsed)
-		total_vcpus_mhz += uint32(vm.Stats.Vcpus) * uint32(info.MHz) /* should be equal to Topology Sockets * Cores, since we do not use threads */
+		if (hp) {
+			total_hp_capacity += uint64(vm.Stats.MemoryCapacity)
+			total_hp_used += uint64(vm.Stats.MemoryUsed)
+		} else {
+			total_memory_capacity += uint64(vm.Stats.MemoryCapacity)
+			total_memory_used += uint64(vm.Stats.MemoryUsed)
+		}
+		total_vcpus_mhz += uint32(vm.Stats.Vcpus) * uint32(info.MHz) /* equal to Topology Sockets * Cores, since we do not use threads */
 		total_cpus_used_percent += vm.Stats.CpuUtilization
 		vms[vm.Uuid] = vm
 	}
 	/* now calculate host resources */
-	free_memory, err = hv.conn.GetFreeMemory()
+	memory_free, err = hv.conn.GetFreeMemory()
 	if (err != nil) {
 		goto out
 	}
+	hp_free, err = get_meminfo("HugePages_Free")
+	if (err != nil) {
+		goto out
+	}
+	hp_free *= si.imm.hp_size
+
 	cpustats, err = hv.conn.GetCPUStats(-1, 0)
 	if (err != nil) {
 		goto out
 	}
+	/* Hugepages */
+	host.Resources.Hp.Total = int32(si.imm.hp_total / KiB) /* /proc/meminfo is in KiB, translate to MiB */
+	host.Resources.Hp.Free = int32(hp_free / KiB)       /* /proc/meminfo is in KiB, translate to MiB */
 
-	/* Memory */
-	host.Resources.Memory.Total = int32(info.Memory / KiB) /* info returns memory in KiB, translate to MiB */
-	host.Resources.Memory.Free = int32(free_memory / MiB) /* this returns in bytes, translate to MiB */
+	/* Normal Memory (4k pages). Info is in KiB, so convert to MiB and subtract the memory stolen by Hp */
+	host.Resources.Memory.Total = int32(info.Memory / KiB) - host.Resources.Hp.Total
+	host.Resources.Memory.Free = int32(memory_free / MiB) /* this returns in bytes, translate to MiB */
+
+	/* HP derived calculations */
+	host.Resources.Hp.Used = host.Resources.Hp.Total - host.Resources.Hp.Free
+	host.Resources.Hp.Reservedvms = int32(total_hp_capacity)
+	host.Resources.Hp.Usedvms = int32(total_hp_used)
+	host.Resources.Hp.Usedos = host.Resources.Hp.Used - host.Resources.Hp.Usedvms
+	host.Resources.Hp.Availablevms = host.Resources.Hp.Total - host.Resources.Hp.Reservedvms - host.Resources.Hp.Usedos
+
+	/* Normal Memory derived calculations */
 	host.Resources.Memory.Used = host.Resources.Memory.Total - host.Resources.Memory.Free
 	host.Resources.Memory.Reservedvms = int32(total_memory_capacity)
 	host.Resources.Memory.Usedvms = int32(total_memory_used)
@@ -1003,55 +1074,17 @@ type xmlInterface struct {
 }
 
 type xmlDomain struct {
+	MemoryBacking *libvirtxml.DomainMemoryBacking `xml:"memoryBacking"`
 	Devices struct {
 		Disks []xmlDisk `xml:"disk"`
 		Interfaces []xmlInterface `xml:"interface"`
 	} `xml:"devices"`
 }
 
-func get_domain_stats(d *libvirt.Domain, vm *inventory.Vmdata, old *inventory.Vmdata) error {
+func get_domain_stats(d *libvirt.Domain, vm *inventory.Vmdata, old *inventory.Vmdata, hp *bool) error {
 	var err error
 	{
-		var info *libvirt.DomainInfo
-		var memstat []libvirt.DomainMemoryStat
-		info, err = d.GetInfo()
-		if (err != nil) {
-			return err
-		}
-		vm.Stats.Vcpus = int16(info.NrVirtCpu)
-		vm.Cpu_time = info.CpuTime
-		vm.Stats.MemoryCapacity = int64(info.Memory / KiB) /* convert from KiB to MiB */
-		memstat, err = d.MemoryStats(20, 0)
-		if (err != nil) {
-			return err
-		}
-		for _, stat := range memstat {
-			if (libvirt.DomainMemoryStatTags(stat.Tag) == libvirt.DOMAIN_MEMORY_STAT_RSS) {
-				vm.Stats.MemoryUsed = int64(stat.Val / KiB) /* convert from KiB to MiB */
-				break
-			}
-		}
-	}
-	if (old != nil) {
-		/* calculate deltas from previous Vm info */
-		if (vm.Runinfo.Runstate == openapi.RUNSTATE_RUNNING &&
-			old.Runinfo.Runstate == openapi.RUNSTATE_RUNNING) {
-			var udelta uint64 = Counter_delta_uint64(vm.Cpu_time, old.Cpu_time)
-			if (udelta > 0 && (vm.Ts - old.Ts) > 0 && vm.Stats.Vcpus > 0) {
-				vm.Stats.CpuUtilization = int32((udelta * 100) / (uint64(vm.Ts - old.Ts) * 1000000))
-			}
-			var delta int64 = Counter_delta_int64(vm.Net_rx, old.Net_rx)
-			if (delta > 0 && (vm.Ts - old.Ts) > 0) {
-				vm.Stats.NetRxBw = int32((delta * 1000) / ((vm.Ts - old.Ts) * KiB))
-			}
-			delta = Counter_delta_int64(vm.Net_tx, old.Net_tx)
-			if (delta > 0 && (vm.Ts - old.Ts) > 0) {
-				vm.Stats.NetTxBw = int32((delta * 1000) / ((vm.Ts - old.Ts) * KiB))
-			}
-		}
-	}
-	{
-		// Retrieve the domain's XML description
+		// Retrieve the necessary info from domain's XML description
 		var (
 			xmldata string
 			xd xmlDomain
@@ -1063,6 +1096,9 @@ func get_domain_stats(d *libvirt.Domain, vm *inventory.Vmdata, old *inventory.Vm
 		err = xml.Unmarshal([]byte(xmldata), &xd)
 		if (err != nil) {
 			return err
+		}
+		if (xd.MemoryBacking != nil) {
+			*hp = true
 		}
 		for _, disk := range xd.Devices.Disks {
 			var path string
@@ -1101,6 +1137,51 @@ func get_domain_stats(d *libvirt.Domain, vm *inventory.Vmdata, old *inventory.Vm
 			}
 			if (len(net.Vlan.Tags) > 0) {
 				vm.Vlanid = int16(net.Vlan.Tags[0].Id) /* XXX only one VlandID for each VM is recognized XXX */
+			}
+		}
+	}
+	if (old != nil) {
+		/* calculate deltas from previous Vm cpu and net stats */
+		if (vm.Runinfo.Runstate == openapi.RUNSTATE_RUNNING &&
+			old.Runinfo.Runstate == openapi.RUNSTATE_RUNNING) {
+			var udelta uint64 = Counter_delta_uint64(vm.Cpu_time, old.Cpu_time)
+			if (udelta > 0 && (vm.Ts - old.Ts) > 0 && vm.Stats.Vcpus > 0) {
+				vm.Stats.CpuUtilization = int32((udelta * 100) / (uint64(vm.Ts - old.Ts) * 1000000))
+			}
+			var delta int64 = Counter_delta_int64(vm.Net_rx, old.Net_rx)
+			if (delta > 0 && (vm.Ts - old.Ts) > 0) {
+				vm.Stats.NetRxBw = int32((delta * 1000) / ((vm.Ts - old.Ts) * KiB))
+			}
+			delta = Counter_delta_int64(vm.Net_tx, old.Net_tx)
+			if (delta > 0 && (vm.Ts - old.Ts) > 0) {
+				vm.Stats.NetTxBw = int32((delta * 1000) / ((vm.Ts - old.Ts) * KiB))
+			}
+		}
+	}
+	{
+		/* now retrieve the necessary info from GetInfo() */
+		var info *libvirt.DomainInfo
+		info, err = d.GetInfo()
+		if (err != nil) {
+			return err
+		}
+		vm.Stats.Vcpus = int16(info.NrVirtCpu)
+		vm.Cpu_time = info.CpuTime
+		vm.Stats.MemoryCapacity = int64(info.Memory / KiB) /* convert from KiB to MiB */
+		if (*hp) {
+			/* even if lazily faulted (which we do not), nothing remains Free */
+			vm.Stats.MemoryUsed = vm.Stats.MemoryCapacity
+		} else {
+			var memstat []libvirt.DomainMemoryStat
+			memstat, err = d.MemoryStats(20, 0)
+			if (err != nil) {
+				return err
+			}
+			for _, stat := range memstat {
+				if (libvirt.DomainMemoryStatTags(stat.Tag) == libvirt.DOMAIN_MEMORY_STAT_RSS) {
+					vm.Stats.MemoryUsed = int64(stat.Val / KiB) /* convert from KiB to MiB */
+					break
+				}
 			}
 		}
 	}
