@@ -811,7 +811,7 @@ func get_system_info_immutable(imm *SystemInfoImm) error {
 			imm.bios_date = e.Value
 		}
 	}
-	/* we still need nodeinfo specifically and only for the memory size. Ugh. */
+	/* we still need nodeinfo for the memory size and fallback frequency */
 	imm.info, err = hv.conn.GetNodeInfo()
 	if (err != nil) {
 		return err
