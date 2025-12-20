@@ -986,6 +986,7 @@ type xmlDisk struct {
 	Device string `xml:"device,attr"`
 	Source struct {
 		File string `xml:"file,attr"`
+		Dev string `xml:"dev,attr"`
 	} `xml:"source"`
 }
 
@@ -1064,16 +1065,25 @@ func get_domain_stats(d *libvirt.Domain, vm *inventory.Vmdata, old *inventory.Vm
 			return err
 		}
 		for _, disk := range xd.Devices.Disks {
-			if (disk.Device == "disk" && disk.Source.File != "") {
-				var blockinfo *libvirt.DomainBlockInfo
-				blockinfo, err = d.GetBlockInfo(disk.Source.File, 0)
-				if (err != nil) {
-					return err
-				}
-				vm.Stats.DiskCapacity += int64(blockinfo.Capacity / MiB)
-				vm.Stats.DiskAllocation += int64(blockinfo.Allocation / MiB)
-				vm.Stats.DiskPhysical += int64(blockinfo.Physical / MiB)
+			var path string
+			if (disk.Device != "disk") {
+				continue
 			}
+			if (disk.Source.File != "") {
+				path = disk.Source.File
+			} else if (disk.Source.Dev != "") {
+				path = disk.Source.Dev
+			} else {
+				continue
+			}
+			var blockinfo *libvirt.DomainBlockInfo
+			blockinfo, err = d.GetBlockInfo(path, 0)
+			if (err != nil) {
+				return err
+			}
+			vm.Stats.DiskCapacity += int64(blockinfo.Capacity / MiB)
+			vm.Stats.DiskAllocation += int64(blockinfo.Allocation / MiB)
+			vm.Stats.DiskPhysical += int64(blockinfo.Physical / MiB)
 		}
 		for _, net := range xd.Devices.Interfaces {
 			if (net.Target.Dev != "") {
