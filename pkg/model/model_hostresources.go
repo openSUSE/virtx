@@ -23,6 +23,7 @@ var _ MappedNullable = &Hostresources{}
 // Hostresources Memory resources in MiB, CPU resources in MhZ
 type Hostresources struct {
 	Memory Hostresource `json:"memory"`
+	Hp Hostresource `json:"hp"`
 	Cpu Hostresource `json:"cpu"`
 }
 
@@ -32,13 +33,14 @@ type _Hostresources Hostresources
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewHostresources(memory Hostresource, cpu Hostresource) *Hostresources {
+func NewHostresources(memory Hostresource, hp Hostresource, cpu Hostresource) *Hostresources {
 	this := Hostresources{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
     var _ = bytes.NewBuffer
 
 	this.Memory = memory
+	this.Hp = hp
 	this.Cpu = cpu
 	return &this
 }
@@ -75,6 +77,30 @@ func (o *Hostresources) SetMemory(v Hostresource) {
 	o.Memory = v
 }
 
+// GetHp returns the Hp field value
+func (o *Hostresources) GetHp() Hostresource {
+	if o == nil {
+		var ret Hostresource
+		return ret
+	}
+
+	return o.Hp
+}
+
+// GetHpOk returns a tuple with the Hp field value
+// and a boolean to check if the value has been set.
+func (o *Hostresources) GetHpOk() (*Hostresource, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Hp, true
+}
+
+// SetHp sets field value
+func (o *Hostresources) SetHp(v Hostresource) {
+	o.Hp = v
+}
+
 // GetCpu returns the Cpu field value
 func (o *Hostresources) GetCpu() Hostresource {
 	if o == nil {
@@ -102,6 +128,7 @@ func (o *Hostresources) SetCpu(v Hostresource) {
 func (o Hostresources) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["memory"] = o.Memory
+	toSerialize["hp"] = o.Hp
 	toSerialize["cpu"] = o.Cpu
 	return toSerialize, nil
 }

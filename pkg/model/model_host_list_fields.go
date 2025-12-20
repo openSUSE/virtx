@@ -26,8 +26,10 @@ type HostListFields struct {
 	Cpuarch Cpuarch `json:"cpuarch"`
 	Cpudef Cpudef `json:"cpudef"`
 	Hoststate Hoststate `json:"hoststate"`
-	// memory available for running new VMs in MiB
+	// normal memory available for running new VMs in MiB
 	Memoryavailable int32 `json:"memoryavailable"`
+	// hugepages memory available for running new VMs in MiB
+	Hpavailable int32 `json:"hpavailable"`
 }
 
 type _HostListFields HostListFields
@@ -36,7 +38,7 @@ type _HostListFields HostListFields
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewHostListFields(name string, cpuarch Cpuarch, cpudef Cpudef, hoststate Hoststate, memoryavailable int32) *HostListFields {
+func NewHostListFields(name string, cpuarch Cpuarch, cpudef Cpudef, hoststate Hoststate, memoryavailable int32, hpavailable int32) *HostListFields {
 	this := HostListFields{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
@@ -47,6 +49,7 @@ func NewHostListFields(name string, cpuarch Cpuarch, cpudef Cpudef, hoststate Ho
 	this.Cpudef = cpudef
 	this.Hoststate = hoststate
 	this.Memoryavailable = memoryavailable
+	this.Hpavailable = hpavailable
 	return &this
 }
 
@@ -178,6 +181,30 @@ func (o *HostListFields) SetMemoryavailable(v int32) {
 	o.Memoryavailable = v
 }
 
+// GetHpavailable returns the Hpavailable field value
+func (o *HostListFields) GetHpavailable() int32 {
+	if o == nil {
+		var ret int32
+		return ret
+	}
+
+	return o.Hpavailable
+}
+
+// GetHpavailableOk returns a tuple with the Hpavailable field value
+// and a boolean to check if the value has been set.
+func (o *HostListFields) GetHpavailableOk() (*int32, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Hpavailable, true
+}
+
+// SetHpavailable sets field value
+func (o *HostListFields) SetHpavailable(v int32) {
+	o.Hpavailable = v
+}
+
 func (o HostListFields) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["name"] = o.Name
@@ -185,6 +212,7 @@ func (o HostListFields) ToMap() (map[string]interface{}, error) {
 	toSerialize["cpudef"] = o.Cpudef
 	toSerialize["hoststate"] = o.Hoststate
 	toSerialize["memoryavailable"] = o.Memoryavailable
+	toSerialize["hpavailable"] = o.Hpavailable
 	return toSerialize, nil
 }
 
