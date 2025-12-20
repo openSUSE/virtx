@@ -118,6 +118,16 @@ func encode_value(buf []byte, order binary.ByteOrder, val reflect.Value) (int, e
 		}
 		buf[0] = byte(val.Int())
 		return 1, nil
+	case reflect.Bool:
+		if (len(buf) < 1) {
+			return 0, errors.New("Bool: buffer too small")
+		}
+		if (val.Bool()) {
+			buf[0] = byte(1)
+		} else {
+			buf[0] = byte(0)
+		}
+		return 1, nil
 	case reflect.Uint16:
 		if (len(buf) < 2) {
 			return 0, errors.New("Uint16: buffer too small")
@@ -205,6 +215,18 @@ func decode_value(buf []byte, order binary.ByteOrder, val reflect.Value) (int, e
 			return 0, errors.New("Int8: buffer too small")
 		}
 		val.SetInt(int64(buf[0]))
+		return 1, nil
+	case reflect.Bool:
+		if (len(buf) < 1) {
+			return 0, errors.New("Bool: buffer too small")
+		}
+		if (buf[0] == 1) {
+			val.SetBool(true)
+		} else if (buf[0] == 0) {
+			val.SetBool(false)
+		} else {
+			return 0, errors.New("Bool: illegal byte encoding")
+		}
 		return 1, nil
 	case reflect.Uint16:
 		if (len(buf) < 2) {
