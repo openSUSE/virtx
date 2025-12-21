@@ -107,7 +107,8 @@ func init() {
 			}
 		},
 	}
-	cmd_get_host.Flags().BoolVarP(&virtx.stat, "stat", "s", false, "Show Host statistics")
+	cmd_get_host.Flags().BoolVarP(&virtx.stat_cpu, "stat-cpu", "C", false, "Show cpu statistics")
+	cmd_get_host.Flags().BoolVarP(&virtx.stat_mem, "stat-mem", "M", false, "Show memory statistics")
 	var cmd_get_vm = &cobra.Command{
 		Use:   "vm UUID",
 		Short: "Fetch and show all details of the VM",
