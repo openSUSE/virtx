@@ -61,7 +61,9 @@ func init() {
 	cmd_list_host.Flags().StringVarP(&virtx.host_list_options.Filter.Cpuarch.Arch, "arch", "a", "", "Filter by CPU Architecture (x86_64, aarch64)")
 	cmd_list_host.Flags().StringVarP(&virtx.host_list_options.Filter.Cpuarch.Vendor, "vendor", "v", "", "Filter by CPU Vendor (Intel, AMD, ...)")
 	cmd_list_host.Flags().Int16VarP((*int16)(unsafe.Pointer(&virtx.host_list_options.Filter.Hoststate)), "state", "s", 0, "Filter by Host State")
-	cmd_list_host.Flags().Int32VarP(&virtx.host_list_options.Filter.Memoryavailable, "memory", "m", 0, "Filter by Memory Available")
+	cmd_list_host.Flags().Int32VarP(&virtx.host_list_options.Filter.Memoryavailable, "memory", "m", 0, "Filter by available normal memory")
+	cmd_list_host.Flags().Int32VarP(&virtx.host_list_options.Filter.Hpavailable, "hp", "H", 0, "Filter by available HugePages memory")
+
 	var cmd_list_vm = &cobra.Command{
 		Use:   "vm",
 		Short: "List VMs in the cluster",
