@@ -65,6 +65,9 @@ func Search_hosts(f openapi.HostListFields) openapi.HostList {
 		if (f.Memoryavailable > 0 && (host.Resources.Memory.Availablevms < f.Memoryavailable)) {
 			continue
 		}
+		if (f.Hpavailable > 0 && (host.Resources.Hp.Availablevms < f.Hpavailable)) {
+			continue
+		}
 		var item openapi.HostListItem = openapi.HostListItem{
 			Uuid: host.Uuid,
 			Fields: openapi.HostListFields{
@@ -73,6 +76,7 @@ func Search_hosts(f openapi.HostListFields) openapi.HostList {
 				Cpudef: host.Def.Cpudef,
 				Hoststate: host.State,
 				Memoryavailable: host.Resources.Memory.Availablevms,
+				Hpavailable: host.Resources.Hp.Availablevms,
 			},
 		}
 		list.Items = append(list.Items, item)
