@@ -126,9 +126,12 @@ func init() {
 			}
 		},
 	}
-	cmd_get_vm.Flags().BoolVarP(&virtx.stat, "stat", "s", false, "Show VM statistics")
-	cmd_get_vm.Flags().BoolVarP(&virtx.disk, "disk", "d", false, "Show VM disks")
+	cmd_get_vm.Flags().BoolVarP(&virtx.disk, "disk", "k", false, "Show VM disks")
 	cmd_get_vm.Flags().BoolVarP(&virtx.net, "net", "n", false, "Show VM networks")
+	cmd_get_vm.Flags().BoolVarP(&virtx.stat_disk, "stat-disk", "K", false, "Show disk statistics")
+	cmd_get_vm.Flags().BoolVarP(&virtx.stat_net, "stat-net", "N", false, "Show network statistics")
+	cmd_get_vm.Flags().BoolVarP(&virtx.stat_cpu, "stat-cpu", "C", false, "Show cpu statistics")
+	cmd_get_vm.Flags().BoolVarP(&virtx.stat_mem, "stat-mem", "M", false, "Show memory statistics")
 
 	var cmd_get_runstate = &cobra.Command{
 		Use:   "runstate",

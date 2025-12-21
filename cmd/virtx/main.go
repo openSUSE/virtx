@@ -48,6 +48,10 @@ type VirtxClient struct {
 	stat bool                   // show resource statistics
 	disk bool                   // show VM disks
 	net bool                    // show VM nets
+	stat_disk bool              // show VM stats on disks
+	stat_net bool               // show VM stats on nets
+	stat_cpu bool               // show VM stats on cpus
+	stat_mem bool               // show VM stats on mem
 	debug bool                  // verbose client output
 	live bool                   // live migration
 
