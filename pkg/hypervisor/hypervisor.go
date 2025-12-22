@@ -1031,18 +1031,31 @@ func get_system_info(si *SystemInfo, old *SystemInfo) error {
 		if (interval <= 0.0) {
 			logger.Log("get_system_info: host timestamps not in order?")
 		} else {
-			var delta float64 = float64(Counter_delta_uint64(si.cpu_idle_ns, old.cpu_idle_ns))
-			/* idle counters are completely unreliable, behavior depends on cpu model */
+			var delta float64
+			/* idle counters are completely unreliable, behavior depends on hw cpu vendor, model etc */
+			//delta = float64(Counter_delta_uint64(si.cpu_idle_ns, old.cpu_idle_ns))
 			//host.Resources.Cpu.Free = int32(delta / (interval * 1000000) * float64(info.MHz) / float64(info.Threads))
 			delta = float64(Counter_delta_uint64(si.cpu_kernel_ns, old.cpu_kernel_ns))
+			logger.Debug("gsi: cpu_kernel_ns delta = %f", delta)
+
 			host.Resources.Cpu.Used = int32(delta / (interval * 1000000) * float64(info.MHz))
 			delta = float64(Counter_delta_uint64(si.cpu_user_ns, old.cpu_user_ns))
+			logger.Debug("gsi: cpu_user_ns delta = %f", delta)
+
 			host.Resources.Cpu.Used += int32(delta / (interval * 1000000) * float64(info.MHz))
+			logger.Debug("gsi: Cpu.Used = %d", host.Resources.Cpu.Used)
+
 			host.Resources.Cpu.Free = host.Resources.Cpu.Total - host.Resources.Cpu.Used
+			logger.Debug("gsi: Cpu.Free = %d", host.Resources.Cpu.Free)
 
 			host.Resources.Cpu.Usedvms = total_cpus_used_percent * int32(info.MHz) / 100
+			logger.Debug("gsi: Cpu.Usedvms = %d", host.Resources.Cpu.Usedvms)
+
 			host.Resources.Cpu.Usedos = host.Resources.Cpu.Used - host.Resources.Cpu.Usedvms
+			logger.Debug("gsi: Cpu.Usedos = %d", host.Resources.Cpu.Usedos)
+
 			host.Resources.Cpu.Availablevms = host.Resources.Cpu.Total - host.Resources.Cpu.Reservedvms - host.Resources.Cpu.Usedos
+			logger.Debug("gsi: Cpu.Availablevms = %d", host.Resources.Cpu.Availablevms)
 		}
 	}
 out:
@@ -1140,24 +1153,6 @@ func get_domain_stats(d *libvirt.Domain, vm *inventory.Vmdata, old *inventory.Vm
 			}
 		}
 	}
-	if (old != nil) {
-		/* calculate deltas from previous Vm cpu and net stats */
-		if (vm.Runinfo.Runstate == openapi.RUNSTATE_RUNNING &&
-			old.Runinfo.Runstate == openapi.RUNSTATE_RUNNING) {
-			var udelta uint64 = Counter_delta_uint64(vm.Cpu_time, old.Cpu_time)
-			if (udelta > 0 && (vm.Ts - old.Ts) > 0 && vm.Stats.Vcpus > 0) {
-				vm.Stats.CpuUtilization = int32((udelta * 100) / (uint64(vm.Ts - old.Ts) * 1000000))
-			}
-			var delta int64 = Counter_delta_int64(vm.Net_rx, old.Net_rx)
-			if (delta > 0 && (vm.Ts - old.Ts) > 0) {
-				vm.Stats.NetRxBw = int32((delta * 1000) / ((vm.Ts - old.Ts) * KiB))
-			}
-			delta = Counter_delta_int64(vm.Net_tx, old.Net_tx)
-			if (delta > 0 && (vm.Ts - old.Ts) > 0) {
-				vm.Stats.NetTxBw = int32((delta * 1000) / ((vm.Ts - old.Ts) * KiB))
-			}
-		}
-	}
 	{
 		/* now retrieve the necessary info from GetInfo() */
 		var info *libvirt.DomainInfo
@@ -1184,6 +1179,32 @@ func get_domain_stats(d *libvirt.Domain, vm *inventory.Vmdata, old *inventory.Vm
 				}
 			}
 		}
+	}
+	if (old != nil) {
+		/* finally, calculate deltas from previous Vm cpu and net stats */
+		var udelta uint64 = Counter_delta_uint64(vm.Cpu_time, old.Cpu_time)
+		logger.Debug("gds: udelta = %d, (vm.Ts - old.Ts) = %d, Vcpus = %d", udelta, (vm.Ts - old.Ts), vm.Stats.Vcpus)
+
+		if (udelta > 0 && (vm.Ts - old.Ts) > 0 && vm.Stats.Vcpus > 0) {
+			vm.Stats.CpuUtilization = int32((udelta * 100) / (uint64(vm.Ts - old.Ts) * 1000000))
+		}
+		logger.Debug("gds: CpuUtilization = %d", vm.Stats.CpuUtilization)
+
+		var delta int64 = Counter_delta_int64(vm.Net_rx, old.Net_rx)
+		logger.Debug("gds: Net_rx delta = %d", delta)
+
+		if (delta > 0 && (vm.Ts - old.Ts) > 0) {
+			vm.Stats.NetRxBw = int32((delta * 1000) / ((vm.Ts - old.Ts) * KiB))
+		}
+		logger.Debug("gds: NetRxBw = %d", vm.Stats.NetRxBw)
+
+		delta = Counter_delta_int64(vm.Net_tx, old.Net_tx)
+		logger.Debug("gds: Net_tx delta = %d", delta)
+
+		if (delta > 0 && (vm.Ts - old.Ts) > 0) {
+			vm.Stats.NetTxBw = int32((delta * 1000) / ((vm.Ts - old.Ts) * KiB))
+		}
+		logger.Debug("gds: NetTxBw = %d", vm.Stats.NetTxBw)
 	}
 	return nil
 }
