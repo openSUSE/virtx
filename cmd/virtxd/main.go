@@ -22,6 +22,7 @@ import (
 	"os"
 	"os/signal"
 	"time"
+	"flag"
 
 	"suse.com/virtx/pkg/serfcomm"
 	"suse.com/virtx/pkg/hypervisor"
@@ -34,8 +35,11 @@ var version string = "unknown"
 func main() {
 	var (
 		err error
+		debug *bool
 	)
 	logger.Log("version %s", version)
+	debug = flag.Bool("D", false, "add debug info to logs")
+	logger.Set_debug(*debug)
 
 	/* hypervisor: initialize and start listening to hypervisor events */
 	err = hypervisor.Connect()
