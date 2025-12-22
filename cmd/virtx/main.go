@@ -94,8 +94,10 @@ func main() {
 		os.Exit(1)
 	}
 	if (virtx.debug) {
-		logger.Log("version %s", version)
+		logger.Set_debug(true)
 	}
+	logger.Debug("version %s", version)
+
 	if (virtx.path == "") {
 		/* nothing else to do. */
 		os.Exit(0)
