@@ -126,7 +126,7 @@ func Connect() error {
 func Shutdown() {
 	hv.m.Lock()
 	defer hv.m.Unlock()
-	logger.Log("shutdown started...")
+	logger.Debug("shutdown started...")
 	stop_listening()
 	hv.conn.Close();
 	close(hv.vm_event_ch)
@@ -135,7 +135,7 @@ func Shutdown() {
 	hv.vm_event_ch = nil
 	hv.system_info_ch = nil
 	hv.lifecycle_id = -1
-	logger.Log("shutdown complete.")
+	logger.Debug("shutdown complete.")
 }
 
 /* get basic information about a Domain */
@@ -161,7 +161,7 @@ func get_domain_info(d *libvirt.Domain) (string, string, openapi.Vmrunstate, err
 	if (err != nil) {
 		goto out
 	}
-	//logger.Log("get_domain_info: state %d, reason %d", state, reason)
+	logger.Debug("get_domain_info: state %d, reason %d", state, reason)
 	switch (state) {
 	//case libvirt.DOMAIN_NOSTATE: /* leave enum_state RUNSTATE_NONE */
 	case libvirt.DOMAIN_RUNNING:
@@ -215,8 +215,8 @@ func system_info_loop(seconds int) error {
 		err error
 		ticker *time.Ticker
 	)
-	logger.Log("system_info_loop starting...")
-	defer logger.Log("system_info_loop exit")
+	logger.Debug("system_info_loop starting...")
+	defer logger.Debug("system_info_loop exit")
 	ticker = time.NewTicker(time.Duration(seconds) * time.Second)
 	defer ticker.Stop()
 
@@ -309,7 +309,7 @@ func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventL
 		logger.Log("lifecycle_cb: event %d: %s:", e.Event, err.Error())
 	}
 	if (state != openapi.RUNSTATE_NONE) {
-		//logger.Log("[VmEvent] %s/%s: %v state: %d", name, uuid, e, state)
+		logger.Debug("[VmEvent] %s/%s: %v state: %d", name, uuid, e, state)
 		_ = name
 		hv.vm_event_ch <- inventory.VmEvent{ Uuid: uuid, Host: hv.uuid, State: state, Ts: time.Now().UTC().UnixMilli() }
 	}
@@ -1227,18 +1227,18 @@ func freeDomains(doms []libvirt.Domain) {
 
 func init_vm_event_loop() {
 	var err error
-	logger.Log("init_vm_event_loop: Entering")
+	logger.Debug("init_vm_event_loop: Entering")
 	for {
 		err = libvirt.EventRunDefaultImpl()
 		if (err != nil) {
 			panic(err)
 		}
 	}
-	logger.Log("init_vm_event_loop: Exiting")
+	logger.Debug("init_vm_event_loop: Exiting")
 }
 
 func init_system_info_loop() {
-	logger.Log("init_system_info_loop: Waiting for a libvirt connection...")
+	logger.Debug("init_system_info_loop: Waiting for a libvirt connection...")
 	for ; hv.is_connected.Load() == false; {
 		time.Sleep(time.Duration(1) * time.Second)
 	}
@@ -1253,7 +1253,7 @@ func init_system_info_loop() {
 		if (ok) {
 			if (libvirt_err.Level >= libvirt.ERR_ERROR) {
 				logger.Log(err.Error())
-				logger.Log("reconnect, attempt every %d seconds...", libvirt_reconnect_seconds)
+				logger.Debug("reconnect, attempt every %d seconds...", libvirt_reconnect_seconds)
 				for ; err != nil; err = Connect() {
 					time.Sleep(time.Duration(libvirt_reconnect_seconds) * time.Second)
 				}
@@ -1262,7 +1262,7 @@ func init_system_info_loop() {
 			logger.Log(err.Error())
 		}
 	}
-	logger.Log("init_system_info_loop: Exiting")
+	logger.Debug("init_system_info_loop: Exiting")
 }
 
 /*
@@ -1280,7 +1280,7 @@ func init() {
 	hv.vm_event_ch = make(chan inventory.VmEvent, 64)
 	hv.system_info_ch = make(chan SystemInfo, 64)
 	hv.vcpu_load_factor = read_numa_preplace_conf()
-	logger.Log("init, vcpu_load_factor %f", hv.vcpu_load_factor)
+	logger.Debug("init, vcpu_load_factor %f", hv.vcpu_load_factor)
 	go init_vm_event_loop()
 	go init_system_info_loop()
 }
