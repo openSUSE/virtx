@@ -48,7 +48,7 @@ func vm_storage_create_disk(disk *openapi.Disk) error {
 		args = append(args, "-o", "lazy_refcounts=off")
 	}
 	args = append(args, disk.Path, fmt.Sprintf("%dM", disk.Size))
-	//logger.Log("qemu-img %v", args)
+	logger.Debug("qemu-img %v", args)
 	var cmd *exec.Cmd = exec.Command("/usr/bin/qemu-img", args...)
 	var output []byte
 	output, err = cmd.CombinedOutput()
@@ -68,7 +68,7 @@ func vm_storage_delete_disk(disk *openapi.Disk) error {
 	if (disk_driver == "") {
 		return errors.New("invalid Disk Path")
 	}
-	//logger.Log("deleting %s", disk.Path)
+	logger.Debug("deleting %s", disk.Path)
 	err = os.Remove(disk.Path)
 	if (err != nil) {
 		return err
