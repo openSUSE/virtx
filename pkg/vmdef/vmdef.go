@@ -467,6 +467,17 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 			Type: "hvm",
 		},
 		Firmware: vmdef.Firmware.String(),
+		BIOS: func() *libvirtxml.DomainBIOS {
+			if (vmdef.Firmware == openapi.FIRMWARE_BIOS) {
+				var t int = -1
+				return &libvirtxml.DomainBIOS{
+					UseSerial: "no",
+					RebootTimeout: &t,
+				}
+			} else {
+				return nil
+			}
+		}(),
 		/* - not used anymore, we use explicit boot order for each disk
 		BootDevices: []libvirtxml.DomainBootDevice{
 			{ Dev: "hd" },
@@ -709,7 +720,25 @@ func From_xml(vmdef *openapi.Vmdef, xmlstr string) error {
 	}
 	err = vmdef.Firmware.Parse(domain.OS.Firmware)
 	if (err != nil) {
-		return err
+		/*
+		 * XXX
+		 * due to libvirt's brokenness, we cannot rely on domain.OS.Firmware.
+		 * For "backward-compatibility reasons" libvirt strips this from MIGRATABLE
+		 * domain XML, and then does not provide any way to override this,
+		 * as migrations asking to both persist the domain and provide custom XML
+		 * are bugged as well, where the custom XML is simply ignored.
+		 *
+		 * We could do a workaround here, where we try to detect a bios from the
+		 * path containing "bios", crossing fingers and hoping for the best,
+		 * but we can (and do) set the domain.OS.BIOS options so that we can
+		 * later detect a BIOS, and consider everything else EFI.
+		 * XXX
+		 */
+		if (domain.OS.BIOS != nil) {
+			vmdef.Firmware = openapi.FIRMWARE_BIOS
+		} else {
+			vmdef.Firmware = openapi.FIRMWARE_UEFI
+		}
 	}
 	/* DEVICES */
 	if (domain.Devices == nil) {
