@@ -85,7 +85,7 @@ func send_host_info(host_info *openapi.Host) error {
 	if (err != nil) {
 		return err
 	}
-	//logger.Log("send_host_info payload len=%d\n", eventsize)
+	logger.Debug("send_host_info payload len=%d\n", eventsize)
 	return send_user_event(label_host_info, serf.enc_buffer[:eventsize])
 }
 
@@ -100,7 +100,7 @@ func send_vm_stat(vmdata *inventory.Vmdata) error {
 	if (err != nil) {
 		return err
 	}
-	//logger.Log("send_vm_stat payload len=%d\n", eventsize)
+	logger.Debug("send_vm_stat payload len=%d\n", eventsize)
 	return send_user_event(label_vm_stat, serf.enc_buffer[:eventsize])
 }
 
@@ -115,13 +115,13 @@ func send_vm_event(e *inventory.VmEvent) error {
 	if (err != nil) {
 		return err
 	}
-	//logger.Log("send_vm_event payload len=%d\n", eventsize)
+	logger.Debug("send_vm_event payload len=%d\n", eventsize)
 	return send_user_event(label_vm_event, serf.enc_buffer[:eventsize])
 }
 
 func recv_serf_events() {
 	for {
-		logger.Log("RecvSerfEvents loop start...")
+		logger.Debug("RecvSerfEvents loop start...")
 
 		for e := range serf.channel {
 			var name string = e["Event"].(string)
@@ -145,8 +145,8 @@ func recv_serf_events() {
 		serf.c = nil
 		serf.m.Unlock()
 
-		logger.Log("RecvSerfEvents loop exit")
-		logger.Log("reconnect to serf, attempt every %d seconds...", reconnect_seconds)
+		logger.Debug("RecvSerfEvents loop exit")
+		logger.Debug("reconnect to serf, attempt every %d seconds...", reconnect_seconds)
 		var err error = errors.New("")
 		for ; err != nil; err = Connect() {
 			time.Sleep(time.Duration(reconnect_seconds) * time.Second)
@@ -163,7 +163,7 @@ func handle_member_change(e map[string]any, newstate openapi.Hoststate) {
 		tags := m.(map[any]any)["Tags"].(map[any]any)
 		for tag := range tags {
 			var uuid string = tag.(string)
-			logger.Log("%s %s", name, uuid)
+			logger.Debug("%s %s", name, uuid)
 			err = inventory.Set_host_state(uuid, newstate)
 			if (err != nil) {
 				logger.Log(err.Error())
@@ -188,7 +188,7 @@ func handle_user_event(e map[string]any) {
 		if (err != nil) {
 			logger.Log("Decode %s: ERR '%s' at offset %d", name, err.Error(), size)
 		} else {
-			//logger.Log("Decode %s: OK  %d %s %s", name, hi.Ts, hi.Uuid, hi.Def.Name)
+			logger.Debug("Decode %s: OK  %d %s %s", name, hi.Ts, hi.Uuid, hi.Def.Name)
 			inventory.Update_host(&hi)
 		}
 	case label_vm_event:
@@ -200,7 +200,7 @@ func handle_user_event(e map[string]any) {
 		if (err != nil) {
 			logger.Log("Decode %s: ERR '%s' at offset %d", name, err.Error(), size)
 		} else {
-			//logger.Log("Decode %s: OK  %d %s %s", name, ve.Ts, ve.Uuid, ve.State)
+			logger.Debug("Decode %s: OK  %d %s %s", name, ve.Ts, ve.Uuid, ve.State)
 			err = inventory.Update_vm_state(&ve)
 			if (err != nil) {
 				logger.Log(err.Error())
@@ -215,7 +215,7 @@ func handle_user_event(e map[string]any) {
 		if (err != nil) {
 			logger.Log("Decode %s: ERR '%s' at offset %d", name, err.Error(), size)
 		} else {
-			//logger.Log("Decode %s: OK  %d %s %s %d", name, vm.Ts, vm.Uuid, vm.Name, vm.Runinfo.Runstate)
+			logger.Debug("Decode %s: OK  %d %s %s %d", name, vm.Ts, vm.Uuid, vm.Name, vm.Runinfo.Runstate)
 			err = inventory.Update_vm(&vm)
 			if (err != nil) {
 				logger.Log(err.Error())
@@ -231,7 +231,7 @@ func send_system_info(ch <-chan hypervisor.SystemInfo) {
 		err error
 		si hypervisor.SystemInfo
 	)
-	logger.Log("SendSystemInfo loop start...")
+	logger.Debug("SendSystemInfo loop start...")
 	for si = range ch {
 		if (!is_connected()) {
 			/* do nothing with the systeminfo if we are not connected */
@@ -252,11 +252,11 @@ func send_system_info(ch <-chan hypervisor.SystemInfo) {
 			}
 		}
 	}
-	logger.Log("SendSystemInfo loop exit")
+	logger.Debug("SendSystemInfo loop exit")
 }
 
 func send_vm_events(eventCh <-chan inventory.VmEvent) {
-	logger.Log("SendVmEvents loop start...")
+	logger.Debug("SendVmEvents loop start...")
 	for e := range eventCh {
 		if (!is_connected()) {
 			/* do nothing with the vm events if we are not connected */
@@ -266,7 +266,7 @@ func send_vm_events(eventCh <-chan inventory.VmEvent) {
 			logger.Log(err.Error())
 		}
 	}
-	logger.Log("SendVmEvents loop exit")
+	logger.Debug("SendVmEvents loop exit")
 }
 
 func Connect() error {
@@ -302,7 +302,7 @@ func Shutdown() {
 	defer serf.m.Unlock()
 
 	var err error
-	logger.Log("serfcomm is shutting down...")
+	logger.Debug("serfcomm is shutting down...")
 	if (serf.c != nil) {
 		err = serf.c.Stop(serf.stream)
 		if (err != nil) {
@@ -313,5 +313,5 @@ func Shutdown() {
 			logger.Log(err.Error())
 		}
 	}
-	logger.Log("serfcomm shutdown complete.")
+	logger.Debug("serfcomm shutdown complete.")
 }
