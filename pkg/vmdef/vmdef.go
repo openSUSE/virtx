@@ -320,6 +320,9 @@ func vmdef_disk_to_xml(disk *openapi.Disk, disk_count map[string]int, iothread_c
 					Block: &libvirtxml.DomainDiskSourceBlock{
 						Dev: disk.Path,
 					},
+					Reservations: &libvirtxml.DomainDiskReservations{
+						Managed: "yes",
+					},
 				}
 			} else {
 				return &libvirtxml.DomainDiskSource{
