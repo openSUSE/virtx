@@ -29,6 +29,7 @@ import (
 
 var l struct {
 	m sync.Mutex
+	debug bool
 }
 
 /* called under lock and with the caller string already set */
@@ -53,6 +54,18 @@ func Log(format string, args ...interface{}) {
 	do_log(caller, format, args...)
 }
 
+func Debug(format string, args ...interface{}) {
+	l.m.Lock()
+	defer l.m.Unlock()
+
+	if (!l.debug) {
+		return
+	}
+	var caller string
+	_, caller, _, _ = runtime.Caller(1)
+	do_log(caller, format, args...)
+}
+
 func Fatal(format string, args ...interface{}) {
 	l.m.Lock()
 	defer l.m.Unlock()
@@ -61,4 +74,11 @@ func Fatal(format string, args ...interface{}) {
 	_, caller, _, _ = runtime.Caller(1)
 	do_log(caller, format, args...)
 	os.Exit(1)
+}
+
+func Set_debug(d bool) {
+	l.m.Lock()
+	defer l.m.Unlock()
+
+	l.debug = d
 }
