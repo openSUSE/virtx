@@ -39,6 +39,7 @@ func main() {
 	)
 	logger.Log("version %s", version)
 	debug = flag.Bool("D", false, "add debug info to logs")
+	flag.Parse()
 	logger.Set_debug(*debug)
 
 	/* hypervisor: initialize and start listening to hypervisor events */
