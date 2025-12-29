@@ -27,9 +27,9 @@ func vm_get(vm *openapi.Vm) {
 		fmt.Fprintf(virtx.w, "%7d KiB\t%7d KiB\n", vm.Stats.NetRxBw, vm.Stats.NetTxBw)
 
 	} else if (virtx.stat_cpu) {
-		fmt.Fprintf(virtx.w, "VCPUS\t CPU%%\n")
-		fmt.Fprintf(virtx.w, "%5d\t%5d\n", vm.Stats.Vcpus, vm.Stats.CpuUtilization)
-
+		fmt.Fprintf(virtx.w, "VCPU MODEL\tSOCKETS\t CORES\tTHREADS\t CPU%%\n")
+		fmt.Fprintf(virtx.w, "%s\t%7d\t%7d\t%7d\t%5d\n", vm.Def.Cpudef.Model,
+			vm.Def.Cpudef.Sockets, vm.Def.Cpudef.Cores, vm.Def.Cpudef.Threads, vm.Stats.CpuUtilization)
 	} else if (virtx.stat_mem) {
 		if (vm.Def.Memory.Hp) {
 			fmt.Fprintf(virtx.w, "MEM_CAP_HP\t MEM_USED_HP\n")
@@ -38,10 +38,9 @@ func vm_get(vm *openapi.Vm) {
 		}
 		fmt.Fprintf(virtx.w, "%7d MiB\t%7d MiB\n", vm.Stats.MemoryCapacity, vm.Stats.MemoryUsed)
 	} else {
-		fmt.Fprintf(virtx.w, "NAME\tHOST\tSTATE\tVLAN\tCPU_MODEL\tVCPUS\t \n")
-		fmt.Fprintf(virtx.w, "%s\t%s\t%s\t%4d\t%s\t%5d\t%v\n",
-			vm.Def.Name, vm.Runinfo.Host, vm.Runinfo.Runstate, vm.Def.Vlanid,
-			vm.Def.Cpudef.Model, vm.Stats.Vcpus, vm.Def.Custom)
+		fmt.Fprintf(virtx.w, "NAME\tHOST\tSTATE\tVLAN\tCUSTOM\n")
+		fmt.Fprintf(virtx.w, "%s\t%s\t%s\t%4d\t%v\n",
+			vm.Def.Name, vm.Runinfo.Host, vm.Runinfo.Runstate, vm.Def.Vlanid, vm.Def.Custom)
 	}
 }
 

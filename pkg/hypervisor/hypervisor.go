@@ -50,7 +50,8 @@ const (
 	libvirt_system_info_seconds = 15
 )
 
-type SystemInfoImm struct { /* immutable fields of SystemInfo */
+/* immutable host fields of SystemInfo */
+type SystemInfoImm struct {
 	caps libvirtxml.Caps
 	/*
 	 * XXX Mhz needs to be fetched manually because libvirt does a bad job of it.
@@ -70,12 +71,25 @@ type SystemInfoImm struct { /* immutable fields of SystemInfo */
 	bios_date string
 }
 
+type SystemInfoVms map[string]SystemInfoVm
+
+type SystemInfoVm struct {
+	inventory.Vmdata            /* embedded Vm data to be trasmitted externally */
+	stats openapi.Vmstats       /* the Vm statistics collected on this host */
+
+	/* overall internal counters for Vm Stats */
+	hp bool                     /* hugepages used */
+	cpu_time uint64             /* Total cpu time consumed in nanoseconds from libvirt.DomainCPUStats.CpuTime */
+	net_rx int64                /* Net Rx bytes */
+	net_tx int64                /* Net Tx bytes */
+}
+
 type SystemInfo struct {
 	imm SystemInfoImm
-	Host openapi.Host
-	Vms inventory.VmsInventory
+	Host openapi.Host /* host data to be transmitted externally */
+	Vms SystemInfoVms /* vms data, including external and internal data not for transmission */
 
-	/* overall counters for host cpu nanoseconds (for host stats) */
+	/* overall internal counters for host stats */
 	cpu_idle_ns uint64
 	cpu_kernel_ns uint64
 	cpu_user_ns uint64
@@ -92,8 +106,8 @@ type Hypervisor struct {
 
 	uuid string /* the UUID of this host */
 	cpuarch openapi.Cpuarch /* the Arch and Vendor */
-
 	vcpu_load_factor float64
+	si *SystemInfo
 }
 var hv = Hypervisor{
 	m: sync.RWMutex{},
@@ -211,7 +225,7 @@ out:
  */
 func system_info_loop(seconds int) error {
 	var (
-		old, si SystemInfo
+		si SystemInfo
 		err error
 		ticker *time.Ticker
 	)
@@ -220,27 +234,26 @@ func system_info_loop(seconds int) error {
 	ticker = time.NewTicker(time.Duration(seconds) * time.Second)
 	defer ticker.Stop()
 
-	err = get_system_info(&old, nil)
+	si, err = get_system_info()
 	if (err != nil) {
 		return err
 	}
 	hv.m.Lock()
-	hv.uuid = old.Host.Uuid
-	hv.cpuarch = old.Host.Def.Cpuarch
-	check_vmreg(hv.uuid, &old)
+	hv.uuid = si.Host.Uuid
+	hv.cpuarch = si.Host.Def.Cpuarch
+	check_vmreg(hv.uuid, &si)
 	hv.m.Unlock()
 
 	/* this first info is missing vm cpu stats and host cpu stats */
-	hv.system_info_ch <- old
+	hv.system_info_ch <- si
 
 	for range ticker.C {
-		err = get_system_info(&si, &old)
+		si, err = get_system_info()
 		if (err != nil) {
 			logger.Log("system_info_loop: failed to get_system_info: %s", err.Error())
 			continue
 		}
 		hv.system_info_ch <- si
-		old = si
 	}
 	return nil
 }
@@ -251,7 +264,7 @@ func system_info_loop(seconds int) error {
  * To address this, go over the local VmsInventory and compare it with the
  * inventory returned by libvirt, removing items unknown to libvirt.
  */
-func delete_ghosts(vms inventory.VmsInventory, ts int64) {
+func delete_ghosts(vms SystemInfoVms, ts int64) {
 	var (
 		idata inventory.Hostdata
 		ikey string
@@ -875,12 +888,13 @@ func get_system_info_immutable(imm *SystemInfoImm) error {
 	return nil
 }
 
-func get_system_info(si *SystemInfo, old *SystemInfo) error {
-	hv.m.RLock()
-	defer hv.m.RUnlock()
+func get_system_info() (SystemInfo, error) {
+	hv.m.Lock()
+	defer hv.m.Unlock()
 	var (
 		host openapi.Host
-		vms inventory.VmsInventory
+		si SystemInfo
+		vms SystemInfoVms = make(SystemInfoVms)
 		err error
 		caps *libvirtxml.Caps
 		info *libvirt.NodeInfo
@@ -900,20 +914,20 @@ func get_system_info(si *SystemInfo, old *SystemInfo) error {
 
 		/* for hugetlbfs backed domains */
 		total_hp_capacity uint64
-		total_hp_used uint64
+		/* total_hp_used is not needed, because all backing pages are "in use" */
 
 		total_vcpus_mhz uint32
 		total_cpus_used_percent int32
 		cpustats *libvirt.NodeCPUStats
 	)
 
-	if (old == nil) {
+	if (hv.si == nil) {
 		err = get_system_info_immutable(&si.imm)
 		if (err != nil) {
 			goto out
 		}
 	} else {
-		si.imm = old.imm
+		si.imm = hv.si.imm
 	}
 	/* for quick access */
 	caps = &si.imm.caps
@@ -948,37 +962,43 @@ func get_system_info(si *SystemInfo, old *SystemInfo) error {
 	}
 	defer freeDomains(doms)
 
-	vms = make(inventory.VmsInventory)
 	for _, d = range doms {
 		var (
-			vm inventory.Vmdata
-			oldvm inventory.Vmdata
-			present, hp bool
+			vm SystemInfoVm
+			oldvm SystemInfoVm
+			present bool
 		)
 		vm.Name, vm.Uuid, vm.Runinfo.Runstate, err = get_domain_info(&d)
 		if (err != nil) {
 			logger.Log("could not get_domain_info: %s", err.Error())
 			continue
 		}
-		if (old != nil) {
-			oldvm, present = old.Vms[vm.Uuid]
+		if (hv.si != nil) {
+			oldvm, present = hv.si.Vms[vm.Uuid]
 		}
 		vm.Runinfo.Host = host.Uuid
 		vm.Ts = host.Ts
 		if (present) {
-			err = get_domain_stats(&d, &vm, &oldvm, &hp)
+			err = get_domain_stats(&d, &vm, &oldvm)
 		} else {
-			err = get_domain_stats(&d, &vm, nil, &hp)
+			err = get_domain_stats(&d, &vm, nil)
 		}
-		if (hp) {
-			total_hp_capacity += uint64(vm.Stats.MemoryCapacity)
-			total_hp_used += uint64(vm.Stats.MemoryUsed)
+		if (vm.hp) {
+			total_hp_capacity += uint64(vm.stats.MemoryCapacity)
+			/*
+			 * hack: we have stored the qemu RSS size into vm.Stats.MemoryUsed,
+			 * since for hugetlbfs all the backing hugepages will be "used"
+			 * resources on the host. Take the value and restore the proper
+			 * value in the vm.Stats
+			 */
+			total_memory_used += uint64(vm.stats.MemoryUsed)
+			vm.stats.MemoryUsed = vm.stats.MemoryCapacity
 		} else {
-			total_memory_capacity += uint64(vm.Stats.MemoryCapacity)
-			total_memory_used += uint64(vm.Stats.MemoryUsed)
+			total_memory_capacity += uint64(vm.stats.MemoryCapacity)
+			total_memory_used += uint64(vm.stats.MemoryUsed)
 		}
-		total_vcpus_mhz += uint32(vm.Stats.Vcpus) * uint32(info.MHz) /* equal to Topology Sockets * Cores, since we do not use threads */
-		total_cpus_used_percent += vm.Stats.CpuUtilization
+		total_vcpus_mhz += uint32(vm.Vcpus) * uint32(info.MHz) /* equal to Topology Sockets * Cores, since we do not use threads */
+		total_cpus_used_percent += vm.stats.CpuUtilization
 		vms[vm.Uuid] = vm
 	}
 	/* now calculate host resources */
@@ -1007,7 +1027,7 @@ func get_system_info(si *SystemInfo, old *SystemInfo) error {
 	/* HP derived calculations */
 	host.Resources.Hp.Used = host.Resources.Hp.Total - host.Resources.Hp.Free
 	host.Resources.Hp.Reservedvms = int32(total_hp_capacity)
-	host.Resources.Hp.Usedvms = int32(total_hp_used)
+	host.Resources.Hp.Usedvms = int32(total_hp_capacity)
 	host.Resources.Hp.Usedos = host.Resources.Hp.Used - host.Resources.Hp.Usedvms
 	host.Resources.Hp.Availablevms = host.Resources.Hp.Total - host.Resources.Hp.Reservedvms - host.Resources.Hp.Usedos
 
@@ -1026,8 +1046,8 @@ func get_system_info(si *SystemInfo, old *SystemInfo) error {
 	si.cpu_user_ns = cpustats.User /* unfortunately this includes guest time */
 
 	/* some of the data we can only calculate as comparison from the previous measurement */
-	if (old != nil) {
-		interval := float64(host.Ts - old.Host.Ts)
+	if (hv.si != nil) {
+		interval := float64(host.Ts - hv.si.Host.Ts)
 		if (interval <= 0.0) {
 			logger.Log("get_system_info: host timestamps not in order?")
 		} else {
@@ -1035,11 +1055,11 @@ func get_system_info(si *SystemInfo, old *SystemInfo) error {
 			/* idle counters are completely unreliable, behavior depends on hw cpu vendor, model etc */
 			//delta = float64(Counter_delta_uint64(si.cpu_idle_ns, old.cpu_idle_ns))
 			//host.Resources.Cpu.Free = int32(delta / (interval * 1000000) * float64(info.MHz) / float64(info.Threads))
-			delta = float64(Counter_delta_uint64(si.cpu_kernel_ns, old.cpu_kernel_ns))
+			delta = float64(Counter_delta_uint64(si.cpu_kernel_ns, hv.si.cpu_kernel_ns))
 			logger.Debug("gsi: cpu_kernel_ns delta = %f", delta)
 
 			host.Resources.Cpu.Used = int32(delta / (interval * 1000000) * float64(info.MHz))
-			delta = float64(Counter_delta_uint64(si.cpu_user_ns, old.cpu_user_ns))
+			delta = float64(Counter_delta_uint64(si.cpu_user_ns, hv.si.cpu_user_ns))
 			logger.Debug("gsi: cpu_user_ns delta = %f", delta)
 
 			host.Resources.Cpu.Used += int32(delta / (interval * 1000000) * float64(info.MHz))
@@ -1058,12 +1078,15 @@ func get_system_info(si *SystemInfo, old *SystemInfo) error {
 			logger.Debug("gsi: Cpu.Availablevms = %d", host.Resources.Cpu.Availablevms)
 		}
 	}
-out:
 	si.Host = host
 	si.Vms = vms
-
+	if (hv.si == nil) {
+		hv.si = new(SystemInfo)
+	}
+	*hv.si = si
 	delete_ghosts(si.Vms, host.Ts)
-	return err
+out:
+	return si, err
 }
 
 type xmlDisk struct {
@@ -1094,7 +1117,7 @@ type xmlDomain struct {
 	} `xml:"devices"`
 }
 
-func get_domain_stats(d *libvirt.Domain, vm *inventory.Vmdata, old *inventory.Vmdata, hp *bool) error {
+func get_domain_stats(d *libvirt.Domain, vm *SystemInfoVm, old *SystemInfoVm) error {
 	var err error
 	{
 		// Retrieve the necessary info from domain's XML description
@@ -1111,7 +1134,7 @@ func get_domain_stats(d *libvirt.Domain, vm *inventory.Vmdata, old *inventory.Vm
 			return err
 		}
 		if (xd.MemoryBacking != nil) {
-			*hp = true
+			vm.hp = true
 		}
 		for _, disk := range xd.Devices.Disks {
 			var path string
@@ -1130,9 +1153,9 @@ func get_domain_stats(d *libvirt.Domain, vm *inventory.Vmdata, old *inventory.Vm
 			if (err != nil) {
 				return err
 			}
-			vm.Stats.DiskCapacity += int64(blockinfo.Capacity / MiB)
-			vm.Stats.DiskAllocation += int64(blockinfo.Allocation / MiB)
-			vm.Stats.DiskPhysical += int64(blockinfo.Physical / MiB)
+			vm.stats.DiskCapacity += int64(blockinfo.Capacity / MiB)
+			vm.stats.DiskAllocation += int64(blockinfo.Allocation / MiB)
+			vm.stats.DiskPhysical += int64(blockinfo.Physical / MiB)
 		}
 		for _, net := range xd.Devices.Interfaces {
 			if (net.Target.Dev != "") {
@@ -1142,10 +1165,10 @@ func get_domain_stats(d *libvirt.Domain, vm *inventory.Vmdata, old *inventory.Vm
 					return err
 				}
 				if (netstat.RxBytesSet) {
-					vm.Net_rx += netstat.RxBytes
+					vm.net_rx += netstat.RxBytes
 				}
 				if (netstat.TxBytesSet) {
-					vm.Net_tx += netstat.TxBytes
+					vm.net_tx += netstat.TxBytes
 				}
 			}
 			if (len(net.Vlan.Tags) > 0) {
@@ -1160,51 +1183,52 @@ func get_domain_stats(d *libvirt.Domain, vm *inventory.Vmdata, old *inventory.Vm
 		if (err != nil) {
 			return err
 		}
-		vm.Stats.Vcpus = int16(info.NrVirtCpu)
-		vm.Cpu_time = info.CpuTime
-		vm.Stats.MemoryCapacity = int64(info.Memory / KiB) /* convert from KiB to MiB */
-		if (*hp) {
-			/* even if lazily faulted (which we do not), nothing remains Free */
-			vm.Stats.MemoryUsed = vm.Stats.MemoryCapacity
-		} else {
-			var memstat []libvirt.DomainMemoryStat
-			memstat, err = d.MemoryStats(20, 0)
-			if (err != nil) {
-				return err
-			}
-			for _, stat := range memstat {
-				if (libvirt.DomainMemoryStatTags(stat.Tag) == libvirt.DOMAIN_MEMORY_STAT_RSS) {
-					vm.Stats.MemoryUsed = int64(stat.Val / KiB) /* convert from KiB to MiB */
-					break
-				}
+		vm.Vcpus = int16(info.NrVirtCpu)
+		vm.cpu_time = info.CpuTime
+		vm.stats.MemoryCapacity = int64(info.Memory / KiB) /* convert from KiB to MiB */
+		/*
+		 * hack: we store temporarily the RSS size of qemu into MemoryUsed for hugetlbfs too,
+		 * and we will replace it later with vm.stats.MemoryCapacity.
+		 * This is to account in the host stats for the small amount of normal memory used for
+		 * hugepage-backed Vms.
+		 */
+		var memstat []libvirt.DomainMemoryStat
+		memstat, err = d.MemoryStats(20, 0)
+		if (err != nil) {
+			return err
+		}
+		for _, stat := range memstat {
+			if (libvirt.DomainMemoryStatTags(stat.Tag) == libvirt.DOMAIN_MEMORY_STAT_RSS) {
+				vm.stats.MemoryUsed = int64(stat.Val / KiB) /* convert from KiB to MiB */
+				break
 			}
 		}
 	}
 	if (old != nil) {
 		/* finally, calculate deltas from previous Vm cpu and net stats */
-		var udelta uint64 = Counter_delta_uint64(vm.Cpu_time, old.Cpu_time)
-		logger.Debug("gds: udelta = %d, (vm.Ts - old.Ts) = %d, Vcpus = %d", udelta, (vm.Ts - old.Ts), vm.Stats.Vcpus)
+		var udelta uint64 = Counter_delta_uint64(vm.cpu_time, old.cpu_time)
+		logger.Debug("gds: udelta = %d, (vm.Ts - old.Ts) = %d, Vcpus = %d", udelta, (vm.Ts - old.Ts), vm.Vcpus)
 
-		if (udelta > 0 && (vm.Ts - old.Ts) > 0 && vm.Stats.Vcpus > 0) {
-			vm.Stats.CpuUtilization = int32((udelta * 100) / (uint64(vm.Ts - old.Ts) * 1000000))
+		if (udelta > 0 && (vm.Ts - old.Ts) > 0 && vm.Vcpus > 0) {
+			vm.stats.CpuUtilization = int32((udelta * 100) / (uint64(vm.Ts - old.Ts) * 1000000))
 		}
-		logger.Debug("gds: CpuUtilization = %d", vm.Stats.CpuUtilization)
+		logger.Debug("gds: CpuUtilization = %d", vm.stats.CpuUtilization)
 
-		var delta int64 = Counter_delta_int64(vm.Net_rx, old.Net_rx)
-		logger.Debug("gds: Net_rx delta = %d", delta)
+		var delta int64 = Counter_delta_int64(vm.net_rx, old.net_rx)
+		logger.Debug("gds: net_rx delta = %d", delta)
 
 		if (delta > 0 && (vm.Ts - old.Ts) > 0) {
-			vm.Stats.NetRxBw = int32((delta * 1000) / ((vm.Ts - old.Ts) * KiB))
+			vm.stats.NetRxBw = int32((delta * 1000) / ((vm.Ts - old.Ts) * KiB))
 		}
-		logger.Debug("gds: NetRxBw = %d", vm.Stats.NetRxBw)
+		logger.Debug("gds: NetRxBw = %d", vm.stats.NetRxBw)
 
-		delta = Counter_delta_int64(vm.Net_tx, old.Net_tx)
-		logger.Debug("gds: Net_tx delta = %d", delta)
+		delta = Counter_delta_int64(vm.net_tx, old.net_tx)
+		logger.Debug("gds: net_tx delta = %d", delta)
 
 		if (delta > 0 && (vm.Ts - old.Ts) > 0) {
-			vm.Stats.NetTxBw = int32((delta * 1000) / ((vm.Ts - old.Ts) * KiB))
+			vm.stats.NetTxBw = int32((delta * 1000) / ((vm.Ts - old.Ts) * KiB))
 		}
-		logger.Debug("gds: NetTxBw = %d", vm.Stats.NetTxBw)
+		logger.Debug("gds: NetTxBw = %d", vm.stats.NetTxBw)
 	}
 	return nil
 }
@@ -1404,4 +1428,21 @@ func check_vmreg(host_uuid string, si *SystemInfo) {
 			domain.Free()
 		}
 	}
+}
+
+func Get_Vmstats(uuid string) (openapi.Vmstats, error) {
+	hv.m.RLock()
+	defer hv.m.RUnlock()
+	var (
+		vm SystemInfoVm
+		present bool
+	)
+	if (hv.si == nil) {
+		return openapi.Vmstats{}, errors.New("SystemInfo not available")
+	}
+	vm, present = hv.si.Vms[uuid]
+	if (!present) {
+		return openapi.Vmstats{}, errors.New("could not find vm")
+	}
+	return vm.stats, nil
 }

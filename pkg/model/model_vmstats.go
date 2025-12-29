@@ -22,8 +22,6 @@ var _ MappedNullable = &Vmstats{}
 
 // Vmstats runtime stats of the VM
 type Vmstats struct {
-	// number of vcpus defined for this VM.
-	Vcpus int16 `json:"vcpus"`
 	// percent of cpus utilized for this VM. 100 = 1 cpu fully utilized
 	CpuUtilization int32 `json:"cpu_utilization"`
 	// (uint64) memory capacity in MiB from virDomainInfo / 1024
@@ -48,13 +46,12 @@ type _Vmstats Vmstats
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVmstats(vcpus int16, cpuUtilization int32, memoryCapacity int64, memoryUsed int64, diskCapacity int64, diskAllocation int64, diskPhysical int64, netRxBw int32, netTxBw int32) *Vmstats {
+func NewVmstats(cpuUtilization int32, memoryCapacity int64, memoryUsed int64, diskCapacity int64, diskAllocation int64, diskPhysical int64, netRxBw int32, netTxBw int32) *Vmstats {
 	this := Vmstats{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
     var _ = bytes.NewBuffer
 
-	this.Vcpus = vcpus
 	this.CpuUtilization = cpuUtilization
 	this.MemoryCapacity = memoryCapacity
 	this.MemoryUsed = memoryUsed
@@ -72,30 +69,6 @@ func NewVmstats(vcpus int16, cpuUtilization int32, memoryCapacity int64, memoryU
 func NewVmstatsWithDefaults() *Vmstats {
 	this := Vmstats{}
 	return &this
-}
-
-// GetVcpus returns the Vcpus field value
-func (o *Vmstats) GetVcpus() int16 {
-	if o == nil {
-		var ret int16
-		return ret
-	}
-
-	return o.Vcpus
-}
-
-// GetVcpusOk returns a tuple with the Vcpus field value
-// and a boolean to check if the value has been set.
-func (o *Vmstats) GetVcpusOk() (*int16, bool) {
-	if o == nil {
-		return nil, false
-	}
-	return &o.Vcpus, true
-}
-
-// SetVcpus sets field value
-func (o *Vmstats) SetVcpus(v int16) {
-	o.Vcpus = v
 }
 
 // GetCpuUtilization returns the CpuUtilization field value
@@ -292,7 +265,6 @@ func (o *Vmstats) SetNetTxBw(v int32) {
 
 func (o Vmstats) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
-	toSerialize["vcpus"] = o.Vcpus
 	toSerialize["cpu_utilization"] = o.CpuUtilization
 	toSerialize["memory_capacity"] = o.MemoryCapacity
 	toSerialize["memory_used"] = o.MemoryUsed

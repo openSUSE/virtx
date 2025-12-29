@@ -33,25 +33,28 @@ type Hostdata struct {
 	Vms map[string]nothing		/* VM Uuid presence */
 }
 
+/*
+ * Vmdata: simplified VM Data to keep in the inventory on all hosts in the cluster,
+ * for quick access and search without having to contact the responsible libvirt
+ */
 type Vmdata struct {
 	Uuid string                 /* VM Uuid */
 	Name string                 /* VM Name */
 	Runinfo openapi.Vmruninfo   /* host running the VM and VM runstate */
 	Vlanid int16                /* XXX need requirements engineering for Vlans XXX */
 	Custom []openapi.CustomField
-	Stats openapi.Vmstats
-
-	Cpu_time uint64             /* Total cpu time consumed in nanoseconds from libvirt.DomainCPUStats.CpuTime */
-	Net_rx int64                /* Net Rx bytes */
-	Net_tx int64                /* Net Tx bytes */
-
+	Vcpus int16                 /* total number of vcpus in this VM */
 	Ts int64
 }
 
+/*
+ * VmEvent: Vm state report/change event, sent to all hosts in the cluster to
+ * minimally update the Vmdata.Runinfo.Runstate field.
+ */
 type VmEvent struct {
 	Uuid string
 	Host string
-	State openapi.Vmrunstate
+	State openapi.Vmrunstate    /* the main purpose of the VmEvent, state update */
 	Ts int64
 }
 

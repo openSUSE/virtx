@@ -77,7 +77,7 @@ func vm_migrate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	go func() {
-		err = hypervisor.Migrate_domain(host_new.Def.Name, o.Host, host_old_id, uuid, o.MigrationType == openapi.MIGRATION_LIVE, int(vmdata.Stats.Vcpus))
+		err = hypervisor.Migrate_domain(host_new.Def.Name, o.Host, host_old_id, uuid, o.MigrationType == openapi.MIGRATION_LIVE, int(vmdata.Vcpus))
 		if (err != nil) {
 			logger.Log("migration of domain %s failed: %s", uuid, err.Error())
 		} else {

@@ -33,7 +33,7 @@ import (
 
 const (
 	label_host_info string = "HI"
-	label_vm_stat string = "VI"
+	label_vm_info string = "VI"
 	label_vm_event string = "VE"
 	max_message_size uint = 1024
 	reconnect_seconds = 5
@@ -89,7 +89,7 @@ func send_host_info(host_info *openapi.Host) error {
 	return send_user_event(label_host_info, serf.enc_buffer[:eventsize])
 }
 
-func send_vm_stat(vmdata *inventory.Vmdata) error {
+func send_vm_data(vmdata *inventory.Vmdata) error {
 	serf.m.Lock()
 	defer serf.m.Unlock()
 	var (
@@ -100,8 +100,8 @@ func send_vm_stat(vmdata *inventory.Vmdata) error {
 	if (err != nil) {
 		return err
 	}
-	logger.Debug("send_vm_stat payload len=%d\n", eventsize)
-	return send_user_event(label_vm_stat, serf.enc_buffer[:eventsize])
+	logger.Debug("send_vm_data payload len=%d\n", eventsize)
+	return send_user_event(label_vm_info, serf.enc_buffer[:eventsize])
 }
 
 func send_vm_event(e *inventory.VmEvent) error {
@@ -206,7 +206,7 @@ func handle_user_event(e map[string]any) {
 				logger.Log(err.Error())
 			}
 		}
-	case label_vm_stat:
+	case label_vm_info:
 		var (
 			vm inventory.Vmdata
 			size int
@@ -245,10 +245,10 @@ func send_system_info(ch <-chan hypervisor.SystemInfo) {
 		if (err != nil) {
 			logger.Log("send_host_info: " + err.Error())
 		}
-		for _, vmdata := range si.Vms {
-			err = send_vm_stat(&vmdata)
+		for _, vm := range si.Vms {
+			err = send_vm_data(&vm.Vmdata)
 			if (err != nil) {
-				logger.Log("send_vm_stat: " + err.Error())
+				logger.Log("send_vm_data: " + err.Error())
 			}
 		}
 	}

@@ -55,9 +55,13 @@ func vm_get(w http.ResponseWriter, r *http.Request) {
 	}
 	vm.Uuid = uuid
 	vm.Runinfo = vmdata.Runinfo
-	vm.Stats = vmdata.Stats
 	vm.Ts = vmdata.Ts
-
+	vm.Stats, err = hypervisor.Get_Vmstats(uuid)
+	if (err != nil) {
+		logger.Log("hypervisor.Get_Vmstats failed: %s", err.Error())
+		http.Error(w, "could not get VM stats", http.StatusNotFound)
+		return
+	}
 	err = json.NewEncoder(&buf).Encode(&vm)
 	if (err != nil) {
 		logger.Log("failed to encode JSON")
