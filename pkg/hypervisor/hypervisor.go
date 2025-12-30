@@ -985,18 +985,15 @@ func get_system_info() (SystemInfo, error) {
 		}
 		if (vm.hp) {
 			total_hp_capacity += uint64(vm.stats.MemoryCapacity)
-			/*
-			 * hack: we have stored the qemu RSS size into vm.Stats.MemoryUsed,
-			 * since for hugetlbfs all the backing hugepages will be "used"
-			 * resources on the host. Take the value and restore the proper
-			 * value in the vm.Stats
-			 */
-			total_memory_used += uint64(vm.stats.MemoryUsed)
-			vm.stats.MemoryUsed = vm.stats.MemoryCapacity
 		} else {
 			total_memory_capacity += uint64(vm.stats.MemoryCapacity)
-			total_memory_used += uint64(vm.stats.MemoryUsed)
 		}
+		/*
+		 * we store the qemu RSS size into vm.Stats.MemoryUsed for hugepages too,
+		 * since for hugetlbfs all the backing hugepages will be "used" on the host.
+		 * The total memory used on the host will be HP capacity + memory used.
+		 */
+		total_memory_used += uint64(vm.stats.MemoryUsed)
 		total_vcpus_mhz += uint32(vm.Vcpus) * uint32(info.MHz) /* equal to Topology Sockets * Cores, since we do not use threads */
 		total_cpus_used_percent += vm.stats.CpuUtilization
 		vms[vm.Uuid] = vm
@@ -1187,10 +1184,9 @@ func get_domain_stats(d *libvirt.Domain, vm *SystemInfoVm, old *SystemInfoVm) er
 		vm.cpu_time = info.CpuTime
 		vm.stats.MemoryCapacity = int64(info.Memory / KiB) /* convert from KiB to MiB */
 		/*
-		 * hack: we store temporarily the RSS size of qemu into MemoryUsed for hugetlbfs too,
-		 * and we will replace it later with vm.stats.MemoryCapacity.
-		 * This is to account in the host stats for the small amount of normal memory used for
-		 * hugepage-backed Vms.
+		 * we store the RSS size of qemu into MemoryUsed for hugetlbfs too.
+		 * This is to account for the amount of normal memory (70 MiB or so) used even
+		 * backing the VM with hugepages from hugetlbfs.
 		 */
 		var memstat []libvirt.DomainMemoryStat
 		memstat, err = d.MemoryStats(20, 0)
