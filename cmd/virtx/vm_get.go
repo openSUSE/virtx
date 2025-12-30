@@ -32,11 +32,14 @@ func vm_get(vm *openapi.Vm) {
 			vm.Def.Cpudef.Sockets, vm.Def.Cpudef.Cores, vm.Def.Cpudef.Threads, vm.Stats.CpuUtilization)
 	} else if (virtx.stat_mem) {
 		if (vm.Def.Memory.Hp) {
-			fmt.Fprintf(virtx.w, "MEM_CAP_HP\t MEM_USED_HP\n")
+			fmt.Fprintf(virtx.w, " MEM_CAP_HP\t    USED_HP\t  USED_NORM\n")
+			fmt.Fprintf(virtx.w, "%7d MiB\t%7d MiB\t%7d MiB\n",
+				vm.Stats.MemoryCapacity, vm.Stats.MemoryCapacity, vm.Stats.MemoryUsed)
 		} else {
-			fmt.Fprintf(virtx.w, "MEM_CAP\t   MEM_USED\n")
+			fmt.Fprintf(virtx.w, "    MEM_CAP\t   MEM_USED\n")
+			fmt.Fprintf(virtx.w, "%7d MiB\t%7d MiB\n",
+				vm.Stats.MemoryCapacity, vm.Stats.MemoryUsed)
 		}
-		fmt.Fprintf(virtx.w, "%7d MiB\t%7d MiB\n", vm.Stats.MemoryCapacity, vm.Stats.MemoryUsed)
 	} else {
 		fmt.Fprintf(virtx.w, "NAME\tHOST\tSTATE\tVLAN\tCUSTOM\n")
 		fmt.Fprintf(virtx.w, "%s\t%s\t%s\t%4d\t%v\n",
