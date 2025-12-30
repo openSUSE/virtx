@@ -55,10 +55,6 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "storage creation failed", http.StatusInsufficientStorage)
 		return
 	}
-	err = vmdef.Write_osdisk_json(&o.Vmdef)
-	if (err != nil) {
-		logger.Log("warning: Write_osdisk_json failed: %s", err.Error())
-	}
 	err = hypervisor.Define_domain(xml, uuid)
 	if (err != nil) {
 		logger.Log("hypervisor.Define_domain failed: %s", err.Error())

@@ -89,10 +89,6 @@ func vm_register_vmreg(host_uuid string, uuid string) error {
 	if (err != nil) {
 		return err
 	}
-	err = vmdef.Write_osdisk_json(&vm)
-	if (err != nil) {
-		return err
-	}
 	/* store the processed XML in /vms/xml/host-uuid/vm-uuid.xml */
 	err = vmreg.Save(host_uuid, uuid, xml)
 	if (err != nil) {
@@ -117,10 +113,6 @@ func vm_register_libvirt(host_uuid string, uuid string) error {
 		return err
 	}
 	err = vmdef.Validate(&vm)
-	if (err != nil) {
-		return err
-	}
-	err = vmdef.Write_osdisk_json(&vm)
 	if (err != nil) {
 		return err
 	}

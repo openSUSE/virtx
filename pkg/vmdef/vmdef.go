@@ -24,8 +24,6 @@ import (
 	"strings"
 	"path/filepath"
 	"fmt"
-	"encoding/json"
-	"os"
 
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/hypervisor"
@@ -49,39 +47,6 @@ func Has_path(vmdef *openapi.Vmdef, path string) bool {
 		}
 	}
 	return false
-}
-
-/*
- * get the path to the vmdef json file close to the OS disk, which is stored
- * for convenience for the user to recreate VM in the future if needed.
- */
-func vmdef_osdisk_json(vmdef *openapi.Vmdef) string {
-	var p string = vmdef.Osdisk.Path
-	p = strings.TrimSuffix(p, filepath.Ext(p)) + ".json"
-	return p
-}
-
-/*
- * Write the vmdef to disk near the OS disk for convenience in its original form
- * so it can be used as reference for the future to recreate VM.
- * Note that the registered processed XML is instead stored in /vms/xml/
- */
-func Write_osdisk_json(vmdef *openapi.Vmdef) error {
-	var (
-		err error
-		data []byte
-		jsonfile string
-	)
-	jsonfile = vmdef_osdisk_json(vmdef)
-	data, err = json.MarshalIndent(vmdef, "", "    ")
-	if (err != nil) {
-		return err
-	}
-	err = os.WriteFile(jsonfile, data, 0640)
-	if (err != nil) {
-		return err
-	}
-	return nil
 }
 
 /*

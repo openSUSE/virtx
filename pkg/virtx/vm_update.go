@@ -82,10 +82,6 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "storage update failed", http.StatusInsufficientStorage)
 		return
 	}
-	err = vmdef.Write_osdisk_json(&o.Vmdef)
-	if (err != nil) {
-		logger.Log("warning: Write_osdisk_json failed: %s", err.Error())
-	}
 	/* redefine the updated domain */
 	err = hypervisor.Define_domain(xml, uuid)
 	if (err != nil) {
