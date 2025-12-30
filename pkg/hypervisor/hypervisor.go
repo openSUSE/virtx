@@ -1138,7 +1138,7 @@ func get_domain_stats(d *libvirt.Domain, vm *SystemInfoVm, old *SystemInfoVm) er
 		}
 		for _, disk := range xd.Devices.Disks {
 			var path string
-			if (disk.Device != "disk") {
+			if (disk.Device != "disk" && disk.Device != "lun") {
 				continue
 			}
 			if (disk.Source.File != "") {
