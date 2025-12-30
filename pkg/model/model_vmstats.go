@@ -24,15 +24,15 @@ var _ MappedNullable = &Vmstats{}
 type Vmstats struct {
 	// percent of cpus utilized for this VM. 100 = 1 cpu fully utilized
 	CpuUtilization int32 `json:"cpu_utilization"`
-	// (uint64) memory capacity in MiB from virDomainInfo / 1024
+	// (uint64) memory capacity in MiB (normal memory or hugepages)
 	MemoryCapacity int64 `json:"memory_capacity"`
-	// (uint64) QEMU RSS, VIR_DOMAIN_MEMORY_STAT_RSS / 1024
+	// (uint64) QEMU RSS from VIR_DOMAIN_MEMORY_STAT_RSS
 	MemoryUsed int64 `json:"memory_used"`
 	// (uint64) virtual capacity from virDomainBlockInfo / MiB
 	DiskCapacity int64 `json:"disk_capacity"`
-	// (uint64) allocated on host from virDomainBlockInfo / MiB
+	// (uint64) allocated from virDomainBlockInfo / MiB
 	DiskAllocation int64 `json:"disk_allocation"`
-	// (uint64) Physical on host from virDomainBlockInfo / MiB
+	// (uint64) Physical from virDomainBlockInfo / MiB
 	DiskPhysical int64 `json:"disk_physical"`
 	// Net Rx KiB/s
 	NetRxBw int32 `json:"net_rx_bw"`
