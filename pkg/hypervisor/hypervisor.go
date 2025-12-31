@@ -979,9 +979,9 @@ func get_system_info() (SystemInfo, error) {
 		vm.Runinfo.Host = host.Uuid
 		vm.Ts = host.Ts
 		if (present) {
-			err = get_domain_stats(&d, &vm, &oldvm)
+			err = get_domain_stats(&d, &vm, &oldvm, &si.imm)
 		} else {
-			err = get_domain_stats(&d, &vm, nil)
+			err = get_domain_stats(&d, &vm, nil, &si.imm)
 		}
 		if (vm.hp) {
 			total_hp_capacity += uint64(vm.stats.MemoryCapacity)
@@ -1114,7 +1114,7 @@ type xmlDomain struct {
 	} `xml:"devices"`
 }
 
-func get_domain_stats(d *libvirt.Domain, vm *SystemInfoVm, old *SystemInfoVm) error {
+func get_domain_stats(d *libvirt.Domain, vm *SystemInfoVm, old *SystemInfoVm, imm *SystemInfoImm) error {
 	var err error
 	{
 		// Retrieve the necessary info from domain's XML description
@@ -1209,6 +1209,7 @@ func get_domain_stats(d *libvirt.Domain, vm *SystemInfoVm, old *SystemInfoVm) er
 			vm.stats.CpuUtilization = int32((udelta * 100) / (uint64(vm.Ts - old.Ts) * 1000000))
 		}
 		logger.Debug("gds: CpuUtilization = %d", vm.stats.CpuUtilization)
+		vm.stats.MhzUsed = vm.stats.CpuUtilization * int32(imm.info.MHz) / 100
 
 		var delta int64 = Counter_delta_int64(vm.net_rx, old.net_rx)
 		logger.Debug("gds: net_rx delta = %d", delta)
