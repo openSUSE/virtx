@@ -24,6 +24,8 @@ var _ MappedNullable = &Vmstats{}
 type Vmstats struct {
 	// percent of cpus utilized for this VM. 100 = 1 cpu fully utilized
 	CpuUtilization int32 `json:"cpu_utilization"`
+	// approximation of MHz used, cpu utilization * MHz / 100
+	MhzUsed int32 `json:"mhz_used"`
 	// (uint64) memory capacity in MiB (normal memory or hugepages)
 	MemoryCapacity int64 `json:"memory_capacity"`
 	// (uint64) QEMU RSS from VIR_DOMAIN_MEMORY_STAT_RSS
@@ -46,13 +48,14 @@ type _Vmstats Vmstats
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVmstats(cpuUtilization int32, memoryCapacity int64, memoryUsed int64, diskCapacity int64, diskAllocation int64, diskPhysical int64, netRxBw int32, netTxBw int32) *Vmstats {
+func NewVmstats(cpuUtilization int32, mhzUsed int32, memoryCapacity int64, memoryUsed int64, diskCapacity int64, diskAllocation int64, diskPhysical int64, netRxBw int32, netTxBw int32) *Vmstats {
 	this := Vmstats{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
     var _ = bytes.NewBuffer
 
 	this.CpuUtilization = cpuUtilization
+	this.MhzUsed = mhzUsed
 	this.MemoryCapacity = memoryCapacity
 	this.MemoryUsed = memoryUsed
 	this.DiskCapacity = diskCapacity
@@ -93,6 +96,30 @@ func (o *Vmstats) GetCpuUtilizationOk() (*int32, bool) {
 // SetCpuUtilization sets field value
 func (o *Vmstats) SetCpuUtilization(v int32) {
 	o.CpuUtilization = v
+}
+
+// GetMhzUsed returns the MhzUsed field value
+func (o *Vmstats) GetMhzUsed() int32 {
+	if o == nil {
+		var ret int32
+		return ret
+	}
+
+	return o.MhzUsed
+}
+
+// GetMhzUsedOk returns a tuple with the MhzUsed field value
+// and a boolean to check if the value has been set.
+func (o *Vmstats) GetMhzUsedOk() (*int32, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.MhzUsed, true
+}
+
+// SetMhzUsed sets field value
+func (o *Vmstats) SetMhzUsed(v int32) {
+	o.MhzUsed = v
 }
 
 // GetMemoryCapacity returns the MemoryCapacity field value
@@ -266,6 +293,7 @@ func (o *Vmstats) SetNetTxBw(v int32) {
 func (o Vmstats) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["cpu_utilization"] = o.CpuUtilization
+	toSerialize["mhz_used"] = o.MhzUsed
 	toSerialize["memory_capacity"] = o.MemoryCapacity
 	toSerialize["memory_used"] = o.MemoryUsed
 	toSerialize["disk_capacity"] = o.DiskCapacity
