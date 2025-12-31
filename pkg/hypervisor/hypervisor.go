@@ -92,6 +92,7 @@ type SystemInfo struct {
 	/* overall internal counters for host stats */
 	cpu_idle_ns uint64
 	cpu_kernel_ns uint64
+	cpu_iowait_ns uint64
 	cpu_user_ns uint64
 }
 
@@ -1040,6 +1041,7 @@ func get_system_info() (SystemInfo, error) {
 	host.Resources.Cpu.Reservedvms = int32((float64(total_vcpus_mhz) / 100.0) * hv.vcpu_load_factor)
 	si.cpu_idle_ns = cpustats.Idle
 	si.cpu_kernel_ns = cpustats.Kernel
+	si.cpu_iowait_ns = cpustats.Iowait
 	si.cpu_user_ns = cpustats.User /* unfortunately this includes guest time */
 
 	/* some of the data we can only calculate as comparison from the previous measurement */
@@ -1054,12 +1056,16 @@ func get_system_info() (SystemInfo, error) {
 			//host.Resources.Cpu.Free = int32(delta / (interval * 1000000) * float64(info.MHz) / float64(info.Threads))
 			delta = float64(Counter_delta_uint64(si.cpu_kernel_ns, hv.si.cpu_kernel_ns))
 			logger.Debug("gsi: cpu_kernel_ns delta = %f", delta)
-
 			host.Resources.Cpu.Used = int32(delta / (interval * 1000000) * float64(info.MHz))
+
+			delta = float64(Counter_delta_uint64(si.cpu_iowait_ns, hv.si.cpu_iowait_ns))
+			logger.Debug("gsi: cpu_iowait_ns delta = %f", delta)
+			host.Resources.Cpu.Used += int32(delta / (interval * 1000000) * float64(info.MHz))
+
 			delta = float64(Counter_delta_uint64(si.cpu_user_ns, hv.si.cpu_user_ns))
 			logger.Debug("gsi: cpu_user_ns delta = %f", delta)
-
 			host.Resources.Cpu.Used += int32(delta / (interval * 1000000) * float64(info.MHz))
+
 			logger.Debug("gsi: Cpu.Used = %d", host.Resources.Cpu.Used)
 
 			host.Resources.Cpu.Free = host.Resources.Cpu.Total - host.Resources.Cpu.Used
