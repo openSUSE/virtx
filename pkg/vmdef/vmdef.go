@@ -338,6 +338,57 @@ func vmdef_disk_to_xml(disk *openapi.Disk, disk_count map[string]int, iothread_c
 	return nil
 }
 
+func vmdef_disk_from_xml(disk *openapi.Disk, domain_disk *libvirtxml.DomainDisk) error {
+	var (
+		err error
+		ctrl_type, ctrl_model, create_mode string
+	)
+	err = disk.Device.Parse(domain_disk.Device)
+	if (err != nil) {
+		return err
+	}
+	if (domain_disk.Source == nil) {
+		return errors.New("missing Disk Source")
+	}
+	switch (disk.Device) {
+	case openapi.DEVICE_LUN:
+		if (domain_disk.Source.Block == nil) {
+			return errors.New("missing Disk Block")
+		}
+		disk.Path = domain_disk.Source.Block.Dev
+	default:
+		if (domain_disk.Source.File == nil) {
+			return errors.New("missing Disk File")
+		}
+		disk.Path = domain_disk.Source.File.File
+	}
+	if (domain_disk.Target == nil) {
+		return errors.New("missing Disk Target")
+	}
+	if (domain_disk.Alias == nil) {
+		return errors.New("missing Disk Alias")
+	}
+	if (len(domain_disk.Alias.Name) < 5) {
+		return errors.New("Disk Alias too short")
+	}
+	fields := strings.SplitN(domain_disk.Alias.Name[3:], "_", 4)
+	if (len(fields) != 4) {
+		return errors.New("invalid Disk Alias")
+	}
+	create_mode = fields[0]
+	err = disk.Createmode.Parse(create_mode[0])
+	if (err != nil) {
+		return err
+	}
+	ctrl_type = fields[1]
+	ctrl_model = fields[2]
+	err = disk.Bus.Parse(ctrl_type, ctrl_model)
+	if (err != nil) {
+		return err
+	}
+	return nil
+}
+
 /*
  * vmdef_validate needs to be called before this!
  */
@@ -721,50 +772,8 @@ func From_xml(vmdef *openapi.Vmdef, xmlstr string) error {
 	/* DISKS */
 	vmdef.Disks = []openapi.Disk{}
 	for _, domain_disk := range domain.Devices.Disks {
-		var (
-			disk openapi.Disk
-			ctrl_type, ctrl_model, create_mode string
-		)
-		err = disk.Device.Parse(domain_disk.Device)
-		if (err != nil) {
-			return err
-		}
-		if (domain_disk.Source == nil) {
-			return errors.New("missing Disk Source")
-		}
-		switch (disk.Device) {
-		case openapi.DEVICE_LUN:
-			if (domain_disk.Source.Block == nil) {
-				return errors.New("missing Disk Block")
-			}
-			disk.Path = domain_disk.Source.Block.Dev
-		default:
-			if (domain_disk.Source.File == nil) {
-				return errors.New("missing Disk File")
-			}
-			disk.Path = domain_disk.Source.File.File
-		}
-		if (domain_disk.Target == nil) {
-			return errors.New("missing Disk Target")
-		}
-		if (domain_disk.Alias == nil) {
-			return errors.New("missing Disk Alias")
-		}
-		if (len(domain_disk.Alias.Name) < 5) {
-			return errors.New("Disk Alias too short")
-		}
-		fields := strings.SplitN(domain_disk.Alias.Name[3:], "_", 4)
-		if (len(fields) != 4) {
-			return errors.New("invalid Disk Alias")
-		}
-		create_mode = fields[0]
-		err = disk.Createmode.Parse(create_mode[0])
-		if (err != nil) {
-			return err
-		}
-		ctrl_type = fields[1]
-		ctrl_model = fields[2]
-		err = disk.Bus.Parse(ctrl_type, ctrl_model)
+		var disk openapi.Disk
+		err = vmdef_disk_from_xml(&disk, &domain_disk)
 		if (err != nil) {
 			return err
 		}
