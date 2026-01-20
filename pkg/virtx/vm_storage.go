@@ -79,7 +79,7 @@ func vm_storage_delete_disk(disk *openapi.Disk) error {
 func vm_storage_create(vm *openapi.Vmdef) error {
 	var err error
 	for _, disk := range vmdef.Disks(vm) {
-		if (vm_storage_is_managed_disk(&disk)) {
+		if (vm_storage_is_managed_disk(&disk) && disk.Prov != openapi.DISK_PROV_NONE) {
 			err = vm_storage_create_disk(&disk)
 			if (err != nil) {
 				return err
@@ -106,7 +106,7 @@ func vm_storage_delete(vm *openapi.Vmdef) error {
 func vm_storage_update_create(new *openapi.Vmdef, old *openapi.Vmdef) error {
 	var err error
 	for _, disk := range vmdef.Disks(new) {
-		if (vm_storage_is_managed_disk(&disk) && !vmdef.Has_path(old, disk.Path)) {
+		if (vm_storage_is_managed_disk(&disk) && disk.Prov != openapi.DISK_PROV_NONE && !vmdef.Has_path(old, disk.Path)) {
 			err = vm_storage_create_disk(&disk)
 			if (err != nil) {
 				return err
