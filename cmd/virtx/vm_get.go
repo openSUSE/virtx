@@ -7,7 +7,7 @@ import (
 
 func vm_get(vm *openapi.Vm) {
 	if (virtx.disk) {
-		fmt.Fprintf(virtx.w, "PATH\tDEVICE\tBUS\tMODE\n")
+		fmt.Fprintf(virtx.w, "PATH\tDEVICE\tBUS\tMAN\tPROV\n")
 		vm_get_disk(&vm.Def.Osdisk);
 		for _, disk := range (vm.Def.Disks) {
 			vm_get_disk(&disk)
@@ -49,7 +49,7 @@ func vm_get(vm *openapi.Vm) {
 }
 
 func vm_get_disk(disk *openapi.Disk) {
-	fmt.Fprintf(virtx.w, "%s\t%s\t%s\t%s\n", disk.Path, disk.Device, disk.Bus, disk.Createmode)
+	fmt.Fprintf(virtx.w, "%s\t%s\t%s\t%s\t%s\n", disk.Path, disk.Device, disk.Bus, disk.Man, disk.Prov)
 }
 
 func vm_get_net(net *openapi.Net) {

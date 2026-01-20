@@ -15,16 +15,14 @@
         "path": "/dev/disk/by-id/wwn-0x6001405d594364bf2bb455eaceb80934",
         "device": 2,
         "bus": 1,
-        "createmode": 0,
-        "size": 0
+        "man": 0
     },
     "disks": [
         {
             "path": "/vms/ds/opensuse-15.5-net.iso",
             "device": 1,
             "bus": 2,
-            "createmode": 0,
-            "size": 0
+            "man": 0
         }
     ],
     "nets": [

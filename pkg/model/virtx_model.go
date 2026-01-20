@@ -152,31 +152,53 @@ func (bus DiskBus) String() string {
 	return ""
 }
 
-func (mode DiskCreateMode) String() string {
+func (mode DiskManMode) String() string {
 	switch (mode) {
-	case DISK_NOCREATE:
+	case DISK_MAN_UNMANAGED:
 		return "U"
-	case DISK_CREATE_THIN:
+	case DISK_MAN_MANAGED:
+		return "M"
+	}
+	return ""
+}
+
+func (mode *DiskManMode) Parse(c byte) error {
+	switch (c) {
+	case 'U':
+		*mode = DISK_MAN_UNMANAGED
+		return nil
+	case 'M':
+		*mode = DISK_MAN_MANAGED
+		return nil
+	}
+	return errors.New("could not parse disk management mode")
+}
+
+func (mode DiskProvMode) String() string {
+	switch (mode) {
+	case DISK_PROV_NONE:
+		return "U"
+	case DISK_PROV_THIN:
 		return "t"
-	case DISK_CREATE_THICK:
+	case DISK_PROV_THICK:
 		return "T"
 	}
 	return ""
 }
 
-func (mode *DiskCreateMode) Parse(c byte) error {
+func (mode *DiskProvMode) Parse(c byte) error {
 	switch (c) {
 	case 'U':
-		*mode = DISK_NOCREATE /* disk was not created via API, so Unknown */
+		*mode = DISK_PROV_NONE
 		return nil
 	case 't':
-		*mode = DISK_CREATE_THIN
+		*mode = DISK_PROV_THIN
 		return nil
 	case 'T':
-		*mode = DISK_CREATE_THICK
+		*mode = DISK_PROV_THICK
 		return nil
 	}
-	return errors.New("could not parse disk creation mode")
+	return errors.New("could not parse disk provisioning mode")
 }
 
 func custom_isalnum(s string) bool {

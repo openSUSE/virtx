@@ -18,7 +18,8 @@
         "path": "/vms/ds/hp-placement/hp-placement.qcow2",
         "device": 0,
         "bus": 0,
-        "createmode": 1,
+        "man": 1,
+        "prov": 1,
         "size": 16384
     },
     "disks": [
@@ -26,8 +27,7 @@
             "path": "/vms/ds/opensuse-15.5-net.iso",
             "device": 1,
             "bus": 2,
-            "createmode": 0,
-            "size": 0
+            "man": 0
         }
     ],
     "nets": [

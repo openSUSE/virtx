@@ -14,7 +14,7 @@ import (
 
 /* is this is a virtual disk managed by virtx, created using the API ? */
 func vm_storage_is_managed_disk(disk *openapi.Disk) bool {
-	return disk.Device == openapi.DEVICE_DISK && disk.Createmode != openapi.DISK_NOCREATE
+	return disk.Device == openapi.DEVICE_DISK && disk.Man != openapi.DISK_MAN_UNMANAGED
 }
 
 func vm_storage_create_disk(disk *openapi.Disk) error {
@@ -32,12 +32,12 @@ func vm_storage_create_disk(disk *openapi.Disk) error {
 	}
 	prealloc = func () string {
 		if (disk_driver == "qcow2") {
-			if (disk.Createmode == openapi.DISK_CREATE_THIN) {
+			if (disk.Prov == openapi.DISK_PROV_THIN) {
 				return "metadata"
 			} else {
 				return "falloc"
 			}
-		} else if (disk.Createmode == openapi.DISK_CREATE_THIN) {
+		} else if (disk.Prov == openapi.DISK_PROV_THIN) {
 			return "off"
 		} else {
 			return "falloc"

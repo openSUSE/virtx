@@ -25,8 +25,9 @@ type Disk struct {
 	Path string `json:"path"`
 	Device DiskDevice `json:"device"`
 	Bus DiskBus `json:"bus"`
-	Createmode DiskCreateMode `json:"createmode"`
-	// size in MiB (use 0 for DISK_NOCREATE)
+	Man DiskManMode `json:"man"`
+	Prov DiskProvMode `json:"prov"`
+	// size in MiB. Provide 0 if disk should not be created (unmanaged or claiming existing disk)
 	Size int32 `json:"size"`
 }
 
@@ -36,7 +37,7 @@ type _Disk Disk
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewDisk(path string, device DiskDevice, bus DiskBus, createmode DiskCreateMode, size int32) *Disk {
+func NewDisk(path string, device DiskDevice, bus DiskBus, man DiskManMode, prov DiskProvMode, size int32) *Disk {
 	this := Disk{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
@@ -45,7 +46,8 @@ func NewDisk(path string, device DiskDevice, bus DiskBus, createmode DiskCreateM
 	this.Path = path
 	this.Device = device
 	this.Bus = bus
-	this.Createmode = createmode
+	this.Man = man
+	this.Prov = prov
 	this.Size = size
 	return &this
 }
@@ -130,28 +132,52 @@ func (o *Disk) SetBus(v DiskBus) {
 	o.Bus = v
 }
 
-// GetCreatemode returns the Createmode field value
-func (o *Disk) GetCreatemode() DiskCreateMode {
+// GetMan returns the Man field value
+func (o *Disk) GetMan() DiskManMode {
 	if o == nil {
-		var ret DiskCreateMode
+		var ret DiskManMode
 		return ret
 	}
 
-	return o.Createmode
+	return o.Man
 }
 
-// GetCreatemodeOk returns a tuple with the Createmode field value
+// GetManOk returns a tuple with the Man field value
 // and a boolean to check if the value has been set.
-func (o *Disk) GetCreatemodeOk() (*DiskCreateMode, bool) {
+func (o *Disk) GetManOk() (*DiskManMode, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.Createmode, true
+	return &o.Man, true
 }
 
-// SetCreatemode sets field value
-func (o *Disk) SetCreatemode(v DiskCreateMode) {
-	o.Createmode = v
+// SetMan sets field value
+func (o *Disk) SetMan(v DiskManMode) {
+	o.Man = v
+}
+
+// GetProv returns the Prov field value
+func (o *Disk) GetProv() DiskProvMode {
+	if o == nil {
+		var ret DiskProvMode
+		return ret
+	}
+
+	return o.Prov
+}
+
+// GetProvOk returns a tuple with the Prov field value
+// and a boolean to check if the value has been set.
+func (o *Disk) GetProvOk() (*DiskProvMode, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Prov, true
+}
+
+// SetProv sets field value
+func (o *Disk) SetProv(v DiskProvMode) {
+	o.Prov = v
 }
 
 // GetSize returns the Size field value
@@ -183,7 +209,8 @@ func (o Disk) ToMap() (map[string]interface{}, error) {
 	toSerialize["path"] = o.Path
 	toSerialize["device"] = o.Device
 	toSerialize["bus"] = o.Bus
-	toSerialize["createmode"] = o.Createmode
+	toSerialize["man"] = o.Man
+	toSerialize["prov"] = o.Prov
 	toSerialize["size"] = o.Size
 	return toSerialize, nil
 }

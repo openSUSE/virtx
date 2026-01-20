@@ -111,21 +111,22 @@ func vmdef_validate_disk(disk *openapi.Disk) error {
 	if (!disk.Bus.IsValid()) {
 		return errors.New("invalid Disk Bus")
 	}
-	if (!disk.Createmode.IsValid()) {
-		return errors.New("invalid Disk Createmode")
+	if (!disk.Prov.IsValid()) {
+		return errors.New("invalid Disk Provisioning mode")
 	}
-	switch (disk.Createmode) {
-	case openapi.DISK_NOCREATE:
-		if (disk.Size > 0) {
-			return errors.New("invalid Disk Size")
-		}
-	default:
-		if (disk.Size <= 0) {
-			return errors.New("invalid Disk Size")
-		}
+	if (!disk.Man.IsValid()) {
+		return errors.New("invalid Disk Management mode")
 	}
-	if (disk.Device == openapi.DEVICE_LUN && disk.Bus != openapi.BUS_VIRTIO_SCSI) {
-		return errors.New("invalid Bus type for Lun")
+	if (disk.Device == openapi.DEVICE_LUN) {
+		if (disk.Bus != openapi.BUS_VIRTIO_SCSI) {
+			return errors.New("invalid Bus type for Lun")
+		}
+		if (disk.Prov != openapi.DISK_PROV_NONE) {
+			return errors.New("invalid Prov mode for Lun")
+		}
+		if (disk.Man != openapi.DISK_MAN_UNMANAGED) {
+			return errors.New("invalid Man mode for Lun")
+		}
 	}
 	return nil
 }
@@ -318,8 +319,8 @@ func vmdef_disk_to_xml(disk *openapi.Disk, disk_count map[string]int, iothread_c
 			}
 		}(),
 		Alias: &libvirtxml.DomainAlias{
-			Name: fmt.Sprintf("ua-%s_%s_%s_%d",
-				disk.Createmode.String(), ctrl_type, ctrl_model, disk_count[ctrl_type]),
+			Name: fmt.Sprintf("ua-%s_%s_%s_%s_%d",
+				disk.Man, disk.Prov, ctrl_type, ctrl_model, disk_count[ctrl_type]),
 		},
 		Address: func() *libvirtxml.DomainAddress {
 			if (ctrl_model == "") {
@@ -341,7 +342,7 @@ func vmdef_disk_to_xml(disk *openapi.Disk, disk_count map[string]int, iothread_c
 func vmdef_disk_from_xml(disk *openapi.Disk, domain_disk *libvirtxml.DomainDisk) error {
 	var (
 		err error
-		ctrl_type, ctrl_model, create_mode string
+		man_mode, prov_mode, ctrl_type, ctrl_model string
 	)
 	err = disk.Device.Parse(domain_disk.Device)
 	if (err != nil) {
@@ -371,17 +372,22 @@ func vmdef_disk_from_xml(disk *openapi.Disk, domain_disk *libvirtxml.DomainDisk)
 	if (len(domain_disk.Alias.Name) < 5) {
 		return errors.New("Disk Alias too short")
 	}
-	fields := strings.SplitN(domain_disk.Alias.Name[3:], "_", 4)
-	if (len(fields) != 4) {
+	fields := strings.SplitN(domain_disk.Alias.Name[3:], "_", 5)
+	if (len(fields) != 5) {
 		return errors.New("invalid Disk Alias")
 	}
-	create_mode = fields[0]
-	err = disk.Createmode.Parse(create_mode[0])
+	man_mode = fields[0]
+	err = disk.Man.Parse(man_mode[0])
 	if (err != nil) {
 		return err
 	}
-	ctrl_type = fields[1]
-	ctrl_model = fields[2]
+	prov_mode = fields[1]
+	err = disk.Prov.Parse(prov_mode[0])
+	if (err != nil) {
+		return err
+	}
+	ctrl_type = fields[2]
+	ctrl_model = fields[3]
 	err = disk.Bus.Parse(ctrl_type, ctrl_model)
 	if (err != nil) {
 		return err
