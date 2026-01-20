@@ -78,13 +78,7 @@ func vm_storage_delete_disk(disk *openapi.Disk) error {
 
 func vm_storage_create(vm *openapi.Vmdef) error {
 	var err error
-	if (vm_storage_is_managed_disk(&vm.Osdisk)) {
-		err = vm_storage_create_disk(&vm.Osdisk)
-		if (err != nil) {
-			return err
-		}
-	}
-	for _, disk := range vm.Disks {
+	for _, disk := range vmdef.Disks(vm) {
 		if (vm_storage_is_managed_disk(&disk)) {
 			err = vm_storage_create_disk(&disk)
 			if (err != nil) {
@@ -97,13 +91,7 @@ func vm_storage_create(vm *openapi.Vmdef) error {
 
 func vm_storage_delete(vm *openapi.Vmdef) error {
 	var err error
-	if (vm_storage_is_managed_disk(&vm.Osdisk)) {
-		err = vm_storage_delete_disk(&vm.Osdisk)
-		if (err != nil) {
-			return err
-		}
-	}
-	for _, disk := range vm.Disks {
+	for _, disk := range vmdef.Disks(vm) {
 		if (vm_storage_is_managed_disk(&disk)) {
 			err = vm_storage_delete_disk(&disk)
 			if (err != nil) {
@@ -117,13 +105,7 @@ func vm_storage_delete(vm *openapi.Vmdef) error {
 /* create the managed storage that is in the new definition and not in the old */
 func vm_storage_update_create(new *openapi.Vmdef, old *openapi.Vmdef) error {
 	var err error
-	if (vm_storage_is_managed_disk(&new.Osdisk) && !vmdef.Has_path(old, new.Osdisk.Path)) {
-		err = vm_storage_create_disk(&new.Osdisk)
-		if (err != nil) {
-			return err
-		}
-	}
-	for _, disk := range new.Disks {
+	for _, disk := range vmdef.Disks(new) {
 		if (vm_storage_is_managed_disk(&disk) && !vmdef.Has_path(old, disk.Path)) {
 			err = vm_storage_create_disk(&disk)
 			if (err != nil) {
@@ -137,13 +119,7 @@ func vm_storage_update_create(new *openapi.Vmdef, old *openapi.Vmdef) error {
 /* delete the managed storage that is in the old definition and not in the new */
 func vm_storage_update_delete(new *openapi.Vmdef, old *openapi.Vmdef) error {
 	var err error
-	if (vm_storage_is_managed_disk(&old.Osdisk) && !vmdef.Has_path(new, old.Osdisk.Path)) {
-		err = vm_storage_delete_disk(&old.Osdisk)
-		if (err != nil) {
-			return err
-		}
-	}
-	for _, disk := range old.Disks {
+	for _, disk := range vmdef.Disks(old) {
 		if (vm_storage_is_managed_disk(&disk) && !vmdef.Has_path(new, disk.Path)) {
 			err = vm_storage_delete_disk(&disk)
 			if (err != nil) {

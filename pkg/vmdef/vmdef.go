@@ -34,14 +34,18 @@ import (
 )
 
 /*
+ * get a slice with all the disks in the vmdef
+ */
+func Disks(vm *openapi.Vmdef) []openapi.Disk {
+	return append([]openapi.Disk{vm.Osdisk}, vm.Disks...)
+}
+
+/*
  * check if the vmdef contains a certain path.
  * Initially implemented for the vm_update procedure for storage.
  */
 func Has_path(vmdef *openapi.Vmdef, path string) bool {
-	if (path == vmdef.Osdisk.Path) {
-		return true
-	}
-	for _, disk := range vmdef.Disks {
+	for _, disk := range Disks(vmdef) {
 		if (path == disk.Path) {
 			return true
 		}
@@ -160,11 +164,7 @@ func Validate(vmdef *openapi.Vmdef) error {
 		return errors.New("invalid Vlanid")
 	}
 	/* *** DISKS *** */
-	err = vmdef_validate_disk(&vmdef.Osdisk)
-	if (err != nil) {
-		return err
-	}
-	for _, disk := range vmdef.Disks {
+	for _, disk := range Disks(vmdef) {
 		err = vmdef_validate_disk(&disk)
 		if (err != nil) {
 			return err
@@ -537,15 +537,11 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 		boot_order int = 1						/* primary disk first, then the cdroms */
 	)
 	disk_count := make(map[string]int)          /* keep track of how many disks require a bus type */
-	err = vmdef_disk_to_xml(&vmdef.Osdisk, disk_count, &iothread_count, &domain_disks, &domain_controllers, boot_order)
-	if (err != nil) {
-		return "", err
-	}
-	for _, disk := range vmdef.Disks {
+	for _, disk := range Disks(vmdef) {
 		var order int
-		if (disk.Device == openapi.DEVICE_CDROM) {
-			boot_order += 1
+		if (boot_order == 1 || disk.Device == openapi.DEVICE_CDROM) {
 			order = boot_order
+			boot_order += 1
 		} else {
 			order = -1			/* other disks are not bootable */
 		}
