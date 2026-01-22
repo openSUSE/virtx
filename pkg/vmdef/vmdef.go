@@ -34,10 +34,16 @@ import (
 )
 
 /*
- * get a slice with all the disks in the vmdef
+ * get a slice with all the pointers to disks in the vmdef,
+ * so they can potentially be changed as well.
  */
-func Disks(vm *openapi.Vmdef) []openapi.Disk {
-	return append([]openapi.Disk{vm.Osdisk}, vm.Disks...)
+func Disks(vm *openapi.Vmdef) []*openapi.Disk {
+	ptrs := make([]*openapi.Disk, len(vm.Disks) + 1)
+	ptrs[0] = &vm.Osdisk
+	for i := range vm.Disks {
+		ptrs[i + 1] = &vm.Disks[i]
+	}
+	return ptrs
 }
 
 /*
@@ -166,7 +172,7 @@ func Validate(vmdef *openapi.Vmdef) error {
 	}
 	/* *** DISKS *** */
 	for _, disk := range Disks(vmdef) {
-		err = vmdef_validate_disk(&disk)
+		err = vmdef_validate_disk(disk)
 		if (err != nil) {
 			return err
 		}
@@ -551,7 +557,7 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 		} else {
 			order = -1			/* other disks are not bootable */
 		}
-		err = vmdef_disk_to_xml(&disk, disk_count, &iothread_count, &domain_disks, &domain_controllers, order)
+		err = vmdef_disk_to_xml(disk, disk_count, &iothread_count, &domain_disks, &domain_controllers, order)
 		if (err != nil) {
 			return "", err
 		}

@@ -42,17 +42,17 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed", http.StatusInternalServerError)
 		return
 	}
-	xml, err = vmdef.To_xml(&o.Vmdef, uuid)
-	if (err != nil) {
-		logger.Log("vmdef.To_xml failed: %s", err.Error())
-		http.Error(w, "invalid parameters", http.StatusBadRequest)
-		return
-	}
-	/* create storage if needed */
+	/* create storage if needed, can change o.Vmdef in some cases */
 	err = vm_storage_create(&o.Vmdef)
 	if (err != nil) {
 		logger.Log("vm_create_storage failed: %s", err.Error())
 		http.Error(w, "storage creation failed", http.StatusInsufficientStorage)
+		return
+	}
+	xml, err = vmdef.To_xml(&o.Vmdef, uuid)
+	if (err != nil) {
+		logger.Log("vmdef.To_xml failed: %s", err.Error())
+		http.Error(w, "invalid parameters", http.StatusBadRequest)
 		return
 	}
 	err = hypervisor.Define_domain(xml, uuid)

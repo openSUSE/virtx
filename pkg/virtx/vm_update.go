@@ -69,17 +69,17 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid VM data", http.StatusInternalServerError)
 		return
 	}
-	xml, err = vmdef.To_xml(&o.Vmdef, uuid)
-	if (err != nil) {
-		logger.Log("vmdef_to_xml failed: %s", err.Error())
-		http.Error(w, "invalid parameters", http.StatusBadRequest)
-		return
-	}
-	/* create missing storage where needed */
+	/* create missing storage where needed, can change o.Vmdef in some cases */
 	err = vm_storage_update_create(&o.Vmdef, &old)
 	if (err != nil) {
 		logger.Log("vm_update_storage failed: %s", err.Error())
 		http.Error(w, "storage update failed", http.StatusInsufficientStorage)
+		return
+	}
+	xml, err = vmdef.To_xml(&o.Vmdef, uuid)
+	if (err != nil) {
+		logger.Log("vmdef_to_xml failed: %s", err.Error())
+		http.Error(w, "invalid parameters", http.StatusBadRequest)
 		return
 	}
 	/* redefine the updated domain */
