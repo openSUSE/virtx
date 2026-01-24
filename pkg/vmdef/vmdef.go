@@ -633,6 +633,25 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 				},
 			},
 		},
+		Channels: []libvirtxml.DomainChannel{
+			{
+				Source: &libvirtxml.DomainChardevSource{
+					QEMUVDAgent: &libvirtxml.DomainChardevSourceQEMUVDAgent{
+						Mouse: &libvirtxml.DomainChardevSourceQEMUVDAgentMouse{
+							Mode: "client",
+						},
+						ClipBoard: &libvirtxml.DomainChardevSourceQEMUVDAgentClipBoard{
+							CopyPaste: "yes",
+						},
+					},
+				},
+				Target: &libvirtxml.DomainChannelTarget{
+					VirtIO: &libvirtxml.DomainChannelTargetVirtIO{
+						Name: "com.redhat.spice.0",
+					},
+				},
+			},
+		},
 		Graphics: []libvirtxml.DomainGraphic{
 			{
 				VNC: &libvirtxml.DomainGraphicVNC{
