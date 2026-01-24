@@ -16,6 +16,52 @@ import (
 	. "suse.com/virtx/pkg/constants"
 )
 
+/*
+ * Create the managed storage that is in the vm definition.
+ * If the operation is an update, do not create a disk that was already present in the old definition
+ */
+func vm_storage_create(vm *openapi.Vmdef, old *openapi.Vmdef) error {
+	var err error
+	for _, disk := range vmdef.Disks(vm) {
+		if (!vm_storage_is_managed_disk(disk)) {
+			continue
+		}
+		if (old != nil && vmdef.Has_path(old, disk.Path)) {
+			continue
+		}
+		if (disk.Prov == openapi.DISK_PROV_NONE) {
+			err = vm_storage_detect_prov(disk)
+		} else {
+			err = vm_storage_create_disk(disk)
+		}
+		if (err != nil) {
+			return err
+		}
+	}
+	return nil
+}
+
+/*
+ * Delete the managed storage.
+ * If the operation is an update, do not delete a disk that is present in the new definition
+ */
+func vm_storage_delete(vm *openapi.Vmdef, new *openapi.Vmdef) error {
+	var err error
+	for _, disk := range vmdef.Disks(vm) {
+		if (vm_storage_is_managed_disk(disk)) {
+			continue
+		}
+		if (new != nil && vmdef.Has_path(new, disk.Path)) {
+			continue
+		}
+		err = vm_storage_delete_disk(disk)
+		if (err != nil) {
+			return err
+		}
+	}
+	return nil
+}
+
 /* is this is a virtual disk managed by virtx, created using the API ? */
 func vm_storage_is_managed_disk(disk *openapi.Disk) bool {
 	return disk.Device == openapi.DEVICE_DISK && disk.Man != openapi.DISK_MAN_UNMANAGED
@@ -165,52 +211,6 @@ func vm_storage_delete_disk(disk *openapi.Disk) error {
 	err = os.Remove(disk.Path)
 	if (err != nil) {
 		return err
-	}
-	return nil
-}
-
-/*
- * Create the managed storage that is in the vm definition.
- * If the operation is an update, do not create a disk that was already present in the old definition
- */
-func vm_storage_create(vm *openapi.Vmdef, old *openapi.Vmdef) error {
-	var err error
-	for _, disk := range vmdef.Disks(vm) {
-		if (!vm_storage_is_managed_disk(disk)) {
-			continue
-		}
-		if (old != nil && vmdef.Has_path(old, disk.Path)) {
-			continue
-		}
-		if (disk.Prov == openapi.DISK_PROV_NONE) {
-			err = vm_storage_detect_prov(disk)
-		} else {
-			err = vm_storage_create_disk(disk)
-		}
-		if (err != nil) {
-			return err
-		}
-	}
-	return nil
-}
-
-/*
- * Delete the managed storage.
- * If the operation is an update, do not delete a disk that is present in the new definition
- */
-func vm_storage_delete(vm *openapi.Vmdef, new *openapi.Vmdef) error {
-	var err error
-	for _, disk := range vmdef.Disks(vm) {
-		if (vm_storage_is_managed_disk(disk)) {
-			continue
-		}
-		if (new != nil && vmdef.Has_path(new, disk.Path)) {
-			continue
-		}
-		err = vm_storage_delete_disk(disk)
-		if (err != nil) {
-			return err
-		}
 	}
 	return nil
 }
