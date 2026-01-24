@@ -847,10 +847,6 @@ func From_xml(vmdef *openapi.Vmdef, xmlstr string) error {
 		vmdef.Genid = domain.GenID.Value
 	}
 	/* METADATA */
-	/*
-	 * for now we ignore the <virtxml>path</virtxml> since we assume we can reconstruct it
-	 * from the first disk path.
-	 */
 	if (domain.Metadata == nil) {
 		return errors.New("missing Metadata")
 	}
