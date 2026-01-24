@@ -64,7 +64,7 @@ func vm_delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if (o.Deletestorage) {
-		err = vm_storage_delete(&vm)
+		err = vm_storage_delete(&vm, nil)
 		if (err != nil) {
 			w.Header().Set("Warning", `299 VirtX "storage could not be deleted"`)
 		}

@@ -43,7 +43,7 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	/* create storage if needed, can change o.Vmdef in some cases */
-	err = vm_storage_create(&o.Vmdef)
+	err = vm_storage_create(&o.Vmdef, nil)
 	if (err != nil) {
 		logger.Log("vm_create_storage failed: %s", err.Error())
 		http.Error(w, "storage creation failed", http.StatusInsufficientStorage)

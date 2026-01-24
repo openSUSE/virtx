@@ -70,7 +70,7 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	/* create missing storage where needed, can change o.Vmdef in some cases */
-	err = vm_storage_update_create(&o.Vmdef, &old)
+	err = vm_storage_create(&o.Vmdef, &old)
 	if (err != nil) {
 		logger.Log("vm_update_storage failed: %s", err.Error())
 		http.Error(w, "storage update failed", http.StatusInsufficientStorage)
@@ -90,7 +90,7 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if (o.Deletestorage) {
-		err = vm_storage_update_delete(&o.Vmdef, &old)
+		err = vm_storage_delete(&old, &o.Vmdef)
 		if (err != nil) {
 			w.Header().Set("Warning", `299 VirtX "unused storage could not be deleted"`)
 		}
