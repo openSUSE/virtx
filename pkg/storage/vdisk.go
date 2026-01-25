@@ -92,7 +92,7 @@ func vdisk_delete(disk *openapi.Disk) error {
 	return nil
 }
 
-/* detect and set disk provisioning method */
+/* detect and set disk provisioning method and virtual size */
 func vdisk_detect_prov(disk *openapi.Disk) error {
 	var (
 		err error
