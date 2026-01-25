@@ -8,6 +8,7 @@ import (
 	"suse.com/virtx/pkg/vmdef"
 	"suse.com/virtx/pkg/httpx"
 	"suse.com/virtx/pkg/inventory"
+	"suse.com/virtx/pkg/storage"
 )
 
 func vm_delete(w http.ResponseWriter, r *http.Request) {
@@ -64,7 +65,7 @@ func vm_delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if (o.Deletestorage) {
-		err = vm_storage_delete(&vm, nil)
+		err = storage.Delete(&vm, nil)
 		if (err != nil) {
 			w.Header().Set("Warning", `299 VirtX "storage could not be deleted"`)
 		}

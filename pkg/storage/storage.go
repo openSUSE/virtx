@@ -1,4 +1,4 @@
-package virtx
+package storage
 
 import (
 	"os"
@@ -20,7 +20,7 @@ import (
  * Create the managed storage that is in the vm definition.
  * If the operation is an update, do not create a disk that was already present in the old definition
  */
-func vm_storage_create(vm *openapi.Vmdef, old *openapi.Vmdef) error {
+func Create(vm *openapi.Vmdef, old *openapi.Vmdef) error {
 	var err error
 	for _, disk := range vmdef.Disks(vm) {
 		if (!vm_storage_is_managed_disk(disk)) {
@@ -45,7 +45,7 @@ func vm_storage_create(vm *openapi.Vmdef, old *openapi.Vmdef) error {
  * Delete the managed storage.
  * If the operation is an update, do not delete a disk that is present in the new definition
  */
-func vm_storage_delete(vm *openapi.Vmdef, new *openapi.Vmdef) error {
+func Delete(vm *openapi.Vmdef, new *openapi.Vmdef) error {
 	var err error
 	for _, disk := range vmdef.Disks(vm) {
 		if (vm_storage_is_managed_disk(disk)) {

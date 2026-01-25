@@ -10,6 +10,7 @@ import (
 	"suse.com/virtx/pkg/vmdef"
 	"suse.com/virtx/pkg/httpx"
 	"suse.com/virtx/pkg/inventory"
+	"suse.com/virtx/pkg/storage"
 )
 
 
@@ -70,7 +71,7 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	/* create missing storage where needed, can change o.Vmdef in some cases */
-	err = vm_storage_create(&o.Vmdef, &old)
+	err = storage.Create(&o.Vmdef, &old)
 	if (err != nil) {
 		logger.Log("vm_update_storage failed: %s", err.Error())
 		http.Error(w, "storage update failed", http.StatusInsufficientStorage)
@@ -90,7 +91,7 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if (o.Deletestorage) {
-		err = vm_storage_delete(&old, &o.Vmdef)
+		err = storage.Delete(&old, &o.Vmdef)
 		if (err != nil) {
 			w.Header().Set("Warning", `299 VirtX "unused storage could not be deleted"`)
 		}
