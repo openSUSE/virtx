@@ -31,6 +31,7 @@ import (
 	"suse.com/virtx/pkg/logger"
 	. "suse.com/virtx/pkg/constants"
 )
+
 /*
  * every handler needs to call this, whether it needs to read a body or not,
  * since the request might contain a body to read and ignore, but the body
