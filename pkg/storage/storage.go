@@ -40,16 +40,16 @@ import (
 func Create(vm *openapi.Vmdef, old *openapi.Vmdef) error {
 	var err error
 	for _, disk := range vmdef.Disks(vm) {
-		if (!vm_storage_is_managed_disk(disk)) {
+		if (!storage_is_managed_disk(disk)) {
 			continue
 		}
 		if (old != nil && vmdef.Has_path(old, disk.Path)) {
 			continue
 		}
 		if (disk.Prov == openapi.DISK_PROV_NONE) {
-			err = vm_storage_detect_prov(disk)
+			err = storage_detect_prov(disk)
 		} else {
-			err = vm_storage_create_disk(disk)
+			err = storage_create_disk(disk)
 		}
 		if (err != nil) {
 			return err
@@ -65,13 +65,13 @@ func Create(vm *openapi.Vmdef, old *openapi.Vmdef) error {
 func Delete(vm *openapi.Vmdef, new *openapi.Vmdef) error {
 	var err error
 	for _, disk := range vmdef.Disks(vm) {
-		if (!vm_storage_is_managed_disk(disk)) {
+		if (!storage_is_managed_disk(disk)) {
 			continue
 		}
 		if (new != nil && vmdef.Has_path(new, disk.Path)) {
 			continue
 		}
-		err = vm_storage_delete_disk(disk)
+		err = storage_delete_disk(disk)
 		if (err != nil) {
 			return err
 		}
@@ -80,11 +80,11 @@ func Delete(vm *openapi.Vmdef, new *openapi.Vmdef) error {
 }
 
 /* is this is a virtual disk managed by virtx, created using the API ? */
-func vm_storage_is_managed_disk(disk *openapi.Disk) bool {
+func storage_is_managed_disk(disk *openapi.Disk) bool {
 	return disk.Device == openapi.DEVICE_DISK && disk.Man != openapi.DISK_MAN_UNMANAGED
 }
 
-func vm_storage_create_disk(disk *openapi.Disk) error {
+func storage_create_disk(disk *openapi.Disk) error {
 	var (
 		err error
 		disk_driver, prealloc string
@@ -126,7 +126,7 @@ func vm_storage_create_disk(disk *openapi.Disk) error {
 	return nil
 }
 
-func detect_raw_prov(path string) (openapi.DiskProvMode, int32, error) {
+func storage_detect_raw_prov(path string) (openapi.DiskProvMode, int32, error) {
 	var (
 		err error
 		stat unix.Stat_t
@@ -155,7 +155,7 @@ type qmap struct {
 	//Offset     uint64 `json:"offset"`
 }
 
-func detect_qcow2_prov(path string) (openapi.DiskProvMode, int32, error) {
+func storage_detect_qcow2_prov(path string) (openapi.DiskProvMode, int32, error) {
 	var (
 		err error
 		prov openapi.DiskProvMode
@@ -195,7 +195,7 @@ func detect_qcow2_prov(path string) (openapi.DiskProvMode, int32, error) {
 }
 
 /* detect and set disk provisioning method */
-func vm_storage_detect_prov(disk *openapi.Disk) error {
+func storage_detect_prov(disk *openapi.Disk) error {
 	var (
 		err error
 		disk_driver string
@@ -206,16 +206,16 @@ func vm_storage_detect_prov(disk *openapi.Disk) error {
 	}
 	switch (disk_driver) {
 	case "raw":
-		disk.Prov, disk.Size, err = detect_raw_prov(disk.Path)
+		disk.Prov, disk.Size, err = storage_detect_raw_prov(disk.Path)
 	case "qcow2":
-		disk.Prov, disk.Size, err = detect_qcow2_prov(disk.Path)
+		disk.Prov, disk.Size, err = storage_detect_qcow2_prov(disk.Path)
 	default:
 		return errors.New("invalid Disk Path")
 	}
 	return err
 }
 
-func vm_storage_delete_disk(disk *openapi.Disk) error {
+func storage_delete_disk(disk *openapi.Disk) error {
 	var (
 		err error
 		disk_driver string
