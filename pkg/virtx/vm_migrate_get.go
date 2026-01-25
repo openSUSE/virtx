@@ -12,7 +12,6 @@ import (
 	"suse.com/virtx/pkg/inventory"
 )
 
-
 func vm_migrate_get(w http.ResponseWriter, r *http.Request) {
 	var (
 		err error

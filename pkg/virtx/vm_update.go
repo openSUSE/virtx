@@ -13,7 +13,6 @@ import (
 	"suse.com/virtx/pkg/storage"
 )
 
-
 func vm_update(w http.ResponseWriter, r *http.Request) {
 	var (
 		err error
