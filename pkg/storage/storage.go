@@ -110,15 +110,16 @@ func Delete(vm *openapi.Vmdef, new *openapi.Vmdef, uuid string, delete bool) err
 	return first_err
 }
 
-/* is this is a virtual disk managed by virtx, created using the API ? */
 func storage_is_managed_disk(disk *openapi.Disk) bool {
-	return disk.Device == openapi.DEVICE_DISK && disk.Man != openapi.DISK_MAN_UNMANAGED
+	return disk.Man != openapi.DISK_MAN_UNMANAGED
 }
 
 func storage_create_disk(disk *openapi.Disk, resource_name string, uuid string) error {
 	switch (disk.Device) {
 	case openapi.DEVICE_DISK:
 		return vdisk_create(disk, resource_name, uuid)
+	case openapi.DEVICE_LUN:
+		return lun_create(disk, resource_name, uuid)
 	default:
 		return errors.New("storage_create_disk: invalid disk device")
 	}
@@ -127,12 +128,12 @@ func storage_create_disk(disk *openapi.Disk, resource_name string, uuid string) 
 /* detect and set disk provisioning method */
 func storage_detect_prov(disk *openapi.Disk) error {
 	switch (disk.Device) {
-	case openapi.DEVICE_LUN:
-		/* not implemented yet */
 	case openapi.DEVICE_DISK:
 		fallthrough
 	case openapi.DEVICE_CDROM:
 		return vdisk_detect_prov(disk)
+	case openapi.DEVICE_LUN:
+		return lun_detect_prov(disk)
 	default:
 		return errors.New("storage_detect_prov: invalid disk device")
 	}
@@ -143,6 +144,8 @@ func storage_delete_disk(disk *openapi.Disk, resource_name string, uuid string) 
 	switch (disk.Device) {
 	case openapi.DEVICE_DISK:
 		return vdisk_delete(disk, resource_name, uuid)
+	case openapi.DEVICE_LUN:
+		return lun_delete(disk, resource_name, uuid)
 	default:
 		return errors.New("invalid disk device")
 	}

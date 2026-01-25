@@ -128,12 +128,6 @@ func vmdef_validate_disk(disk *openapi.Disk) error {
 		if (disk.Bus != openapi.BUS_VIRTIO_SCSI) {
 			return errors.New("invalid Bus type for Lun")
 		}
-		if (disk.Prov != openapi.DISK_PROV_NONE) {
-			return errors.New("invalid Prov mode for Lun")
-		}
-		if (disk.Man != openapi.DISK_MAN_UNMANAGED) {
-			return errors.New("invalid Man mode for Lun")
-		}
 	}
 	return nil
 }

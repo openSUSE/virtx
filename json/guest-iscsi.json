@@ -15,7 +15,8 @@
         "path": "/dev/disk/by-id/wwn-0x6001405d594364bf2bb455eaceb80934",
         "device": 2,
         "bus": 1,
-        "man": 0
+        "man": 1,
+        "prov": 1
     },
     "disks": [
         {

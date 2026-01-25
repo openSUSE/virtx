@@ -68,17 +68,11 @@ func vdisk_create(disk *openapi.Disk, resource_name string, uuid string) error {
 	logger.Debug("qemu-img %v", args)
 
 	/* run provisioning under lease lock */
-	err = lockman.Run(resource_name, uuid, [][]string{ args }, false)
-	// for luns instead we will: `wipefs -a "$1" && dd if=/dev/zero of="$1" bs=1M count=1 && blkdiscard "$1"`, disk.Path
-	return err
+	return lockman.Run(resource_name, uuid, [][]string{ args }, false)
 }
 
 func vdisk_delete(disk *openapi.Disk, resource_name string, uuid string) error {
-	var (
-		err error
-		disk_driver string
-	)
-	disk_driver = vmdef.Validate_disk_path(disk.Path)
+	disk_driver := vmdef.Validate_disk_path(disk.Path)
 	if (disk_driver == "") {
 		return errors.New("invalid Disk Path")
 	}
@@ -92,11 +86,7 @@ func vdisk_delete(disk *openapi.Disk, resource_name string, uuid string) error {
 		{ "/usr/bin/rm", "--", resource_path },
 		{ "/usr/bin/rmdir", "--", filepath.Dir(resource_path) },
 	}
-	err = lockman.Run(resource_name, uuid, args, true)
-	if (err != nil) {
-		return err
-	}
-	return nil
+	return lockman.Run(resource_name, uuid, args, true)
 }
 
 /* detect and set disk provisioning method and virtual size */
