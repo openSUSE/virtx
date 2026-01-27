@@ -85,6 +85,7 @@ func storage_create_disk(disk *openapi.Disk) error {
 func storage_detect_prov(disk *openapi.Disk) error {
 	switch (disk.Device) {
 	case openapi.DEVICE_DISK:
+	case openapi.DEVICE_CDROM:
 		return vdisk_detect_prov(disk)
 	default:
 		return errors.New("invalid disk device")
