@@ -77,7 +77,7 @@ func storage_create_disk(disk *openapi.Disk) error {
 	case openapi.DEVICE_DISK:
 		return vdisk_create(disk)
 	default:
-		return errors.New("invalid disk device")
+		return errors.New("storage_create_disk: invalid disk device")
 	}
 }
 
@@ -88,7 +88,7 @@ func storage_detect_prov(disk *openapi.Disk) error {
 	case openapi.DEVICE_CDROM:
 		return vdisk_detect_prov(disk)
 	default:
-		return errors.New("invalid disk device")
+		return errors.New("storage_detect_prov: invalid disk device")
 	}
 	return nil
 }
