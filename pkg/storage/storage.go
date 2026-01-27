@@ -31,16 +31,13 @@ import (
 func Create(vm *openapi.Vmdef, old *openapi.Vmdef) error {
 	var err error
 	for _, disk := range vmdef.Disks(vm) {
-		if (!storage_is_managed_disk(disk)) {
-			continue
-		}
 		if (old != nil && vmdef.Has_path(old, disk.Path)) {
 			continue
 		}
-		if (disk.Prov == openapi.DISK_PROV_NONE) {
-			err = storage_detect_prov(disk)
-		} else {
+		if (storage_is_managed_disk(disk) && disk.Prov != openapi.DISK_PROV_NONE) {
 			err = storage_create_disk(disk)
+		} else {
+			err = storage_detect_prov(disk)
 		}
 		if (err != nil) {
 			return err
@@ -56,10 +53,10 @@ func Create(vm *openapi.Vmdef, old *openapi.Vmdef) error {
 func Delete(vm *openapi.Vmdef, new *openapi.Vmdef) error {
 	var err error
 	for _, disk := range vmdef.Disks(vm) {
-		if (!storage_is_managed_disk(disk)) {
+		if (new != nil && vmdef.Has_path(new, disk.Path)) {
 			continue
 		}
-		if (new != nil && vmdef.Has_path(new, disk.Path)) {
+		if (!storage_is_managed_disk(disk)) {
 			continue
 		}
 		err = storage_delete_disk(disk)
