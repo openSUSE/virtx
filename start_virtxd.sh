@@ -1,3 +1,3 @@
 #! /bin/bash
 
-sudo -u qemu -g qemu nohup ./virtxd
+sudo -u qemu -g root nohup ./virtxd
