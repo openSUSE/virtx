@@ -65,7 +65,7 @@ func Create(vm *openapi.Vmdef, old *openapi.Vmdef) error {
 func Delete(vm *openapi.Vmdef, new *openapi.Vmdef) error {
 	var err error
 	for _, disk := range vmdef.Disks(vm) {
-		if (vm_storage_is_managed_disk(disk)) {
+		if (!vm_storage_is_managed_disk(disk)) {
 			continue
 		}
 		if (new != nil && vmdef.Has_path(new, disk.Path)) {
