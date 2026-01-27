@@ -23,6 +23,7 @@ import (
 	"errors"
 	"strings"
 	"path/filepath"
+	"os"
 	"fmt"
 
 	"suse.com/virtx/pkg/model"
@@ -83,12 +84,39 @@ func Disk_driver(p string) string {
 	return ""
 }
 
+func check_symlinks(path string) error {
+	var (
+		err error
+		p string
+		info os.FileInfo
+	)
+	for _, token := range strings.Split(path, "/")[1:] {
+		p += "/" + token
+		info, err = os.Lstat(p)
+		if (err != nil) {
+			if (os.IsNotExist(err)) {
+				return nil /* allow non-existing paths */
+			}
+			return err
+		}
+		if ((info.Mode() & os.ModeSymlink) != 0) {
+			return os.ErrInvalid
+		}
+	}
+	return nil
+}
+
 /* validate a disk path and return the driver for the disk, or "" on error */
 func Validate_disk_path(path string) string {
+	var err error
 	if (path == "" || !filepath.IsAbs(path)) {
 		return ""
 	}
 	if (filepath.Clean(path) != path) {
+		return ""
+	}
+	err = check_symlinks(path)
+	if (err != nil) {
 		return ""
 	}
 	if (strings.HasPrefix(path, DEV_DIR)) {
