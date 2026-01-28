@@ -84,6 +84,8 @@ func storage_create_disk(disk *openapi.Disk) error {
 /* detect and set disk provisioning method */
 func storage_detect_prov(disk *openapi.Disk) error {
 	switch (disk.Device) {
+	case openapi.DEVICE_LUN:
+		/* not implemented yet */
 	case openapi.DEVICE_DISK:
 		fallthrough
 	case openapi.DEVICE_CDROM:
