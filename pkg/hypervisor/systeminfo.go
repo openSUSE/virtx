@@ -91,6 +91,8 @@ func system_info_loop(seconds int) error {
 		si SystemInfo
 		err error
 		ticker *time.Ticker
+		libvirt_err libvirt.Error
+		ok bool
 	)
 	logger.Debug("system_info_loop starting...")
 	defer logger.Debug("system_info_loop exit")
@@ -99,7 +101,11 @@ func system_info_loop(seconds int) error {
 
 	si, err = get_system_info()
 	if (err != nil) {
-		return err
+		logger.Log("system_info_loop: failed to get_system_info: %s", err.Error())
+		libvirt_err, ok = err.(libvirt.Error)
+		if (ok && libvirt_err.Level >= libvirt.ERR_ERROR) {
+			return err
+		}
 	}
 	hv.m.Lock()
 	hv.uuid = si.Host.Uuid
@@ -114,6 +120,10 @@ func system_info_loop(seconds int) error {
 		si, err = get_system_info()
 		if (err != nil) {
 			logger.Log("system_info_loop: failed to get_system_info: %s", err.Error())
+			libvirt_err, ok = err.(libvirt.Error)
+			if (ok && libvirt_err.Level >= libvirt.ERR_ERROR) {
+				return err
+			}
 			continue
 		}
 		hv.system_info_ch <- si

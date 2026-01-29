@@ -199,23 +199,13 @@ func init_system_info_loop() {
 		time.Sleep(time.Duration(1) * time.Second)
 	}
 	for {
-		var (
-			err error
-			libvirt_err libvirt.Error
-			ok bool
-		)
+		var err error
 		err = system_info_loop(libvirt_system_info_seconds)
-		libvirt_err, ok = err.(libvirt.Error)
-		if (ok) {
-			if (libvirt_err.Level >= libvirt.ERR_ERROR) {
-				logger.Log(err.Error())
-				logger.Debug("reconnect, attempt every %d seconds...", libvirt_reconnect_seconds)
-				for ; err != nil; err = Connect() {
-					time.Sleep(time.Duration(libvirt_reconnect_seconds) * time.Second)
-				}
-			}
-		} else {
-			logger.Log(err.Error())
+		/* we should from system_info_loop only if there is a libvirt error that requires reconnection */
+		/* assert(err != nil) */
+		logger.Debug("reconnect, attempt every %d seconds...", libvirt_reconnect_seconds)
+		for ; err != nil; err = Connect() {
+			time.Sleep(time.Duration(libvirt_reconnect_seconds) * time.Second)
 		}
 	}
 	logger.Debug("init_system_info_loop: Exiting")
