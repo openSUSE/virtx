@@ -193,11 +193,7 @@ func init() {
 			if (virtx.ok) {
 				vm_update()
 			} else {
-				read_json(args[1], &virtx.vm_update_options.Vmdef)
-				virtx.path = fmt.Sprintf("/vms/%s", args[0])
-				virtx.method = "PUT"
-				virtx.arg = &virtx.vm_update_options
-				virtx.result = nil
+				vm_update_req(args[0], args[1])
 			}
 		},
 	}
