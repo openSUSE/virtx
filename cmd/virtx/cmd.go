@@ -230,10 +230,7 @@ func init() {
 			if (virtx.ok) {
 				vm_boot()
 			} else {
-				virtx.path = fmt.Sprintf("/vms/%s/runstate/boot", args[0])
-				virtx.method = "POST"
-				virtx.arg = nil
-				virtx.result = nil
+				vm_boot_req(args[0])
 			}
 		},
 	}
