@@ -247,11 +247,7 @@ func init() {
 			if (virtx.ok) {
 				vm_shutdown()
 			} else {
-				virtx.vm_shutdown_options.Force = int16(virtx.force)
-				virtx.path = fmt.Sprintf("/vms/%s/runstate/boot", args[0])
-				virtx.method = "DELETE"
-				virtx.arg = &virtx.vm_shutdown_options
-				virtx.result = nil
+				vm_shutdown_req(args[0])
 			}
 		},
 	}
