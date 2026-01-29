@@ -322,10 +322,7 @@ func init() {
 			if (virtx.ok) {
 				vm_migrate_abort()
 			} else {
-				virtx.path = fmt.Sprintf("/vms/%s/runstate/migrate", args[0])
-				virtx.method = "DELETE"
-				virtx.arg = nil
-				virtx.result = nil
+				vm_migrate_abort_req(args[0])
 			}
 		},
 	}
