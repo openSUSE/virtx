@@ -133,8 +133,10 @@ func init() {
 		Long:  "Show the runstate of the specified VM, identified by UUID",
 		Args:  cobra.ExactArgs(1), /* UUID */
 		Run: func(cmd *cobra.Command, args []string) {
-			if (virtx.result != nil) {
-				vm_runstate_get(virtx.result.(*openapi.Vmruninfo))
+			if (virtx.ok) {
+				if (virtx.result != nil) {
+					vm_runstate_get(virtx.result.(*openapi.Vmruninfo))
+				}
 			} else {
 				vm_runstate_get_req(args[0])
 			}
