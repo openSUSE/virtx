@@ -137,10 +137,7 @@ func init() {
 			if (virtx.result != nil) {
 				vm_runstate_get(virtx.result.(*openapi.Vmruninfo))
 			} else {
-				virtx.path = fmt.Sprintf("/vms/%s/runstate", args[0])
-				virtx.method = "GET"
-				virtx.arg = nil
-				virtx.result = &openapi.Vmruninfo{}
+				vm_runstate_get_req(args[0])
 			}
 		},
 	}
