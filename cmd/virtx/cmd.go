@@ -212,10 +212,7 @@ func init() {
 			if (virtx.ok) {
 				vm_delete()
 			} else {
-				virtx.path = fmt.Sprintf("/vms/%s", args[0])
-				virtx.method = "DELETE"
-				virtx.arg = &virtx.vm_delete_options
-				virtx.result = nil
+				vm_delete_req(args[0])
 			}
 		},
 	}
