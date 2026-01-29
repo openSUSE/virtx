@@ -19,7 +19,6 @@ package main
 
 import (
 	"unsafe"
-	"fmt"
 	"os"
 
 	"suse.com/virtx/pkg/model"
@@ -339,10 +338,7 @@ func init() {
 			if (virtx.ok) {
 				vm_register()
 			} else {
-				virtx.path = fmt.Sprintf("/vms/%s/register", args[0])
-				virtx.method = "PUT"
-				virtx.arg = &virtx.vm_register_options
-				virtx.result = nil
+				vm_register_req(args[0])
 			}
 		},
 	}
