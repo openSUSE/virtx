@@ -5,6 +5,13 @@ import (
 	"suse.com/virtx/pkg/model"
 )
 
+func host_list_req() {
+	virtx.path = "/hosts"
+	virtx.method = "GET"
+	virtx.arg = &virtx.host_list_options
+	virtx.result = &openapi.HostList{}
+}
+
 func host_list(list *openapi.HostList) {
 
 	fmt.Fprintf(virtx.w, "UUID\tNAME\tCPU\tVENDOR\tMODEL\tNODES\tSOCKS\tCORES\tTH\tSTATE\t MEM_AVL_VM\t HPG_AVL_VM\n")

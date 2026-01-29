@@ -50,10 +50,7 @@ func init() {
 					host_list(virtx.result.(*openapi.HostList))
 				}
 			} else {
-				virtx.path = "/hosts"
-				virtx.method = "GET"
-				virtx.arg = &virtx.host_list_options
-				virtx.result = &openapi.HostList{}
+				host_list_req()
 			}
 		},
 	}
