@@ -71,10 +71,7 @@ func init() {
 					vm_list(virtx.result.(*openapi.VmList))
 				}
 			} else {
-				virtx.path = "/vms"
-				virtx.method = "GET"
-				virtx.arg = &virtx.vm_list_options
-				virtx.result = &openapi.VmList{}
+				vm_list_req()
 			}
 		},
 	}

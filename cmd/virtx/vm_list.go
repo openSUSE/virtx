@@ -5,6 +5,13 @@ import (
 	"suse.com/virtx/pkg/model"
 )
 
+func vm_list_req() {
+	virtx.path = "/vms"
+	virtx.method = "GET"
+	virtx.arg = &virtx.vm_list_options
+	virtx.result = &openapi.VmList{}
+}
+
 func vm_list(list *openapi.VmList) {
 
 	fmt.Fprintf(virtx.w, "UUID\tNAME\tHOST\tSTATE\tVLANID\t \n")
