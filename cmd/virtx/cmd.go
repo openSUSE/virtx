@@ -265,10 +265,7 @@ func init() {
 			if (virtx.ok) {
 				vm_pause()
 			} else {
-				virtx.path = fmt.Sprintf("/vms/%s/runstate/pause", args[0])
-				virtx.method = "POST"
-				virtx.arg = nil
-				virtx.result = nil
+				vm_pause_req(args[0])
 			}
 		},
 	}
