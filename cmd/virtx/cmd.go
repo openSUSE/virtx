@@ -282,10 +282,7 @@ func init() {
 			if (virtx.ok) {
 				vm_resume()
 			} else {
-				virtx.path = fmt.Sprintf("/vms/%s/runstate/pause", args[0])
-				virtx.method = "DELETE"
-				virtx.arg = nil
-				virtx.result = nil
+				vm_resume_req(args[0])
 			}
 		},
 	}
