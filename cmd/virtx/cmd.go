@@ -299,15 +299,7 @@ func init() {
 			if (virtx.ok) {
 				vm_migrate()
 			} else {
-				if (virtx.live) {
-					virtx.vm_migrate_options.MigrationType = openapi.MIGRATION_LIVE
-				} else {
-					virtx.vm_migrate_options.MigrationType = openapi.MIGRATION_COLD
-				}
-				virtx.path = fmt.Sprintf("/vms/%s/runstate/migrate", args[0])
-				virtx.method = "POST"
-				virtx.arg = &virtx.vm_migrate_options
-				virtx.result = nil
+				vm_migrate_req(args[0])
 			}
 		},
 	}
