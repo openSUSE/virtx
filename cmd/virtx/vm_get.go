@@ -5,6 +5,13 @@ import (
 	"suse.com/virtx/pkg/model"
 )
 
+func vm_get_req(arg string) {
+	virtx.path = fmt.Sprintf("/vms/%s", arg)
+	virtx.method = "GET"
+	virtx.arg = nil
+	virtx.result = &openapi.Vm{}
+}
+
 func vm_get(vm *openapi.Vm) {
 	if (virtx.disk) {
 		fmt.Fprintf(virtx.w, "PATH\tDEVICE\tBUS\tMAN\tPROV\n")

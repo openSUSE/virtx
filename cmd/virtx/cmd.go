@@ -113,10 +113,7 @@ func init() {
 					vm_get(virtx.result.(*openapi.Vm))
 				}
 			} else {
-				virtx.path = fmt.Sprintf("/vms/%s", args[0])
-				virtx.method = "GET"
-				virtx.arg = nil
-				virtx.result = &openapi.Vm{}
+				vm_get_req(args[0])
 			}
 		},
 	}
