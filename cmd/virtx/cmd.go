@@ -156,10 +156,7 @@ func init() {
 					vm_migrate_get(virtx.result.(*openapi.MigrationInfo))
 				}
 			} else {
-				virtx.path = fmt.Sprintf("/vms/%s/runstate/migrate", args[0])
-				virtx.method = "GET"
-				virtx.arg = nil
-				virtx.result = &openapi.MigrationInfo{}
+				vm_migrate_get_req(args[0])
 			}
 		},
 	}
