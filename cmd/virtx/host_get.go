@@ -5,6 +5,13 @@ import (
 	"suse.com/virtx/pkg/model"
 )
 
+func host_get_req(arg string) {
+	virtx.path = fmt.Sprintf("/hosts/%s", arg)
+	virtx.method = "GET"
+	virtx.arg = nil
+	virtx.result = &openapi.Host{}
+}
+
 func host_get(host *openapi.Host) {
 	if (virtx.stat_cpu) {
 		fmt.Fprintf(virtx.w, "  CPU_TOTAL\t   CPU_USED\t   CPU_FREE\tCPU_USED_OS\tCPU_USED_VM\t CPU_RES_VM\t CPU_AVL_VM\n")

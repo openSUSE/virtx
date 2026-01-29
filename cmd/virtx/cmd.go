@@ -96,10 +96,7 @@ func init() {
 					host_get(virtx.result.(*openapi.Host))
 				}
 			} else {
-				virtx.path = fmt.Sprintf("/hosts/%s", args[0])
-				virtx.method = "GET"
-				virtx.arg = nil
-				virtx.result = &openapi.Host{}
+				host_get_req(args[0])
 			}
 		},
 	}
