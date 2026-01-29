@@ -175,11 +175,7 @@ func init() {
 					vm_create(virtx.result.(*string))
 				}
 			} else {
-				read_json(args[0], &virtx.vm_create_options.Vmdef)
-				virtx.path = "/vms"
-				virtx.method = "POST"
-				virtx.arg = &virtx.vm_create_options
-				virtx.result = new(string)
+				vm_create_req(args[0])
 			}
 		},
 	}
