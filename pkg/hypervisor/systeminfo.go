@@ -189,7 +189,12 @@ func get_system_info() (SystemInfo, error) {
 	host.Def.Cpudef.Sockets = int16(info.Sockets)
 	host.Def.Cpudef.Cores = int16(info.Cores)
 	host.Def.Cpudef.Threads = int16(info.Threads)
-	host.Def.Tscfreq = int64(caps.Host.CPU.Counter.Frequency)
+	if caps.Host.CPU.Counter != nil {
+		host.Def.Tscfreq = int64(caps.Host.CPU.Counter.Frequency)
+	} else {
+		host.Def.Tscfreq = 0
+		logger.Debug("TSC counter not available in capabilities")
+	}
 	host.Def.Sysinfo.Version = si.imm.bios_version
 	host.Def.Sysinfo.Date = si.imm.bios_date
 	host.State = openapi.HOST_ACTIVE
