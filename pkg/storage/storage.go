@@ -103,5 +103,4 @@ func storage_delete_disk(disk *openapi.Disk) error {
 	default:
 		return errors.New("invalid disk device")
 	}
-	return nil
 }

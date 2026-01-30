@@ -190,7 +190,6 @@ func init_vm_event_loop() {
 			panic(err)
 		}
 	}
-	logger.Debug("init_vm_event_loop: Exiting")
 }
 
 func init_system_info_loop() {
@@ -208,7 +207,6 @@ func init_system_info_loop() {
 			time.Sleep(time.Duration(libvirt_reconnect_seconds) * time.Second)
 		}
 	}
-	logger.Debug("init_system_info_loop: Exiting")
 }
 
 /*
