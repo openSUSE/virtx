@@ -30,6 +30,8 @@ type HostListFields struct {
 	Memoryavailable int32 `json:"memoryavailable"`
 	// hugepages memory available for running new VMs in MiB
 	Hpavailable int32 `json:"hpavailable"`
+	Osid string `json:"osid"`
+	Osv string `json:"osv"`
 }
 
 type _HostListFields HostListFields
@@ -38,7 +40,7 @@ type _HostListFields HostListFields
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewHostListFields(name string, cpuarch Cpuarch, cpudef Cpudef, hoststate Hoststate, memoryavailable int32, hpavailable int32) *HostListFields {
+func NewHostListFields(name string, cpuarch Cpuarch, cpudef Cpudef, hoststate Hoststate, memoryavailable int32, hpavailable int32, osid string, osv string) *HostListFields {
 	this := HostListFields{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
@@ -50,6 +52,8 @@ func NewHostListFields(name string, cpuarch Cpuarch, cpudef Cpudef, hoststate Ho
 	this.Hoststate = hoststate
 	this.Memoryavailable = memoryavailable
 	this.Hpavailable = hpavailable
+	this.Osid = osid
+	this.Osv = osv
 	return &this
 }
 
@@ -205,6 +209,54 @@ func (o *HostListFields) SetHpavailable(v int32) {
 	o.Hpavailable = v
 }
 
+// GetOsid returns the Osid field value
+func (o *HostListFields) GetOsid() string {
+	if o == nil {
+		var ret string
+		return ret
+	}
+
+	return o.Osid
+}
+
+// GetOsidOk returns a tuple with the Osid field value
+// and a boolean to check if the value has been set.
+func (o *HostListFields) GetOsidOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Osid, true
+}
+
+// SetOsid sets field value
+func (o *HostListFields) SetOsid(v string) {
+	o.Osid = v
+}
+
+// GetOsv returns the Osv field value
+func (o *HostListFields) GetOsv() string {
+	if o == nil {
+		var ret string
+		return ret
+	}
+
+	return o.Osv
+}
+
+// GetOsvOk returns a tuple with the Osv field value
+// and a boolean to check if the value has been set.
+func (o *HostListFields) GetOsvOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Osv, true
+}
+
+// SetOsv sets field value
+func (o *HostListFields) SetOsv(v string) {
+	o.Osv = v
+}
+
 func (o HostListFields) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["name"] = o.Name
@@ -213,6 +265,8 @@ func (o HostListFields) ToMap() (map[string]interface{}, error) {
 	toSerialize["hoststate"] = o.Hoststate
 	toSerialize["memoryavailable"] = o.Memoryavailable
 	toSerialize["hpavailable"] = o.Hpavailable
+	toSerialize["osid"] = o.Osid
+	toSerialize["osv"] = o.Osv
 	return toSerialize, nil
 }
 
