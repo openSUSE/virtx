@@ -28,6 +28,10 @@ type Hostdef struct {
 	// TSC frequency in Hz
 	Tscfreq int64 `json:"tscfreq"`
 	Sysinfo HostdefSysinfo `json:"sysinfo"`
+	// from /etc/os-release ID
+	Osid string `json:"osid"`
+	// from /etc/os-release VERSION_ID
+	Osv string `json:"osv"`
 }
 
 type _Hostdef Hostdef
@@ -36,7 +40,7 @@ type _Hostdef Hostdef
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewHostdef(name string, cpuarch Cpuarch, cpudef Cpudef, tscfreq int64, sysinfo HostdefSysinfo) *Hostdef {
+func NewHostdef(name string, cpuarch Cpuarch, cpudef Cpudef, tscfreq int64, sysinfo HostdefSysinfo, osid string, osv string) *Hostdef {
 	this := Hostdef{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
@@ -47,6 +51,8 @@ func NewHostdef(name string, cpuarch Cpuarch, cpudef Cpudef, tscfreq int64, sysi
 	this.Cpudef = cpudef
 	this.Tscfreq = tscfreq
 	this.Sysinfo = sysinfo
+	this.Osid = osid
+	this.Osv = osv
 	return &this
 }
 
@@ -178,6 +184,54 @@ func (o *Hostdef) SetSysinfo(v HostdefSysinfo) {
 	o.Sysinfo = v
 }
 
+// GetOsid returns the Osid field value
+func (o *Hostdef) GetOsid() string {
+	if o == nil {
+		var ret string
+		return ret
+	}
+
+	return o.Osid
+}
+
+// GetOsidOk returns a tuple with the Osid field value
+// and a boolean to check if the value has been set.
+func (o *Hostdef) GetOsidOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Osid, true
+}
+
+// SetOsid sets field value
+func (o *Hostdef) SetOsid(v string) {
+	o.Osid = v
+}
+
+// GetOsv returns the Osv field value
+func (o *Hostdef) GetOsv() string {
+	if o == nil {
+		var ret string
+		return ret
+	}
+
+	return o.Osv
+}
+
+// GetOsvOk returns a tuple with the Osv field value
+// and a boolean to check if the value has been set.
+func (o *Hostdef) GetOsvOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Osv, true
+}
+
+// SetOsv sets field value
+func (o *Hostdef) SetOsv(v string) {
+	o.Osv = v
+}
+
 func (o Hostdef) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["name"] = o.Name
@@ -185,6 +239,8 @@ func (o Hostdef) ToMap() (map[string]interface{}, error) {
 	toSerialize["cpudef"] = o.Cpudef
 	toSerialize["tscfreq"] = o.Tscfreq
 	toSerialize["sysinfo"] = o.Sysinfo
+	toSerialize["osid"] = o.Osid
+	toSerialize["osv"] = o.Osv
 	return toSerialize, nil
 }
 
