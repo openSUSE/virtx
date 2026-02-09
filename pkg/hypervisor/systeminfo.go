@@ -56,6 +56,9 @@ type SystemInfoImm struct {
 	/* from Capabilities, smbios */
 	bios_version string
 	bios_date string
+	/* from /etc/os-release or /usr/lib/os-release */
+	os_id string
+	os_version string
 }
 
 type SystemInfoVms map[string]SystemInfoVm
@@ -182,6 +185,8 @@ func get_system_info() (SystemInfo, error) {
 	if (err != nil) {
 		goto out
 	}
+	host.Def.Osid = si.imm.os_id
+	host.Def.Osv = si.imm.os_version
 	host.Def.Cpuarch.Arch = caps.Host.CPU.Arch
 	host.Def.Cpuarch.Vendor = caps.Host.CPU.Vendor
 	host.Def.Cpudef.Model = caps.Host.CPU.Model
@@ -419,6 +424,7 @@ func get_system_info_immutable(imm *SystemInfoImm) error {
 	}
 	/* get the total physical memory (KiB) used by default-sized hugepages */
 	imm.hp_total = hp_total * imm.hp_size
+	imm.os_id, imm.os_version = get_os_version()
 
 	/* now deal with calculating the node Max CPU Frequency. Failures are not fatal. */
 	defer func() {
@@ -477,6 +483,33 @@ func get_meminfo(key string) (uint64, error) {
 	return 0, errors.New("key not found")
 }
 
+func get_os_version() (string, string) {
+	var (
+		err error
+		data []byte
+		scanner *bufio.Scanner
+		id, version_id string
+	)
+	data, err = os.ReadFile("/etc/os-release")
+	if (err != nil) {
+		logger.Log("failed to read /etc/os-release: %s", err.Error())
+		data, err = os.ReadFile("/usr/lib/os-release")
+		if (err != nil) {
+			logger.Log("failed to read /usr/lib/os-release: %s", err.Error())
+			return "", ""
+		}
+	}
+	scanner = bufio.NewScanner(bytes.NewReader(data))
+	for scanner.Scan() {
+		line := scanner.Text()
+		if (strings.HasPrefix(line, "ID=")) {
+			id = strings.Trim(line[3:], `"`)
+		} else if (strings.HasPrefix(line, "VERSION_ID=")) {
+			version_id = strings.Trim(line[11:], `"`)
+		}
+	}
+	return id, version_id
+}
 
 type xmlDisk struct {
 	Device string `xml:"device,attr"`
