@@ -34,6 +34,7 @@ import (
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/vmreg"
 	"suse.com/virtx/pkg/inventory"
+	"suse.com/virtx/pkg/ts"
 
 	. "suse.com/virtx/pkg/constants"
 )
@@ -142,7 +143,7 @@ func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventL
 	if (state != openapi.RUNSTATE_NONE) {
 		logger.Debug("[VmEvent] %s/%s: %v state: %d", name, uuid, e, state)
 		_ = name
-		hv.vm_event_ch <- inventory.VmEvent{ Uuid: uuid, Host: hv.uuid, State: state, Ts: time.Now().UTC().UnixMilli() }
+		hv.vm_event_ch <- inventory.VmEvent{ Uuid: uuid, Host: hv.uuid, State: state, Ts: ts.Now() }
 	}
 }
 

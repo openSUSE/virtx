@@ -18,7 +18,6 @@
 package hypervisor
 
 import (
-	"time"
 	"encoding/json"
 	"errors"
 
@@ -28,6 +27,7 @@ import (
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/vmreg"
 	"suse.com/virtx/pkg/metadata"
+	"suse.com/virtx/pkg/ts"
 )
 
 /* get basic information about a Domain */
@@ -196,7 +196,7 @@ func record_domain_op(domain *libvirt.Domain, op openapi.Operation, state openap
 		meta metadata.Operation
 		impact libvirt.DomainModificationImpact = libvirt.DOMAIN_AFFECT_CONFIG
 	)
-	xmlstr, err = meta.To_xml(op, state, errstr, time.Now().UTC().UnixMilli())
+	xmlstr, err = meta.To_xml(op, state, errstr, ts.Now())
 	if (err != nil) {
 		return err
 	}

@@ -33,6 +33,7 @@ import (
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/inventory"
+	"suse.com/virtx/pkg/ts"
 
 	. "suse.com/virtx/pkg/constants"
 )
@@ -203,7 +204,7 @@ func get_system_info() (SystemInfo, error) {
 	host.Def.Sysinfo.Version = si.imm.bios_version
 	host.Def.Sysinfo.Date = si.imm.bios_date
 	host.State = openapi.HOST_ACTIVE
-	host.Ts = time.Now().UTC().UnixMilli()
+	host.Ts = ts.Now()
 
 	/*
 	 * 2. get information about all the domains, so that we can calculate
