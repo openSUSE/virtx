@@ -32,6 +32,8 @@ type HostListFields struct {
 	Hpavailable int32 `json:"hpavailable"`
 	Osid string `json:"osid"`
 	Osv string `json:"osv"`
+	// 64bit UTC Unix timestamp in milliseconds since Epoc.
+	Ts int64 `json:"ts"`
 }
 
 type _HostListFields HostListFields
@@ -40,7 +42,7 @@ type _HostListFields HostListFields
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewHostListFields(name string, cpuarch Cpuarch, cpudef Cpudef, hoststate Hoststate, memoryavailable int32, hpavailable int32, osid string, osv string) *HostListFields {
+func NewHostListFields(name string, cpuarch Cpuarch, cpudef Cpudef, hoststate Hoststate, memoryavailable int32, hpavailable int32, osid string, osv string, ts int64) *HostListFields {
 	this := HostListFields{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
@@ -54,6 +56,7 @@ func NewHostListFields(name string, cpuarch Cpuarch, cpudef Cpudef, hoststate Ho
 	this.Hpavailable = hpavailable
 	this.Osid = osid
 	this.Osv = osv
+	this.Ts = ts
 	return &this
 }
 
@@ -257,6 +260,30 @@ func (o *HostListFields) SetOsv(v string) {
 	o.Osv = v
 }
 
+// GetTs returns the Ts field value
+func (o *HostListFields) GetTs() int64 {
+	if o == nil {
+		var ret int64
+		return ret
+	}
+
+	return o.Ts
+}
+
+// GetTsOk returns a tuple with the Ts field value
+// and a boolean to check if the value has been set.
+func (o *HostListFields) GetTsOk() (*int64, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Ts, true
+}
+
+// SetTs sets field value
+func (o *HostListFields) SetTs(v int64) {
+	o.Ts = v
+}
+
 func (o HostListFields) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["name"] = o.Name
@@ -267,6 +294,7 @@ func (o HostListFields) ToMap() (map[string]interface{}, error) {
 	toSerialize["hpavailable"] = o.Hpavailable
 	toSerialize["osid"] = o.Osid
 	toSerialize["osv"] = o.Osv
+	toSerialize["ts"] = o.Ts
 	return toSerialize, nil
 }
 

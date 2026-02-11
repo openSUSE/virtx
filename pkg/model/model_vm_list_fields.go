@@ -29,6 +29,8 @@ type VmListFields struct {
 	// vlanid for all traffic from/to this VM. 0 = no vlanid, -1 = automatically assign
 	Vlanid int16 `json:"vlanid"`
 	Custom CustomField `json:"custom"`
+	// 64bit UTC Unix timestamp in milliseconds since Epoc.
+	Ts int64 `json:"ts"`
 }
 
 type _VmListFields VmListFields
@@ -37,7 +39,7 @@ type _VmListFields VmListFields
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVmListFields(name string, host string, runstate Vmrunstate, vlanid int16, custom CustomField) *VmListFields {
+func NewVmListFields(name string, host string, runstate Vmrunstate, vlanid int16, custom CustomField, ts int64) *VmListFields {
 	this := VmListFields{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
@@ -48,6 +50,7 @@ func NewVmListFields(name string, host string, runstate Vmrunstate, vlanid int16
 	this.Runstate = runstate
 	this.Vlanid = vlanid
 	this.Custom = custom
+	this.Ts = ts
 	return &this
 }
 
@@ -179,6 +182,30 @@ func (o *VmListFields) SetCustom(v CustomField) {
 	o.Custom = v
 }
 
+// GetTs returns the Ts field value
+func (o *VmListFields) GetTs() int64 {
+	if o == nil {
+		var ret int64
+		return ret
+	}
+
+	return o.Ts
+}
+
+// GetTsOk returns a tuple with the Ts field value
+// and a boolean to check if the value has been set.
+func (o *VmListFields) GetTsOk() (*int64, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Ts, true
+}
+
+// SetTs sets field value
+func (o *VmListFields) SetTs(v int64) {
+	o.Ts = v
+}
+
 func (o VmListFields) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["name"] = o.Name
@@ -186,6 +213,7 @@ func (o VmListFields) ToMap() (map[string]interface{}, error) {
 	toSerialize["runstate"] = o.Runstate
 	toSerialize["vlanid"] = o.Vlanid
 	toSerialize["custom"] = o.Custom
+	toSerialize["ts"] = o.Ts
 	return toSerialize, nil
 }
 
