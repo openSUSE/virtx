@@ -34,10 +34,11 @@ func host_get(host *openapi.Host) {
 			host.Resources.Hp.Reservedvms, host.Resources.Hp.Availablevms,
 		)
 	} else {
-		fmt.Fprintf(virtx.w, "NAME\tOS\tVERSION\tCPU\tVENDOR\tMODEL\tNODES\tSOCKS\tCORES\tTH\tTSC_FREQ\tFWVER\tFWDATE\tSTATE\n")
-		fmt.Fprintf(virtx.w, "%s\t%s\t%s\t%s\t%s\t%s\t%5d\t%5d\t%5d\t%2d\t%d\t%s\t%s\t%s\n",
+		fmt.Fprintf(virtx.w, "NAME\tOS\tVERSION\tCPU\tVENDOR\tMODEL\tNODES\tSOCKS\tCORES\tTH\tMEM_AVL_VM\tHPG_AVL_VM\tTSC_FREQ\tFWVER\tFWDATE\tSTATE\n")
+		fmt.Fprintf(virtx.w, "%s\t%s\t%s\t%s\t%s\t%s\t%5d\t%5d\t%5d\t%2d\t%7d MiB\t%7d MiB\t%d\t%s\t%s\t%s\n",
 			host.Def.Name, host.Def.Osid, host.Def.Osv, host.Def.Cpuarch.Arch, host.Def.Cpuarch.Vendor,
 			host.Def.Cpudef.Model, host.Def.Cpudef.Nodes, host.Def.Cpudef.Sockets, host.Def.Cpudef.Cores, host.Def.Cpudef.Threads,
+			host.Resources.Memory.Availablevms, host.Resources.Hp.Availablevms,
 			host.Def.Tscfreq, host.Def.Sysinfo.Version, host.Def.Sysinfo.Date, host.State,
 		)
 	}
