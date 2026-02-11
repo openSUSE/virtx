@@ -24,3 +24,7 @@ import (
 func Now() int64 {
 	return time.Now().UTC().UnixMilli()
 }
+
+func Since(t int64) time.Duration {
+	return time.Duration(Now() - t) * time.Millisecond
+}
