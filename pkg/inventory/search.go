@@ -74,6 +74,9 @@ func Search_hosts(f openapi.HostListFields) openapi.HostList {
 		if (f.Osv != "" && (host.Def.Osv != f.Osv)) {
 			continue
 		}
+		if (f.Ts != 0 && (host.Ts > f.Ts)) { /* return only older entries */
+			continue
+		}
 		var item openapi.HostListItem = openapi.HostListItem{
 			Uuid: host.Uuid,
 			Fields: openapi.HostListFields{
@@ -85,6 +88,7 @@ func Search_hosts(f openapi.HostListFields) openapi.HostList {
 				Hpavailable: host.Resources.Hp.Availablevms,
 				Osid: host.Def.Osid,
 				Osv: host.Def.Osv,
+				Ts: host.Ts,
 			},
 		}
 		list.Items = append(list.Items, item)
@@ -126,6 +130,9 @@ func Search_vms(f openapi.VmListFields) openapi.VmList {
 				continue
 			}
 		}
+		if (f.Ts != 0 && (vm.Ts > f.Ts)) { /* return only older entries */
+			continue
+		}
 		var item openapi.VmListItem = openapi.VmListItem{
 			Uuid: vm.Uuid,
 			Fields: openapi.VmListFields{
@@ -134,6 +141,7 @@ func Search_vms(f openapi.VmListFields) openapi.VmList {
 				Runstate: vm.Runinfo.Runstate,
 				Vlanid: vm.Vlanid,
 				Custom: f.Custom,
+				Ts: vm.Ts,
 			},
 		}
 		list.Items = append(list.Items, item)
