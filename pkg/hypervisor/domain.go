@@ -382,6 +382,7 @@ func Boot_domain(uuid string) error {
 		err error
 		conn *libvirt.Connect
 		domain *libvirt.Domain
+		op openapi.Operation = openapi.OpVmBoot
 	)
 	conn, err = libvirt.NewConnect(libvirt_uri)
 	if (err != nil) {
@@ -393,10 +394,13 @@ func Boot_domain(uuid string) error {
 		return err
 	}
 	defer domain.Free()
+	_ = record_domain_op(domain, op, openapi.OPERATION_STARTED, "")
 	err = domain.Create()
 	if (err != nil) {
+		_ = record_domain_op(domain, op, openapi.OPERATION_FAILED, err.Error())
 		return err
 	}
+	_ = record_domain_op(domain, op, openapi.OPERATION_COMPLETED, "")
 	return nil
 }
 
@@ -405,6 +409,7 @@ func Pause_domain(uuid string) error {
 		err error
 		conn *libvirt.Connect
 		domain *libvirt.Domain
+		op openapi.Operation = openapi.OpVmPause
 	)
 	conn, err = libvirt.NewConnect(libvirt_uri)
 	if (err != nil) {
@@ -416,10 +421,13 @@ func Pause_domain(uuid string) error {
 		return err
 	}
 	defer domain.Free()
+	_ = record_domain_op(domain, op, openapi.OPERATION_STARTED, "")
 	err = domain.Suspend()
 	if (err != nil) {
+		_ = record_domain_op(domain, op, openapi.OPERATION_FAILED, err.Error())
 		return err
 	}
+	_ = record_domain_op(domain, op, openapi.OPERATION_COMPLETED, "")
 	return nil
 }
 
@@ -428,6 +436,7 @@ func Resume_domain(uuid string) error {
 		err error
 		conn *libvirt.Connect
 		domain *libvirt.Domain
+		op openapi.Operation = openapi.OpVmResume
 	)
 	conn, err = libvirt.NewConnect(libvirt_uri)
 	if (err != nil) {
@@ -439,10 +448,13 @@ func Resume_domain(uuid string) error {
 		return err
 	}
 	defer domain.Free()
+	_ = record_domain_op(domain, op, openapi.OPERATION_STARTED, "")
 	err = domain.Resume()
 	if (err != nil) {
+		_ = record_domain_op(domain, op, openapi.OPERATION_FAILED, err.Error())
 		return err
 	}
+	_ = record_domain_op(domain, op, openapi.OPERATION_COMPLETED, "")
 	return nil
 }
 
@@ -451,6 +463,7 @@ func Shutdown_domain(uuid string, force int16) error {
 		err error
 		conn *libvirt.Connect
 		domain *libvirt.Domain
+		op openapi.Operation = openapi.OpVmShutdown
 	)
 	conn, err = libvirt.NewConnect(libvirt_uri)
 	if (err != nil) {
@@ -462,12 +475,18 @@ func Shutdown_domain(uuid string, force int16) error {
 		return err
 	}
 	defer domain.Free()
+	_ = record_domain_op(domain, op, openapi.OPERATION_STARTED, "")
 	if (force == 0) {
 		err = domain.Shutdown()
 	} else if (force == 1) {
 		err = domain.DestroyFlags(libvirt.DOMAIN_DESTROY_GRACEFUL)
 	} else {
 		err = domain.DestroyFlags(0)
+	}
+	if (err != nil) {
+		_ = record_domain_op(domain, op, openapi.OPERATION_FAILED, err.Error())
+	} else {
+		_ = record_domain_op(domain, op, openapi.OPERATION_COMPLETED, "")
 	}
 	return err
 }
