@@ -84,6 +84,11 @@ func get_domain_info(d *libvirt.Domain) (string, string, openapi.Vmrunstate, err
 			/* XXX I have never seen this yet in my migration tests XXX */
 			logger.Log("XXX DOMAIN_SHUTOFF_MIGRATED encountered XXX")
 			enum_state = openapi.RUNSTATE_DELETED
+		case int(libvirt.DOMAIN_SHUTOFF_DESTROYED):
+			fallthrough
+		case int(libvirt.DOMAIN_SHUTOFF_SHUTDOWN):
+			record_domain_shutdown(d)
+			fallthrough
 		default:
 			enum_state = openapi.RUNSTATE_POWEROFF
 		}
@@ -225,6 +230,24 @@ func load_domain_op(domain *libvirt.Domain, op *openapi.Operation, state *openap
 		return err
 	}
 	return nil
+}
+
+func record_domain_shutdown(domain *libvirt.Domain) {
+	var (
+		op openapi.Operation = openapi.OpVmShutdown
+		state openapi.OperationState
+		errstr string
+		ts int64
+		err error
+	)
+	err = load_domain_op(domain, &op, &state, &errstr, &ts)
+	if (err != nil) {
+		return
+	}
+	if (state != openapi.OPERATION_STARTED) {
+		return
+	}
+	_ = record_domain_op(domain, op, openapi.OPERATION_COMPLETED, "")
 }
 
 type QemuMigrationInfo struct {
@@ -486,7 +509,7 @@ func Shutdown_domain(uuid string, force int16) error {
 	if (err != nil) {
 		_ = record_domain_op(domain, op, openapi.OPERATION_FAILED, err.Error())
 	} else {
-		_ = record_domain_op(domain, op, openapi.OPERATION_COMPLETED, "")
+		/* we will wait for the lifecycle event to set the operation to completed */
 	}
 	return err
 }
