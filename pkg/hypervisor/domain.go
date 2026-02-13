@@ -216,7 +216,7 @@ func load_domain_op(domain *libvirt.Domain, op *openapi.Operation, state *openap
 		meta metadata.Operation
 		impact libvirt.DomainModificationImpact = libvirt.DOMAIN_AFFECT_CONFIG
 	)
-	xmlstr, err = domain.GetMetadata(libvirt.DOMAIN_METADATA_ELEMENT, "virtx-op", impact)
+	xmlstr, err = domain.GetMetadata(libvirt.DOMAIN_METADATA_ELEMENT, "virtx-op-" + op.String(), impact)
 	if (err != nil) {
 		return err
 	}
@@ -269,7 +269,7 @@ func Get_migration_info(uuid string) (openapi.MigrationInfo, error) {
 	 * So, check instead the virtx migration operation record first.
 	 */
 	var (
-		op openapi.Operation
+		op openapi.Operation = openapi.OpVmMigrate
 		state openapi.OperationState
 		errstr string
 		ts int64
@@ -277,9 +277,6 @@ func Get_migration_info(uuid string) (openapi.MigrationInfo, error) {
 	err = load_domain_op(domain, &op, &state, &errstr, &ts)
 	if (err != nil) {
 		return info, err
-	}
-	if (op != openapi.OpVmMigrate) {
-		return info, errors.New("Get_migration_info: no OpVmMigrate operation")
 	}
 	switch (state) {
 	case openapi.OPERATION_FAILED:
@@ -332,7 +329,7 @@ func Abort_migration(uuid string) error {
 	 * So, check instead the virtx migration operation record first.
 	 */
 	var (
-		op openapi.Operation
+		op openapi.Operation = openapi.OpVmMigrate
 		state openapi.OperationState
 		errstr string
 		ts int64
@@ -340,9 +337,6 @@ func Abort_migration(uuid string) error {
 	err = load_domain_op(domain, &op, &state, &errstr, &ts)
 	if (err != nil) {
 		return err
-	}
-	if (op != openapi.OpVmMigrate) {
-		return errors.New("Abort_migration: no OpVmMigrate operation")
 	}
 	switch (state) {
 	case openapi.OPERATION_FAILED:

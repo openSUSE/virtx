@@ -100,7 +100,7 @@ func (op *Operation) To_xml(o openapi.Operation, state openapi.OperationState, e
 		xmlstr []byte
 	)
 	*op = Operation{
-		XMLName: xml.Name{ Space: "virtx-op", Local: "data-op" },
+		XMLName: xml.Name{ Space: "virtx-op-" + o.String(), Local: "data-op" },
 		Ts: ts,
 		Op: o.String(),
 		Status: state.String(),
