@@ -194,14 +194,14 @@ func Migrate_domain(hostname string, host_uuid string, host_old string, uuid str
 }
 
 /* record the domain-altering operation metadata into the domain XML */
-func record_domain_op(domain *libvirt.Domain, op openapi.Operation, state openapi.OperationState, errstr string) error {
+func record_domain_op(domain *libvirt.Domain, op openapi.Operation, state openapi.OperationState, msg string) error {
 	var (
 		err error
 		xmlstr string
 		meta metadata.Operation
 		impact libvirt.DomainModificationImpact = libvirt.DOMAIN_AFFECT_CONFIG
 	)
-	xmlstr, err = meta.To_xml(op, state, errstr, ts.Now())
+	xmlstr, err = meta.To_xml(op, state, msg, ts.Now())
 	if (err != nil) {
 		return err
 	}
@@ -214,7 +214,7 @@ func record_domain_op(domain *libvirt.Domain, op openapi.Operation, state openap
 }
 
 /* load the record from the domain XML */
-func load_domain_op(domain *libvirt.Domain, op *openapi.Operation, state *openapi.OperationState, errstr *string, ts *int64) error {
+func load_domain_op(domain *libvirt.Domain, op *openapi.Operation, state *openapi.OperationState, msg *string, ts *int64) error {
 	var (
 		err error
 		xmlstr string
@@ -225,7 +225,7 @@ func load_domain_op(domain *libvirt.Domain, op *openapi.Operation, state *openap
 	if (err != nil) {
 		return err
 	}
-	err = meta.From_xml(xmlstr, op, state, errstr, ts)
+	err = meta.From_xml(xmlstr, op, state, msg, ts)
 	if (err != nil) {
 		return err
 	}
@@ -236,11 +236,11 @@ func record_domain_shutdown(domain *libvirt.Domain) {
 	var (
 		op openapi.Operation = openapi.OpVmShutdown
 		state openapi.OperationState
-		errstr string
+		msg string
 		ts int64
 		err error
 	)
-	err = load_domain_op(domain, &op, &state, &errstr, &ts)
+	err = load_domain_op(domain, &op, &state, &msg, &ts)
 	if (err != nil) {
 		return
 	}
@@ -294,10 +294,10 @@ func Get_migration_info(uuid string) (openapi.MigrationInfo, error) {
 	var (
 		op openapi.Operation = openapi.OpVmMigrate
 		state openapi.OperationState
-		errstr string
+		msg string
 		ts int64
 	)
-	err = load_domain_op(domain, &op, &state, &errstr, &ts)
+	err = load_domain_op(domain, &op, &state, &msg, &ts)
 	if (err != nil) {
 		return info, err
 	}
@@ -354,10 +354,10 @@ func Abort_migration(uuid string) error {
 	var (
 		op openapi.Operation = openapi.OpVmMigrate
 		state openapi.OperationState
-		errstr string
+		msg string
 		ts int64
 	)
-	err = load_domain_op(domain, &op, &state, &errstr, &ts)
+	err = load_domain_op(domain, &op, &state, &msg, &ts)
 	if (err != nil) {
 		return err
 	}

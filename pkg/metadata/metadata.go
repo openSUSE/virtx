@@ -91,10 +91,10 @@ type Operation struct {
 	Op string `xml:"op"`
 	Ts int64 `xml:"ts"`
 	Status string `xml:"status"`
-	Err string `xml:"err"`
+	Msg string `xml:"msg"`
 }
 
-func (op *Operation) To_xml(o openapi.Operation, state openapi.OperationState, e string, ts int64) (string, error) {
+func (op *Operation) To_xml(o openapi.Operation, state openapi.OperationState, msg string, ts int64) (string, error) {
 	var (
 		err error
 		xmlstr []byte
@@ -104,7 +104,7 @@ func (op *Operation) To_xml(o openapi.Operation, state openapi.OperationState, e
 		Ts: ts,
 		Op: o.String(),
 		Status: state.String(),
-		Err: e,
+		Msg: msg,
 	}
 	xmlstr, err = xml.Marshal(op)
 	if (err != nil) {
@@ -113,7 +113,7 @@ func (op *Operation) To_xml(o openapi.Operation, state openapi.OperationState, e
 	return string(xmlstr), nil
 }
 
-func (op *Operation) From_xml(xmlstr string, o *openapi.Operation, state *openapi.OperationState, errstr *string, ts *int64) error {
+func (op *Operation) From_xml(xmlstr string, o *openapi.Operation, state *openapi.OperationState, msg *string, ts *int64) error {
 	var err error
 	err = xml.Unmarshal([]byte(xmlstr), op)
 	if (err != nil) {
@@ -127,7 +127,7 @@ func (op *Operation) From_xml(xmlstr string, o *openapi.Operation, state *openap
 	if (err != nil) {
 		return err
 	}
-	*errstr = op.Err
+	*msg = op.Msg
 	*ts = op.Ts
 	return nil
 }
