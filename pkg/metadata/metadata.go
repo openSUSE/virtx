@@ -90,19 +90,21 @@ type Operation struct {
 	XMLName xml.Name `xml:""`
 	Op string `xml:"op"`
 	Ts int64 `xml:"ts"`
+	Te int64 `xml:"te"`
 	Status string `xml:"status"`
 	Msg string `xml:"msg"`
 }
 
-func (op *Operation) To_xml(o openapi.Operation, state openapi.OperationState, msg string, ts int64) (string, error) {
+func (op *Operation) To_xml(o openapi.Operation, state openapi.OperationState, msg string, ts int64, te int64) (string, error) {
 	var (
 		err error
 		xmlstr []byte
 	)
 	*op = Operation{
 		XMLName: xml.Name{ Space: "virtx-op-" + o.String(), Local: "data-op" },
-		Ts: ts,
 		Op: o.String(),
+		Ts: ts,
+		Te: te,
 		Status: state.String(),
 		Msg: msg,
 	}
@@ -113,7 +115,7 @@ func (op *Operation) To_xml(o openapi.Operation, state openapi.OperationState, m
 	return string(xmlstr), nil
 }
 
-func (op *Operation) From_xml(xmlstr string, o *openapi.Operation, state *openapi.OperationState, msg *string, ts *int64) error {
+func (op *Operation) From_xml(xmlstr string, o *openapi.Operation, state *openapi.OperationState, msg *string, ts *int64, te *int64) error {
 	var err error
 	err = xml.Unmarshal([]byte(xmlstr), op)
 	if (err != nil) {
@@ -129,5 +131,6 @@ func (op *Operation) From_xml(xmlstr string, o *openapi.Operation, state *openap
 	}
 	*msg = op.Msg
 	*ts = op.Ts
+	*te = op.Te
 	return nil
 }
