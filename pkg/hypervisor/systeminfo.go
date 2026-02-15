@@ -103,9 +103,9 @@ func system_info_loop(seconds int) error {
 	ticker = time.NewTicker(time.Duration(seconds) * time.Second)
 	defer ticker.Stop()
 
-	si, err = get_system_info()
+	si, err = system_info_get()
 	if (err != nil) {
-		logger.Log("system_info_loop: failed to get_system_info: %s", err.Error())
+		logger.Log("system_info_loop: failed to system_info_get: %s", err.Error())
 		libvirt_err, ok = err.(libvirt.Error)
 		if (ok && libvirt_err.Level >= libvirt.ERR_ERROR) {
 			return err
@@ -122,9 +122,9 @@ func system_info_loop(seconds int) error {
 	delete_ghosts(si.Vms, si.Host.Ts)
 
 	for range ticker.C {
-		si, err = get_system_info()
+		si, err = system_info_get()
 		if (err != nil) {
-			logger.Log("system_info_loop: failed to get_system_info: %s", err.Error())
+			logger.Log("system_info_loop: failed to system_info_get: %s", err.Error())
 			libvirt_err, ok = err.(libvirt.Error)
 			if (ok && libvirt_err.Level >= libvirt.ERR_ERROR) {
 				return err
@@ -137,7 +137,7 @@ func system_info_loop(seconds int) error {
 	return nil
 }
 
-func get_system_info() (SystemInfo, error) {
+func system_info_get() (SystemInfo, error) {
 	hv.m.Lock()
 	defer hv.m.Unlock()
 	var (
@@ -171,7 +171,7 @@ func get_system_info() (SystemInfo, error) {
 	)
 
 	if (hv.si == nil) {
-		err = get_system_info_immutable(&si.imm)
+		err = system_info_get_immutable(&si.imm)
 		if (err != nil) {
 			goto out
 		}
@@ -303,7 +303,7 @@ func get_system_info() (SystemInfo, error) {
 	if (hv.si != nil) {
 		interval := float64(host.Ts - hv.si.Host.Ts)
 		if (interval <= 0.0) {
-			logger.Log("get_system_info: host timestamps not in order?")
+			logger.Log("system_info_get: host timestamps not in order?")
 		} else {
 			var delta float64
 			/* idle counters are completely unreliable, behavior depends on hw cpu vendor, model etc */
@@ -376,9 +376,9 @@ func delete_ghosts(vms SystemInfoVms, ts int64) {
 
 /*
  * this information does not change after the first fetch,
- * and is reused for all subsequent get_system_info calls
+ * and is reused for all subsequent system_info_get calls
  */
-func get_system_info_immutable(imm *SystemInfoImm) error {
+func system_info_get_immutable(imm *SystemInfoImm) error {
 	var (
 		data string
 		smbios xmlSysInfo
