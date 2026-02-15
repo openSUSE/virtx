@@ -85,9 +85,10 @@ func get_domain_info(d *libvirt.Domain) (string, string, openapi.Vmrunstate, err
 			logger.Log("XXX DOMAIN_SHUTOFF_MIGRATED encountered XXX")
 			enum_state = openapi.RUNSTATE_DELETED
 		case int(libvirt.DOMAIN_SHUTOFF_DESTROYED):
-			fallthrough
+			_ = complete_domain_op(d, openapi.OpVmShutdown, "forced shutdown")
+			enum_state = openapi.RUNSTATE_POWEROFF
 		case int(libvirt.DOMAIN_SHUTOFF_SHUTDOWN):
-			record_domain_shutdown(d)
+			_ = complete_domain_op(d, openapi.OpVmShutdown, "graceful shutdown")
 			fallthrough
 		default:
 			enum_state = openapi.RUNSTATE_POWEROFF
@@ -232,23 +233,22 @@ func load_domain_op(domain *libvirt.Domain, op openapi.Operation, state *openapi
 	return nil
 }
 
-/* record the completed shutdown when it happens */
-func record_domain_shutdown(domain *libvirt.Domain) {
+/* record the completed op when it happens */
+func complete_domain_op(domain *libvirt.Domain, op openapi.Operation, msg string) error {
 	var (
-		op openapi.Operation = openapi.OpVmShutdown
 		state openapi.OperationState
-		msg string
+		oldmsg string
 		started, te int64
 		err error
 	)
-	err = load_domain_op(domain, op, &state, &msg, &started, &te)
+	err = load_domain_op(domain, op, &state, &oldmsg, &started, &te)
 	if (err != nil) {
-		return
+		return err
 	}
 	if (state != openapi.OPERATION_STARTED) {
-		return
+		return errors.New("operation is not in state: started")
 	}
-	_ = record_domain_op(domain, op, openapi.OPERATION_COMPLETED, "", started, ts.Now())
+	return record_domain_op(domain, op, openapi.OPERATION_COMPLETED, msg, started, ts.Now())
 }
 
 type QemuMigrationInfo struct {
