@@ -119,6 +119,7 @@ func system_info_loop(seconds int) error {
 
 	/* this first info is missing vm cpu stats and host cpu stats */
 	hv.system_info_ch <- si
+	delete_ghosts(si.Vms, si.Host.Ts)
 
 	for range ticker.C {
 		si, err = get_system_info()
@@ -131,6 +132,7 @@ func system_info_loop(seconds int) error {
 			continue
 		}
 		hv.system_info_ch <- si
+		delete_ghosts(si.Vms, si.Host.Ts)
 	}
 	return nil
 }
@@ -340,7 +342,6 @@ func get_system_info() (SystemInfo, error) {
 		hv.si = new(SystemInfo)
 	}
 	*hv.si = si
-	delete_ghosts(si.Vms, host.Ts)
 out:
 	return si, err
 }
@@ -352,6 +353,8 @@ out:
  * inventory returned by libvirt, removing items unknown to libvirt.
  */
 func delete_ghosts(vms SystemInfoVms, ts int64) {
+	hv.m.Lock()
+	defer hv.m.Unlock()
 	var (
 		idata inventory.Hostdata
 		ikey string
