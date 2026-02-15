@@ -350,3 +350,17 @@ func check_vmreg(host_uuid string, si *SystemInfo) {
 		}
 	}
 }
+
+func Get_Vmstats(uuid string) (openapi.Vmstats, error) {
+	hv.m.RLock()
+	defer hv.m.RUnlock()
+	var (
+		stats openapi.Vmstats
+		err error
+	)
+	stats, err = system_info_get_vmstats(hv.si, uuid)
+	if (err != nil) {
+		return stats, err
+	}
+	return stats, err
+}

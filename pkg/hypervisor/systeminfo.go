@@ -665,17 +665,16 @@ func freeDomains(doms []libvirt.Domain) {
 	}
 }
 
-func Get_Vmstats(uuid string) (openapi.Vmstats, error) {
-	hv.m.RLock()
-	defer hv.m.RUnlock()
+func system_info_get_vmstats(si *SystemInfo, uuid string) (openapi.Vmstats, error) {
+	/* assert hv.m.RLock() */
 	var (
 		vm SystemInfoVm
 		present bool
 	)
-	if (hv.si == nil) {
+	if (si == nil) {
 		return openapi.Vmstats{}, errors.New("SystemInfo not available")
 	}
-	vm, present = hv.si.Vms[uuid]
+	vm, present = si.Vms[uuid]
 	if (!present) {
 		return openapi.Vmstats{}, errors.New("could not find vm")
 	}
