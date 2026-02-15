@@ -28,8 +28,8 @@ import (
 	"suse.com/virtx/pkg/ts"
 )
 
-/* record the domain-altering operation metadata into the domain XML */
-func record_domain_op(domain *libvirt.Domain, op openapi.Operation, state openapi.OperationState, msg string, ts int64, te int64) error {
+/* record the operation metadata into the domain XML */
+func oplog_record(domain *libvirt.Domain, op openapi.Operation, state openapi.OperationState, msg string, ts int64, te int64) error {
 	var (
 		err error
 		xmlstr string
@@ -49,7 +49,7 @@ func record_domain_op(domain *libvirt.Domain, op openapi.Operation, state openap
 }
 
 /* load the record from the domain XML */
-func load_domain_op(domain *libvirt.Domain, op openapi.Operation, state *openapi.OperationState, msg *string, ts *int64, te *int64) error {
+func oplog_load(domain *libvirt.Domain, op openapi.Operation, state *openapi.OperationState, msg *string, ts *int64, te *int64) error {
 	var (
 		err error
 		xmlstr string
@@ -67,20 +67,20 @@ func load_domain_op(domain *libvirt.Domain, op openapi.Operation, state *openapi
 	return nil
 }
 
-/* record the completed op when it happens */
-func complete_domain_op(domain *libvirt.Domain, op openapi.Operation, msg string) error {
+/* record completion of a long running op when it finally completes */
+func oplog_complete(domain *libvirt.Domain, op openapi.Operation, msg string) error {
 	var (
 		state openapi.OperationState
 		oldmsg string
 		started, te int64
 		err error
 	)
-	err = load_domain_op(domain, op, &state, &oldmsg, &started, &te)
+	err = oplog_load(domain, op, &state, &oldmsg, &started, &te)
 	if (err != nil) {
 		return err
 	}
 	if (state != openapi.OPERATION_STARTED) {
 		return errors.New("operation is not in state: started")
 	}
-	return record_domain_op(domain, op, openapi.OPERATION_COMPLETED, msg, started, ts.Now())
+	return oplog_record(domain, op, openapi.OPERATION_COMPLETED, msg, started, ts.Now())
 }

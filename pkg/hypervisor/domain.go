@@ -84,10 +84,10 @@ func get_domain_info(d *libvirt.Domain) (string, string, openapi.Vmrunstate, err
 			logger.Log("XXX DOMAIN_SHUTOFF_MIGRATED encountered XXX")
 			enum_state = openapi.RUNSTATE_DELETED
 		case int(libvirt.DOMAIN_SHUTOFF_DESTROYED):
-			_ = complete_domain_op(d, openapi.OpVmShutdown, "forced shutdown")
+			_ = oplog_complete(d, openapi.OpVmShutdown, "forced shutdown")
 			enum_state = openapi.RUNSTATE_POWEROFF
 		case int(libvirt.DOMAIN_SHUTOFF_SHUTDOWN):
-			_ = complete_domain_op(d, openapi.OpVmShutdown, "graceful shutdown")
+			_ = oplog_complete(d, openapi.OpVmShutdown, "graceful shutdown")
 			fallthrough
 		default:
 			enum_state = openapi.RUNSTATE_POWEROFF
@@ -175,11 +175,11 @@ func Migrate_domain(hostname string, host_uuid string, host_old string, uuid str
 	}
 	defer domain.Free()
 	started := ts.Now()
-	_ = record_domain_op(domain, openapi.OpVmMigrate, openapi.OPERATION_STARTED, "", started, 0)
+	_ = oplog_record(domain, openapi.OpVmMigrate, openapi.OPERATION_STARTED, "", started, 0)
 	domain2, err = domain.Migrate3(conn2, &params, flags)
 	if (err != nil) {
 		logger.Log("Migrate_domain: failed to Migrate3: %s", err.Error())
-		_ = record_domain_op(domain, openapi.OpVmMigrate, openapi.OPERATION_FAILED, err.Error(), started, ts.Now())
+		_ = oplog_record(domain, openapi.OpVmMigrate, openapi.OPERATION_FAILED, err.Error(), started, ts.Now())
 		return err
 	}
 	defer domain2.Free()
@@ -189,7 +189,7 @@ func Migrate_domain(hostname string, host_uuid string, host_old string, uuid str
 		logger.Log("Migrate_domain: failed to vmreg.Move(%s, %s, %s)", host_uuid, host_old, uuid)
 		msg = err.Error()
 	}
-	_ = record_domain_op(domain2, openapi.OpVmMigrate, openapi.OPERATION_COMPLETED, msg, started, ts.Now())
+	_ = oplog_record(domain2, openapi.OpVmMigrate, openapi.OPERATION_COMPLETED, msg, started, ts.Now())
 	return nil
 }
 
@@ -240,7 +240,7 @@ func Get_migration_info(uuid string) (openapi.MigrationInfo, error) {
 		msg string
 		ts, tse int64
 	)
-	err = load_domain_op(domain, op, &state, &msg, &ts, &tse)
+	err = oplog_load(domain, op, &state, &msg, &ts, &tse)
 	if (err != nil) {
 		return info, err
 	}
@@ -300,7 +300,7 @@ func Abort_migration(uuid string) error {
 		msg string
 		ts, tse int64
 	)
-	err = load_domain_op(domain, op, &state, &msg, &ts, &tse)
+	err = oplog_load(domain, op, &state, &msg, &ts, &tse)
 	if (err != nil) {
 		return err
 	}
@@ -361,13 +361,13 @@ func Boot_domain(uuid string) error {
 	}
 	defer domain.Free()
 	started := ts.Now()
-	_ = record_domain_op(domain, op, openapi.OPERATION_STARTED, "", started, 0)
+	_ = oplog_record(domain, op, openapi.OPERATION_STARTED, "", started, 0)
 	err = domain.Create()
 	if (err != nil) {
-		_ = record_domain_op(domain, op, openapi.OPERATION_FAILED, err.Error(), started, ts.Now())
+		_ = oplog_record(domain, op, openapi.OPERATION_FAILED, err.Error(), started, ts.Now())
 		return err
 	}
-	_ = record_domain_op(domain, op, openapi.OPERATION_COMPLETED, "", started, ts.Now())
+	_ = oplog_record(domain, op, openapi.OPERATION_COMPLETED, "", started, ts.Now())
 	return nil
 }
 
@@ -389,13 +389,13 @@ func Pause_domain(uuid string) error {
 	}
 	defer domain.Free()
 	started := ts.Now()
-	_ = record_domain_op(domain, op, openapi.OPERATION_STARTED, "", started, 0)
+	_ = oplog_record(domain, op, openapi.OPERATION_STARTED, "", started, 0)
 	err = domain.Suspend()
 	if (err != nil) {
-		_ = record_domain_op(domain, op, openapi.OPERATION_FAILED, err.Error(), started, ts.Now())
+		_ = oplog_record(domain, op, openapi.OPERATION_FAILED, err.Error(), started, ts.Now())
 		return err
 	}
-	_ = record_domain_op(domain, op, openapi.OPERATION_COMPLETED, "", started, ts.Now())
+	_ = oplog_record(domain, op, openapi.OPERATION_COMPLETED, "", started, ts.Now())
 	return nil
 }
 
@@ -417,13 +417,13 @@ func Resume_domain(uuid string) error {
 	}
 	defer domain.Free()
 	started := ts.Now()
-	_ = record_domain_op(domain, op, openapi.OPERATION_STARTED, "", started, 0)
+	_ = oplog_record(domain, op, openapi.OPERATION_STARTED, "", started, 0)
 	err = domain.Resume()
 	if (err != nil) {
-		_ = record_domain_op(domain, op, openapi.OPERATION_FAILED, err.Error(), started, ts.Now())
+		_ = oplog_record(domain, op, openapi.OPERATION_FAILED, err.Error(), started, ts.Now())
 		return err
 	}
-	_ = record_domain_op(domain, op, openapi.OPERATION_COMPLETED, "", started, ts.Now())
+	_ = oplog_record(domain, op, openapi.OPERATION_COMPLETED, "", started, ts.Now())
 	return nil
 }
 
@@ -445,7 +445,7 @@ func Shutdown_domain(uuid string, force int16) error {
 	}
 	defer domain.Free()
 	started := ts.Now()
-	_ = record_domain_op(domain, op, openapi.OPERATION_STARTED, "", started, 0)
+	_ = oplog_record(domain, op, openapi.OPERATION_STARTED, "", started, 0)
 	if (force == 0) {
 		err = domain.Shutdown()
 	} else if (force == 1) {
@@ -454,7 +454,7 @@ func Shutdown_domain(uuid string, force int16) error {
 		err = domain.DestroyFlags(0)
 	}
 	if (err != nil) {
-		_ = record_domain_op(domain, op, openapi.OPERATION_FAILED, err.Error(), started, ts.Now())
+		_ = oplog_record(domain, op, openapi.OPERATION_FAILED, err.Error(), started, ts.Now())
 	} else {
 		/* we will wait for the lifecycle event to set the operation to completed */
 	}
