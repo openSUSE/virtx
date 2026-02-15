@@ -214,7 +214,7 @@ func record_domain_op(domain *libvirt.Domain, op openapi.Operation, state openap
 }
 
 /* load the record from the domain XML */
-func load_domain_op(domain *libvirt.Domain, op *openapi.Operation, state *openapi.OperationState, msg *string, ts *int64, te *int64) error {
+func load_domain_op(domain *libvirt.Domain, op openapi.Operation, state *openapi.OperationState, msg *string, ts *int64, te *int64) error {
 	var (
 		err error
 		xmlstr string
@@ -225,7 +225,7 @@ func load_domain_op(domain *libvirt.Domain, op *openapi.Operation, state *openap
 	if (err != nil) {
 		return err
 	}
-	err = meta.From_xml(xmlstr, op, state, msg, ts, te)
+	err = meta.From_xml(xmlstr, &op, state, msg, ts, te)
 	if (err != nil) {
 		return err
 	}
@@ -241,7 +241,7 @@ func record_domain_shutdown(domain *libvirt.Domain) {
 		started, te int64
 		err error
 	)
-	err = load_domain_op(domain, &op, &state, &msg, &started, &te)
+	err = load_domain_op(domain, op, &state, &msg, &started, &te)
 	if (err != nil) {
 		return
 	}
@@ -298,7 +298,7 @@ func Get_migration_info(uuid string) (openapi.MigrationInfo, error) {
 		msg string
 		ts, tse int64
 	)
-	err = load_domain_op(domain, &op, &state, &msg, &ts, &tse)
+	err = load_domain_op(domain, op, &state, &msg, &ts, &tse)
 	if (err != nil) {
 		return info, err
 	}
@@ -358,7 +358,7 @@ func Abort_migration(uuid string) error {
 		msg string
 		ts, tse int64
 	)
-	err = load_domain_op(domain, &op, &state, &msg, &ts, &tse)
+	err = load_domain_op(domain, op, &state, &msg, &ts, &tse)
 	if (err != nil) {
 		return err
 	}
