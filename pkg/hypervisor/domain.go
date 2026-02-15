@@ -26,7 +26,6 @@ import (
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/vmreg"
-	"suse.com/virtx/pkg/metadata"
 	"suse.com/virtx/pkg/ts"
 )
 
@@ -192,63 +191,6 @@ func Migrate_domain(hostname string, host_uuid string, host_old string, uuid str
 	}
 	_ = record_domain_op(domain2, openapi.OpVmMigrate, openapi.OPERATION_COMPLETED, msg, started, ts.Now())
 	return nil
-}
-
-/* record the domain-altering operation metadata into the domain XML */
-func record_domain_op(domain *libvirt.Domain, op openapi.Operation, state openapi.OperationState, msg string, ts int64, te int64) error {
-	var (
-		err error
-		xmlstr string
-		meta metadata.Operation
-		impact libvirt.DomainModificationImpact = libvirt.DOMAIN_AFFECT_CONFIG
-	)
-	xmlstr, err = meta.To_xml(op, state, msg, ts, te)
-	if (err != nil) {
-		return err
-	}
-	err = domain.SetMetadata(libvirt.DOMAIN_METADATA_ELEMENT, string(xmlstr),
-		meta.XMLName.Local, meta.XMLName.Space, impact)
-	if (err != nil) {
-		return err
-	}
-	return nil
-}
-
-/* load the record from the domain XML */
-func load_domain_op(domain *libvirt.Domain, op openapi.Operation, state *openapi.OperationState, msg *string, ts *int64, te *int64) error {
-	var (
-		err error
-		xmlstr string
-		meta metadata.Operation
-		impact libvirt.DomainModificationImpact = libvirt.DOMAIN_AFFECT_CONFIG
-	)
-	xmlstr, err = domain.GetMetadata(libvirt.DOMAIN_METADATA_ELEMENT, "virtx-op-" + op.String(), impact)
-	if (err != nil) {
-		return err
-	}
-	err = meta.From_xml(xmlstr, &op, state, msg, ts, te)
-	if (err != nil) {
-		return err
-	}
-	return nil
-}
-
-/* record the completed op when it happens */
-func complete_domain_op(domain *libvirt.Domain, op openapi.Operation, msg string) error {
-	var (
-		state openapi.OperationState
-		oldmsg string
-		started, te int64
-		err error
-	)
-	err = load_domain_op(domain, op, &state, &oldmsg, &started, &te)
-	if (err != nil) {
-		return err
-	}
-	if (state != openapi.OPERATION_STARTED) {
-		return errors.New("operation is not in state: started")
-	}
-	return record_domain_op(domain, op, openapi.OPERATION_COMPLETED, msg, started, ts.Now())
 }
 
 type QemuMigrationInfo struct {
