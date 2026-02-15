@@ -32,7 +32,7 @@ type HostListFields struct {
 	Hpavailable int32 `json:"hpavailable"`
 	Osid string `json:"osid"`
 	Osv string `json:"osv"`
-	// 64bit UTC Unix timestamp in milliseconds since Epoc.
+	// 64bit UTC Unix timestamp in milliseconds since Epoc. A 0 value is used if the timestamp is not available.
 	Ts int64 `json:"ts"`
 }
 

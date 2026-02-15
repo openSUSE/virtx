@@ -27,7 +27,7 @@ type Vm struct {
 	Def Vmdef `json:"def"`
 	Runinfo Vmruninfo `json:"runinfo"`
 	Stats Vmstats `json:"stats"`
-	// 64bit UTC Unix timestamp in milliseconds since Epoc.
+	// 64bit UTC Unix timestamp in milliseconds since Epoc. A 0 value is used if the timestamp is not available.
 	Ts int64 `json:"ts"`
 }
 

@@ -29,7 +29,7 @@ type VmListFields struct {
 	// vlanid for all traffic from/to this VM. 0 = no vlanid, -1 = automatically assign
 	Vlanid int16 `json:"vlanid"`
 	Custom CustomField `json:"custom"`
-	// 64bit UTC Unix timestamp in milliseconds since Epoc.
+	// 64bit UTC Unix timestamp in milliseconds since Epoc. A 0 value is used if the timestamp is not available.
 	Ts int64 `json:"ts"`
 }
 

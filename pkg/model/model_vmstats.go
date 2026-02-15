@@ -40,6 +40,7 @@ type Vmstats struct {
 	NetRxBw int32 `json:"net_rx_bw"`
 	// Net Tx KiB/s
 	NetTxBw int32 `json:"net_tx_bw"`
+	Oplog OplogList `json:"oplog"`
 }
 
 type _Vmstats Vmstats
@@ -48,7 +49,7 @@ type _Vmstats Vmstats
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVmstats(cpuUtilization int32, mhzUsed int32, memoryCapacity int64, memoryUsed int64, diskCapacity int64, diskAllocation int64, diskPhysical int64, netRxBw int32, netTxBw int32) *Vmstats {
+func NewVmstats(cpuUtilization int32, mhzUsed int32, memoryCapacity int64, memoryUsed int64, diskCapacity int64, diskAllocation int64, diskPhysical int64, netRxBw int32, netTxBw int32, oplog OplogList) *Vmstats {
 	this := Vmstats{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
@@ -63,6 +64,7 @@ func NewVmstats(cpuUtilization int32, mhzUsed int32, memoryCapacity int64, memor
 	this.DiskPhysical = diskPhysical
 	this.NetRxBw = netRxBw
 	this.NetTxBw = netTxBw
+	this.Oplog = oplog
 	return &this
 }
 
@@ -290,6 +292,30 @@ func (o *Vmstats) SetNetTxBw(v int32) {
 	o.NetTxBw = v
 }
 
+// GetOplog returns the Oplog field value
+func (o *Vmstats) GetOplog() OplogList {
+	if o == nil {
+		var ret OplogList
+		return ret
+	}
+
+	return o.Oplog
+}
+
+// GetOplogOk returns a tuple with the Oplog field value
+// and a boolean to check if the value has been set.
+func (o *Vmstats) GetOplogOk() (*OplogList, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Oplog, true
+}
+
+// SetOplog sets field value
+func (o *Vmstats) SetOplog(v OplogList) {
+	o.Oplog = v
+}
+
 func (o Vmstats) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["cpu_utilization"] = o.CpuUtilization
@@ -301,6 +327,7 @@ func (o Vmstats) ToMap() (map[string]interface{}, error) {
 	toSerialize["disk_physical"] = o.DiskPhysical
 	toSerialize["net_rx_bw"] = o.NetRxBw
 	toSerialize["net_tx_bw"] = o.NetTxBw
+	toSerialize["oplog"] = o.Oplog
 	return toSerialize, nil
 }
 
