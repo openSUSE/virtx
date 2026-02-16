@@ -511,3 +511,24 @@ func Delete_domain(uuid string) error {
 	}
 	return nil
 }
+
+func Log_domain(uuid string, list *openapi.OplogList) error {
+	var (
+		err error
+		conn *libvirt.Connect
+		domain *libvirt.Domain
+	)
+	conn, err = libvirt.NewConnect(libvirt_uri)
+	if (err != nil) {
+		return err
+	}
+	defer conn.Close()
+	domain, err = conn.LookupDomainByUUIDString(uuid)
+	if (err != nil) {
+		return err
+	}
+	defer domain.Free()
+
+	err = oplog_load_list(domain, list)
+	return err
+}

@@ -362,5 +362,9 @@ func Get_Vmstats(uuid string) (openapi.Vmstats, error) {
 	if (err != nil) {
 		return stats, err
 	}
-	return stats, err
+	err = Log_domain(uuid, &stats.Oplog)
+	if (err != nil) {
+		logger.Log("WARNING: failed to get oplog for %s: %s", uuid, err.Error())
+	}
+	return stats, nil
 }
