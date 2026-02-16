@@ -84,3 +84,31 @@ func oplog_complete(domain *libvirt.Domain, op openapi.Operation, msg string) er
 	}
 	return oplog_record(domain, op, openapi.OPERATION_COMPLETED, msg, started, ts.Now())
 }
+
+/* load all the op records from the domain XML into an OplogList */
+func oplog_load_list(domain *libvirt.Domain, list *openapi.OplogList) error {
+	var (
+		err error
+		ops = [...]openapi.Operation{ openapi.OpVmBoot, openapi.OpVmMigrate, openapi.OpVmPause, openapi.OpVmResume, openapi.OpVmShutdown }
+	)
+	list.Items = make([]openapi.OplogItem, 0, len(ops))
+	for i := 0; i < len(ops); i++ {
+		var (
+			state openapi.OperationState
+			msg string
+			ts, te int64
+		)
+		err = oplog_load(domain, ops[i], &state, &msg, &ts, &te)
+		if (err != nil) {
+			continue
+		}
+		list.Items = append(list.Items, openapi.OplogItem{
+			Op: ops[i].String(),
+			Ts: ts,
+			Te: te,
+			Status: state.String(),
+			Msg: msg,
+		})
+	}
+	return nil
+}
