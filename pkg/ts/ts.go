@@ -28,3 +28,10 @@ func Now() int64 {
 func Since(t int64) time.Duration {
 	return time.Duration(Now() - t) * time.Millisecond
 }
+
+func String(t int64) string {
+	if (t == 0) {
+		return ""
+	}
+	return time.UnixMilli(t).UTC().Format(time.DateTime)
+}
