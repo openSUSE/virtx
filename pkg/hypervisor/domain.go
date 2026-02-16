@@ -20,6 +20,7 @@ package hypervisor
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	"libvirt.org/go/libvirt"
 
@@ -175,11 +176,17 @@ func Migrate_domain(hostname string, host_uuid string, host_old string, uuid str
 	}
 	defer domain.Free()
 	started := ts.Now()
-	_ = oplog_record(domain, openapi.OpVmMigrate, openapi.OPERATION_STARTED, "", started, 0)
+	if (live) {
+		msg = "offline"
+	} else {
+		msg = "live"
+	}
+	msg += fmt.Sprintf(" migration from %s to %s.", host_old, host_uuid)
+	_ = oplog_record(domain, openapi.OpVmMigrate, openapi.OPERATION_STARTED, msg, started, 0)
 	domain2, err = domain.Migrate3(conn2, &params, flags)
 	if (err != nil) {
 		logger.Log("Migrate_domain: failed to Migrate3: %s", err.Error())
-		_ = oplog_record(domain, openapi.OpVmMigrate, openapi.OPERATION_FAILED, err.Error(), started, ts.Now())
+		_ = oplog_record(domain, openapi.OpVmMigrate, openapi.OPERATION_FAILED, msg + " " + err.Error(), started, ts.Now())
 		return err
 	}
 	defer domain2.Free()
@@ -187,9 +194,9 @@ func Migrate_domain(hostname string, host_uuid string, host_old string, uuid str
 	err = vmreg.Move(host_uuid, host_old, uuid)
 	if (err != nil) {
 		logger.Log("Migrate_domain: failed to vmreg.Move(%s, %s, %s)", host_uuid, host_old, uuid)
-		msg = err.Error()
+		msg += fmt.Sprintf(" WARNING:%s.", err.Error())
 	}
-	_ = oplog_record(domain2, openapi.OpVmMigrate, openapi.OPERATION_COMPLETED, msg, started, ts.Now())
+	_ = oplog_record(domain2, openapi.OpVmMigrate, openapi.OPERATION_COMPLETED, msg + " Migrated.", started, ts.Now())
 	return nil
 }
 
@@ -445,7 +452,8 @@ func Shutdown_domain(uuid string, force int16) error {
 	}
 	defer domain.Free()
 	started := ts.Now()
-	_ = oplog_record(domain, op, openapi.OPERATION_STARTED, "", started, 0)
+	msg := fmt.Sprintf("shutdown force=%d.", force)
+	_ = oplog_record(domain, op, openapi.OPERATION_STARTED, msg, started, 0)
 	if (force == 0) {
 		err = domain.Shutdown()
 	} else if (force == 1) {
@@ -454,7 +462,7 @@ func Shutdown_domain(uuid string, force int16) error {
 		err = domain.DestroyFlags(0)
 	}
 	if (err != nil) {
-		_ = oplog_record(domain, op, openapi.OPERATION_FAILED, err.Error(), started, ts.Now())
+		_ = oplog_record(domain, op, openapi.OPERATION_FAILED, msg + " " + err.Error(), started, ts.Now())
 	} else {
 		/* we will wait for the lifecycle event to set the operation to completed */
 	}
