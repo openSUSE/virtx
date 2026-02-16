@@ -136,7 +136,7 @@ func main() {
 	}
 	if (response.StatusCode >= 200 && response.StatusCode <= 299) {
 		virtx.ok = true
-		virtx.w = writer.NewWriter(os.Stdout, 0, 4, 1, ' ', writer.StripEscape)
+		virtx.w = writer.NewWriter(os.Stdout, 0, 4, 1, ' ', writer.StripEscape | writer.Debug)
 		err = cmd_exec()
 		virtx.w.Flush()
 	} else {
