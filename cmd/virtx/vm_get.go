@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"suse.com/virtx/pkg/model"
+	"suse.com/virtx/pkg/ts"
 )
 
 func vm_get_req(arg string) {
@@ -49,9 +50,20 @@ func vm_get(vm *openapi.Vm) {
 				vm.Stats.MemoryCapacity, vm.Stats.MemoryUsed)
 		}
 	} else {
-		fmt.Fprintf(virtx.w, "NAME\tHOST\tSTATE\tVLAN\tCUSTOM\n")
-		fmt.Fprintf(virtx.w, "%s\t%s\t%s\t%4d\t%v\n",
-			vm.Def.Name, vm.Runinfo.Host, vm.Runinfo.Runstate, vm.Def.Vlanid, vm.Def.Custom)
+		var (
+			boot_ts int64
+			items []openapi.OplogItem = vm.Stats.Oplog.Items
+			o openapi.Operation
+		)
+		for i := 0; i < len(items); i++ {
+			if (o.Parse(items[i].Op) == nil && o == openapi.OpVmBoot) {
+				boot_ts = items[i].Te
+				break
+			}
+		}
+		fmt.Fprintf(virtx.w, "NAME\tHOST\tLAST BOOT\tSTATE\tVLAN\tCUSTOM\n")
+		fmt.Fprintf(virtx.w, "%s\t%s\t%s\t%s\t%4d\t%v\n",
+			vm.Def.Name, vm.Runinfo.Host, ts.String(boot_ts), vm.Runinfo.Runstate, vm.Def.Vlanid, vm.Def.Custom)
 	}
 }
 
