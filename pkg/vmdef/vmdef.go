@@ -28,6 +28,7 @@ import (
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/hypervisor"
 	"suse.com/virtx/pkg/metadata"
+	"suse.com/virtx/pkg/lockman"
 
 	"libvirt.org/go/libvirtxml"
 	. "suse.com/virtx/pkg/constants"
@@ -199,7 +200,8 @@ func Validate(vmdef *openapi.Vmdef) error {
 }
 
 func vmdef_disk_to_xml(disk *openapi.Disk, disk_count map[string]int, iothread_count *uint,
-	domain_disks *[]libvirtxml.DomainDisk, domain_controllers *[]libvirtxml.DomainController, order int) error {
+	domain_disks *[]libvirtxml.DomainDisk, domain_leases *[]libvirtxml.DomainLease,
+	domain_controllers *[]libvirtxml.DomainController, order int) error {
 	var (
 		domain_disk libvirtxml.DomainDisk
 		domain_controller libvirtxml.DomainController
@@ -342,6 +344,9 @@ func vmdef_disk_to_xml(disk *openapi.Disk, disk_count map[string]int, iothread_c
 	*domain_disks = append(*domain_disks, domain_disk)
 	/* controller index per type starts from 0 */
 	disk_count[ctrl_type] += 1
+	if (domain_leases != nil) {
+		*domain_leases = append(*domain_leases, vmdef_lease(disk))
+	}
 	return nil
 }
 
@@ -401,6 +406,17 @@ func vmdef_disk_from_xml(disk *openapi.Disk, domain_disk *libvirtxml.DomainDisk)
 	return nil
 }
 
+func vmdef_lease(disk *openapi.Disk) libvirtxml.DomainLease {
+	var key string = lockman.Get_resource_name(disk.Device, disk.Path)
+	return libvirtxml.DomainLease{
+		Lockspace: LOCK_SPACE,
+		Key: key,
+		Target: &libvirtxml.DomainLeaseTarget{
+			Path: lockman.Get_resource_path(key),
+			Offset: 0,
+		},
+	}
+}
 /*
  * vmdef_validate needs to be called before this!
  */
@@ -543,6 +559,7 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 
 	var (
 		domain_disks []libvirtxml.DomainDisk
+		domain_leases []libvirtxml.DomainLease
 		domain_controllers []libvirtxml.DomainController
 		domain_interfaces []libvirtxml.DomainInterface
 		iothread_count uint
@@ -550,14 +567,22 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 	)
 	disk_count := make(map[string]int)          /* keep track of how many disks require a bus type */
 	for _, disk := range Disks(vmdef) {
-		var order int
+		var (
+			order int
+			leases *[]libvirtxml.DomainLease
+		)
 		if (boot_order == 1 || disk.Device == openapi.DEVICE_CDROM) {
 			order = boot_order
 			boot_order += 1
 		} else {
 			order = -1			/* other disks are not bootable */
 		}
-		err = vmdef_disk_to_xml(disk, disk_count, &iothread_count, &domain_disks, &domain_controllers, order)
+		if (disk.Man != openapi.DISK_MAN_UNMANAGED) {
+			leases = &domain_leases
+		} else {
+			leases = nil
+		}
+		err = vmdef_disk_to_xml(disk, disk_count, &iothread_count, &domain_disks, leases, &domain_controllers, order)
 		if (err != nil) {
 			return "", err
 		}
@@ -617,7 +642,7 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 		/* Emulator:, */
 		Disks: domain_disks,
 		Controllers: domain_controllers,
-		/* Leases:, */
+		Leases: domain_leases,
 		/* Filesystems:, */
 		Interfaces: domain_interfaces,
 		Serials: nil,
