@@ -40,6 +40,7 @@ func Create(vm *openapi.Vmdef, old *openapi.Vmdef) error {
 			err = storage_detect_prov(disk)
 		}
 		if (err != nil) {
+			_ = lockman.Delete_resource(resource_name, uuid)
 			return err
 		}
 	}

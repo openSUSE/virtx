@@ -28,6 +28,7 @@ import (
 	"suse.com/virtx/pkg/hypervisor"
 	"suse.com/virtx/pkg/virtx"
 	"suse.com/virtx/pkg/logger"
+	"suse.com/virtx/pkg/lockman"
 )
 
 var version string = "unknown"
@@ -54,6 +55,13 @@ func main() {
 	if (err != nil) {
 		logger.Fatal(err.Error())
 	}
+	/* lockman: initialize the lock manager (needs system info to get the hypervisor Uuid()). */
+	err = lockman.Init()
+	if (err != nil) {
+		logger.Fatal(err.Error())
+	}
+	defer lockman.Shutdown()
+
 	/* virtx service: initialize */
 	virtx.Init()
 	/*
