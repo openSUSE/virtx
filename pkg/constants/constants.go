@@ -27,7 +27,10 @@ const (
 const (
 	REG_DIR = "/vms/xml/"
 	DS_DIR = "/vms/ds/"
+	LOCK_DIR = "/vms/lock/"
+	LOCK_SPACE = "__VIRTX__DISKS__"
 	DEV_DIR = "/dev/"
+
 	HTTP_MAX_BODY_LEN = 1048576
 	VM_NAME_MAX = 32
 	NET_NAME_MAX = 32
