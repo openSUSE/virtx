@@ -25,6 +25,7 @@ const (
 )
 
 const (
+	VMS_DIR = "/vms/"
 	REG_DIR = "/vms/xml/"
 	DS_DIR = "/vms/ds/"
 	LOCK_DIR = "/vms/lock/"
