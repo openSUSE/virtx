@@ -27,6 +27,7 @@ import (
 	"strings"
 	"strconv"
 	"fmt"
+	"errors"
 
 	"libvirt.org/go/libvirt"
 
@@ -44,6 +45,7 @@ const (
 	LIBVIRT_URI = "qemu:///system"
 	LIBVIRT_RECONNECT_SECONDS = 5
 	LIBVIRT_SYSTEM_INFO_SECONDS = 15
+	WAIT_SYSTEM_INFO_SECONDS = 10
 )
 
 type Hypervisor struct {
@@ -86,6 +88,31 @@ func Connect() error {
 	hv.is_connected.Store(true)
 	err = start_listening()
 	return err
+}
+
+/*
+ * the system_info_loop is going to initialize important information,
+ * including the host / libvirt Uuid and Cpuarch.
+ * We need for this information to be available, before we attempt to
+ * initialize the other packages that depend on this information.
+ */
+
+func Wait_system_info() error {
+	logger.Debug("waiting for hypervisor system_info...")
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+	timeout := time.After(time.Duration(WAIT_SYSTEM_INFO_SECONDS) * time.Second)
+	for {
+		select {
+		case <- ticker.C:
+			if (Uuid() != "") {
+				logger.Debug("system_info now available.")
+				return nil
+			}
+		case <- timeout:
+			return errors.New("timeout waiting for system_info")
+		}
+	}
 }
 
 func Shutdown() {

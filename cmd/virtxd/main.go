@@ -49,6 +49,11 @@ func main() {
 	}
 	defer hypervisor.Shutdown()
 
+	/* hypervisor: wait for the system information to be filled before proceeding */
+	err = hypervisor.Wait_system_info()
+	if (err != nil) {
+		logger.Fatal(err.Error())
+	}
 	/* virtx service: initialize */
 	virtx.Init()
 	/*
