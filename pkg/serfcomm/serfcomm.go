@@ -32,18 +32,18 @@ import (
 )
 
 const (
-	label_host_info string = "HI"
-	label_vm_info string = "VI"
-	label_vm_event string = "VE"
-	max_message_size uint = 1024
-	reconnect_seconds = 5
-	rpc_addr = "127.0.0.1:7373"
+	LABEL_HOST_INFO string = "HI"
+	LABEL_VM_INFO string = "VI"
+	LABEL_VM_EVENT string = "VE"
+	MAX_MESSAGE_SIZE uint = 1024
+	RECONNECT_SECONDS = 5
+	RPC_ADDR = "127.0.0.1:7373"
 )
 
 var serf = struct {
 	m sync.RWMutex
 	c *client.RPCClient
-	enc_buffer [max_message_size]byte
+	enc_buffer [MAX_MESSAGE_SIZE]byte
 	channel chan map[string]any
 	stream client.StreamHandle
 }{}
@@ -86,7 +86,7 @@ func send_host_info(host_info *openapi.Host) error {
 		return err
 	}
 	logger.Debug("send_host_info payload len=%d\n", eventsize)
-	return send_user_event(label_host_info, serf.enc_buffer[:eventsize])
+	return send_user_event(LABEL_HOST_INFO, serf.enc_buffer[:eventsize])
 }
 
 func send_vm_data(vmdata *inventory.Vmdata) error {
@@ -101,7 +101,7 @@ func send_vm_data(vmdata *inventory.Vmdata) error {
 		return err
 	}
 	logger.Debug("send_vm_data payload len=%d\n", eventsize)
-	return send_user_event(label_vm_info, serf.enc_buffer[:eventsize])
+	return send_user_event(LABEL_VM_INFO, serf.enc_buffer[:eventsize])
 }
 
 func send_vm_event(e *inventory.VmEvent) error {
@@ -116,7 +116,7 @@ func send_vm_event(e *inventory.VmEvent) error {
 		return err
 	}
 	logger.Debug("send_vm_event payload len=%d\n", eventsize)
-	return send_user_event(label_vm_event, serf.enc_buffer[:eventsize])
+	return send_user_event(LABEL_VM_EVENT, serf.enc_buffer[:eventsize])
 }
 
 func recv_serf_events() {
@@ -146,10 +146,10 @@ func recv_serf_events() {
 		serf.m.Unlock()
 
 		logger.Debug("RecvSerfEvents loop exit")
-		logger.Debug("reconnect to serf, attempt every %d seconds...", reconnect_seconds)
+		logger.Debug("reconnect to serf, attempt every %d seconds...", RECONNECT_SECONDS)
 		var err error = errors.New("")
 		for ; err != nil; err = Connect() {
-			time.Sleep(time.Duration(reconnect_seconds) * time.Second)
+			time.Sleep(time.Duration(RECONNECT_SECONDS) * time.Second)
 		}
 	}
 }
@@ -179,7 +179,7 @@ func handle_user_event(e map[string]any) {
 		err error
 	)
 	switch (name) {
-	case label_host_info:
+	case LABEL_HOST_INFO:
 		var (
 			hi openapi.Host
 			size int
@@ -191,7 +191,7 @@ func handle_user_event(e map[string]any) {
 			logger.Debug("Decode %s: OK  %d %s %s", name, hi.Ts, hi.Uuid, hi.Def.Name)
 			inventory.Update_host(&hi)
 		}
-	case label_vm_event:
+	case LABEL_VM_EVENT:
 		var (
 			ve inventory.VmEvent
 			size int
@@ -206,7 +206,7 @@ func handle_user_event(e map[string]any) {
 				logger.Log(err.Error())
 			}
 		}
-	case label_vm_info:
+	case LABEL_VM_INFO:
 		var (
 			vm inventory.Vmdata
 			size int
@@ -274,7 +274,7 @@ func Connect() error {
 	defer serf.m.Unlock()
 
 	var err error
-	serf.c, err = client.NewRPCClient(rpc_addr)
+	serf.c, err = client.NewRPCClient(RPC_ADDR)
 	if (err != nil) {
 		serf.c = nil
 		return err
