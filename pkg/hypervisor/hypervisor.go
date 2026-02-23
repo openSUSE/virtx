@@ -44,7 +44,7 @@ const (
 	MAX_FREQ_PATH = "/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq"
 	LIBVIRT_URI = "qemu:///system"
 	LIBVIRT_RECONNECT_SECONDS = 5
-	LIBVIRT_SYSTEM_INFO_SECONDS = 15
+	SYSTEM_INFO_LOOP_SECONDS = 15
 	WAIT_SYSTEM_INFO_SECONDS = 10
 )
 
@@ -227,7 +227,7 @@ func init_system_info_loop() {
 	}
 	for {
 		var err error
-		err = system_info_loop(LIBVIRT_SYSTEM_INFO_SECONDS)
+		err = system_info_loop(SYSTEM_INFO_LOOP_SECONDS)
 		/* we should from system_info_loop only if there is a libvirt error that requires reconnection */
 		/* assert(err != nil) */
 		logger.Debug("reconnect, attempt every %d seconds...", LIBVIRT_RECONNECT_SECONDS)
