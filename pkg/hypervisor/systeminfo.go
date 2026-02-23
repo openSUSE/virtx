@@ -438,7 +438,7 @@ func system_info_get_immutable(imm *SystemInfoImm) error {
 			logger.Log("fallback to libvirt MHz, MHz calculations will be unreliable")
 		}
 	}()
-	raw, err = os.ReadFile(max_freq_path)
+	raw, err = os.ReadFile(MAX_FREQ_PATH)
 	if (err != nil) {
 		return nil
 	}

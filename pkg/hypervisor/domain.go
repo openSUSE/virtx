@@ -110,7 +110,7 @@ func Define_domain(xml string, uuid string) error {
 		conn *libvirt.Connect
 		domain *libvirt.Domain
 	)
-	conn, err = libvirt.NewConnect(libvirt_uri)
+	conn, err = libvirt.NewConnect(LIBVIRT_URI)
 	if (err != nil) {
 		return err
 	}
@@ -160,7 +160,7 @@ func Migrate_domain(hostname string, host_uuid string, host_old string, uuid str
 			libvirt.MIGRATE_UNDEFINE_SOURCE  |
 			libvirt.MIGRATE_UNSAFE
 	}
-	conn, err = libvirt.NewConnect(libvirt_uri)
+	conn, err = libvirt.NewConnect(LIBVIRT_URI)
 	if (err != nil) {
 		return err
 	}
@@ -223,7 +223,7 @@ func Get_migration_info(uuid string) (openapi.MigrationInfo, error) {
 		result_json string
 		domain *libvirt.Domain
 	)
-	conn, err = libvirt.NewConnect(libvirt_uri)
+	conn, err = libvirt.NewConnect(LIBVIRT_URI)
 	if (err != nil) {
 		return info, err
 	}
@@ -287,7 +287,7 @@ func Abort_migration(uuid string) error {
 		conn *libvirt.Connect
 		domain *libvirt.Domain
 	)
-	conn, err = libvirt.NewConnect(libvirt_uri)
+	conn, err = libvirt.NewConnect(LIBVIRT_URI)
 	if (err != nil) {
 		return err
 	}
@@ -333,7 +333,7 @@ func Dumpxml(uuid string) (string, error) {
 		domain *libvirt.Domain
 		xml string
 	)
-	conn, err = libvirt.NewConnect(libvirt_uri)
+	conn, err = libvirt.NewConnect(LIBVIRT_URI)
 	if (err != nil) {
 		return "", err
 	}
@@ -357,7 +357,7 @@ func Boot_domain(uuid string) error {
 		domain *libvirt.Domain
 		op openapi.Operation = openapi.OpVmBoot
 	)
-	conn, err = libvirt.NewConnect(libvirt_uri)
+	conn, err = libvirt.NewConnect(LIBVIRT_URI)
 	if (err != nil) {
 		return err
 	}
@@ -385,7 +385,7 @@ func Pause_domain(uuid string) error {
 		domain *libvirt.Domain
 		op openapi.Operation = openapi.OpVmPause
 	)
-	conn, err = libvirt.NewConnect(libvirt_uri)
+	conn, err = libvirt.NewConnect(LIBVIRT_URI)
 	if (err != nil) {
 		return err
 	}
@@ -413,7 +413,7 @@ func Resume_domain(uuid string) error {
 		domain *libvirt.Domain
 		op openapi.Operation = openapi.OpVmResume
 	)
-	conn, err = libvirt.NewConnect(libvirt_uri)
+	conn, err = libvirt.NewConnect(LIBVIRT_URI)
 	if (err != nil) {
 		return err
 	}
@@ -441,7 +441,7 @@ func Shutdown_domain(uuid string, force int16) error {
 		domain *libvirt.Domain
 		op openapi.Operation = openapi.OpVmShutdown
 	)
-	conn, err = libvirt.NewConnect(libvirt_uri)
+	conn, err = libvirt.NewConnect(LIBVIRT_URI)
 	if (err != nil) {
 		return err
 	}
@@ -475,7 +475,7 @@ func Delete_domain(uuid string) error {
 		conn *libvirt.Connect
 		domain *libvirt.Domain
 	)
-	conn, err = libvirt.NewConnect(libvirt_uri)
+	conn, err = libvirt.NewConnect(LIBVIRT_URI)
 	if (err != nil) {
 		return err
 	}
@@ -518,7 +518,7 @@ func Log_domain(uuid string, list *openapi.OplogList) error {
 		conn *libvirt.Connect
 		domain *libvirt.Domain
 	)
-	conn, err = libvirt.NewConnect(libvirt_uri)
+	conn, err = libvirt.NewConnect(LIBVIRT_URI)
 	if (err != nil) {
 		return err
 	}

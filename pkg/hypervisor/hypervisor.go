@@ -40,10 +40,10 @@ import (
 )
 
 const (
-	max_freq_path = "/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq"
-	libvirt_uri = "qemu:///system"
-	libvirt_reconnect_seconds = 5
-	libvirt_system_info_seconds = 15
+	MAX_FREQ_PATH = "/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq"
+	LIBVIRT_URI = "qemu:///system"
+	LIBVIRT_RECONNECT_SECONDS = 5
+	LIBVIRT_SYSTEM_INFO_SECONDS = 15
 )
 
 type Hypervisor struct {
@@ -78,7 +78,7 @@ func Connect() error {
 		hv.conn.Close()
 		hv.is_connected.Store(false)
 	}
-	conn, err := libvirt.NewConnect(libvirt_uri)
+	conn, err := libvirt.NewConnect(LIBVIRT_URI)
 	if (err != nil) {
 		return err
 	}
@@ -200,12 +200,12 @@ func init_system_info_loop() {
 	}
 	for {
 		var err error
-		err = system_info_loop(libvirt_system_info_seconds)
+		err = system_info_loop(LIBVIRT_SYSTEM_INFO_SECONDS)
 		/* we should from system_info_loop only if there is a libvirt error that requires reconnection */
 		/* assert(err != nil) */
-		logger.Debug("reconnect, attempt every %d seconds...", libvirt_reconnect_seconds)
+		logger.Debug("reconnect, attempt every %d seconds...", LIBVIRT_RECONNECT_SECONDS)
 		for ; err != nil; err = Connect() {
-			time.Sleep(time.Duration(libvirt_reconnect_seconds) * time.Second)
+			time.Sleep(time.Duration(LIBVIRT_RECONNECT_SECONDS) * time.Second)
 		}
 	}
 }
@@ -334,7 +334,7 @@ func check_vmreg(host_uuid string, si *SystemInfo) {
 	if (err != nil) {
 		logger.Fatal("could not get the list of VM uuids for host %s", host_uuid)
 	}
-	conn, err = libvirt.NewConnect(libvirt_uri)
+	conn, err = libvirt.NewConnect(LIBVIRT_URI)
 	if (err != nil) {
 		logger.Fatal("could not connect to libvirt: %s", err.Error())
 	}
