@@ -30,10 +30,11 @@ import (
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/vmdef"
+	"suse.com/virtx/pkg/lockman"
 	. "suse.com/virtx/pkg/constants"
 )
 
-func vdisk_create(disk *openapi.Disk) error {
+func vdisk_create(disk *openapi.Disk, resource_name string, uuid string) error {
 	var (
 		err error
 		disk_driver, prealloc string
@@ -44,7 +45,7 @@ func vdisk_create(disk *openapi.Disk) error {
 	}
 	err = os.MkdirAll(filepath.Dir(disk.Path), 0750)
 	if (err != nil) {
-		return errors.New("could not create path")
+		return fmt.Errorf("could not create path %s: %w", filepath.Dir(disk.Path), err)
 	}
 	prealloc = func () string {
 		if (disk_driver == "qcow2") {
@@ -59,23 +60,20 @@ func vdisk_create(disk *openapi.Disk) error {
 			return "falloc"
 		}
 	}()
-	args := []string { "create", "-f", disk_driver, "-o", "preallocation=" + prealloc }
+	args := []string{ "/usr/bin/qemu-img", "create", "-f", disk_driver, "-o", "preallocation=" + prealloc }
 	if (disk_driver == "qcow2") {
 		args = append(args, "-o", "lazy_refcounts=off")
 	}
 	args = append(args, disk.Path, fmt.Sprintf("%dM", disk.Size))
 	logger.Debug("qemu-img %v", args)
-	var cmd *exec.Cmd = exec.Command("/usr/bin/qemu-img", args...)
-	var output []byte
-	output, err = cmd.CombinedOutput()
-	if (err != nil) {
-		logger.Log("%s\n", string(output))
-		return err
-	}
-	return nil
+
+	/* run provisioning under lease lock */
+	err = lockman.Run(resource_name, uuid, [][]string{ args }, false)
+	// for luns instead we will: `wipefs -a "$1" && dd if=/dev/zero of="$1" bs=1M count=1 && blkdiscard "$1"`, disk.Path
+	return err
 }
 
-func vdisk_delete(disk *openapi.Disk) error {
+func vdisk_delete(disk *openapi.Disk, resource_name string, uuid string) error {
 	var (
 		err error
 		disk_driver string
@@ -85,7 +83,16 @@ func vdisk_delete(disk *openapi.Disk) error {
 		return errors.New("invalid Disk Path")
 	}
 	logger.Debug("deleting %s", disk.Path)
-	err = os.Remove(disk.Path)
+	/*
+	 * delete the disk and the resource file, while holding the resource lease.
+	 */
+	resource_path := lockman.Get_resource_path(resource_name)
+	args := [][]string{
+		{ "/usr/bin/rm", "--", disk.Path },
+		{ "/usr/bin/rm", "--", resource_path },
+		{ "/usr/bin/rmdir", "--", filepath.Dir(resource_path) },
+	}
+	err = lockman.Run(resource_name, uuid, args, true)
 	if (err != nil) {
 		return err
 	}

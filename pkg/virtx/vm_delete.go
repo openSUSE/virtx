@@ -81,11 +81,9 @@ func vm_delete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to delete VM", http.StatusFailedDependency)
 		return
 	}
-	if (o.Deletestorage) {
-		err = storage.Delete(&vm, nil)
-		if (err != nil) {
-			w.Header().Set("Warning", `299 VirtX "storage could not be deleted"`)
-		}
+	err = storage.Delete(&vm, nil, uuid, o.Deletestorage)
+	if (err != nil) {
+		w.Header().Set("Warning", `299 VirtX "some resources could not be deleted"`)
 	}
 	/* we keep the xml around. It could be useful for the future and should not waste a lot of space */
 	if (err != nil) {
