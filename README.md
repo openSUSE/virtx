@@ -50,7 +50,7 @@ For NFS4 storage, virtxd expects this additional directory to be mounted:
 /vms/ds
 
 In the simplest configuration with NFS, it could be a single /vms mountpoint.
-Typically the mounted directories should be owned by qemu:qemu.
+Typically the mounted directories should be owned by qemu:disk.
 
 The virtxd daemon monitors the state of local VMs via libvirt, and offers a REST API backend to connect to.
 serf agent and libvirt must be already running when starting virtxd, or virtxd will not start successfully.
@@ -59,35 +59,43 @@ If the connection to libvirt or the serf agent are subsequently lost, virtx will
 
 # LIBVIRT CONFIGURATION
 
-libvirt on each host should be configured as follows (pseudodiff):
+libvirt on each host should be configured as follows:
 
---- /etc/libvirt/virtproxyd.conf    2025-12-01 14:57:32.000000000 -0700
-+++ /etc/libvirt/virtproxyd.conf    2025-12-16 02:32:54.622835749 -0700
--#listen_tls = 0
-+listen_tls = 0
+/etc/libvirt/virtproxyd.conf:  
+listen_tls = 0  
+listen_tcp = 1  
+auth_tcp = "none"  
 
--#listen_tcp = 1
-+listen_tcp = 1
+/etc/libvirt/virtqemud.conf:  
+auth_unix_ro = "none"  
+auth_unix_rw = "none"  
 
--#unix_sock_group = "libvirt"
-+unix_sock_group = "qemu"
+/etc/libvirt/qemu.conf:  
+user = "qemu"  
+group = "disk"  
+dynamic_ownership = 0  
+lock_manager = "sanlock"  
 
--#auth_unix_ro = "polkit"
-+auth_unix_ro = "none"
+/etc/libvirt/qemu-sanlock.conf:  
+auto_disk_leases = 0  
+require_lease_for_disks = 0  
+io_timeout = 0  
+user = "sanlock"  
+group = "sanlock"  
 
--#auth_unix_rw = "polkit"
-+auth_unix_rw = "none"
+/etc/sanlock/sanlock.conf: (for now, eventually we might enable watchdog):  
+use_watchdog = 0  
 
--#auth_tcp = "sasl"
-+auth_tcp = "none"
+---
+Start sanlock
 
-
-/etc/libvirt/virtqemud.conf: same change as per virtproxyd above.
+systemctl start sanlock
+systemctl enable sanlock
 
 Start the libvirt services as such:
 
-systemctl start virtlogd virtlockd virtproxyd virtqemud
-systemctl enable virtlogd virtlockd virtproxyd virtqemud
+systemctl start virtproxyd-tcp.socket virtqemud.socket
+systemctl enable virtproxyd-tcp.socket virtqemud.socket
 
 If you want to configure libvirt networks for your VM (recommended: bridged instead),
 also start:
