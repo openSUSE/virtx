@@ -18,6 +18,7 @@
 package virtx
 
 import (
+	"net"
 	"net/http"
 	"errors"
 	"context"
@@ -100,8 +101,21 @@ func Close() error {
 
 func Start_listening() <-chan error {
 	err_ch := make(chan error, 1)
+
 	go func() {
-		var err error = service.server.ListenAndServe()
+		var (
+			err error
+			listener net.Listener
+		)
+		listener, err = net.Listen("tcp", service.server.Addr)
+		if (err != nil) {
+			err_ch <- err
+			return
+		}
+
+		logger.Debug("HTTP service listening on %s", listener.Addr().String())
+
+		err = service.server.Serve(listener)
 		if (err != nil && !errors.Is(err, http.ErrServerClosed)) {
 			err_ch <- err
 			return
