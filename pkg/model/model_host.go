@@ -25,7 +25,7 @@ type Host struct {
 	// Unique Identifier for VMs, Hosts, Networks; RFC 4122
 	Uuid string `json:"uuid"`
 	Def Hostdef `json:"def"`
-	State Hoststate `json:"state"`
+	Cstate Cstate `json:"cstate"`
 	// computing resources of the host.
 	Resources Hostresources `json:"resources"`
 	// 64bit UTC Unix timestamp in milliseconds since Epoc. A 0 value is used if the timestamp is not available.
@@ -38,7 +38,7 @@ type _Host Host
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewHost(uuid string, def Hostdef, state Hoststate, resources Hostresources, ts int64) *Host {
+func NewHost(uuid string, def Hostdef, cstate Cstate, resources Hostresources, ts int64) *Host {
 	this := Host{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
@@ -46,7 +46,7 @@ func NewHost(uuid string, def Hostdef, state Hoststate, resources Hostresources,
 
 	this.Uuid = uuid
 	this.Def = def
-	this.State = state
+	this.Cstate = cstate
 	this.Resources = resources
 	this.Ts = ts
 	return &this
@@ -108,28 +108,28 @@ func (o *Host) SetDef(v Hostdef) {
 	o.Def = v
 }
 
-// GetState returns the State field value
-func (o *Host) GetState() Hoststate {
+// GetCstate returns the Cstate field value
+func (o *Host) GetCstate() Cstate {
 	if o == nil {
-		var ret Hoststate
+		var ret Cstate
 		return ret
 	}
 
-	return o.State
+	return o.Cstate
 }
 
-// GetStateOk returns a tuple with the State field value
+// GetCstateOk returns a tuple with the Cstate field value
 // and a boolean to check if the value has been set.
-func (o *Host) GetStateOk() (*Hoststate, bool) {
+func (o *Host) GetCstateOk() (*Cstate, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.State, true
+	return &o.Cstate, true
 }
 
-// SetState sets field value
-func (o *Host) SetState(v Hoststate) {
-	o.State = v
+// SetCstate sets field value
+func (o *Host) SetCstate(v Cstate) {
+	o.Cstate = v
 }
 
 // GetResources returns the Resources field value
@@ -184,7 +184,7 @@ func (o Host) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["uuid"] = o.Uuid
 	toSerialize["def"] = o.Def
-	toSerialize["state"] = o.State
+	toSerialize["cstate"] = o.Cstate
 	toSerialize["resources"] = o.Resources
 	toSerialize["ts"] = o.Ts
 	return toSerialize, nil

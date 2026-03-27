@@ -205,7 +205,7 @@ func system_info_get() (SystemInfo, error) {
 	}
 	host.Def.Sysinfo.Version = si.imm.bios_version
 	host.Def.Sysinfo.Date = si.imm.bios_date
-	host.State = openapi.HOST_ACTIVE
+	host.Cstate = openapi.CSTATE_ACTIVE
 	host.Ts = ts.Now()
 
 	/*

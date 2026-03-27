@@ -54,7 +54,7 @@ func http_proxy_request(uuid string, w http.ResponseWriter, vr httpx.Request) {
 		http.Error(w, "unknown host", http.StatusServiceUnavailable)
 		return
 	}
-	if (host.State != openapi.HOST_ACTIVE) {
+	if (host.Cstate != openapi.CSTATE_ACTIVE) {
 		http.Error(w, "inactive host", http.StatusServiceUnavailable)
 		return
 	}

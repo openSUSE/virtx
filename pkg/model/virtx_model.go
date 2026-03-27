@@ -224,17 +224,15 @@ func (custom CustomField) IsAlnum() bool {
 	return custom_isalnum(custom.Name) && custom_isalnum(custom.Value)
 }
 
-func (state Hoststate) String() string {
-	switch (state) {
-	case HOST_INVALID:
+func (cstate Cstate) String() string {
+	switch (cstate) {
+	case CSTATE_INVALID:
 		return "invalid"
-	case HOST_ACTIVE:
+	case CSTATE_ACTIVE:
 		return "active"
-	case HOST_EVICTING:
-		return "evicting"
-	case HOST_LEFT:
+	case CSTATE_LEFT:
 		return "left"
-	case HOST_FAILED:
+	case CSTATE_FAILED:
 		return "failed"
 	}
 	return ""

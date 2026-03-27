@@ -149,19 +149,19 @@ func update_host(host *openapi.Host) {
 	inventory.hosts[host.Uuid] = hostdata
 }
 
-func Set_host_state(uuid string, newstate openapi.Hoststate) error {
+func Set_host_state(uuid string, newstate openapi.Cstate) error {
 	inventory.m.Lock()
 	defer inventory.m.Unlock()
 
 	return set_host_state(uuid, newstate)
 }
 
-func set_host_state(uuid string, newstate openapi.Hoststate) error {
+func set_host_state(uuid string, newstate openapi.Cstate) error {
 	hostdata, ok := inventory.hosts[uuid]
 	if !ok {
 		return fmt.Errorf("no such host %s", uuid)
 	}
-	hostdata.Host.State = newstate
+	hostdata.Host.Cstate = newstate
 	inventory.hosts[uuid] = hostdata
 	return nil
 }

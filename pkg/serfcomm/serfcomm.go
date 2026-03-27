@@ -129,13 +129,13 @@ func recv_serf_events() {
 			case "user":
 				handle_user_event(e)
 			case "member-leave":
-				handle_member_change(e, openapi.HOST_LEFT)
+				handle_member_change(e, openapi.CSTATE_LEFT)
 			case "member-reap":
 				fallthrough
 			case "member-failed":
-				handle_member_change(e, openapi.HOST_FAILED)
+				handle_member_change(e, openapi.CSTATE_FAILED)
 			case "member-join":
-				handle_member_change(e, openapi.HOST_ACTIVE)
+				handle_member_change(e, openapi.CSTATE_ACTIVE)
 			}
 		}
 
@@ -154,7 +154,7 @@ func recv_serf_events() {
 	}
 }
 
-func handle_member_change(e map[string]any, newstate openapi.Hoststate) {
+func handle_member_change(e map[string]any, newstate openapi.Cstate) {
 	var (
 		err error
 		name string = e["Event"].(string)

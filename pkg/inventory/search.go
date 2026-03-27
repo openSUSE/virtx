@@ -59,7 +59,7 @@ func Search_hosts(f openapi.HostListFields) openapi.HostList {
 		if (f.Cpudef.Threads > 0 && (host.Def.Cpudef.Threads < f.Cpudef.Threads)) {
 			continue
 		}
-		if (f.Hoststate != openapi.HOST_INVALID && (host.State != f.Hoststate)) {
+		if (f.Cstate != openapi.CSTATE_INVALID && (host.Cstate != f.Cstate)) {
 			continue
 		}
 		if (f.Memoryavailable > 0 && (host.Resources.Memory.Availablevms < f.Memoryavailable)) {
@@ -83,7 +83,7 @@ func Search_hosts(f openapi.HostListFields) openapi.HostList {
 				Name: host.Def.Name,
 				Cpuarch: host.Def.Cpuarch,
 				Cpudef: host.Def.Cpudef,
-				Hoststate: host.State,
+				Cstate: host.Cstate,
 				Memoryavailable: host.Resources.Memory.Availablevms,
 				Hpavailable: host.Resources.Hp.Availablevms,
 				Osid: host.Def.Osid,

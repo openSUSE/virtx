@@ -25,7 +25,7 @@ type HostListFields struct {
 	Name string `json:"name"`
 	Cpuarch Cpuarch `json:"cpuarch"`
 	Cpudef Cpudef `json:"cpudef"`
-	Hoststate Hoststate `json:"hoststate"`
+	Cstate Cstate `json:"cstate"`
 	// normal memory available for running new VMs in MiB
 	Memoryavailable int32 `json:"memoryavailable"`
 	// hugepages memory available for running new VMs in MiB
@@ -42,7 +42,7 @@ type _HostListFields HostListFields
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewHostListFields(name string, cpuarch Cpuarch, cpudef Cpudef, hoststate Hoststate, memoryavailable int32, hpavailable int32, osid string, osv string, ts int64) *HostListFields {
+func NewHostListFields(name string, cpuarch Cpuarch, cpudef Cpudef, cstate Cstate, memoryavailable int32, hpavailable int32, osid string, osv string, ts int64) *HostListFields {
 	this := HostListFields{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
@@ -51,7 +51,7 @@ func NewHostListFields(name string, cpuarch Cpuarch, cpudef Cpudef, hoststate Ho
 	this.Name = name
 	this.Cpuarch = cpuarch
 	this.Cpudef = cpudef
-	this.Hoststate = hoststate
+	this.Cstate = cstate
 	this.Memoryavailable = memoryavailable
 	this.Hpavailable = hpavailable
 	this.Osid = osid
@@ -140,28 +140,28 @@ func (o *HostListFields) SetCpudef(v Cpudef) {
 	o.Cpudef = v
 }
 
-// GetHoststate returns the Hoststate field value
-func (o *HostListFields) GetHoststate() Hoststate {
+// GetCstate returns the Cstate field value
+func (o *HostListFields) GetCstate() Cstate {
 	if o == nil {
-		var ret Hoststate
+		var ret Cstate
 		return ret
 	}
 
-	return o.Hoststate
+	return o.Cstate
 }
 
-// GetHoststateOk returns a tuple with the Hoststate field value
+// GetCstateOk returns a tuple with the Cstate field value
 // and a boolean to check if the value has been set.
-func (o *HostListFields) GetHoststateOk() (*Hoststate, bool) {
+func (o *HostListFields) GetCstateOk() (*Cstate, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.Hoststate, true
+	return &o.Cstate, true
 }
 
-// SetHoststate sets field value
-func (o *HostListFields) SetHoststate(v Hoststate) {
-	o.Hoststate = v
+// SetCstate sets field value
+func (o *HostListFields) SetCstate(v Cstate) {
+	o.Cstate = v
 }
 
 // GetMemoryavailable returns the Memoryavailable field value
@@ -289,7 +289,7 @@ func (o HostListFields) ToMap() (map[string]interface{}, error) {
 	toSerialize["name"] = o.Name
 	toSerialize["cpuarch"] = o.Cpuarch
 	toSerialize["cpudef"] = o.Cpudef
-	toSerialize["hoststate"] = o.Hoststate
+	toSerialize["cstate"] = o.Cstate
 	toSerialize["memoryavailable"] = o.Memoryavailable
 	toSerialize["hpavailable"] = o.Hpavailable
 	toSerialize["osid"] = o.Osid
