@@ -56,7 +56,7 @@ func main() {
 		logger.Fatal(err.Error())
 	}
 	/* lockman: initialize the lock manager (needs system info to get the hypervisor Uuid()). */
-	err = lockman.Init()
+	err = lockman.Init(hypervisor.Uuid())
 	if (err != nil) {
 		logger.Fatal(err.Error())
 	}

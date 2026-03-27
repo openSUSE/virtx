@@ -33,6 +33,7 @@ import (
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/inventory"
+	"suse.com/virtx/pkg/lockman"
 	"suse.com/virtx/pkg/ts"
 
 	. "suse.com/virtx/pkg/constants"
@@ -206,6 +207,7 @@ func system_info_get() (SystemInfo, error) {
 	host.Def.Sysinfo.Version = si.imm.bios_version
 	host.Def.Sysinfo.Date = si.imm.bios_date
 	host.Cstate = openapi.CSTATE_ACTIVE
+	host.Lockid = lockman.Lockid()
 	host.Ts = ts.Now()
 
 	/*

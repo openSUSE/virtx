@@ -26,6 +26,8 @@ type Host struct {
 	Uuid string `json:"uuid"`
 	Def Hostdef `json:"def"`
 	Cstate Cstate `json:"cstate"`
+	// Unique ID in the cluster used to register the lockspace.
+	Lockid int16 `json:"lockid"`
 	// computing resources of the host.
 	Resources Hostresources `json:"resources"`
 	// 64bit UTC Unix timestamp in milliseconds since Epoc. A 0 value is used if the timestamp is not available.
@@ -38,7 +40,7 @@ type _Host Host
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewHost(uuid string, def Hostdef, cstate Cstate, resources Hostresources, ts int64) *Host {
+func NewHost(uuid string, def Hostdef, cstate Cstate, lockid int16, resources Hostresources, ts int64) *Host {
 	this := Host{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
@@ -47,6 +49,7 @@ func NewHost(uuid string, def Hostdef, cstate Cstate, resources Hostresources, t
 	this.Uuid = uuid
 	this.Def = def
 	this.Cstate = cstate
+	this.Lockid = lockid
 	this.Resources = resources
 	this.Ts = ts
 	return &this
@@ -132,6 +135,30 @@ func (o *Host) SetCstate(v Cstate) {
 	o.Cstate = v
 }
 
+// GetLockid returns the Lockid field value
+func (o *Host) GetLockid() int16 {
+	if o == nil {
+		var ret int16
+		return ret
+	}
+
+	return o.Lockid
+}
+
+// GetLockidOk returns a tuple with the Lockid field value
+// and a boolean to check if the value has been set.
+func (o *Host) GetLockidOk() (*int16, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Lockid, true
+}
+
+// SetLockid sets field value
+func (o *Host) SetLockid(v int16) {
+	o.Lockid = v
+}
+
 // GetResources returns the Resources field value
 func (o *Host) GetResources() Hostresources {
 	if o == nil {
@@ -185,6 +212,7 @@ func (o Host) ToMap() (map[string]interface{}, error) {
 	toSerialize["uuid"] = o.Uuid
 	toSerialize["def"] = o.Def
 	toSerialize["cstate"] = o.Cstate
+	toSerialize["lockid"] = o.Lockid
 	toSerialize["resources"] = o.Resources
 	toSerialize["ts"] = o.Ts
 	return toSerialize, nil

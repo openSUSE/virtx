@@ -34,7 +34,6 @@ import (
 	"errors"
 	"golang.org/x/sys/unix"
 
-	"suse.com/virtx/pkg/hypervisor"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/model"
 	. "suse.com/virtx/pkg/constants"
@@ -58,7 +57,7 @@ var (
 	lm = Lockman{}
 )
 
-func Init() error {
+func Init(host_uuid string) error {
 	lm.m.Lock()
 	defer lm.m.Unlock()
 	var (
@@ -76,7 +75,7 @@ func Init() error {
 	if (lm.host_id == 0) {
 		/* we are not yet in the lockspace */
 		for i := 0; i < LOCK_JOIN_RETRIES; i++ {
-			lm.host_id, err = lm_join_lockspace()
+			lm.host_id, err = lm_join_lockspace(host_uuid)
 			if (err == nil) {
 				break
 			}
@@ -204,7 +203,7 @@ func lm_init_lockspace(path string) error {
 	return nil
 }
 
-func lm_join_lockspace() (uint16, error) {
+func lm_join_lockspace(host_uuid string) (uint16, error) {
 	var (
 		err error
 		args []string
@@ -215,7 +214,7 @@ func lm_join_lockspace() (uint16, error) {
 		host_id uint16
 		busy_ids [HOST_ID_MAX + 1]bool
 	)
-	h = md5.Sum([]byte(hypervisor.Uuid()))
+	h = md5.Sum([]byte(host_uuid))
 	host_id = uint16(binary.BigEndian.Uint32(h[:4]) % 2000 + 1)
 
 	/* get the status of busy IDs from the daemon perspective */
@@ -595,4 +594,10 @@ func Get_resource_name(device openapi.DiskDevice, path string) string {
 
 func Get_resource_path(resource_name string) string {
 	return LOCK_DIR + resource_name + "/" + resource_name
+}
+
+func Lockid() int16 {
+	lm.m.Lock()
+	defer lm.m.Unlock()
+	return int16(lm.host_id)
 }
