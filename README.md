@@ -169,6 +169,58 @@ Create a VM adapting the examples provided in json/ starting with:
 virtx create vm json/opensuse-15.5.json
 virtx boot vm xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 
+# STORAGE
+
+Storage Management in VirtX is implicit with the lifecycle of VMS.
+There are as of now no storage-specific APIs.
+
+All storage is assumed to be shared storage, and it is also assumed that
+the NFSv4 shares mounted into /vms/ds, as well as all the LUNs and mpath devices
+visible as /dev/disk/by-id/... are already in place, mounted and visible from
+all hosts in the cluster, and that the mount options are safe for VM storage operations
+with sanlock.
+
+The VirtX API for VM Creation includes in its definition all disks required by the VM,
+and for each disk whether it is Managed and whether it is Provisioned by VirtX.
+
+# MANAGED DISKS
+
+"Managed" means that VirtX takes ownership of the referenced disk;
+it will create a sanlock resource file for it with its LVB set to the VM uuid,
+
+so that this disk will be used only when operating on this specific VM,
+and any operation involving the disk will happen under a resource lease.
+All this locking is _cooperative_, ie there is nothing preventing a process
+on the host to trample over this mechanism.
+
+At VM Deletion time, if the REST client explicitly requests the storage
+associated with the VM to be deleted, then Managed virtual disks will be deleted,
+and LUNs will be wiped.
+
+# UNMANAGED DISKS
+
+"Unmanaged" means that VirtX does not take ownership of the referenced disk;
+it assumes that accessing it directly is ok. There might be some other locking
+mechanism external to VirtX, or the resource might be ok to share.
+At VM Deletion time, this disk will be untouched.
+
+For example, you can use this to reference ISOs that can be shared between
+multiple VMs as read-only CDROMS.
+Use this option with care in all other cases, as it bypasses the cooperative
+locking of disks entirely.
+
+# PROVISIONED DISKS
+
+"Managed" Disks (and _only_ managed disks) can be marked as "Provisioned".
+A "Provisioned" disk will be created and prepared by VirtX for running
+at VM Creation time (vm_create operation).
+
+For virtual disks, it means that virtxd will use qemu-img to create a new image,
+which can be a .qcow2 or a .raw image. The API allows for Thin-provisioned or Thick-provisioned virtual disks.
+
+For LUNs, it means that virtxd will wipe the contents of the LUN at VM creation time.
+
+By contrast, an "unprovisioned" disk will be assumed to be an existing resource.
 
 # DEBUG ISSUES
 
