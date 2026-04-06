@@ -26,6 +26,14 @@ import (
 	"suse.com/virtx/pkg/logger"
 )
 
+type storage_ops struct {
+	create func(disk *openapi.Disk, resource_name string, uuid string) error
+	delete func(disk *openapi.Disk, resource_name string, uuid string) error
+	detect func(disk *openapi.Disk) error
+}
+
+var storage_ops_map = map[openapi.DiskDevice]storage_ops{}
+
 /*
  * Create the managed storage that is in the vm definition.
  * If the operation is an update, do not create a disk that was already present in the old definition
@@ -68,7 +76,7 @@ func Create(vm *openapi.Vmdef, old *openapi.Vmdef, uuid string) error {
 		if (storage_is_managed_disk(disk) && disk.Prov != openapi.DISK_PROV_NONE) {
 			err = storage_create_disk(disk, resource_name, uuid)
 		} else {
-			err = storage_detect_prov(disk)
+			err = storage_detect(disk)
 		}
 		if (err != nil) {
 			rollback()
@@ -115,38 +123,26 @@ func storage_is_managed_disk(disk *openapi.Disk) bool {
 }
 
 func storage_create_disk(disk *openapi.Disk, resource_name string, uuid string) error {
-	switch (disk.Device) {
-	case openapi.DEVICE_DISK:
-		return vdisk_create(disk, resource_name, uuid)
-	case openapi.DEVICE_LUN:
-		return lun_create(disk, resource_name, uuid)
-	default:
+	ops, ok := storage_ops_map[disk.Device]
+	if (!ok || ops.create == nil) {
 		return errors.New("storage_create_disk: invalid disk device")
 	}
+	return ops.create(disk, resource_name, uuid)
 }
 
 /* detect and set disk provisioning method */
-func storage_detect_prov(disk *openapi.Disk) error {
-	switch (disk.Device) {
-	case openapi.DEVICE_DISK:
-		fallthrough
-	case openapi.DEVICE_CDROM:
-		return vdisk_detect_prov(disk)
-	case openapi.DEVICE_LUN:
-		return lun_detect_prov(disk)
-	default:
-		return errors.New("storage_detect_prov: invalid disk device")
+func storage_detect(disk *openapi.Disk) error {
+	ops, ok := storage_ops_map[disk.Device]
+	if (!ok || ops.detect == nil) {
+		return errors.New("storage_detect: invalid disk device")
 	}
-	return nil
+	return ops.detect(disk)
 }
 
 func storage_delete_disk(disk *openapi.Disk, resource_name string, uuid string) error {
-	switch (disk.Device) {
-	case openapi.DEVICE_DISK:
-		return vdisk_delete(disk, resource_name, uuid)
-	case openapi.DEVICE_LUN:
-		return lun_delete(disk, resource_name, uuid)
-	default:
-		return errors.New("invalid disk device")
+	ops, ok := storage_ops_map[disk.Device]
+	if (!ok || ops.delete == nil) {
+		return errors.New("storage_delete: invalid disk device")
 	}
+	return ops.delete(disk, resource_name, uuid)
 }

@@ -104,7 +104,7 @@ func lun_delete(disk *openapi.Disk, resource_name string, uuid string) error {
 }
 
 /* detect and set disk provisioning method and virtual size */
-func lun_detect_prov(disk *openapi.Disk) error {
+func lun_detect(disk *openapi.Disk) error {
 	var (
 		err error
 		size uint64
@@ -132,4 +132,12 @@ func lun_detect_prov(disk *openapi.Disk) error {
 	/* XXX we cannot know THIN vs THICK, depends on that the storage product is doing XXX */
 	disk.Prov = openapi.DISK_PROV_THIN
 	return nil
+}
+
+func init() {
+	storage_ops_map[openapi.DEVICE_LUN] = storage_ops{
+		create: lun_create,
+		delete: lun_delete,
+		detect: lun_detect,
+	}
 }

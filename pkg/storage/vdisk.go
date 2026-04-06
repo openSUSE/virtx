@@ -90,7 +90,7 @@ func vdisk_delete(disk *openapi.Disk, resource_name string, uuid string) error {
 }
 
 /* detect and set disk provisioning method and virtual size */
-func vdisk_detect_prov(disk *openapi.Disk) error {
+func vdisk_detect(disk *openapi.Disk) error {
 	var (
 		err error
 		disk_driver string
@@ -176,4 +176,17 @@ func vdisk_detect_qcow2_prov(path string) (openapi.DiskProvMode, int32, error) {
 		return openapi.DISK_PROV_NONE, 0, errors.New("invalid virtual size")
 	}
 	return prov, int32(virtual_size / MiB), nil
+}
+
+func init() {
+	storage_ops_map[openapi.DEVICE_DISK] = storage_ops{
+		create: vdisk_create,
+		delete: vdisk_delete,
+		detect: vdisk_detect,
+	}
+	storage_ops_map[openapi.DEVICE_CDROM] = storage_ops{
+		create: nil,
+		delete: nil,
+		detect: vdisk_detect,
+	}
 }
