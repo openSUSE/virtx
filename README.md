@@ -248,6 +248,13 @@ while it will listen on port 7946 (TCP and UDP) for serf itself.
 
 The virtx API service will be listening on port 8080.
 
+virtx-check-lvb is a small helper binary that virtxd uses to verify sanlock Lock Value Block (LVB)
+ownership before executing operations on managed disks. It must be installed at:
+
+/usr/sbin/virtx-check-lvb
+
+It is built alongside virtxd from the same source tree (cmd/virtx-check-lvb/).
+
 # TODO
 
 - migration (offline/live) needs more testing and probably changes
