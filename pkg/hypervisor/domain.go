@@ -177,9 +177,9 @@ func Migrate_domain(hostname string, host_uuid string, host_old string, uuid str
 	defer domain.Free()
 	started := ts.Now()
 	if (live) {
-		msg = "offline"
-	} else {
 		msg = "live"
+	} else {
+		msg = "offline"
 	}
 	msg += fmt.Sprintf(" migration from %s to %s.", host_old, host_uuid)
 	_ = oplog_record(domain, openapi.OpVmMigrate, openapi.OPERATION_STARTED, msg, started, 0)
