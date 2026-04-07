@@ -109,8 +109,6 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 	err = storage.Delete(&old, &o.Vmdef, uuid, o.Deletestorage)
 	if (err != nil) {
 		w.Header().Set("Warning", `299 VirtX "some resources could not be deleted"`)
-	}
-	if (err != nil) {
 		/* respond with Ok (there was a Warning) */
 		httpx.Do_response(w, http.StatusOK, nil)
 	} else {
