@@ -200,12 +200,12 @@ func stop_listening() {
 }
 
 /* Return the libvirt domain Events Channel */
-func GetVmEventCh() (chan inventory.VmEvent) {
+func Get_vm_event_channel() (chan inventory.VmEvent) {
 	return hv.vm_event_ch
 }
 
 /* Return the systemInfo Events Channel */
-func GetSystemInfoCh() (chan SystemInfo) {
+func Get_system_info_channel() (chan SystemInfo) {
 	return hv.system_info_ch
 }
 

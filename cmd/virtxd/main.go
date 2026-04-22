@@ -75,7 +75,7 @@ func main() {
 	}
 	defer serfcomm.Shutdown()
 
-	serfcomm.Start_listening(hypervisor.GetVmEventCh(), hypervisor.GetSystemInfoCh())
+	serfcomm.Start_listening(hypervisor.Get_vm_event_channel(), hypervisor.Get_system_info_channel())
 
 	/* create server subroutine to listen for API requests */
 	virtx_err_ch := virtx.Start_listening()
