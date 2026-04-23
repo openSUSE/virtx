@@ -241,6 +241,10 @@ func system_info_get() (SystemInfo, error) {
 		} else {
 			err = get_domain_stats(&d, &vm, nil, &si.imm)
 		}
+		if (err != nil) {
+			logger.Log("could not get_domain_stats: %w", err)
+			continue
+		}
 		if (vm.hp) {
 			total_hp_capacity += uint64(vm.stats.MemoryCapacity)
 		} else {
@@ -590,7 +594,8 @@ func get_domain_stats(d *libvirt.Domain, vm *SystemInfoVm, old *SystemInfoVm, im
 				var netstat *libvirt.DomainInterfaceStats
 				netstat, err = d.InterfaceStats(net.Target.Dev)
 				if (err != nil) {
-					return err
+					/* just continue, we might just not have stats because we are shutdown */
+					continue
 				}
 				if (netstat.RxBytesSet) {
 					vm.net_rx += netstat.RxBytes
@@ -622,7 +627,7 @@ func get_domain_stats(d *libvirt.Domain, vm *SystemInfoVm, old *SystemInfoVm, im
 		var memstat []libvirt.DomainMemoryStat
 		memstat, err = d.MemoryStats(20, 0)
 		if (err != nil) {
-			return err
+			/* ignore, assume no stats are available, for example we are shutdown */
 		}
 		for _, stat := range memstat {
 			if (libvirt.DomainMemoryStatTags(stat.Tag) == libvirt.DOMAIN_MEMORY_STAT_RSS) {
