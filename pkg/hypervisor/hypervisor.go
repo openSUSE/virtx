@@ -174,7 +174,7 @@ func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventL
 		)
 		si.Host.Uuid = "" /* not necessary, but for documentation, do not send Host Data */
 		si.Vms = make(SystemInfoVms)
-		vm.Name, vm.Uuid, vm.Runinfo.Runstate, vm.Runinfo.Host = name, uuid, state, hv.uuid
+		vm.Name, vm.Uuid, vm.Runinfo.Runstate, vm.Runinfo.Host, vm.Ts = name, uuid, state, hv.uuid, ts.Now()
 		err = get_domain_stats(d, &vm, nil, &si.imm)
 		if (err != nil) {
 			logger.Log("lifecycle_cb: failed to get_domain_stats for uuid %s", uuid)
