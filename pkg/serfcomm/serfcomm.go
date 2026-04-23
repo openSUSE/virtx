@@ -237,13 +237,16 @@ func send_system_info(ch <-chan hypervisor.SystemInfo) {
 			/* do nothing with the systeminfo if we are not connected */
 			continue
 		}
-		err = update_tags(&si.Host)
-		if (err != nil) {
-			logger.Log("update_tags: " + err.Error())
-		}
-		err = send_host_info(&si.Host)
-		if (err != nil) {
-			logger.Log("send_host_info: " + err.Error())
+		if (si.Host.Uuid != "") {
+			/* we have a full System Info with Host Information and all VMs */
+			err = update_tags(&si.Host)
+			if (err != nil) {
+				logger.Log("update_tags: " + err.Error())
+			}
+			err = send_host_info(&si.Host)
+			if (err != nil) {
+				logger.Log("send_host_info: " + err.Error())
+			}
 		}
 		for _, vm := range si.Vms {
 			err = send_vm_data(&vm.Vmdata)
