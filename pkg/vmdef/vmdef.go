@@ -235,6 +235,11 @@ func Disk_to_xml(disk *openapi.Disk, disk_count map[string]int, iothread_count *
 	if (ctrl_type == "virtio") {
 		r = rune('a' + disk_count[ctrl_type])
 	} else {
+		/*
+		 * scsi controller 0 is reserved for cloud-init,
+		 * and the iso CDROM if attached will be device name "sda".
+		 * This means that regular "sd" devices will always start at "sdb".
+		 */
 		r = rune('a' + disk_count["scsi"] + disk_count["sata"])
 	}
 	device_name = device_prefix + string(r);
@@ -559,12 +564,21 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 	var (
 		domain_disks []libvirtxml.DomainDisk
 		domain_leases []libvirtxml.DomainLease
-		domain_controllers []libvirtxml.DomainController
+		cloud_init_idx uint = 0
+		domain_controllers = []libvirtxml.DomainController{
+			{
+				/* Cloud-Init virtio-scsi controller */
+				Type: "scsi",
+				Index: &cloud_init_idx,
+				Model: "virtio-scsi",
+			},
+		}
 		domain_interfaces []libvirtxml.DomainInterface
 		iothread_count uint
 		boot_order int = 1						/* primary disk first, then the cdroms */
 	)
 	disk_count := make(map[string]int)          /* keep track of how many disks require a bus type */
+	disk_count["scsi"] = 1                      /* SCSI controller 0 reserved for cloud-init */
 	for _, disk := range Disks(vmdef) {
 		var (
 			order int
