@@ -227,6 +227,7 @@ func Get_migration_info(uuid string) (openapi.MigrationInfo, error) {
 	if (err != nil) {
 		return info, err
 	}
+	defer conn.Close()
 	domain, err = conn.LookupDomainByUUIDString(uuid)
 	if (err != nil) {
 		return info, err
@@ -291,6 +292,7 @@ func Abort_migration(uuid string) error {
 	if (err != nil) {
 		return err
 	}
+	defer conn.Close()
 	domain, err = conn.LookupDomainByUUIDString(uuid)
 	if (err != nil) {
 		return err
