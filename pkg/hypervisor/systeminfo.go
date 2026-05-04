@@ -242,7 +242,7 @@ func system_info_get() (SystemInfo, error) {
 			err = get_domain_stats(&d, &vm, nil, &si.imm)
 		}
 		if (err != nil) {
-			logger.Log("could not get_domain_stats: %w", err)
+			logger.Log("could not get_domain_stats: %s", err)
 			continue
 		}
 		if (vm.hp) {

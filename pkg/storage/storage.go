@@ -110,7 +110,7 @@ func Delete(vm *openapi.Vmdef, new *openapi.Vmdef, uuid string, delete bool) err
 			err = lockman.Delete_resource(resource_name, uuid)
 		}
 		if (err != nil) {
-			logger.Log("Delete error: %w, uuid:%s", err, uuid)
+			logger.Log("Delete error: %s, uuid:%s", err, uuid)
 			if (first_err == nil) {
 				first_err = err
 			}
