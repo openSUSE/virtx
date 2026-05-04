@@ -36,6 +36,7 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 		o openapi.VmCreateOptions
 		xml, uuid string
 		vr httpx.Request
+		created storage.CreatedResources
 	)
 	vr, err = httpx.Decode_request_body(r, &o)
 	if (err != nil) {
@@ -60,21 +61,24 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	/* create storage if needed, can change o.Vmdef in some cases */
-	err = storage.Create(&o.Vmdef, nil, uuid)
+	created, err = storage.Create(&o.Vmdef, nil, uuid)
 	if (err != nil) {
 		logger.Log("vm_create_storage failed: %s", err.Error())
+		storage.Rollback(created, uuid)
 		http.Error(w, "storage creation failed", http.StatusInsufficientStorage)
 		return
 	}
 	xml, err = vmdef.To_xml(&o.Vmdef, uuid)
 	if (err != nil) {
 		logger.Log("vmdef.To_xml failed: %s", err.Error())
+		storage.Rollback(created, uuid)
 		http.Error(w, "invalid parameters", http.StatusBadRequest)
 		return
 	}
 	err = hypervisor.Define_domain(xml, uuid)
 	if (err != nil) {
 		logger.Log("hypervisor.Define_domain failed: %s", err.Error())
+		storage.Rollback(created, uuid)
 		http.Error(w, "could not define VM", http.StatusFailedDependency)
 		return
 	}

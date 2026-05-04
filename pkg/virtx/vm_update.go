@@ -40,6 +40,7 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		vmdata inventory.Vmdata
 		vr httpx.Request
 		state openapi.Vmrunstate
+		created storage.CreatedResources
 	)
 	vr, err = httpx.Decode_request_body(r, &o)
 	if (err != nil) {
@@ -87,15 +88,17 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	/* create missing storage where needed, can change o.Vmdef in some cases */
-	err = storage.Create(&o.Vmdef, &old, uuid)
+	created, err = storage.Create(&o.Vmdef, &old, uuid)
 	if (err != nil) {
 		logger.Log("vm_update_storage failed: %s", err.Error())
+		storage.Rollback(created, uuid)
 		http.Error(w, "storage update failed", http.StatusInsufficientStorage)
 		return
 	}
 	xml, err = vmdef.To_xml(&o.Vmdef, uuid)
 	if (err != nil) {
 		logger.Log("vmdef_to_xml failed: %s", err.Error())
+		storage.Rollback(created, uuid)
 		http.Error(w, "invalid parameters", http.StatusBadRequest)
 		return
 	}
@@ -103,6 +106,7 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 	err = hypervisor.Define_domain(xml, uuid)
 	if (err != nil) {
 		logger.Log("hypervisor.Define_domain failed: %s", err.Error())
+		storage.Rollback(created, uuid)
 		http.Error(w, "could not define VM", http.StatusFailedDependency)
 		return
 	}

@@ -32,34 +32,37 @@ type storage_ops struct {
 	detect func(disk *openapi.Disk) error
 }
 
+type created_resource struct {
+	disk *openapi.Disk
+	resource_name string
+}
+type CreatedResources []created_resource /* for rollback */
+
 var storage_ops_map = map[openapi.DiskDevice]storage_ops{}
+
+func Rollback(created CreatedResources, uuid string) {
+	var (
+		rerr error
+		c created_resource
+	)
+	for _, c = range created {
+		rerr = lockman.Delete_resource(c.resource_name, uuid)
+		if (rerr != nil) {
+			logger.Log("Rollback failed to delete resource %s: %s", c.resource_name, rerr.Error())
+		}
+	}
+}
 
 /*
  * Create the managed storage that is in the vm definition.
  * If the operation is an update, do not create a disk that was already present in the old definition
  */
-func Create(vm *openapi.Vmdef, old *openapi.Vmdef, uuid string) error {
-	type created_resource struct {
-		disk *openapi.Disk
-		resource_name string
-	}
+func Create(vm *openapi.Vmdef, old *openapi.Vmdef, uuid string) (CreatedResources, error) {
 	var (
 		err error
 		resource_name string
-		created_resources []created_resource
+		created CreatedResources
 	)
-	rollback := func() {
-		var (
-			rerr error
-			c created_resource
-		)
-		for _, c = range created_resources {
-			rerr = lockman.Delete_resource(c.resource_name, uuid)
-			if (rerr != nil) {
-				logger.Log("Create: rollback failed to delete resource %s: %w", c.resource_name, rerr)
-			}
-		}
-	}
 	for _, disk := range vmdef.Disks(vm) {
 		if (old != nil && vmdef.Has_path(old, disk.Path)) {
 			continue
@@ -68,10 +71,9 @@ func Create(vm *openapi.Vmdef, old *openapi.Vmdef, uuid string) error {
 			resource_name = lockman.Get_resource_name(disk.Device, disk.Path)
 			err = lockman.Create_resource(resource_name, uuid)
 			if (err != nil) {
-				rollback()
-				return err
+				return created, err
 			}
-			created_resources = append(created_resources, created_resource{ disk, resource_name })
+			created = append(created, created_resource{ disk, resource_name })
 		}
 		if (storage_is_managed_disk(disk) && disk.Prov != openapi.DISK_PROV_NONE) {
 			err = storage_create_disk(disk, resource_name, uuid)
@@ -79,11 +81,10 @@ func Create(vm *openapi.Vmdef, old *openapi.Vmdef, uuid string) error {
 			err = storage_detect(disk)
 		}
 		if (err != nil) {
-			rollback()
-			return err
+			return created, err
 		}
 	}
-	return nil
+	return created, nil
 }
 
 /*
