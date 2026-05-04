@@ -28,6 +28,7 @@ const (
 	VMS_DIR = "/vms/"
 	REG_DIR = "/vms/xml/"
 	DS_DIR = "/vms/ds/"
+	CI_DIR = "/vms/ds/ci/"
 	LOCK_DIR = "/vms/lock/"
 	LOCK_SPACE = "__VIRTX__DISKS__"
 	DEV_DIR = "/dev/"
