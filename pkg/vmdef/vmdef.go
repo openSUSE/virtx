@@ -129,6 +129,11 @@ func vmdef_validate_disk(disk *openapi.Disk) error {
 			return errors.New("invalid Bus type for Lun")
 		}
 	}
+	if (disk.Device == openapi.DEVICE_CDROM) {
+		if (disk.Bus != openapi.BUS_VIRTIO_SCSI && disk.Bus != openapi.BUS_SCSI && disk.Bus != openapi.BUS_SATA) {
+			return errors.New("invalid Bus type for CDROM")
+		}
+	}
 	return nil
 }
 
