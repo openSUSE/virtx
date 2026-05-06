@@ -1,2 +1,6 @@
-copy_virtxd.sh
+/copy_virtx.sh
 .vscode
+/virtx-check-lvb
+/json/
+/virtx
+/virtxd
