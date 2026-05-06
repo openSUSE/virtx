@@ -26,7 +26,7 @@ import (
 	"fmt"
 
 	"suse.com/virtx/pkg/model"
-	"suse.com/virtx/pkg/hypervisor"
+	"suse.com/virtx/pkg/arch"
 	"suse.com/virtx/pkg/metadata"
 	"suse.com/virtx/pkg/lockman"
 
@@ -431,7 +431,7 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 	domain_vcpu := libvirtxml.DomainVCPU{
 		Value: vcpus,
 	}
-	switch (hypervisor.Arch()) {
+	switch (arch.Get()) {
 	case "aarch64":
 		domain_features = &libvirtxml.DomainFeatureList{
 			ACPI: &libvirtxml.DomainFeature{},

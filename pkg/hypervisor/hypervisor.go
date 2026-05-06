@@ -58,7 +58,6 @@ type Hypervisor struct {
 	system_info_ch chan SystemInfo
 
 	uuid string /* the UUID of this host */
-	cpuarch openapi.Cpuarch /* the Arch and Vendor */
 	vcpu_load_factor float64
 	si *SystemInfo
 }
@@ -314,12 +313,6 @@ func read_numa_preplace_conf() float64 {
 		}
 	}
 	return factor
-}
-
-func Arch() string {
-	hv.m.RLock()
-	defer hv.m.RUnlock()
-	return hv.cpuarch.Arch
 }
 
 func Uuid() string {

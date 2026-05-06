@@ -35,6 +35,7 @@ import (
 	"suse.com/virtx/pkg/inventory"
 	"suse.com/virtx/pkg/lockman"
 	"suse.com/virtx/pkg/ts"
+	"suse.com/virtx/pkg/arch"
 
 	. "suse.com/virtx/pkg/constants"
 )
@@ -114,7 +115,7 @@ func system_info_loop(seconds int) error {
 	}
 	hv.m.Lock()
 	hv.uuid = si.Host.Uuid
-	hv.cpuarch = si.Host.Def.Cpuarch
+	arch.Set(si.Host.Def.Cpuarch.Arch)
 	check_vmreg(hv.uuid, &si)
 	hv.m.Unlock()
 
