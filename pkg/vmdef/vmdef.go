@@ -198,7 +198,7 @@ func Validate(vmdef *openapi.Vmdef) error {
 	return err
 }
 
-func vmdef_disk_to_xml(disk *openapi.Disk, disk_count map[string]int, iothread_count *uint,
+func Disk_to_xml(disk *openapi.Disk, disk_count map[string]int, iothread_count *uint,
 	domain_disks *[]libvirtxml.DomainDisk, domain_leases *[]libvirtxml.DomainLease,
 	domain_controllers *[]libvirtxml.DomainController, order int) error {
 	var (
@@ -581,7 +581,7 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 		} else {
 			leases = nil
 		}
-		err = vmdef_disk_to_xml(disk, disk_count, &iothread_count, &domain_disks, leases, &domain_controllers, order)
+		err = Disk_to_xml(disk, disk_count, &iothread_count, &domain_disks, leases, &domain_controllers, order)
 		if (err != nil) {
 			return "", err
 		}
