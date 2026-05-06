@@ -78,7 +78,7 @@ func Create(vm *openapi.Vmdef, old *openapi.Vmdef, uuid string) (CreatedResource
 		if (storage_is_managed_disk(disk) && disk.Prov != openapi.DISK_PROV_NONE) {
 			err = storage_create_disk(disk, resource_name, uuid)
 		} else {
-			err = storage_detect(disk)
+			err = Detect(disk)
 		}
 		if (err != nil) {
 			return created, err
@@ -132,7 +132,7 @@ func storage_create_disk(disk *openapi.Disk, resource_name string, uuid string) 
 }
 
 /* detect and set disk provisioning method */
-func storage_detect(disk *openapi.Disk) error {
+func Detect(disk *openapi.Disk) error {
 	ops, ok := storage_ops_map[disk.Device]
 	if (!ok || ops.detect == nil) {
 		return errors.New("storage_detect: invalid disk device")
