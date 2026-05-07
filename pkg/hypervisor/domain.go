@@ -352,7 +352,7 @@ func Dumpxml(uuid string) (string, error) {
 	return xml, nil
 }
 
-func Boot_domain(uuid string) error {
+func Boot_domain(uuid string, o *openapi.VmBootOptions) error {
 	var (
 		err error
 		conn *libvirt.Connect
@@ -371,7 +371,12 @@ func Boot_domain(uuid string) error {
 	defer domain.Free()
 	started := ts.Now()
 	_ = oplog_record(domain, op, openapi.OPERATION_STARTED, "", started, 0)
-	err = domain.Create()
+
+	if (len(o.CloudInit) > 0) {
+		err = cloudinit_boot_domain(uuid, domain, o.CloudInit)
+	} else {
+		err = domain.Create()
+	}
 	if (err != nil) {
 		_ = oplog_record(domain, op, openapi.OPERATION_FAILED, err.Error(), started, ts.Now())
 		return err

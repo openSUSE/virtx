@@ -23,6 +23,7 @@ import (
 	"suse.com/virtx/pkg/httpx"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/inventory"
+	"suse.com/virtx/pkg/model"
 )
 
 func vm_boot(w http.ResponseWriter, r *http.Request) {
@@ -31,8 +32,9 @@ func vm_boot(w http.ResponseWriter, r *http.Request) {
 		uuid string
 		vmdata inventory.Vmdata
 		vr httpx.Request
+		o openapi.VmBootOptions
 	)
-	vr, err = httpx.Decode_request_body(r, nil)
+	vr, err = httpx.Decode_request_body(r, &o)
 	if (err != nil) {
 		logger.Log(err.Error())
 		http.Error(w, "failed to decode body", http.StatusBadRequest)
@@ -52,7 +54,7 @@ func vm_boot(w http.ResponseWriter, r *http.Request) {
 		http_proxy_request(vmdata.Runinfo.Host, w, vr)
 		return
 	}
-	err = hypervisor.Boot_domain(uuid)
+	err = hypervisor.Boot_domain(uuid, &o)
 	if (err != nil) {
 		logger.Log("hypervisor.Boot_domain failed: %s", err.Error())
 		http.Error(w, "could not start VM", http.StatusFailedDependency)
