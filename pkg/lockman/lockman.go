@@ -582,12 +582,14 @@ func Get_resource_name(device openapi.DiskDevice, path string) string {
 		logger.Log("unexpected dev_disks key: %s", key)
 		return key
 	case openapi.DEVICE_DISK:
+		fallthrough
+	case openapi.DEVICE_CDROM:
 		key = strings.TrimPrefix(path, DS_DIR)
 		h = md5.Sum([]byte(key))
 		key = hex.EncodeToString(h[:])
 		return key
 	default:
-		logger.Log("only device LUN and DISK can have leases")
+		logger.Log("only DISK, CDROM and LUN can have leases")
 		return ""
 	}
 }
