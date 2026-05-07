@@ -35,6 +35,7 @@ import (
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/vmreg"
 	"suse.com/virtx/pkg/inventory"
+	"suse.com/virtx/pkg/cloudinit"
 	"suse.com/virtx/pkg/ts"
 
 	. "suse.com/virtx/pkg/constants"
@@ -185,6 +186,37 @@ func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventL
 		logger.Debug("[VmEvent] %s/%s: %v state: %d", name, uuid, e, state)
 		_ = name
 		hv.vm_event_ch <- inventory.VmEvent{ Uuid: uuid, Host: hv.uuid, State: state, Ts: ts.Now() }
+	}
+	/* check for the need to remove a cloudinit disk resource file */
+	if ((e.Event == libvirt.DOMAIN_EVENT_STOPPED && e.Detail != int(libvirt.DOMAIN_EVENT_STOPPED_MIGRATED)) ||
+		e.Event == libvirt.DOMAIN_EVENT_CRASHED) {
+		/*
+		 * XXX
+		 * - what should we do for DOMAIN_EVENT_STOPPED_SAVED?
+		 *   we don't really use save or managedsave, so a bit theoretical.
+		 *
+		 * - what should we do for DOMAIN_EVENT_STOPPED_FAILED? This is a problem.
+		 *   It is generated in two completely different scenarios:
+		 *
+		 *   1) a failed migration, generated on the destination, where we had to terminate QEMU in order to
+		 *      allow the source QEMU to resume. We do not want to remove the ISO in this case.
+		 *
+		 *   2) The second scenario is src/qemu_driver.c::processMonitorEOFEvent(), when the monitor is closed
+		 *      unexpectedly and libvirt assumes the domain has crashed.
+		 *
+		 *   The rely on the assumption here that we will not be getting the DOMAIN_EVENT_STOPPED_FAILED in the
+		 *   migration failure case on the destination since the domain is not persisted yet, and we only
+		 *   consider lifecycle events for persisted domains. See code above:
+		 *   if (!persistent) {
+		 *       return // ignore transient domains (ongoing migrations)
+		 *   }
+		 *   Needs to be tested.
+		 *   XXX
+		 */
+		err = cloudinit.Delete_disk(uuid)
+		if (err != nil) {
+			logger.Log("lifecycle_cb: cloudinit : %s", err)
+		}
 	}
 }
 
