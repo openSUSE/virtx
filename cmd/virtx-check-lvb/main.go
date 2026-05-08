@@ -19,7 +19,6 @@ package main
 
 import (
 	"os"
-	"golang.org/x/sys/unix"
 
 	"suse.com/virtx/pkg/lockman"
 )
@@ -48,16 +47,9 @@ func main() {
 func check_lvb(resource_path string, uuid string) int {
 	var (
 		err error
-		fd int
 		lvb string
 	)
-	fd, err = unix.Open(resource_path, unix.O_RDONLY | unix.O_DIRECT, 0)
-	if (err != nil) {
-		return 1
-	}
-	defer unix.Close(fd)
-
-	lvb, err = lockman.Read_lvb(fd)
+	lvb, err = lockman.Read_lvb(resource_path)
 	if (err != nil) {
 		return 1
 	}

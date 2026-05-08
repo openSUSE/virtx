@@ -327,11 +327,17 @@ func lm_leave_lockspace() error {
 func Create_resource(resource_name string, uuid string) error {
 	var (
 		err error
-		path string
+		path, resource_path, lvb string
 	)
-	_, err = os.Stat(Get_resource_path(resource_name))
+	resource_path = Get_resource_path(resource_name)
+	_, err = os.Stat(resource_path)
 	if (err == nil) {
-		return fmt.Errorf("cannot create %s for vm %s: it already exists1", resource_name, uuid)
+		lvb, err = Read_lvb(resource_path)
+		if (err != nil) {
+			logger.Log("failed to Read LVB: %s", err)
+			return fmt.Errorf("(0) cannot create %s for vm %s: it already exists", resource_name, uuid)
+		}
+		return fmt.Errorf("(1) cannot create %s for vm %s: it already exists for vm %s", resource_name, uuid, lvb)
 	}
 	/*
 	 * create the new dir as a temporary directory,
@@ -360,7 +366,12 @@ func Create_resource(resource_name string, uuid string) error {
 			/* another host initialized quicker than us, cleanup */
 			_ = os.Remove(path + "/" + resource_name)
 			_ = os.Remove(path)
-			return fmt.Errorf("cannot create resource %s for vm %s: it already exists2", resource_name, uuid)
+			lvb, err = Read_lvb(resource_path)
+			if (err != nil) {
+				logger.Log("failed to Read LVB: %s", err)
+				return fmt.Errorf("(2) cannot create %s for vm %s: it already exists", resource_name, uuid)
+			}
+			return fmt.Errorf("(3) cannot create %s for vm %s: it already exists for vm %s", resource_name, uuid, lvb)
 		}
 		return err
 	}
@@ -448,12 +459,19 @@ func lm_set_lvb(fd int, uuid string) error {
 	return nil
 }
 
-func Read_lvb(fd int) (string, error) {
+func Read_lvb(resource_path string) (string, error) {
 	var (
 		err error
 		buf [BLOCK_SIZE]byte
 		uuid string
+		fd int
 	)
+	fd, err = unix.Open(resource_path, unix.O_RDONLY | unix.O_DIRECT, 0)
+	if (err != nil) {
+		return uuid, err
+	}
+	defer unix.Close(fd)
+
 	err = lm_pread(fd, buf[:], LVB_SECTOR * BLOCK_SIZE)
 	if (err != nil) {
 		return uuid, err
