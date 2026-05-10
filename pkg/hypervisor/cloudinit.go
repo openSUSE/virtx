@@ -51,28 +51,46 @@ func cloudinit_boot_domain(uuid string, domain *libvirt.Domain, ci []openapi.Clo
 			return fmt.Errorf("cloudinit: unknown option item name %s", item.Name)
 		}
 	}
-	/* start the VM in paused state */
-	err = domain.CreateWithFlags(libvirt.DOMAIN_START_PAUSED)
+	/*
+	 * XXX
+	 * We should do
+	 * err = domain.CreateWithFlags(libvirt.DOMAIN_START_PAUSED)
+	 * but unfortunately, another libvirt bug:
+	 * https://gitlab.com/libvirt/libvirt/-/work_items/877
+	 * XXX
+	 */
+	err = domain.Create()
 	if (err != nil) {
 		return fmt.Errorf("cloudinit: %w", err)
 	}
-	/* build the ISO */
+	/*
+	 * build the ISO. We need to do it after the domain is created,
+	 * so that domain destruction is detected and the ISO resource
+	 * is removed.
+	 */
 	err = cloudinit.Create_disk(&disk, uuid, &opts)
 	if (err != nil) {
 		_ = domain.DestroyFlags(0)
 		return fmt.Errorf("cloudinit: %w", err)
 	}
+
 	/* attach the disk to the domain */
 	err = cloudinit_attach(&disk, domain)
 	if (err != nil) {
 		_ = domain.DestroyFlags(0)
 		return fmt.Errorf("cloudinit: %w", err)
 	}
-	err = domain.Resume()
-	if (err != nil) {
-		_ = domain.DestroyFlags(0)
-		return err
-	}
+	/*
+	 * XXX
+	 * Here if we could do things properly (starting PAUSED),
+	 * we would resume the domain
+	 * err = domain.Resume()
+	 * if (err != nil) {
+	 *     _ = domain.DestroyFlags(0)
+	 *     return err
+	 * }
+	 * XXX
+	 */
 	return nil
 }
 
