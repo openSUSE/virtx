@@ -21,6 +21,7 @@ package vmreg
 import (
 	"fmt"
 	"os"
+	"errors"
 	"path/filepath"
 	. "suse.com/virtx/pkg/constants"
 )
@@ -34,6 +35,10 @@ func reg_file(host_uuid string, vm_uuid string) string {
 
 func reg_dir(host_uuid string) string {
 	return fmt.Sprintf("%s/%s", REG_DIR, host_uuid)
+}
+
+func reg_lockid(host_uuid string) string {
+	return fmt.Sprintf("%s/%s/%s", REG_DIR, host_uuid, "lockid")
 }
 
 func reg_syncdir(dirname string) error {
@@ -112,6 +117,49 @@ func Save(host_uuid string, vm_uuid string, xml string) error {
 	if (err != nil) {
 		return err
 	}
+	return nil
+}
+
+/* Save the sanlock host_id; we call it "lockid" here to avoid semantic clashes */
+func Save_lockid(host_uuid string, lockid uint16) error {
+	var (
+		err error
+		dirname, filename, value string
+	)
+	/* target file for the save */
+	filename = reg_lockid(host_uuid)
+	dirname = filepath.Dir(filename)
+	value = fmt.Sprintf("%d\n", lockid)
+	err = os.WriteFile(filename, []byte(value), 0640)
+	if (err != nil) {
+		return err
+	}
+	err = reg_syncdir(dirname)
+	if (err != nil) {
+		return err
+	}
+	return nil
+}
+
+/* Load the sanlock host_id; we call it "lockid" here to avoid semantic clashes */
+func Load_lockid(host_uuid string, lockid *uint16) error {
+	var (
+		err error
+		data []byte
+		value uint16
+	)
+	data, err = os.ReadFile(reg_lockid(host_uuid))
+	if (err != nil) {
+		return err
+	}
+	n, err := fmt.Sscanf(string(data), "%d", &value)
+	if (err != nil) {
+		return err
+	}
+	if (n != 1) {
+		return errors.New("failed to convert lockid argument")
+	}
+	*lockid = value
 	return nil
 }
 
