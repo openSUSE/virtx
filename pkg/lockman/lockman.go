@@ -36,6 +36,8 @@ import (
 
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/model"
+	"suse.com/virtx/pkg/vmreg"
+
 	. "suse.com/virtx/pkg/constants"
 )
 
@@ -45,7 +47,10 @@ const (
 	LOCK_JOIN_RETRIES = 10
 	LOCK_INQ_RETRIES = 10
 	HOST_ID_MAX = 2000 /* 1..2000 are valid */
-	SANLK_HOSTID_BUSY = -262 /* sanlock_rv.h */
+
+	/* see sanlock_rv.h */
+	SANLK_HOSTID_BUSY = -262
+
 	LVB_SECTOR = 2002 /* see sanlock resource.c */
 	BLOCK_SIZE = 512 /* on NFS, sanlock and libvirt always use 512 byte blocks */
 )
@@ -74,12 +79,35 @@ func Init(host_uuid string) error {
 	}
 	if (lm.host_id == 0) {
 		/* we are not yet in the lockspace */
-		for i := 0; i < LOCK_JOIN_RETRIES; i++ {
-			lm.host_id, err = lm_join_lockspace(host_uuid)
-			if (err == nil) {
-				break
+		err = vmreg.Load_lockid(host_uuid, &lm.host_id)
+		if (err != nil) {
+			if (errors.Is(err, os.ErrNotExist)) {
+				logger.Debug("lockid is not cached in vmreg yet")
+			} else {
+				return errors.New("vmreg: failed to Load_lockid: " + err.Error())
 			}
-			logger.Log("lm_join_lockspace: %s", err.Error())
+		}
+		for i := 0; i < LOCK_JOIN_RETRIES; i++ {
+			if (lm.host_id == 0) {
+				/* host_id is not cached so search for a free slot dynamically */
+				lm.host_id, err = lm_search_join_lockspace(host_uuid)
+				if (err == nil) {
+					err = vmreg.Save_lockid(host_uuid, lm.host_id)
+					if (err != nil) {
+						return errors.New("vmreg: failed to Save_lockid: " + err.Error())
+					}
+					break /* SUCCESS! */
+				}
+			} else {
+				/* host_id is coming from cache, so we only try this static slot */
+				code := lm_join_lockspace(lm.host_id)
+				if (code == 0) {
+					break /* SUCCESS! */
+				} else {
+					err = fmt.Errorf("add_lockspace failed for host_id %d: %d", lm.host_id, code)
+				}
+			}
+			logger.Log("error joining lockspace: %s", err.Error())
 			time.Sleep(1 * time.Second)
 		}
 	}
@@ -203,7 +231,39 @@ func lm_init_lockspace(path string) error {
 	return nil
 }
 
-func lm_join_lockspace(host_uuid string) (uint16, error) {
+/*
+ * attempt to join a lockspace using host_id for this host.
+ * The function returns 0 on success, or the sanlock error code on failure.
+ */
+func lm_join_lockspace(host_id uint16) int {
+	var (
+		err error
+		args []string
+		sanlock_path string
+		cmd *exec.Cmd
+		output []byte
+	)
+	sanlock_path = fmt.Sprintf("%s:%d:%s:%d", LOCK_SPACE, host_id, LOCK_SPACE_FILE, 0)
+	args = []string{ "client", "add_lockspace", "-s", sanlock_path }
+	logger.Debug("sanlock %v", args)
+	cmd = exec.Command(SANLOCK, args...)
+	output, err = cmd.CombinedOutput()
+	if (err == nil) {
+		return 0
+	}
+	logger.Log("%s\n", string(output))
+	var code int = -1
+	for _, line := range strings.Split(string(output), "\n") {
+		n, _ := fmt.Sscanf(line, "add_lockspace done %d", &code)
+		if (n == 1) {
+			break
+		}
+	}
+	return code
+}
+
+/* try to find a free host_id and use it to register the lockspace */
+func lm_search_join_lockspace(host_uuid string) (uint16, error) {
 	var (
 		err error
 		args []string
@@ -249,23 +309,10 @@ func lm_join_lockspace(host_uuid string) (uint16, error) {
 		if (busy_ids[host_id]) { /* do not try slots that the daemon considers busy */
 			continue
 		}
-		sanlock_path = fmt.Sprintf("%s:%d:%s:%d", LOCK_SPACE, host_id, LOCK_SPACE_FILE, 0)
-		args = []string{ "client", "add_lockspace", "-s", sanlock_path }
-		logger.Debug("sanlock %v", args)
-		cmd = exec.Command(SANLOCK, args...)
-		output, err = cmd.CombinedOutput()
-		if (err == nil) {
-			return host_id, nil /* SUCCESS ! */
-		}
-		logger.Log("%s\n", string(output))
-		var code int
-		for _, line := range strings.Split(string(output), "\n") {
-			n, _ := fmt.Sscanf(line, "add_lockspace done %d", &code)
-			if (n == 1) {
-				break
-			}
-		}
-		if (code != SANLK_HOSTID_BUSY) {
+		code := lm_join_lockspace(host_id)
+		if (code == 0) {
+			return host_id, nil /* SUCCESS! */
+		} else if (code != SANLK_HOSTID_BUSY) {
 			return 0, fmt.Errorf("add_lockspace failed for host_id %d: %d", host_id, code)
 		}
 	}
