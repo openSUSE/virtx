@@ -184,7 +184,6 @@ func encode_value(buf []byte, order binary.ByteOrder, val reflect.Value) (int, e
 	default:
 		return 0, fmt.Errorf("unsupported type: %s", val.Kind().String())
 	}
-	panic("assertion failed: unreachable code isn't.\n")
 }
 
 func Decode(buf []byte, order binary.ByteOrder, data any) (int, error) {
@@ -284,8 +283,6 @@ func decode_value(buf []byte, order binary.ByteOrder, val reflect.Value) (int, e
 	default:
 		return 0, fmt.Errorf("unsupported type: %s", val.Kind().String())
 	}
-	panic("assertion failed: unreachable code isn't.\n")
-
 }
 
 func decode_struct(buf []byte, order binary.ByteOrder, val reflect.Value) (int, error) {
