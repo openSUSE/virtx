@@ -453,7 +453,7 @@ func system_info_get_immutable(imm *SystemInfoImm) error {
 	if (err != nil) {
 		return nil
 	}
-	imm.info.MHz = uint(mhz / 1000) /* input from sysfs is measured in Hz */
+	imm.info.MHz = uint(mhz / 1000) /* input from sysfs is measured in KHz */
 	return nil
 }
 
