@@ -613,15 +613,9 @@ func host_id_next(host_id *uint16) {
 func Shutdown() {
 	lm.m.Lock()
 	defer lm.m.Unlock()
-	var err error
 
 	logger.Debug("shutdown started...")
-	if (lm.host_id != 0) {
-		err = lm_leave_lockspace()
-		if (err != nil) {
-			logger.Log("failed to leave lockspace")
-		}
-	}
+	/* Do not leave the lockspace, libvirt can still own leases */
 	logger.Debug("shutdown complete.")
 }
 
