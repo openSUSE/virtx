@@ -185,7 +185,7 @@ func Create_disk(disk *openapi.Disk, uuid string, opts *Options) error {
 	err = storage.Detect(disk)
 	if (err != nil) {
 		/* emit just a warning */
-		logger.Log("failed to detect prov and size of %s: %w", disk.Path, err)
+		logger.Log("failed to detect prov and size of %s: %s", disk.Path, err)
 	}
 	return nil
 }
