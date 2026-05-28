@@ -27,25 +27,34 @@ import (
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/vmreg"
+	"suse.com/virtx/pkg/inventory"
 	"suse.com/virtx/pkg/ts"
 )
 
-/* get basic information about a Domain */
-func get_domain_info(d *libvirt.Domain) (string, string, openapi.Vmrunstate, error) {
+/*
+ * get basic information about a Domain.
+ *
+ * Note that we return an inventory.VmEvent for convenience, but the timestamp is not set
+ * (ve.Ts). This is left to the caller, because in most cases for a systeminfo collection
+ * we want to keep the same timestamp for all related systeminfovms, equal to the host one.
+ * This is easier for debugging.
+ * We also want to avoid tight loops calling gettimeofday() just to update the Ts for all
+ * the VMs, if we have a large number of them.
+ */
+func get_domain_info(d *libvirt.Domain) (inventory.VmEvent, string, error) {
 	/* assert (hv.m.IsRLocked) */
 	var (
+		ve inventory.VmEvent
 		name string
-		uuid string
 		reason int
 		state libvirt.DomainState
 		err error
-		enum_state openapi.Vmrunstate = openapi.RUNSTATE_NONE
 	)
 	name, err = d.GetMetadata(libvirt.DOMAIN_METADATA_TITLE, "", libvirt.DOMAIN_AFFECT_CONFIG)
 	if (err != nil) {
 		goto out
 	}
-	uuid, err = d.GetUUIDString()
+	ve.Uuid, err = d.GetUUIDString()
 	if (err != nil) {
 		goto out
 	}
@@ -55,53 +64,54 @@ func get_domain_info(d *libvirt.Domain) (string, string, openapi.Vmrunstate, err
 	}
 	logger.Debug("get_domain_info: state %d, reason %d", state, reason)
 	switch (state) {
-	//case libvirt.DOMAIN_NOSTATE: /* leave enum_state RUNSTATE_NONE */
+	//case libvirt.DOMAIN_NOSTATE: /* leave ve.Runstate RUNSTATE_NONE */
 	case libvirt.DOMAIN_RUNNING:
-		enum_state = openapi.RUNSTATE_RUNNING
+		ve.Runstate = openapi.RUNSTATE_RUNNING
 	case libvirt.DOMAIN_BLOCKED: /* should be Xen only IIUC */
 		logger.Log("XXX DOMAIN_BLOCKED encountered XXX")
-		enum_state = openapi.RUNSTATE_PAUSED
+		ve.Runstate = openapi.RUNSTATE_PAUSED
 	case libvirt.DOMAIN_PAUSED:
 		switch (reason) {
 		case int(libvirt.DOMAIN_PAUSED_MIGRATION): /* paused for offline migration */
-			enum_state = openapi.RUNSTATE_MIGRATING
+			ve.Runstate = openapi.RUNSTATE_MIGRATING
 		case int(libvirt.DOMAIN_PAUSED_SHUTTING_DOWN):
-			enum_state = openapi.RUNSTATE_TERMINATING
+			ve.Runstate = openapi.RUNSTATE_TERMINATING
 		case int(libvirt.DOMAIN_PAUSED_CRASHED):
-			enum_state = openapi.RUNSTATE_CRASHED
+			ve.Runstate = openapi.RUNSTATE_CRASHED
 		case int(libvirt.DOMAIN_PAUSED_STARTING_UP):
-			enum_state = openapi.RUNSTATE_STARTUP
+			ve.Runstate = openapi.RUNSTATE_STARTUP
 		default:
-			enum_state = openapi.RUNSTATE_PAUSED
+			ve.Runstate = openapi.RUNSTATE_PAUSED
 		}
 	case libvirt.DOMAIN_SHUTDOWN:
-		enum_state = openapi.RUNSTATE_TERMINATING
+		ve.Runstate = openapi.RUNSTATE_TERMINATING
 	case libvirt.DOMAIN_SHUTOFF:
 		switch (reason) {
 		case int(libvirt.DOMAIN_SHUTOFF_CRASHED):
-			enum_state = openapi.RUNSTATE_CRASHED
+			ve.Runstate = openapi.RUNSTATE_CRASHED
 		case int(libvirt.DOMAIN_SHUTOFF_MIGRATED):
 			/* XXX I have never seen this yet in my migration tests XXX */
 			logger.Log("XXX DOMAIN_SHUTOFF_MIGRATED encountered XXX")
-			enum_state = openapi.RUNSTATE_DELETED
+			ve.Runstate = openapi.RUNSTATE_DELETED
 		case int(libvirt.DOMAIN_SHUTOFF_DESTROYED):
 			_ = oplog_complete(d, openapi.OpVmShutdown, "forced shutdown")
-			enum_state = openapi.RUNSTATE_POWEROFF
+			ve.Runstate = openapi.RUNSTATE_POWEROFF
 		case int(libvirt.DOMAIN_SHUTOFF_SHUTDOWN):
 			_ = oplog_complete(d, openapi.OpVmShutdown, "graceful shutdown")
 			fallthrough
 		default:
-			enum_state = openapi.RUNSTATE_POWEROFF
+			ve.Runstate = openapi.RUNSTATE_POWEROFF
 		}
 	case libvirt.DOMAIN_CRASHED:
-		enum_state = openapi.RUNSTATE_CRASHED
+		ve.Runstate = openapi.RUNSTATE_CRASHED
 	case libvirt.DOMAIN_PMSUSPENDED:
-		enum_state = openapi.RUNSTATE_PMSUSPENDED
+		ve.Runstate = openapi.RUNSTATE_PMSUSPENDED
 	default:
 		logger.Log("Unhandled state %d, reason %d", state, reason)
 	}
+	ve.Host = hv.uuid
 out:
-	return name, uuid, enum_state, err
+	return ve, name, err
 }
 
 func Define_domain(xml string, uuid string) error {

@@ -227,16 +227,15 @@ func system_info_get() (SystemInfo, error) {
 			oldvm SystemInfoVm
 			present bool
 		)
-		vm.Name, vm.Uuid, vm.Runstate, err = get_domain_info(&d)
+		vm.Vmdata.VmEvent, vm.Name, err = get_domain_info(&d)
 		if (err != nil) {
 			logger.Log("could not get_domain_info: %s", err.Error())
 			continue
 		}
+		vm.Ts = host.Ts
 		if (hv.si != nil) {
 			oldvm, present = hv.si.Vms[vm.Uuid]
 		}
-		vm.Host = host.Uuid
-		vm.Ts = host.Ts
 		if (present) {
 			err = get_domain_stats(&d, &vm, &oldvm, &si.imm)
 		} else {
