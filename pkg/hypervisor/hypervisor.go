@@ -174,7 +174,7 @@ func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventL
 		)
 		si.Host.Uuid = "" /* not necessary, but for documentation, do not send Host Data */
 		si.Vms = make(SystemInfoVms)
-		vm.Name, vm.Uuid, vm.Runinfo.Runstate, vm.Runinfo.Host, vm.Ts = name, uuid, state, hv.uuid, ts.Now()
+		vm.Name, vm.Uuid, vm.Runstate, vm.Host, vm.Ts = name, uuid, state, hv.uuid, ts.Now()
 		err = get_domain_stats(d, &vm, nil, &si.imm)
 		if (err != nil) {
 			logger.Log("lifecycle_cb: failed to get_domain_stats for uuid %s", uuid)
@@ -185,7 +185,7 @@ func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventL
 	} else if (state != openapi.RUNSTATE_NONE) {
 		logger.Debug("[VmEvent] %s/%s: %v state: %d", name, uuid, e, state)
 		_ = name
-		hv.vm_event_ch <- inventory.VmEvent{ Uuid: uuid, Host: hv.uuid, State: state, Ts: ts.Now() }
+		hv.vm_event_ch <- inventory.VmEvent{ Uuid: uuid, Host: hv.uuid, Runstate: state, Ts: ts.Now() }
 	}
 	/* check for the need to remove a cloudinit disk resource file */
 	if ((e.Event == libvirt.DOMAIN_EVENT_STOPPED && e.Detail != int(libvirt.DOMAIN_EVENT_STOPPED_MIGRATED)) ||

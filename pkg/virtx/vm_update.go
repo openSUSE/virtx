@@ -58,12 +58,12 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unknown uuid", http.StatusNotFound)
 		return
 	}
-	host = vmdata.Runinfo.Host
+	host = vmdata.Host
 	if (http_host_is_remote(host)) { /* need to proxy */
 		http_proxy_request(host, w, vr)
 		return
 	}
-	state = vmdata.Runinfo.Runstate
+	state = vmdata.Runstate
 	if (state != openapi.RUNSTATE_POWEROFF && state != openapi.RUNSTATE_CRASHED) {
 		http.Error(w, "VM is not powered off", http.StatusUnprocessableEntity)
 		return

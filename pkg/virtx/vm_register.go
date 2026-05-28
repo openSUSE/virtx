@@ -61,7 +61,7 @@ func vm_register(w http.ResponseWriter, r *http.Request) {
 		 * in this case the domain must exist in this libvirt.
 		 * Check if it exists in vmreg, and if not register it from libvirt
 		 */
-		if (vmdata.Runinfo.Host != o.Host || vmdata.Runinfo.Host != hypervisor.Uuid()) {
+		if (vmdata.Host != o.Host || vmdata.Host != hypervisor.Uuid()) {
 			http.Error(w, "invalid host for this VM", http.StatusUnprocessableEntity)
 			return
 		}

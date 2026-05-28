@@ -227,7 +227,7 @@ func system_info_get() (SystemInfo, error) {
 			oldvm SystemInfoVm
 			present bool
 		)
-		vm.Name, vm.Uuid, vm.Runinfo.Runstate, err = get_domain_info(&d)
+		vm.Name, vm.Uuid, vm.Runstate, err = get_domain_info(&d)
 		if (err != nil) {
 			logger.Log("could not get_domain_info: %s", err.Error())
 			continue
@@ -235,7 +235,7 @@ func system_info_get() (SystemInfo, error) {
 		if (hv.si != nil) {
 			oldvm, present = hv.si.Vms[vm.Uuid]
 		}
-		vm.Runinfo.Host = host.Uuid
+		vm.Host = host.Uuid
 		vm.Ts = host.Ts
 		if (present) {
 			err = get_domain_stats(&d, &vm, &oldvm, &si.imm)
@@ -376,7 +376,7 @@ func delete_ghosts(vms SystemInfoVms, ts int64) {
 		_, present = vms[ikey]
 		if (!present) {
 			logger.Log("delete_ghosts: RUNSTATE_DELETED %s", ikey)
-			hv.vm_event_ch <- inventory.VmEvent{ Uuid: ikey, Host: hv.uuid, State: openapi.RUNSTATE_DELETED, Ts: ts }
+			hv.vm_event_ch <- inventory.VmEvent{ Uuid: ikey, Host: hv.uuid, Runstate: openapi.RUNSTATE_DELETED, Ts: ts }
 		}
 	}
 }

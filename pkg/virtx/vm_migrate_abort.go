@@ -49,7 +49,7 @@ func vm_migrate_abort(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unknown uuid", http.StatusNotFound)
 		return
 	}
-	host_old = vmdata.Runinfo.Host
+	host_old = vmdata.Host
 	if (http_host_is_remote(host_old)) { /* need to proxy */
 		http_proxy_request(host_old, w, vr);
 		return

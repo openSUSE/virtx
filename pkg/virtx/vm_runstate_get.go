@@ -52,7 +52,8 @@ func vm_runstate_get(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "vm_runstate_get: No such VM", http.StatusNotFound)
 		return
 	}
-	runinfo = vmdata.Runinfo
+	runinfo.Runstate = vmdata.Runstate
+	runinfo.Host = vmdata.Host
 	err = json.NewEncoder(&buf).Encode(&runinfo)
 	if (err != nil) {
 		http.Error(w, "vm_runstate_get: Failed to encode JSON", http.StatusInternalServerError)

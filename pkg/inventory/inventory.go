@@ -34,28 +34,26 @@ type Hostdata struct {
 }
 
 /*
- * Vmdata: simplified VM Data to keep in the inventory on all hosts in the cluster,
- * for quick access and search without having to contact the responsible libvirt
- */
-type Vmdata struct {
-	Uuid string                 /* VM Uuid */
-	Name string                 /* VM Name */
-	Runinfo openapi.Vmruninfo   /* host running the VM and VM runstate */
-	Vlanid int16                /* XXX need requirements engineering for Vlans XXX */
-	Custom []openapi.CustomField
-	Vcpus int16                 /* total number of vcpus in this VM */
-	Ts int64
-}
-
-/*
  * VmEvent: Vm state report/change event, sent to all hosts in the cluster to
  * minimally update the Vmdata.Runinfo.Runstate field.
  */
 type VmEvent struct {
 	Uuid string
 	Host string
-	State openapi.Vmrunstate    /* the main purpose of the VmEvent, state update */
+	Runstate openapi.Vmrunstate /* the main purpose of the VmEvent, runstate update */
 	Ts int64
+}
+
+/*
+ * Vmdata: simplified VM Data to keep in the inventory on all hosts in the cluster,
+ * for quick access and search without having to contact the responsible libvirt
+ */
+type Vmdata struct {
+	VmEvent                     /* embedded basic information */
+	Name string                 /* VM Name */
+	Vlanid int16                /* XXX need requirements engineering for Vlans XXX */
+	Custom []openapi.CustomField
+	Vcpus int16                 /* total number of vcpus in this VM */
 }
 
 type HostsInventory map[string]Hostdata
@@ -169,7 +167,7 @@ func set_host_state(uuid string, newstate openapi.Cstate) error {
 func Update_vm_state(e *VmEvent) error {
 	inventory.m.Lock()
 	defer inventory.m.Unlock()
-	return update_vm_state(e.Uuid, openapi.Vmrunstate(e.State), e.Host, e.Ts)
+	return update_vm_state(e.Uuid, e.Runstate, e.Host, e.Ts)
 }
 
 func update_vm_state(uuid string, state openapi.Vmrunstate, host string, ts int64) error {
@@ -185,10 +183,10 @@ func update_vm_state(uuid string, state openapi.Vmrunstate, host string, ts int6
 		logger.Log("Vm %s: ignoring obsolete Vm state information: ts %d > %d",	uuid, vmdata.Ts, ts)
 		return nil
 	}
-	vmdata.Runinfo.Runstate = openapi.Vmrunstate(state)
+	vmdata.Runstate = state
 
-	if (vmdata.Runinfo.Runstate == openapi.RUNSTATE_DELETED) {
-		var host_uuid string = vmdata.Runinfo.Host
+	if (vmdata.Runstate == openapi.RUNSTATE_DELETED) {
+		var host_uuid string = vmdata.Host
 		_, present = inventory.hosts[host_uuid]
 		if (present) {
 			delete(inventory.hosts[host_uuid].Vms, uuid)
@@ -200,8 +198,8 @@ func update_vm_state(uuid string, state openapi.Vmrunstate, host string, ts int6
 	}
 
 	/* for all other states, check to see if we have to update host */
-	var old_host string = vmdata.Runinfo.Host
-	vmdata.Runinfo.Host = host
+	var old_host string = vmdata.Host
+	vmdata.Host = host
 
 	_, present = inventory.hosts[old_host]
 	if (present) {
@@ -251,11 +249,11 @@ func update_vm(vmdata *Vmdata) error {
 		 * generate an artificial state change event to make sure to update the
 		 * inventory data structures, should we have missed previous events
 		 */
-		update_vm_state(vmdata.Uuid, vmdata.Runinfo.Runstate, vmdata.Runinfo.Host, vmdata.Ts)
+		update_vm_state(vmdata.Uuid, vmdata.Runstate, vmdata.Host, vmdata.Ts)
 
 	} else { /* not present */
 		var (
-			host_uuid string = vmdata.Runinfo.Host
+			host_uuid string = vmdata.Host
 			hostdata Hostdata
 		)
 		hostdata, present = inventory.hosts[host_uuid]

@@ -107,10 +107,10 @@ func Search_vms(f openapi.VmListFields) openapi.VmList {
 		if (f.Name != "" && !strings.Contains(vm.Name, f.Name)) {
 			continue
 		}
-		if (f.Host != "" && (vm.Runinfo.Host != f.Host)) {
+		if (f.Host != "" && (vm.Host != f.Host)) {
 			continue
 		}
-		if (f.Runstate > 0 && (vm.Runinfo.Runstate != f.Runstate)) {
+		if (f.Runstate > 0 && (vm.Runstate != f.Runstate)) {
 			continue
 		}
 		if (f.Vlanid > 0 && (vm.Vlanid != f.Vlanid)) {
@@ -137,8 +137,8 @@ func Search_vms(f openapi.VmListFields) openapi.VmList {
 			Uuid: vm.Uuid,
 			Fields: openapi.VmListFields{
 				Name: vm.Name,
-				Host: vm.Runinfo.Host,
-				Runstate: vm.Runinfo.Runstate,
+				Host: vm.Host,
+				Runstate: vm.Runstate,
 				Vlanid: vm.Vlanid,
 				Custom: f.Custom,
 				Ts: vm.Ts,

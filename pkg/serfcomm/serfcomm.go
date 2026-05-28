@@ -200,7 +200,7 @@ func handle_user_event(e map[string]any) {
 		if (err != nil) {
 			logger.Log("Decode %s: ERR '%s' at offset %d", name, err.Error(), size)
 		} else {
-			logger.Debug("Decode %s: OK  %d %s %s", name, ve.Ts, ve.Uuid, ve.State)
+			logger.Debug("Decode %s: OK  %d %s %s", name, ve.Ts, ve.Uuid, ve.Runstate)
 			err = inventory.Update_vm_state(&ve)
 			if (err != nil) {
 				logger.Log(err.Error())
@@ -215,7 +215,7 @@ func handle_user_event(e map[string]any) {
 		if (err != nil) {
 			logger.Log("Decode %s: ERR '%s' at offset %d", name, err.Error(), size)
 		} else {
-			logger.Debug("Decode %s: OK  %d %s %s %d", name, vm.Ts, vm.Uuid, vm.Name, vm.Runinfo.Runstate)
+			logger.Debug("Decode %s: OK  %d %s %s %d", name, vm.Ts, vm.Uuid, vm.Name, vm.Runstate)
 			err = inventory.Update_vm(&vm)
 			if (err != nil) {
 				logger.Log(err.Error())

@@ -55,13 +55,13 @@ func vm_migrate(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unknown uuid", http.StatusNotFound)
 		return
 	}
-	state = vmdata.Runinfo.Runstate
+	state = vmdata.Runstate
 	if (o.Host == "") {
 		/* Auto migration is not implemented yet */
 		http.Error(w, "Not implemented", http.StatusNotImplemented)
 		return
 	}
-	host_old_id = vmdata.Runinfo.Host
+	host_old_id = vmdata.Host
 	if (o.Host == host_old_id) {
 		http.Error(w, "Cannot migrate to the same host", http.StatusUnprocessableEntity)
 		return
