@@ -36,7 +36,7 @@ func vm_migrate(w http.ResponseWriter, r *http.Request) {
 		vr httpx.Request
 		state openapi.Vmrunstate
 		host_old_id string
-		host_new openapi.Host
+		host_new inventory.HostInfo
 		proxy_hostid string
 	)
 	vr, err = httpx.Decode_request_body(r, &o)
@@ -86,7 +86,7 @@ func vm_migrate(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid migration type", http.StatusBadRequest)
 		return
 	}
-	host_new, err = inventory.Get_host(o.Host)
+	host_new, err = inventory.Get_hostinfo(o.Host)
 	if (err != nil) {
 		logger.Log("inventory.Get_host(%s) failed: %s", o.Host, err.Error())
 		http.Error(w, "failed to get host", http.StatusInternalServerError)

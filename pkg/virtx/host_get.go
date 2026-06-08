@@ -21,7 +21,6 @@ import (
 	"net/http"
 	"encoding/json"
 	"bytes"
-	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/httpx"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/inventory"
@@ -31,7 +30,7 @@ func host_get(w http.ResponseWriter, r *http.Request) {
 	var (
 		err error
 		uuid string
-		host openapi.Host
+		hostinfo inventory.HostInfo
 		buf bytes.Buffer
 	)
 	_, err = httpx.Decode_request_body(r, nil)
@@ -45,12 +44,12 @@ func host_get(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not get uuid", http.StatusBadRequest)
 		return
 	}
-	host, err = inventory.Get_host(uuid)
+	hostinfo, err = inventory.Get_hostinfo(uuid)
 	if (err != nil) {
 		http.Error(w, "unknown uuid", http.StatusNotFound)
 		return
 	}
-	err = json.NewEncoder(&buf).Encode(&host)
+	err = json.NewEncoder(&buf).Encode(&hostinfo.Host)
 	if (err != nil) {
 		http.Error(w, "Failed to encode JSON", http.StatusInternalServerError)
 		return

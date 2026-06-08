@@ -32,31 +32,31 @@ func http_host_is_remote(uuid string) bool {
 
 func http_do_request(uuid string, method string, path string, arg any) (*http.Response, error) {
 	var (
-		host openapi.Host
+		hostinfo inventory.HostInfo
 		err error
 		resp *http.Response
 	)
-	host, err = inventory.Get_host(uuid)
+	hostinfo, err = inventory.Get_hostinfo(uuid)
 	if (err != nil) {
 		return nil, err
 	}
-	resp, err = httpx.Do_request(host.Def.Name, method, path, arg)
+	resp, err = httpx.Do_request(hostinfo.Def.Name, method, path, arg)
 	return resp, err
 }
 
 func http_proxy_request(uuid string, w http.ResponseWriter, vr httpx.Request) {
 	var (
-		host openapi.Host
+		hostinfo inventory.HostInfo
 		err error
 	)
-	host, err = inventory.Get_host(uuid)
+	hostinfo, err = inventory.Get_hostinfo(uuid)
 	if (err != nil) {
 		http.Error(w, "unknown host", http.StatusServiceUnavailable)
 		return
 	}
-	if (host.Cstate != openapi.CSTATE_ACTIVE) {
+	if (hostinfo.Cstate != openapi.CSTATE_ACTIVE) {
 		http.Error(w, "inactive host", http.StatusServiceUnavailable)
 		return
 	}
-	httpx.Proxy_request(host.Def.Name, w, vr)
+	httpx.Proxy_request(hostinfo.Def.Name, w, vr)
 }

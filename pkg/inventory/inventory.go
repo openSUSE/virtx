@@ -28,8 +28,19 @@ import (
 type nothing struct {
 }
 
+/*
+ * HostInfo: Host Information to keep in all hosts of the cluster,
+ * for quick access and search without having to contact the host
+ */
+type HostInfo struct {
+	openapi.Host
+}
+
+/*
+ * Hostdata: contains the hostinfo and also the UUIDs of VMS running on this host
+ */
 type Hostdata struct {
-	Host openapi.Host
+	Info HostInfo
 	Vms map[string]nothing		/* VM Uuid presence */
 }
 
@@ -89,7 +100,7 @@ func Get_hostdata(uuid string) (Hostdata, error) {
 	return hostdata, fmt.Errorf("inventory: no such host %s", uuid)
 }
 
-func Get_host(uuid string) (openapi.Host, error) {
+func Get_hostinfo(uuid string) (HostInfo, error) {
 	inventory.m.RLock()
 	defer inventory.m.RUnlock()
 	var (
@@ -98,9 +109,9 @@ func Get_host(uuid string) (openapi.Host, error) {
 	)
 	hostdata, present = inventory.hosts[uuid]
 	if (present) {
-		return hostdata.Host, nil
+		return hostdata.Info, nil
 	}
-	return hostdata.Host, fmt.Errorf("inventory: no such host %s", uuid)
+	return hostdata.Info, fmt.Errorf("inventory: no such host %s", uuid)
 }
 
 func Get_vminfo(uuid string) (VmInfo, error) {
@@ -131,16 +142,16 @@ func update_host(host *openapi.Host) {
 	)
 	hostdata, present = inventory.hosts[host.Uuid]
 	if (present) {
-		if (hostdata.Host.Ts > host.Ts) {
+		if (hostdata.Info.Ts > host.Ts) {
 			logger.Log("Host %s: ignoring obsolete Host information: ts %d > %d",
-				hostdata.Host.Def.Name, hostdata.Host.Ts, host.Ts)
+				hostdata.Info.Def.Name, hostdata.Info.Ts, host.Ts)
 			return
 		}
-		hostdata.Host = *host
+		hostdata.Info.Host = *host
 	} else {
 		/* this is the first time we see this host. */
 		hostdata = Hostdata{
-			Host: *host,
+			Info: HostInfo { *host },
 			Vms: make(map[string]nothing),
 		}
 	}
@@ -159,7 +170,7 @@ func set_host_state(uuid string, newstate openapi.Cstate) error {
 	if !ok {
 		return fmt.Errorf("no such host %s", uuid)
 	}
-	hostdata.Host.Cstate = newstate
+	hostdata.Info.Cstate = newstate
 	inventory.hosts[uuid] = hostdata
 	return nil
 }
