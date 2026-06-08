@@ -34,7 +34,7 @@ func vm_register(w http.ResponseWriter, r *http.Request) {
 		err error
 		o openapi.VmRegisterOptions
 		uuid string
-		vmdata inventory.Vmdata
+		vminfo inventory.VmInfo
 		vr httpx.Request
 		status int
 	)
@@ -53,7 +53,7 @@ func vm_register(w http.ResponseWriter, r *http.Request) {
 		http_proxy_request(o.Host, w, vr)
 		return
 	}
-	vmdata, err = inventory.Get_vm(uuid)
+	vminfo, err = inventory.Get_vminfo(uuid)
 	if (err == nil) {
 		/*
 		 * the uuid is known to inventory
@@ -61,7 +61,7 @@ func vm_register(w http.ResponseWriter, r *http.Request) {
 		 * in this case the domain must exist in this libvirt.
 		 * Check if it exists in vmreg, and if not register it from libvirt
 		 */
-		if (vmdata.Host != o.Host || vmdata.Host != hypervisor.Uuid()) {
+		if (vminfo.Host != o.Host || vminfo.Host != hypervisor.Uuid()) {
 			http.Error(w, "invalid host for this VM", http.StatusUnprocessableEntity)
 			return
 		}

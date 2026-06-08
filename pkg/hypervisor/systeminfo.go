@@ -67,7 +67,7 @@ type SystemInfoImm struct {
 type SystemInfoVms map[string]SystemInfoVm
 
 type SystemInfoVm struct {
-	inventory.Vmdata            /* embedded Vm data to be trasmitted externally */
+	inventory.VmInfo            /* embedded Vm data to be trasmitted externally */
 	stats openapi.Vmstats       /* the Vm statistics collected on this host */
 
 	/* overall internal counters for Vm Stats */
@@ -227,7 +227,7 @@ func system_info_get() (SystemInfo, error) {
 			oldvm SystemInfoVm
 			present bool
 		)
-		vm.Vmdata.VmEvent, vm.Name, err = get_domain_info(&d)
+		vm.VmInfo.VmEvent, vm.Name, err = get_domain_info(&d)
 		if (err != nil) {
 			logger.Log("could not get_domain_info: %s", err.Error())
 			continue

@@ -32,7 +32,7 @@ func vm_shutdown(w http.ResponseWriter, r *http.Request) {
 		err error
 		uuid string
 		o openapi.VmShutdownOptions
-		vmdata inventory.Vmdata
+		vminfo inventory.VmInfo
 		vr httpx.Request
 	)
 	vr, err = httpx.Decode_request_body(r, &o)
@@ -50,13 +50,13 @@ func vm_shutdown(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid force field", http.StatusBadRequest)
 		return
 	}
-	vmdata, err = inventory.Get_vm(uuid)
+	vminfo, err = inventory.Get_vminfo(uuid)
 	if (err != nil) {
 		http.Error(w, "unknown uuid", http.StatusNotFound)
 		return
 	}
-	if (http_host_is_remote(vmdata.Host)) {
-		http_proxy_request(vmdata.Host, w, vr)
+	if (http_host_is_remote(vminfo.Host)) {
+		http_proxy_request(vminfo.Host, w, vr)
 		return
 	}
 	err = hypervisor.Shutdown_domain(uuid, o.Force)

@@ -35,7 +35,7 @@ type Hostdata struct {
 
 /*
  * VmEvent: Vm state report/change event, sent to all hosts in the cluster to
- * minimally update the Vmdata.Runinfo.Runstate field.
+ * minimally update the Vminfo.Runinfo.Runstate field.
  */
 type VmEvent struct {
 	Uuid string
@@ -45,10 +45,10 @@ type VmEvent struct {
 }
 
 /*
- * Vmdata: simplified VM Data to keep in the inventory on all hosts in the cluster,
+ * VmInfo: simplified VM Data to keep in the inventory on all hosts in the cluster,
  * for quick access and search without having to contact the responsible libvirt
  */
-type Vmdata struct {
+type VmInfo struct {
 	VmEvent                     /* embedded basic information */
 	Name string                 /* VM Name */
 	Vlanid int16                /* XXX need requirements engineering for Vlans XXX */
@@ -57,7 +57,7 @@ type Vmdata struct {
 }
 
 type HostsInventory map[string]Hostdata
-type VmsInventory map[string]Vmdata
+type VmsInventory map[string]VmInfo
 
 type Inventory struct {
 	m       sync.RWMutex
@@ -103,18 +103,18 @@ func Get_host(uuid string) (openapi.Host, error) {
 	return hostdata.Host, fmt.Errorf("inventory: no such host %s", uuid)
 }
 
-func Get_vm(uuid string) (Vmdata, error) {
+func Get_vminfo(uuid string) (VmInfo, error) {
 	inventory.m.RLock()
 	defer inventory.m.RUnlock()
 	var (
 		present bool
-		vmdata Vmdata
+		vminfo VmInfo
 	)
-	vmdata, present = inventory.vms[uuid]
+	vminfo, present = inventory.vms[uuid]
 	if (present) {
-		return vmdata, nil
+		return vminfo, nil
 	}
-	return vmdata, fmt.Errorf("inventory: no such vm %s", uuid)
+	return vminfo, fmt.Errorf("inventory: no such vm %s", uuid)
 }
 
 func Update_host(host *openapi.Host) {
@@ -172,21 +172,21 @@ func Update_vm_state(e *VmEvent) error {
 
 func update_vm_state(uuid string, state openapi.Vmrunstate, host string, ts int64) error {
 	var (
-		vmdata Vmdata
+		vminfo VmInfo
 		present bool
 	)
-	vmdata, present = inventory.vms[uuid]
+	vminfo, present = inventory.vms[uuid]
 	if (!present) {
 		return fmt.Errorf("no such VM %s", uuid)
 	}
-	if (vmdata.Ts > ts) {
-		logger.Log("Vm %s: ignoring obsolete Vm state information: ts %d > %d",	uuid, vmdata.Ts, ts)
+	if (vminfo.Ts > ts) {
+		logger.Log("Vm %s: ignoring obsolete Vm state information: ts %d > %d",	uuid, vminfo.Ts, ts)
 		return nil
 	}
-	vmdata.Runstate = state
+	vminfo.Runstate = state
 
-	if (vmdata.Runstate == openapi.RUNSTATE_DELETED) {
-		var host_uuid string = vmdata.Host
+	if (vminfo.Runstate == openapi.RUNSTATE_DELETED) {
+		var host_uuid string = vminfo.Host
 		_, present = inventory.hosts[host_uuid]
 		if (present) {
 			delete(inventory.hosts[host_uuid].Vms, uuid)
@@ -198,8 +198,8 @@ func update_vm_state(uuid string, state openapi.Vmrunstate, host string, ts int6
 	}
 
 	/* for all other states, check to see if we have to update host */
-	var old_host string = vmdata.Host
-	vmdata.Host = host
+	var old_host string = vminfo.Host
+	vminfo.Host = host
 
 	_, present = inventory.hosts[old_host]
 	if (present) {
@@ -218,30 +218,30 @@ func update_vm_state(uuid string, state openapi.Vmrunstate, host string, ts int6
 			inventory.hosts[host].Vms[uuid] = nothing{}
 		}
 	} else {
-		logger.Log("VM %s refers to unknown host %s", vmdata.Uuid, host)
+		logger.Log("VM %s refers to unknown host %s", vminfo.Uuid, host)
 	}
 	/* update the vms inventory data */
-	inventory.vms[uuid] = vmdata
+	inventory.vms[uuid] = vminfo
 	return nil
 }
 
-func Update_vm(vmdata *Vmdata) error {
+func Update_vm(vminfo *VmInfo) error {
 	inventory.m.Lock()
 	defer inventory.m.Unlock()
 
-	return update_vm(vmdata)
+	return update_vm(vminfo)
 }
 
-func update_vm(vmdata *Vmdata) error {
+func update_vm(vminfo *VmInfo) error {
 	var (
-		old Vmdata
+		old VmInfo
 		present bool
 	)
-	old, present = inventory.vms[vmdata.Uuid]
+	old, present = inventory.vms[vminfo.Uuid]
 	if (present) {
-		if (old.Ts > vmdata.Ts) {
+		if (old.Ts > vminfo.Ts) {
 			logger.Log("Ignoring old guest info: ts %d > %d %s %s",
-				old.Ts, vmdata.Ts, vmdata.Uuid, vmdata.Name,
+				old.Ts, vminfo.Ts, vminfo.Uuid, vminfo.Name,
 			)
 			return nil
 		}
@@ -249,21 +249,21 @@ func update_vm(vmdata *Vmdata) error {
 		 * generate an artificial state change event to make sure to update the
 		 * inventory data structures, should we have missed previous events
 		 */
-		update_vm_state(vmdata.Uuid, vmdata.Runstate, vmdata.Host, vmdata.Ts)
+		update_vm_state(vminfo.Uuid, vminfo.Runstate, vminfo.Host, vminfo.Ts)
 
 	} else { /* not present */
 		var (
-			host_uuid string = vmdata.Host
+			host_uuid string = vminfo.Host
 			hostdata Hostdata
 		)
 		hostdata, present = inventory.hosts[host_uuid]
 		if (present) {
-			hostdata.Vms[vmdata.Uuid] = nothing{}
+			hostdata.Vms[vminfo.Uuid] = nothing{}
 			inventory.hosts[host_uuid] = hostdata
 		} else {
-			logger.Log("new VM %s assigned to unknown host %s", vmdata.Uuid, host_uuid)
+			logger.Log("new VM %s assigned to unknown host %s", vminfo.Uuid, host_uuid)
 		}
 	}
-	inventory.vms[vmdata.Uuid] = *vmdata
+	inventory.vms[vminfo.Uuid] = *vminfo
 	return nil
 }

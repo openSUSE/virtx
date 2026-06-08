@@ -89,14 +89,14 @@ func send_host_info(host_info *openapi.Host) error {
 	return send_user_event(LABEL_HOST_INFO, serf.enc_buffer[:eventsize])
 }
 
-func send_vm_data(vmdata *inventory.Vmdata) error {
+func send_vm_info(vminfo *inventory.VmInfo) error {
 	serf.m.Lock()
 	defer serf.m.Unlock()
 	var (
 		eventsize int
 		err error
 	)
-	eventsize, err = sbinary.Encode(serf.enc_buffer[:], binary.LittleEndian, vmdata)
+	eventsize, err = sbinary.Encode(serf.enc_buffer[:], binary.LittleEndian, vminfo)
 	if (err != nil) {
 		return err
 	}
@@ -208,7 +208,7 @@ func handle_user_event(e map[string]any) {
 		}
 	case LABEL_VM_INFO:
 		var (
-			vm inventory.Vmdata
+			vm inventory.VmInfo
 			size int
 		)
 		size, err = sbinary.Decode(payload, binary.LittleEndian, &vm)
@@ -249,9 +249,9 @@ func send_system_info(ch <-chan hypervisor.SystemInfo) {
 			}
 		}
 		for _, vm := range si.Vms {
-			err = send_vm_data(&vm.Vmdata)
+			err = send_vm_info(&vm.VmInfo)
 			if (err != nil) {
-				logger.Log("send_vm_data: " + err.Error())
+				logger.Log("send_vm_info: " + err.Error())
 			}
 		}
 	}

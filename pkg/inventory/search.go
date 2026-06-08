@@ -100,7 +100,7 @@ func Search_vms(f openapi.VmListFields) openapi.VmList {
 	inventory.m.RLock()
 	defer inventory.m.RUnlock()
 	var (
-		vm Vmdata
+		vm VmInfo
 		list openapi.VmList
 	)
 	for _, vm = range inventory.vms {

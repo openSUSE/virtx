@@ -32,7 +32,7 @@ func vm_migrate(w http.ResponseWriter, r *http.Request) {
 		err error
 		o openapi.VmMigrateOptions
 		uuid string
-		vmdata inventory.Vmdata
+		vminfo inventory.VmInfo
 		vr httpx.Request
 		state openapi.Vmrunstate
 		host_old_id string
@@ -50,18 +50,18 @@ func vm_migrate(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not get uuid", http.StatusBadRequest)
 		return
 	}
-	vmdata, err = inventory.Get_vm(uuid)
+	vminfo, err = inventory.Get_vminfo(uuid)
 	if (err != nil) {
 		http.Error(w, "unknown uuid", http.StatusNotFound)
 		return
 	}
-	state = vmdata.Runstate
+	state = vminfo.Runstate
 	if (o.Host == "") {
 		/* Auto migration is not implemented yet */
 		http.Error(w, "Not implemented", http.StatusNotImplemented)
 		return
 	}
-	host_old_id = vmdata.Host
+	host_old_id = vminfo.Host
 	if (o.Host == host_old_id) {
 		http.Error(w, "Cannot migrate to the same host", http.StatusUnprocessableEntity)
 		return
@@ -93,7 +93,7 @@ func vm_migrate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	go func() {
-		err = hypervisor.Migrate_domain(host_new.Def.Name, o.Host, host_old_id, uuid, o.MigrationType == openapi.MIGRATION_LIVE, int(vmdata.Vcpus))
+		err = hypervisor.Migrate_domain(host_new.Def.Name, o.Host, host_old_id, uuid, o.MigrationType == openapi.MIGRATION_LIVE, int(vminfo.Vcpus))
 		if (err != nil) {
 			logger.Log("migration of domain %s failed: %s", uuid, err.Error())
 		} else {

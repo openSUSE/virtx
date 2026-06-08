@@ -177,7 +177,7 @@ func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventL
 		)
 		si.Host.Uuid = "" /* not necessary, but for documentation, do not send Host Data */
 		si.Vms = make(SystemInfoVms)
-		vm.Vmdata.VmEvent = ve
+		vm.VmInfo.VmEvent = ve
 		vm.Name = name
 		err = get_domain_stats(d, &vm, nil, &si.imm)
 		if (err != nil) {

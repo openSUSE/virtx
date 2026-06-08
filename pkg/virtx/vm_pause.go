@@ -29,7 +29,7 @@ func vm_pause(w http.ResponseWriter, r *http.Request) {
 	var (
 		err error
 		uuid string
-		vmdata inventory.Vmdata
+		vminfo inventory.VmInfo
 		vr httpx.Request
 	)
 	vr, err = httpx.Decode_request_body(r, nil)
@@ -43,13 +43,13 @@ func vm_pause(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not get uuid", http.StatusBadRequest)
 		return
 	}
-	vmdata, err = inventory.Get_vm(uuid)
+	vminfo, err = inventory.Get_vminfo(uuid)
 	if (err != nil) {
 		http.Error(w, "unknown uuid", http.StatusNotFound)
 		return
 	}
-	if (http_host_is_remote(vmdata.Host)) {
-		http_proxy_request(vmdata.Host, w, vr)
+	if (http_host_is_remote(vminfo.Host)) {
+		http_proxy_request(vminfo.Host, w, vr)
 		return
 	}
 	err = hypervisor.Pause_domain(uuid)

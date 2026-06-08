@@ -33,7 +33,7 @@ func vm_migrate_get(w http.ResponseWriter, r *http.Request) {
 	var (
 		err error
 		uuid, host_old string
-		vmdata inventory.Vmdata
+		vminfo inventory.VmInfo
 		vr httpx.Request
 		info openapi.MigrationInfo
 	)
@@ -48,12 +48,12 @@ func vm_migrate_get(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not get uuid", http.StatusBadRequest)
 		return
 	}
-	vmdata, err = inventory.Get_vm(uuid)
+	vminfo, err = inventory.Get_vminfo(uuid)
 	if (err != nil) {
 		http.Error(w, "unknown uuid", http.StatusNotFound)
 		return
 	}
-	host_old = vmdata.Host
+	host_old = vminfo.Host
 	if (http_host_is_remote(host_old)) { /* need to proxy */
 		http_proxy_request(host_old, w, vr);
 		return
