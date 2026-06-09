@@ -30,66 +30,56 @@ func Search_hosts(f openapi.HostListFields) openapi.HostList {
 	defer inventory.m.RUnlock()
 	var (
 		hostdata Hostdata
-		host openapi.Host
+		hostinfo HostInfo
 		list openapi.HostList
 	)
 	for _, hostdata = range inventory.hosts {
-		host = hostdata.Info.Host
-		if (f.Name != "" && !strings.Contains(host.Def.Name, f.Name)) {
+		hostinfo = hostdata.Info
+		if (f.Name != "" && !strings.Contains(hostinfo.Name, f.Name)) {
 			continue
 		}
-		if (f.Cpuarch.Arch != "" && (host.Def.Cpuarch.Arch != f.Cpuarch.Arch)) {
+		if (f.Cpuarch.Arch != "" && (hostinfo.Cpuarch.Arch != f.Cpuarch.Arch)) {
 			continue
 		}
-		if (f.Cpuarch.Vendor != "" && (host.Def.Cpuarch.Vendor != f.Cpuarch.Vendor)) {
+		if (f.Cpuarch.Vendor != "" && (hostinfo.Cpuarch.Vendor != f.Cpuarch.Vendor)) {
 			continue
 		}
-		if (f.Cpudef.Model != "" && (host.Def.Cpudef.Model != f.Cpudef.Model)) {
+		if (f.Cpudef.Model != "" && (hostinfo.Cpudef.Model != f.Cpudef.Model)) {
 			continue
 		}
-		if (f.Cpudef.Nodes > 0 && (host.Def.Cpudef.Nodes < f.Cpudef.Nodes)) {
+		if (f.Cpudef.Nodes > 0 && (hostinfo.Cpudef.Nodes < f.Cpudef.Nodes)) {
 			continue
 		}
-		if (f.Cpudef.Sockets > 0 && (host.Def.Cpudef.Sockets < f.Cpudef.Sockets)) {
+		if (f.Cpudef.Sockets > 0 && (hostinfo.Cpudef.Sockets < f.Cpudef.Sockets)) {
 			continue
 		}
-		if (f.Cpudef.Cores > 0 && (host.Def.Cpudef.Cores < f.Cpudef.Cores)) {
+		if (f.Cpudef.Cores > 0 && (hostinfo.Cpudef.Cores < f.Cpudef.Cores)) {
 			continue
 		}
-		if (f.Cpudef.Threads > 0 && (host.Def.Cpudef.Threads < f.Cpudef.Threads)) {
+		if (f.Cpudef.Threads > 0 && (hostinfo.Cpudef.Threads < f.Cpudef.Threads)) {
 			continue
 		}
-		if (f.Cstate != openapi.CSTATE_INVALID && (host.Cstate != f.Cstate)) {
+		if (f.Cstate != openapi.CSTATE_INVALID && (hostinfo.Cstate != f.Cstate)) {
 			continue
 		}
-		if (f.Memoryavailable > 0 && (host.Resources.Memory.Availablevms < f.Memoryavailable)) {
+		if (f.Memoryavailable > 0 && (hostinfo.Memoryavailable < f.Memoryavailable)) {
 			continue
 		}
-		if (f.Hpavailable > 0 && (host.Resources.Hp.Availablevms < f.Hpavailable)) {
+		if (f.Hpavailable > 0 && (hostinfo.Hpavailable < f.Hpavailable)) {
 			continue
 		}
-		if (f.Osid != "" && (host.Def.Osid != f.Osid)) {
+		if (f.Osid != "" && (hostinfo.Osid != f.Osid)) {
 			continue
 		}
-		if (f.Osv != "" && (host.Def.Osv != f.Osv)) {
+		if (f.Osv != "" && (hostinfo.Osv != f.Osv)) {
 			continue
 		}
-		if (f.Ts != 0 && (host.Ts > f.Ts)) { /* return only older entries */
+		if (f.Ts != 0 && (hostinfo.Ts > f.Ts)) { /* return only older entries */
 			continue
 		}
 		var item openapi.HostListItem = openapi.HostListItem{
-			Uuid: host.Uuid,
-			Fields: openapi.HostListFields{
-				Name: host.Def.Name,
-				Cpuarch: host.Def.Cpuarch,
-				Cpudef: host.Def.Cpudef,
-				Cstate: host.Cstate,
-				Memoryavailable: host.Resources.Memory.Availablevms,
-				Hpavailable: host.Resources.Hp.Availablevms,
-				Osid: host.Def.Osid,
-				Osv: host.Def.Osv,
-				Ts: host.Ts,
-			},
+			Uuid: hostinfo.Uuid,
+			Fields: hostinfo.HostListFields,
 		}
 		list.Items = append(list.Items, item)
 	}

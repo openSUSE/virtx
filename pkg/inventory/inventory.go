@@ -33,7 +33,8 @@ type nothing struct {
  * for quick access and search without having to contact the host
  */
 type HostInfo struct {
-	openapi.Host
+	Uuid string
+	openapi.HostListFields
 }
 
 /*
@@ -128,34 +129,34 @@ func Get_vminfo(uuid string) (VmInfo, error) {
 	return vminfo, fmt.Errorf("inventory: no such vm %s", uuid)
 }
 
-func Update_host(host *openapi.Host) {
+func Update_host(hostinfo *HostInfo) {
 	inventory.m.Lock()
 	defer inventory.m.Unlock()
 
-	update_host(host)
+	update_host(hostinfo)
 }
 
-func update_host(host *openapi.Host) {
+func update_host(hostinfo *HostInfo) {
 	var (
 		present bool
 		hostdata Hostdata
 	)
-	hostdata, present = inventory.hosts[host.Uuid]
+	hostdata, present = inventory.hosts[hostinfo.Uuid]
 	if (present) {
-		if (hostdata.Info.Ts > host.Ts) {
+		if (hostdata.Info.Ts > hostinfo.Ts) {
 			logger.Log("Host %s: ignoring obsolete Host information: ts %d > %d",
-				hostdata.Info.Def.Name, hostdata.Info.Ts, host.Ts)
+				hostdata.Info.Name, hostdata.Info.Ts, hostinfo.Ts)
 			return
 		}
-		hostdata.Info.Host = *host
+		hostdata.Info = *hostinfo
 	} else {
 		/* this is the first time we see this host. */
 		hostdata = Hostdata{
-			Info: HostInfo { *host },
+			Info: *hostinfo,
 			Vms: make(map[string]nothing),
 		}
 	}
-	inventory.hosts[host.Uuid] = hostdata
+	inventory.hosts[hostinfo.Uuid] = hostdata
 }
 
 func Set_host_state(uuid string, newstate openapi.Cstate) error {

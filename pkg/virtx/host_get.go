@@ -23,6 +23,8 @@ import (
 	"bytes"
 	"suse.com/virtx/pkg/httpx"
 	"suse.com/virtx/pkg/logger"
+	"suse.com/virtx/pkg/model"
+	"suse.com/virtx/pkg/hypervisor"
 	"suse.com/virtx/pkg/inventory"
 )
 
@@ -31,9 +33,11 @@ func host_get(w http.ResponseWriter, r *http.Request) {
 		err error
 		uuid string
 		hostinfo inventory.HostInfo
+		host openapi.Host
 		buf bytes.Buffer
+		vr httpx.Request
 	)
-	_, err = httpx.Decode_request_body(r, nil)
+	vr, err = httpx.Decode_request_body(r, nil)
 	if (err != nil) {
 		logger.Log(err.Error())
 		http.Error(w, "failed to decode body", http.StatusBadRequest)
@@ -49,7 +53,12 @@ func host_get(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unknown uuid", http.StatusNotFound)
 		return
 	}
-	err = json.NewEncoder(&buf).Encode(&hostinfo.Host)
+	if (http_host_is_remote(hostinfo.Uuid)) {
+		http_proxy_request(hostinfo.Uuid, w, vr)
+		return
+	}
+	host = hypervisor.Get_host()
+	err = json.NewEncoder(&buf).Encode(&host)
 	if (err != nil) {
 		http.Error(w, "Failed to encode JSON", http.StatusInternalServerError)
 		return

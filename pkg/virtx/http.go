@@ -40,7 +40,7 @@ func http_do_request(uuid string, method string, path string, arg any) (*http.Re
 	if (err != nil) {
 		return nil, err
 	}
-	resp, err = httpx.Do_request(hostinfo.Def.Name, method, path, arg)
+	resp, err = httpx.Do_request(hostinfo.Name, method, path, arg)
 	return resp, err
 }
 
@@ -58,5 +58,5 @@ func http_proxy_request(uuid string, w http.ResponseWriter, vr httpx.Request) {
 		http.Error(w, "inactive host", http.StatusServiceUnavailable)
 		return
 	}
-	httpx.Proxy_request(hostinfo.Def.Name, w, vr)
+	httpx.Proxy_request(hostinfo.Name, w, vr)
 }

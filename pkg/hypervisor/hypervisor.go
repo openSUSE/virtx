@@ -438,3 +438,9 @@ func Get_Vmstats(uuid string) (openapi.Vmstats, error) {
 	}
 	return stats, nil
 }
+
+func Get_host() openapi.Host {
+	hv.m.RLock()
+	defer hv.m.RUnlock()
+	return system_info_get_host(hv.si)
+}

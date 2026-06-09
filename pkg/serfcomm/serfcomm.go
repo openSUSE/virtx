@@ -62,19 +62,19 @@ func send_user_event(label string, payload []byte) error {
 	return serf.c.UserEvent(label, payload, false)
 }
 
-func update_tags(host *openapi.Host) error {
+func update_tags(hostinfo *inventory.HostInfo) error {
 	serf.m.Lock()
 	defer serf.m.Unlock()
 
 	if (serf.c == nil) {
 		return errors.New("RPC client closed")
 	}
-	addTags := map[string]string { host.Uuid: "" }
+	addTags := map[string]string { hostinfo.Uuid: "" }
 	removeTags := []string {}
 	return serf.c.UpdateTags(addTags, removeTags)
 }
 
-func send_host_info(host_info *openapi.Host) error {
+func send_host_info(host_info *inventory.HostInfo) error {
 	serf.m.Lock()
 	defer serf.m.Unlock()
 	var (
@@ -181,14 +181,14 @@ func handle_user_event(e map[string]any) {
 	switch (name) {
 	case LABEL_HOST_INFO:
 		var (
-			hi openapi.Host
+			hi inventory.HostInfo
 			size int
 		)
 		size, err = sbinary.Decode(payload, binary.LittleEndian, &hi)
 		if (err != nil) {
 			logger.Log("Decode %s: ERR '%s' at offset %d", name, err.Error(), size)
 		} else {
-			logger.Debug("Decode %s: OK  %d %s %s", name, hi.Ts, hi.Uuid, hi.Def.Name)
+			logger.Debug("Decode %s: OK  %d %s %s", name, hi.Ts, hi.Uuid, hi.Name)
 			inventory.Update_host(&hi)
 		}
 	case LABEL_VM_EVENT:
@@ -239,11 +239,11 @@ func send_system_info(ch <-chan hypervisor.SystemInfo) {
 		}
 		if (si.Host.Uuid != "") {
 			/* we have a full System Info with Host Information and all VMs */
-			err = update_tags(&si.Host)
+			err = update_tags(&si.Host.HostInfo)
 			if (err != nil) {
 				logger.Log("update_tags: " + err.Error())
 			}
-			err = send_host_info(&si.Host)
+			err = send_host_info(&si.Host.HostInfo)
 			if (err != nil) {
 				logger.Log("send_host_info: " + err.Error())
 			}

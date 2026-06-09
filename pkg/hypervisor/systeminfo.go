@@ -67,7 +67,7 @@ type SystemInfoImm struct {
 type SystemInfoVms map[string]SystemInfoVm
 
 type SystemInfoVm struct {
-	inventory.VmInfo            /* embedded Vm data to be trasmitted externally */
+	inventory.VmInfo            /* embedded Vm data to be trasmitted to Serf */
 	stats openapi.Vmstats       /* the Vm statistics collected on this host */
 
 	/* overall internal counters for Vm Stats */
@@ -77,10 +77,15 @@ type SystemInfoVm struct {
 	net_tx int64                /* Net Tx bytes */
 }
 
+type SystemInfoHost struct {
+	inventory.HostInfo          /* embedded Host data to be trasmitted to Serf */
+	res openapi.Hostresources   /* the Host resource statistics collected on this host */
+}
+
 type SystemInfo struct {
 	imm SystemInfoImm
-	Host openapi.Host /* host data to be transmitted externally */
-	Vms SystemInfoVms /* vms data, including external and internal data not for transmission */
+	Host SystemInfoHost /* HostInfo to transmit plus internal data not for transmission */
+	Vms SystemInfoVms /* set of VmInfo to transmit plus internal data not for transmission */
 
 	/* overall internal counters for host stats */
 	cpu_idle_ns uint64
@@ -115,7 +120,7 @@ func system_info_loop(seconds int) error {
 	}
 	hv.m.Lock()
 	hv.uuid = si.Host.Uuid
-	arch.Set(si.Host.Def.Cpuarch.Arch)
+	arch.Set(si.Host.Cpuarch.Arch)
 	check_vmreg(hv.uuid, &si)
 	hv.m.Unlock()
 
@@ -143,11 +148,11 @@ func system_info_get() (SystemInfo, error) {
 	hv.m.Lock()
 	defer hv.m.Unlock()
 	var (
-		host openapi.Host
 		si SystemInfo
 		vms SystemInfoVms = make(SystemInfoVms)
 		err error
 		caps *libvirtxml.Caps
+		res *openapi.Hostresources
 		info *libvirt.NodeInfo
 	)
 	var (
@@ -185,32 +190,23 @@ func system_info_get() (SystemInfo, error) {
 	info = si.imm.info
 
 	/* 1. set the general host information */
-	host.Uuid = caps.Host.UUID
-	host.Def.Name, err = hv.conn.GetHostname()
+	si.Host.Uuid = caps.Host.UUID
+	si.Host.Name, err = hv.conn.GetHostname()
 	if (err != nil) {
 		goto out
 	}
-	host.Def.Osid = si.imm.os_id
-	host.Def.Osv = si.imm.os_version
-	host.Def.Cpuarch.Arch = caps.Host.CPU.Arch
-	host.Def.Cpuarch.Vendor = caps.Host.CPU.Vendor
-	host.Def.Cpudef.Model = caps.Host.CPU.Model
-	host.Def.Cpudef.Nodes = int16(info.Nodes)
-	host.Def.Cpudef.Sockets = int16(info.Sockets)
-	host.Def.Cpudef.Cores = int16(info.Cores)
-	host.Def.Cpudef.Threads = int16(info.Threads)
-	if caps.Host.CPU.Counter != nil {
-		host.Def.Tscfreq = int64(caps.Host.CPU.Counter.Frequency)
-	} else {
-		host.Def.Tscfreq = 0
-		logger.Debug("TSC counter not available in capabilities")
-	}
-	host.Def.Sysinfo.Version = si.imm.bios_version
-	host.Def.Sysinfo.Date = si.imm.bios_date
-	host.Cstate = openapi.CSTATE_ACTIVE
-	host.Lockid = lockman.Lockid()
-	host.Ts = ts.Now()
-
+	si.Host.Cpuarch.Arch = caps.Host.CPU.Arch
+	si.Host.Cpuarch.Vendor = caps.Host.CPU.Vendor
+	si.Host.Cpudef.Model = caps.Host.CPU.Model
+	si.Host.Cpudef.Nodes = int16(info.Nodes)
+	si.Host.Cpudef.Sockets = int16(info.Sockets)
+	si.Host.Cpudef.Cores = int16(info.Cores)
+	si.Host.Cpudef.Threads = int16(info.Threads)
+	si.Host.Cstate = openapi.CSTATE_ACTIVE
+	/* Memoryavailable, Hpavailable are set below once calculated */
+	si.Host.Osid = si.imm.os_id
+	si.Host.Osv = si.imm.os_version
+	si.Host.Ts = ts.Now()
 	/*
 	 * 2. get information about all the domains, so that we can calculate
 	 *    host resources later.
@@ -232,7 +228,7 @@ func system_info_get() (SystemInfo, error) {
 			logger.Log("could not get_domain_info: %s", err.Error())
 			continue
 		}
-		vm.Ts = host.Ts
+		vm.Ts = si.Host.Ts
 		if (hv.si != nil) {
 			oldvm, present = hv.si.Vms[vm.Uuid]
 		}
@@ -275,31 +271,36 @@ func system_info_get() (SystemInfo, error) {
 	if (err != nil) {
 		goto out
 	}
+	res = &si.Host.res
 	/* Hugepages */
-	host.Resources.Hp.Total = int32(si.imm.hp_total / KiB) /* /proc/meminfo is in KiB, translate to MiB */
-	host.Resources.Hp.Free = int32(hp_free / KiB)       /* /proc/meminfo is in KiB, translate to MiB */
+	res.Hp.Total = int32(si.imm.hp_total / KiB) /* /proc/meminfo is in KiB, translate to MiB */
+	res.Hp.Free = int32(hp_free / KiB)       /* /proc/meminfo is in KiB, translate to MiB */
 
 	/* Normal Memory (4k pages). Info is in KiB, so convert to MiB and subtract the memory stolen by Hp */
-	host.Resources.Memory.Total = int32(info.Memory / KiB) - host.Resources.Hp.Total
-	host.Resources.Memory.Free = int32(memory_free / MiB) /* this returns in bytes, translate to MiB */
+	res.Memory.Total = int32(info.Memory / KiB) - res.Hp.Total
+	res.Memory.Free = int32(memory_free / MiB) /* this returns in bytes, translate to MiB */
 
 	/* HP derived calculations */
-	host.Resources.Hp.Used = host.Resources.Hp.Total - host.Resources.Hp.Free
-	host.Resources.Hp.Reservedvms = int32(total_hp_capacity)
-	host.Resources.Hp.Usedvms = int32(total_hp_capacity)
-	host.Resources.Hp.Usedos = host.Resources.Hp.Used - host.Resources.Hp.Usedvms
-	host.Resources.Hp.Availablevms = host.Resources.Hp.Total - host.Resources.Hp.Reservedvms - host.Resources.Hp.Usedos
+	res.Hp.Used = res.Hp.Total - res.Hp.Free
+	res.Hp.Reservedvms = int32(total_hp_capacity)
+	res.Hp.Usedvms = int32(total_hp_capacity)
+	res.Hp.Usedos = res.Hp.Used - res.Hp.Usedvms
+	res.Hp.Availablevms = res.Hp.Total - res.Hp.Reservedvms - res.Hp.Usedos
+	/* Set the HostInfo HP available field */
+	si.Host.Hpavailable = res.Hp.Availablevms
 
 	/* Normal Memory derived calculations */
-	host.Resources.Memory.Used = host.Resources.Memory.Total - host.Resources.Memory.Free
-	host.Resources.Memory.Reservedvms = int32(total_memory_capacity)
-	host.Resources.Memory.Usedvms = int32(total_memory_used)
-	host.Resources.Memory.Usedos = host.Resources.Memory.Used - host.Resources.Memory.Usedvms
-	host.Resources.Memory.Availablevms = host.Resources.Memory.Total - host.Resources.Memory.Reservedvms - host.Resources.Memory.Usedos
+	res.Memory.Used = res.Memory.Total - res.Memory.Free
+	res.Memory.Reservedvms = int32(total_memory_capacity)
+	res.Memory.Usedvms = int32(total_memory_used)
+	res.Memory.Usedos = res.Memory.Used - res.Memory.Usedvms
+	res.Memory.Availablevms = res.Memory.Total - res.Memory.Reservedvms - res.Memory.Usedos
+	/* Set the HostInfo Memory available field */
+	si.Host.Memoryavailable = res.Memory.Availablevms
 
 	/* CPU */
-	host.Resources.Cpu.Total = int32(uint(info.Nodes * info.Sockets * info.Cores * info.Threads) * info.MHz)
-	host.Resources.Cpu.Reservedvms = int32((float64(total_vcpus_mhz) / 100.0) * hv.vcpu_load_factor)
+	res.Cpu.Total = int32(uint(info.Nodes * info.Sockets * info.Cores * info.Threads) * info.MHz)
+	res.Cpu.Reservedvms = int32((float64(total_vcpus_mhz) / 100.0) * hv.vcpu_load_factor)
 	si.cpu_idle_ns = cpustats.Idle
 	si.cpu_kernel_ns = cpustats.Kernel
 	si.cpu_iowait_ns = cpustats.Iowait
@@ -307,42 +308,41 @@ func system_info_get() (SystemInfo, error) {
 
 	/* some of the data we can only calculate as comparison from the previous measurement */
 	if (hv.si != nil) {
-		interval := float64(host.Ts - hv.si.Host.Ts)
+		interval := float64(si.Host.Ts - hv.si.Host.Ts)
 		if (interval <= 0.0) {
 			logger.Log("system_info_get: host timestamps not in order?")
 		} else {
 			var delta float64
 			/* idle counters are completely unreliable, behavior depends on hw cpu vendor, model etc */
 			//delta = float64(Counter_delta_uint64(si.cpu_idle_ns, old.cpu_idle_ns))
-			//host.Resources.Cpu.Free = int32(delta / (interval * 1000000) * float64(info.MHz) / float64(info.Threads))
+			//res.Cpu.Free = int32(delta / (interval * 1000000) * float64(info.MHz) / float64(info.Threads))
 			delta = float64(Counter_delta_uint64(si.cpu_kernel_ns, hv.si.cpu_kernel_ns))
 			logger.Debug("gsi: cpu_kernel_ns delta = %f", delta)
-			host.Resources.Cpu.Used = int32(delta / (interval * 1000000) * float64(info.MHz))
+			res.Cpu.Used = int32(delta / (interval * 1000000) * float64(info.MHz))
 
 			delta = float64(Counter_delta_uint64(si.cpu_iowait_ns, hv.si.cpu_iowait_ns))
 			logger.Debug("gsi: cpu_iowait_ns delta = %f", delta)
-			host.Resources.Cpu.Used += int32(delta / (interval * 1000000) * float64(info.MHz))
+			res.Cpu.Used += int32(delta / (interval * 1000000) * float64(info.MHz))
 
 			delta = float64(Counter_delta_uint64(si.cpu_user_ns, hv.si.cpu_user_ns))
 			logger.Debug("gsi: cpu_user_ns delta = %f", delta)
-			host.Resources.Cpu.Used += int32(delta / (interval * 1000000) * float64(info.MHz))
+			res.Cpu.Used += int32(delta / (interval * 1000000) * float64(info.MHz))
 
-			logger.Debug("gsi: Cpu.Used = %d", host.Resources.Cpu.Used)
+			logger.Debug("gsi: Cpu.Used = %d", res.Cpu.Used)
 
-			host.Resources.Cpu.Free = host.Resources.Cpu.Total - host.Resources.Cpu.Used
-			logger.Debug("gsi: Cpu.Free = %d", host.Resources.Cpu.Free)
+			res.Cpu.Free = res.Cpu.Total - res.Cpu.Used
+			logger.Debug("gsi: Cpu.Free = %d", res.Cpu.Free)
 
-			host.Resources.Cpu.Usedvms = total_cpus_used_percent * int32(info.MHz) / 100
-			logger.Debug("gsi: Cpu.Usedvms = %d", host.Resources.Cpu.Usedvms)
+			res.Cpu.Usedvms = total_cpus_used_percent * int32(info.MHz) / 100
+			logger.Debug("gsi: Cpu.Usedvms = %d", res.Cpu.Usedvms)
 
-			host.Resources.Cpu.Usedos = host.Resources.Cpu.Used - host.Resources.Cpu.Usedvms
-			logger.Debug("gsi: Cpu.Usedos = %d", host.Resources.Cpu.Usedos)
+			res.Cpu.Usedos = res.Cpu.Used - res.Cpu.Usedvms
+			logger.Debug("gsi: Cpu.Usedos = %d", res.Cpu.Usedos)
 
-			host.Resources.Cpu.Availablevms = host.Resources.Cpu.Total - host.Resources.Cpu.Reservedvms - host.Resources.Cpu.Usedos
-			logger.Debug("gsi: Cpu.Availablevms = %d", host.Resources.Cpu.Availablevms)
+			res.Cpu.Availablevms = res.Cpu.Total - res.Cpu.Reservedvms - res.Cpu.Usedos
+			logger.Debug("gsi: Cpu.Availablevms = %d", res.Cpu.Availablevms)
 		}
 	}
-	si.Host = host
 	si.Vms = vms
 	if (hv.si == nil) {
 		hv.si = new(SystemInfo)
@@ -686,4 +686,34 @@ func system_info_get_vmstats(si *SystemInfo, uuid string) (openapi.Vmstats, erro
 		return openapi.Vmstats{}, errors.New("could not find vm")
 	}
 	return vm.stats, nil
+}
+
+func system_info_get_host(si *SystemInfo) openapi.Host {
+	/* assert hv.m.Rlock() */
+	return openapi.Host{
+		Uuid: hv.uuid,
+		Def: openapi.Hostdef{
+			Name: si.Host.Name,
+			Cpuarch: si.Host.Cpuarch,
+			Cpudef: si.Host.Cpudef,
+			Tscfreq: func() int64 {
+				if (si.imm.caps.Host.CPU.Counter != nil) {
+					return int64(si.imm.caps.Host.CPU.Counter.Frequency)
+				} else {
+					logger.Debug("TSC counter not available in capabilities")
+					return 0
+				}
+			}(),
+			Sysinfo: openapi.HostdefSysinfo{
+				Version: si.imm.bios_version,
+				Date: si.imm.bios_date,
+			},
+			Osid: si.Host.Osid,
+			Osv: si.Host.Osv,
+		},
+		Cstate: si.Host.Cstate,
+		Lockid: lockman.Lockid(),
+		Resources: si.Host.res,
+		Ts: si.Host.Ts,
+	}
 }
