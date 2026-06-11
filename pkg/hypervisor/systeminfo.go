@@ -122,6 +122,8 @@ func system_info_loop(seconds int) error {
 	check_vmreg(hv.uuid, &si)
 	hv.m.Unlock()
 
+	set_system_info_loop_done()
+
 	/* this first info is missing vm cpu stats and host cpu stats */
 	hv.system_info_ch <- si
 	delete_ghosts(si.Vms, si.Host.Ts)
@@ -718,4 +720,16 @@ func system_info_get_host(si *SystemInfo) openapi.Host {
 		Resources: si.Host.res,
 		Ts: si.Host.Ts,
 	}
+}
+
+func get_system_info_loop_done() bool {
+	hv.m.RLock()
+	defer hv.m.RUnlock()
+	return hv.system_info_loop_done
+}
+
+func set_system_info_loop_done() {
+	hv.m.Lock()
+	defer hv.m.Unlock()
+	hv.system_info_loop_done = true
 }

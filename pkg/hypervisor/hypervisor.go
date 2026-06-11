@@ -57,6 +57,7 @@ type Hypervisor struct {
 	lifecycle_id int
 	vm_event_ch chan inventory.VmEvent
 	system_info_ch chan SystemInfo
+	system_info_loop_done bool
 
 	uuid string /* the UUID of this host */
 	vcpu_load_factor float64
@@ -105,7 +106,7 @@ func Wait_system_info() error {
 	for {
 		select {
 		case <- ticker.C:
-			if (Uuid() != "") {
+			if (get_system_info_loop_done()) {
 				logger.Debug("system_info now available.")
 				return nil
 			}
