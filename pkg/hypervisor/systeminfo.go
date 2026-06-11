@@ -119,8 +119,6 @@ func system_info_loop(seconds int) error {
 		}
 	}
 	hv.m.Lock()
-	hv.uuid = si.Host.Uuid
-	arch.Set(si.Host.Cpuarch.Arch)
 	check_vmreg(hv.uuid, &si)
 	hv.m.Unlock()
 
@@ -182,6 +180,10 @@ func system_info_get() (SystemInfo, error) {
 		if (err != nil) {
 			goto out
 		}
+		/***** SET THE HYPERVISOR UUID AND ARCHITECTURE *****/
+		hv.uuid = si.imm.caps.Host.UUID
+		arch.Set(si.imm.caps.Host.CPU.Arch)
+		/****************************************************/
 	} else {
 		si.imm = hv.si.imm
 	}
