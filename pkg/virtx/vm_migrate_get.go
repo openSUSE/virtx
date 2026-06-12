@@ -68,6 +68,8 @@ func vm_migrate_get(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(&buf).Encode(&info)
 	if (err != nil) {
 		logger.Log("failed to encode JSON")
+		http.Error(w, "Failed to encode JSON", http.StatusInternalServerError)
+		return
 	}
 	httpx.Do_response(w, http.StatusOK, &buf)
 }
