@@ -30,20 +30,6 @@ func http_host_is_remote(uuid string) bool {
 	return uuid != "" && uuid != machine.Uuid()
 }
 
-func http_do_request(uuid string, method string, path string, arg any) (*http.Response, error) {
-	var (
-		hostinfo inventory.HostInfo
-		err error
-		resp *http.Response
-	)
-	hostinfo, err = inventory.Get_hostinfo(uuid)
-	if (err != nil) {
-		return nil, err
-	}
-	resp, err = httpx.Do_request(hostinfo.Name, method, path, arg)
-	return resp, err
-}
-
 func http_proxy_request(uuid string, w http.ResponseWriter, vr httpx.Request) {
 	var (
 		hostinfo inventory.HostInfo
