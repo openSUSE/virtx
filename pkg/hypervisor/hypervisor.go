@@ -146,6 +146,13 @@ func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventL
 	hv.m.RLock()
 	defer hv.m.RUnlock()
 
+	if (!hv.system_info_loop_done) {
+		/*
+		 * too early, we cannot generate events for our host.
+		 * For one, we will not be able to set the host uuid properly.
+		 */
+		return
+	}
 	if (e.Event == libvirt.DOMAIN_EVENT_UNDEFINED) {
 		/* VM has been DELETED */
 		ve.Uuid, err = d.GetUUIDString()
