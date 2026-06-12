@@ -86,6 +86,7 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(&buf).Encode(&uuid)
 	if (err != nil) {
 		logger.Log("failed to encode JSON")
+		w.Header().Set("Warning", `299 VirtX "failed to encode JSON"`)
 	}
 	httpx.Do_response(w, http.StatusCreated, &buf)
 }
