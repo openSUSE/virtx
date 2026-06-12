@@ -371,6 +371,9 @@ func check_vmreg(host_uuid string, si *SystemInfo) {
 	/* check that all vms in libvirt are registered in vmreg, and in the correct host only */
 	for uuid, _ = range(si.Vms) {
 		uuids, err = vmreg.Hosts()
+		if (err != nil) {
+			logger.Fatal("could not get list of hosts: %s", err.Error())
+		}
 		for _, host = range(uuids) {
 			err = vmreg.Access(host, uuid)
 			if (host == host_uuid) {
