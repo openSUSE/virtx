@@ -45,6 +45,7 @@ func host_list(w http.ResponseWriter, r *http.Request) {
 	host_list = inventory.Search_hosts(o.Filter)
 	err = json.NewEncoder(&buf).Encode(&host_list)
 	if (err != nil) {
+		logger.Log("failed to encode JSON")
 		http.Error(w, "Failed to encode JSON", http.StatusInternalServerError)
 		return
 	}

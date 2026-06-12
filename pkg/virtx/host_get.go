@@ -60,6 +60,7 @@ func host_get(w http.ResponseWriter, r *http.Request) {
 	host = hypervisor.Get_host()
 	err = json.NewEncoder(&buf).Encode(&host)
 	if (err != nil) {
+		logger.Log("failed to encode JSON")
 		http.Error(w, "Failed to encode JSON", http.StatusInternalServerError)
 		return
 	}
