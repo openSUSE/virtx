@@ -34,6 +34,7 @@ import (
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/vmreg"
+	"suse.com/virtx/pkg/machine"
 	"suse.com/virtx/pkg/inventory"
 	"suse.com/virtx/pkg/cloudinit"
 	"suse.com/virtx/pkg/ts"
@@ -59,7 +60,6 @@ type Hypervisor struct {
 	system_info_ch chan SystemInfo
 	system_info_loop_done bool
 
-	uuid string /* the UUID of this host */
 	vcpu_load_factor float64
 	si *SystemInfo
 }
@@ -161,7 +161,7 @@ func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventL
 			return
 		}
 		ve.Runstate = openapi.RUNSTATE_DELETED
-		ve.Host = hv.uuid
+		ve.Host = machine.Uuid()
 		ve.Ts = ts.Now()
 	} else {
 		persistent, err = d.IsPersistent()
@@ -356,12 +356,6 @@ func read_numa_preplace_conf() float64 {
 		}
 	}
 	return factor
-}
-
-func Uuid() string {
-	hv.m.RLock()
-	defer hv.m.RUnlock()
-	return hv.uuid
 }
 
 func check_vmreg(host_uuid string, si *SystemInfo) {

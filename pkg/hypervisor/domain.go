@@ -27,6 +27,7 @@ import (
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/vmreg"
+	"suse.com/virtx/pkg/machine"
 	"suse.com/virtx/pkg/inventory"
 	"suse.com/virtx/pkg/ts"
 )
@@ -109,7 +110,7 @@ func get_domain_info(d *libvirt.Domain) (inventory.VmEvent, string, error) {
 	default:
 		logger.Log("Unhandled state %d, reason %d", state, reason)
 	}
-	ve.Host = hv.uuid
+	ve.Host = machine.Uuid()
 out:
 	return ve, name, err
 }
@@ -135,9 +136,9 @@ func Define_domain(xml string, uuid string) error {
 		return err
 	}
 	/* store the processed XML in /vms/xml/host-uuid/vm-uuid.xml */
-	err = vmreg.Save(hv.uuid, uuid, xml)
+	err = vmreg.Save(machine.Uuid(), uuid, xml)
 	if (err != nil) {
-		logger.Log("Define_domain: failed to vmreg.Save(%s, %s)", hv.uuid, uuid)
+		logger.Log("Define_domain: failed to vmreg.Save(%s, %s)", machine.Uuid(), uuid)
 	}
 	return nil
 }
@@ -522,9 +523,9 @@ func Delete_domain(uuid string) error {
 		return err
 	}
 	/* remove the registered xml file */
-	err = vmreg.Delete(hv.uuid, uuid)
+	err = vmreg.Delete(machine.Uuid(), uuid)
 	if (err != nil) {
-		logger.Log("Delete_domain: failed to vmreg.Delete(%s, %s)", hv.uuid, uuid)
+		logger.Log("Delete_domain: failed to vmreg.Delete(%s, %s)", machine.Uuid(), uuid)
 	}
 	return nil
 }

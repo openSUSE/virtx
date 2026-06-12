@@ -15,14 +15,29 @@
  * along with this program; if not, see
  * <https://www.gnu.org/licenses/>
  */
-package arch
 
-var arch string
+/*
+ * the information stored here is read from libvirt in the first system_info_loop
+ * and should be accessed only after it.
+ */
+package machine
 
-func Get() string {
-	return arch
+type Machine struct {
+	uuid string
+	arch string
 }
 
-func Set(s string) {
-	arch = s
+var m Machine
+
+func Uuid() string {
+	return m.uuid
+}
+func Set_uuid(uuid string) {
+	m.uuid = uuid
+}
+func Arch() string {
+	return m.arch
+}
+func Set_arch(arch string) {
+	m.arch = arch
 }

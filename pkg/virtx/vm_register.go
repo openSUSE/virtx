@@ -21,6 +21,7 @@ import (
 	"net/http"
 
 	"suse.com/virtx/pkg/hypervisor"
+	"suse.com/virtx/pkg/machine"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/vmreg"
@@ -61,7 +62,7 @@ func vm_register(w http.ResponseWriter, r *http.Request) {
 		 * in this case the domain must exist in this libvirt.
 		 * Check if it exists in vmreg, and if not register it from libvirt
 		 */
-		if (vminfo.Host != o.Host || vminfo.Host != hypervisor.Uuid()) {
+		if (vminfo.Host != o.Host || vminfo.Host != machine.Uuid()) {
 			http.Error(w, "invalid host for this VM", http.StatusUnprocessableEntity)
 			return
 		}

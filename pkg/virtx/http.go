@@ -20,14 +20,14 @@ package virtx
 import (
 	"net/http"
 
-	"suse.com/virtx/pkg/hypervisor"
+	"suse.com/virtx/pkg/machine"
 	"suse.com/virtx/pkg/httpx"
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/inventory"
 )
 
 func http_host_is_remote(uuid string) bool {
-	return uuid != "" && uuid != hypervisor.Uuid()
+	return uuid != "" && uuid != machine.Uuid()
 }
 
 func http_do_request(uuid string, method string, path string, arg any) (*http.Response, error) {

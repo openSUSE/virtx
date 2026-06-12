@@ -26,6 +26,7 @@ import (
 
 	"suse.com/virtx/pkg/serfcomm"
 	"suse.com/virtx/pkg/hypervisor"
+	"suse.com/virtx/pkg/machine"
 	"suse.com/virtx/pkg/virtx"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/lockman"
@@ -56,7 +57,7 @@ func main() {
 		logger.Fatal(err.Error())
 	}
 	/* lockman: initialize the lock manager (needs system info to get the hypervisor Uuid()). */
-	err = lockman.Init(hypervisor.Uuid())
+	err = lockman.Init(machine.Uuid())
 	if (err != nil) {
 		logger.Fatal(err.Error())
 	}

@@ -35,7 +35,7 @@ import (
 	"suse.com/virtx/pkg/inventory"
 	"suse.com/virtx/pkg/lockman"
 	"suse.com/virtx/pkg/ts"
-	"suse.com/virtx/pkg/arch"
+	"suse.com/virtx/pkg/machine"
 
 	. "suse.com/virtx/pkg/constants"
 )
@@ -119,7 +119,7 @@ func system_info_loop(seconds int) error {
 		}
 	}
 	hv.m.Lock()
-	check_vmreg(hv.uuid, &si)
+	check_vmreg(machine.Uuid(), &si)
 	hv.m.Unlock()
 
 	set_system_info_loop_done()
@@ -183,8 +183,8 @@ func system_info_get() (SystemInfo, error) {
 			goto out
 		}
 		/***** SET THE HYPERVISOR UUID AND ARCHITECTURE *****/
-		hv.uuid = si.imm.caps.Host.UUID
-		arch.Set(si.imm.caps.Host.CPU.Arch)
+		machine.Set_uuid(si.imm.caps.Host.UUID)
+		machine.Set_arch(si.imm.caps.Host.CPU.Arch)
 		/****************************************************/
 	} else {
 		si.imm = hv.si.imm
@@ -371,7 +371,7 @@ func delete_ghosts(vms SystemInfoVms, ts int64) {
 		present bool
 		err error
 	)
-	idata, err = inventory.Get_hostdata(hv.uuid)
+	idata, err = inventory.Get_hostdata(machine.Uuid())
 	if (err != nil) {
 		return /* host not in inventory yet, ignore */
 	}
@@ -379,7 +379,7 @@ func delete_ghosts(vms SystemInfoVms, ts int64) {
 		_, present = vms[ikey]
 		if (!present) {
 			logger.Log("delete_ghosts: RUNSTATE_DELETED %s", ikey)
-			hv.vm_event_ch <- inventory.VmEvent{ Uuid: ikey, Host: hv.uuid, Runstate: openapi.RUNSTATE_DELETED, Ts: ts }
+			hv.vm_event_ch <- inventory.VmEvent{ Uuid: ikey, Host: machine.Uuid(), Runstate: openapi.RUNSTATE_DELETED, Ts: ts }
 		}
 	}
 }
@@ -695,7 +695,7 @@ func system_info_get_vmstats(si *SystemInfo, uuid string) (openapi.Vmstats, erro
 func system_info_get_host(si *SystemInfo) openapi.Host {
 	/* assert hv.m.Rlock() */
 	return openapi.Host{
-		Uuid: hv.uuid,
+		Uuid: machine.Uuid(),
 		Def: openapi.Hostdef{
 			Name: si.Host.Name,
 			Cpuarch: si.Host.Cpuarch,
