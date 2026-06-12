@@ -118,10 +118,7 @@ func system_info_loop(seconds int) error {
 			return err
 		}
 	}
-	hv.m.Lock()
 	check_vmreg(machine.Uuid(), &si)
-	hv.m.Unlock()
-
 	set_system_info_loop_done()
 
 	/* this first info is missing vm cpu stats and host cpu stats */
