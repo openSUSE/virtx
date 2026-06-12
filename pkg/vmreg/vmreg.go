@@ -88,8 +88,10 @@ func Save(host_uuid string, vm_uuid string, xml string) error {
 	tmp, err = os.CreateTemp(dirname, fmt.Sprintf("%s.tmp-*", vm_uuid))
 	tmpname = tmp.Name()
 	defer func() {
-		tmp.Close()
-		os.Remove(tmpname)
+		if (err != nil) {
+			tmp.Close()
+			os.Remove(tmpname)
+		}
 	}()
 	/* write the data, sync, close, set permissions */
 	_, err = tmp.Write([]byte(xml))
