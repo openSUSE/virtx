@@ -86,6 +86,9 @@ func Save(host_uuid string, vm_uuid string, xml string) error {
 	dirname = filepath.Dir(filename)
 	/* create temporary file */
 	tmp, err = os.CreateTemp(dirname, fmt.Sprintf("%s.tmp-*", vm_uuid))
+	if (err != nil) {
+		return err
+	}
 	tmpname = tmp.Name()
 	defer func() {
 		if (err != nil) {
