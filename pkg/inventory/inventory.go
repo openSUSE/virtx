@@ -195,44 +195,16 @@ func update_vm_state(uuid string, state openapi.Vmrunstate, host string, ts int6
 		logger.Log("Vm %s: ignoring obsolete Vm state information: ts %d > %d",	uuid, vminfo.Ts, ts)
 		return nil
 	}
-	vminfo.Runstate = state
-
-	if (vminfo.Runstate == openapi.RUNSTATE_DELETED) {
-		var host_uuid string = vminfo.Host
-		_, present = inventory.hosts[host_uuid]
-		if (present) {
-			delete(inventory.hosts[host_uuid].Vms, uuid)
-		} else {
-			logger.Log("deleted VM %s in unknown host %s", uuid, host_uuid)
-		}
+	if (state == openapi.RUNSTATE_DELETED) {
+		delete_hostdata_vm(uuid, vminfo.Host, host)
 		delete(inventory.vms, uuid)
 		return nil
 	}
+	update_hostdata_vm(uuid, vminfo.Host, host)
 
-	/* for all other states, check to see if we have to update host */
-	var old_host string = vminfo.Host
-	vminfo.Host = host
-
-	_, present = inventory.hosts[old_host]
-	if (present) {
-		if (old_host != host) {
-			/*
-			 *  we seem to have changed hosts, which normally follows a VmEvent of a resumed migrated domain:
-			 *  (e.Event == libvirt.DOMAIN_EVENT_RESUMED && e.Detail == libvirt.DOMAIN_EVENT_RESUMED_MIGRATED)
-			 */
-			delete(inventory.hosts[old_host].Vms, uuid)
-		}
-	}
-	_, present = inventory.hosts[host]
-	if (present) {
-		if (old_host != host) {
-			/* add the VM to the new host (migration or weird cases of missed events) */
-			inventory.hosts[host].Vms[uuid] = nothing{}
-		}
-	} else {
-		logger.Log("VM %s refers to unknown host %s", vminfo.Uuid, host)
-	}
 	/* update the vms inventory data */
+	vminfo.Host = host
+	vminfo.Runstate = state
 	inventory.vms[uuid] = vminfo
 	return nil
 }
@@ -250,32 +222,53 @@ func update_vm(vminfo *VmInfo) error {
 		present bool
 	)
 	old, present = inventory.vms[vminfo.Uuid]
-	if (present) {
-		if (old.Ts > vminfo.Ts) {
-			logger.Log("Ignoring old guest info: ts %d > %d %s %s",
-				old.Ts, vminfo.Ts, vminfo.Uuid, vminfo.Name,
-			)
-			return nil
-		}
-		/*
-		 * generate an artificial state change event to make sure to update the
-		 * inventory data structures, should we have missed previous events
-		 */
-		update_vm_state(vminfo.Uuid, vminfo.Runstate, vminfo.Host, vminfo.Ts)
-
-	} else { /* not present */
-		var (
-			host_uuid string = vminfo.Host
-			hostdata Hostdata
+	if (present && old.Ts > vminfo.Ts) {
+		logger.Log("Ignoring old guest info: ts %d > %d %s %s",
+			old.Ts, vminfo.Ts, vminfo.Uuid, vminfo.Name,
 		)
-		hostdata, present = inventory.hosts[host_uuid]
-		if (present) {
-			hostdata.Vms[vminfo.Uuid] = nothing{}
-			inventory.hosts[host_uuid] = hostdata
-		} else {
-			logger.Log("new VM %s assigned to unknown host %s", vminfo.Uuid, host_uuid)
-		}
+		return nil
 	}
+	update_hostdata_vm(vminfo.Uuid, old.Host, vminfo.Host)
 	inventory.vms[vminfo.Uuid] = *vminfo
 	return nil
+}
+
+/* update Hostdata Vms, including new entry into hostdata and update for VM migration */
+func update_hostdata_vm(uuid string, old_host string, new_host string) {
+	/* assert inventory.m.Lock() */
+	_, present := inventory.hosts[old_host]
+	if (present && old_host != new_host) {
+		/*
+		 *  we seem to have changed hosts, which normally follows a VmEvent of a resumed migrated domain:
+		 *  (e.Event == libvirt.DOMAIN_EVENT_RESUMED && e.Detail == libvirt.DOMAIN_EVENT_RESUMED_MIGRATED)
+		 */
+		delete(inventory.hosts[old_host].Vms, uuid)
+	}
+	_, present = inventory.hosts[new_host]
+	if (present) {
+		/* add the VM to the new host */
+		inventory.hosts[new_host].Vms[uuid] = nothing{}
+	} else {
+		logger.Log("VM %s refers to unknown host %s", uuid, new_host)
+	}
+}
+
+func delete_hostdata_vm(uuid string, old_host string, new_host string) {
+	/* assert inventory.m.Lock() */
+	_, present := inventory.hosts[old_host]
+	if (present) {
+		delete(inventory.hosts[old_host].Vms, uuid)
+	} else {
+		logger.Log("deleted VM %s in unknown old host %s", uuid, old_host)
+	}
+	if (old_host == new_host) {
+		return /* most usual scenario */
+	}
+	/* weird case of a VM being deleted after migrating to a new host */
+	_, present = inventory.hosts[new_host]
+	if (present) {
+		delete(inventory.hosts[new_host].Vms, uuid)
+	} else {
+		logger.Log("deleted VM %s in unknown new host %s", uuid, new_host)
+	}
 }
