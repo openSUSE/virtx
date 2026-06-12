@@ -115,9 +115,9 @@ func Save(host_uuid string, vm_uuid string, xml string) error {
 	if (err != nil) {
 		return err
 	}
-	err = reg_syncdir(dirname)
-	if (err != nil) {
-		return err
+	serr := reg_syncdir(dirname)
+	if (serr != nil) {
+		return serr
 	}
 	return nil
 }
