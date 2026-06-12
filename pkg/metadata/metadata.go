@@ -59,9 +59,6 @@ func (vm *Vm) From_xml(xmlstr string, fields *[]openapi.CustomField) error {
 	if (err != nil) {
 		return err
 	}
-	if (err != nil) {
-		return err
-	}
 	for _, field := range vm.Fields {
 		*fields = append(*fields, openapi.CustomField{
 			Name: field.Name,
