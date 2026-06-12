@@ -89,7 +89,7 @@ func init() {
 
 func Get_hostdata(uuid string) (Hostdata, error) {
 	inventory.m.RLock()
-    defer inventory.m.RUnlock()
+	defer inventory.m.RUnlock()
 	var (
 		present bool
 		hostdata Hostdata
