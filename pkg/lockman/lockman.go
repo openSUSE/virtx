@@ -525,9 +525,9 @@ func Read_lvb(resource_path string) (string, error) {
 	}
 	/* strip zeroes from string */
 	i := bytes.IndexByte(buf[:], 0)
-    if (i < 0) {
-        uuid = string(buf[:])
-    } else {
+	if (i < 0) {
+		uuid = string(buf[:])
+	} else {
 		uuid = string(buf[:i])
 	}
 	return uuid, nil
