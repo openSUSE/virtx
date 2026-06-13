@@ -386,6 +386,7 @@ func delete_ghosts(vms SystemInfoVms, ts int64) {
  * and is reused for all subsequent system_info_get calls
  */
 func system_info_get_immutable(imm *SystemInfoImm) error {
+	/* assert hv.m.RLock() or hv.m.Lock() */
 	var (
 		data string
 		smbios xmlSysInfo
