@@ -438,7 +438,12 @@ func system_info_get_immutable(imm *SystemInfoImm) error {
 	imm.hp_total = hp_total * imm.hp_size
 	imm.os_id, imm.os_version = get_os_version()
 
-	/* now deal with calculating the node Max CPU Frequency. Failures are not fatal. */
+	if (imm.caps.Host.CPU.Counter != nil) {
+		/* TSC frequency is in Hz */
+		imm.info.MHz = uint(imm.caps.Host.CPU.Counter.Frequency / 1000000)
+		return nil
+	}
+	/* If there is no TSC, use the node Max CPU Frequency. Failures are not fatal. */
 	defer func() {
 		if (err != nil) {
 			/* emit warning, we will not override libvirt MHz */
