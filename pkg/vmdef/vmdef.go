@@ -216,7 +216,6 @@ func Disk_to_xml(disk *openapi.Disk, disk_count map[string]int, iothread_count *
 		device_prefix = "sd"
 		ctrl_type = "scsi"
 		ctrl_model = "lsilogic"
-		device_prefix = "sd"
 	case openapi.BUS_VIRTIO_SCSI:
 		device_prefix = "sd"
 		ctrl_type = "scsi"
