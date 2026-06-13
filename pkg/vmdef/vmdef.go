@@ -195,7 +195,7 @@ func Validate(vmdef *openapi.Vmdef) error {
 			return errors.New("invalid Custom Field")
 		}
 	}
-	return err
+	return nil
 }
 
 func Disk_to_xml(disk *openapi.Disk, disk_count map[string]int, iothread_count *uint,
