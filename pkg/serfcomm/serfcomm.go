@@ -69,7 +69,7 @@ func update_tags(hostinfo *inventory.HostInfo) error {
 	if (serf.c == nil) {
 		return errors.New("RPC client closed")
 	}
-	addTags := map[string]string { hostinfo.Uuid: "" }
+	addTags := map[string]string { "uuid": hostinfo.Uuid }
 	removeTags := []string {}
 	return serf.c.UpdateTags(addTags, removeTags)
 }
@@ -157,17 +157,21 @@ func recv_serf_events() {
 func handle_member_change(e map[string]any, newstate openapi.Cstate) {
 	var (
 		err error
+		uuid string
 		name string = e["Event"].(string)
 	)
 	for _, m := range e["Members"].([]any) {
 		tags := m.(map[any]any)["Tags"].(map[any]any)
-		for tag := range tags {
-			var uuid string = tag.(string)
-			logger.Debug("%s %s", name, uuid)
-			err = inventory.Set_host_state(uuid, newstate)
-			if (err != nil) {
-				logger.Log(err.Error())
-			}
+		tag, ok := tags["uuid"]
+		if (!ok) {
+			logger.Log("handle_member_change: %s: uuid tag missing", name)
+			continue
+		}
+		uuid = tag.(string)
+		logger.Debug("%s %s", name, uuid)
+		err = inventory.Set_host_state(uuid, newstate)
+		if (err != nil) {
+			logger.Log(err.Error())
 		}
 	}
 }
