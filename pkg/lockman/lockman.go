@@ -658,7 +658,7 @@ func Get_resource_path(resource_name string) string {
 }
 
 func Lockid() int16 {
-	lm.m.Lock()
-	defer lm.m.Unlock()
+	lm.m.RLock()
+	defer lm.m.RUnlock()
 	return int16(lm.host_id)
 }
