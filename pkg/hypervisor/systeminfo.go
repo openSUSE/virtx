@@ -170,7 +170,7 @@ func system_info_get() (SystemInfo, error) {
 		/* total_hp_used is not needed, because all backing pages are "in use" */
 
 		total_vcpus_mhz uint32
-		total_cpus_used_percent int32
+		total_vcpus_mhz_used int32
 		cpustats *libvirt.NodeCPUStats
 	)
 
@@ -253,8 +253,8 @@ func system_info_get() (SystemInfo, error) {
 		 * The total memory used on the host will be HP capacity + memory used.
 		 */
 		total_memory_used += uint64(vm.stats.MemoryUsed)
-		total_vcpus_mhz += uint32(vm.Vcpus) * uint32(info.MHz) /* equal to Topology Sockets * Cores, since we do not use threads */
-		total_cpus_used_percent += vm.stats.CpuUtilization
+		total_vcpus_mhz += uint32(vm.Vcpus) * uint32(info.MHz)
+		total_vcpus_mhz_used += vm.stats.MhzUsed
 		vms[vm.Uuid] = vm
 	}
 	/* now calculate host resources */
@@ -309,32 +309,25 @@ func system_info_get() (SystemInfo, error) {
 
 	/* some of the data we can only calculate as comparison from the previous measurement */
 	if (hv.si != nil) {
-		interval := float64(si.Host.Ts - hv.si.Host.Ts)
-		if (interval <= 0.0) {
+		var interval int64 = si.Host.Ts - hv.si.Host.Ts
+		if (interval <= 0) {
 			logger.Log("system_info_get: host timestamps not in order?")
 		} else {
-			var delta float64
+			var delta uint64
 			/* idle counters are completely unreliable, behavior depends on hw cpu vendor, model etc */
 			//delta = float64(Counter_delta_uint64(si.cpu_idle_ns, old.cpu_idle_ns))
 			//res.Cpu.Free = int32(delta / (interval * 1000000) * float64(info.MHz) / float64(info.Threads))
-			delta = float64(Counter_delta_uint64(si.cpu_kernel_ns, hv.si.cpu_kernel_ns))
-			logger.Debug("gsi: cpu_kernel_ns delta = %f", delta)
-			res.Cpu.Used = int32(delta / (interval * 1000000) * float64(info.MHz))
-
-			delta = float64(Counter_delta_uint64(si.cpu_iowait_ns, hv.si.cpu_iowait_ns))
-			logger.Debug("gsi: cpu_iowait_ns delta = %f", delta)
-			res.Cpu.Used += int32(delta / (interval * 1000000) * float64(info.MHz))
-
-			delta = float64(Counter_delta_uint64(si.cpu_user_ns, hv.si.cpu_user_ns))
-			logger.Debug("gsi: cpu_user_ns delta = %f", delta)
-			res.Cpu.Used += int32(delta / (interval * 1000000) * float64(info.MHz))
+			delta = Counter_delta_uint64(si.cpu_kernel_ns, hv.si.cpu_kernel_ns)
+			delta += Counter_delta_uint64(si.cpu_iowait_ns, hv.si.cpu_iowait_ns)
+			delta += Counter_delta_uint64(si.cpu_user_ns, hv.si.cpu_user_ns)
+			res.Cpu.Used = int32(delta / uint64(interval * 1000000) * uint64(info.MHz))
 
 			logger.Debug("gsi: Cpu.Used = %d", res.Cpu.Used)
 
 			res.Cpu.Free = res.Cpu.Total - res.Cpu.Used
 			logger.Debug("gsi: Cpu.Free = %d", res.Cpu.Free)
 
-			res.Cpu.Usedvms = total_cpus_used_percent * int32(info.MHz) / 100
+			res.Cpu.Usedvms = total_vcpus_mhz_used
 			logger.Debug("gsi: Cpu.Usedvms = %d", res.Cpu.Usedvms)
 
 			res.Cpu.Usedos = res.Cpu.Used - res.Cpu.Usedvms
@@ -652,7 +645,7 @@ func get_domain_stats(d *libvirt.Domain, vm *SystemInfoVm, old *SystemInfoVm, im
 			vm.stats.CpuUtilization = int32((udelta * 100) / (uint64(vm.Ts - old.Ts) * 1000000))
 		}
 		logger.Debug("gds: CpuUtilization = %d", vm.stats.CpuUtilization)
-		vm.stats.MhzUsed = vm.stats.CpuUtilization * int32(imm.info.MHz) / 100
+		vm.stats.MhzUsed = int32(udelta / (uint64(vm.Ts - old.Ts) * 1000000) * uint64(imm.info.MHz))
 
 		var delta int64 = Counter_delta_int64(vm.net_rx, old.net_rx)
 		logger.Debug("gds: net_rx delta = %d", delta)
