@@ -313,14 +313,14 @@ func system_info_get() (SystemInfo, error) {
 		if (interval <= 0) {
 			logger.Log("system_info_get: host timestamps not in order?")
 		} else {
-			var delta uint64
+			var udelta uint64
 			/* idle counters are completely unreliable, behavior depends on hw cpu vendor, model etc */
 			//delta = float64(Counter_delta_uint64(si.cpu_idle_ns, old.cpu_idle_ns))
 			//res.Cpu.Free = int32(delta / (interval * 1000000) * float64(info.MHz) / float64(info.Threads))
-			delta = Counter_delta_uint64(si.cpu_kernel_ns, hv.si.cpu_kernel_ns)
-			delta += Counter_delta_uint64(si.cpu_iowait_ns, hv.si.cpu_iowait_ns)
-			delta += Counter_delta_uint64(si.cpu_user_ns, hv.si.cpu_user_ns)
-			res.Cpu.Used = int32(delta / uint64(interval * 1000000) * uint64(info.MHz))
+			udelta = Counter_delta_uint64(si.cpu_kernel_ns, hv.si.cpu_kernel_ns)
+			udelta += Counter_delta_uint64(si.cpu_iowait_ns, hv.si.cpu_iowait_ns)
+			udelta += Counter_delta_uint64(si.cpu_user_ns, hv.si.cpu_user_ns)
+			res.Cpu.Used = int32(udelta * uint64(info.MHz) / uint64(interval * 1000000))
 
 			logger.Debug("gsi: Cpu.Used = %d", res.Cpu.Used)
 
@@ -638,28 +638,29 @@ func get_domain_stats(d *libvirt.Domain, vm *SystemInfoVm, old *SystemInfoVm, im
 	}
 	if (old != nil) {
 		/* finally, calculate deltas from previous Vm cpu and net stats */
+		var interval int64 = vm.Ts - old.Ts
 		var udelta uint64 = Counter_delta_uint64(vm.cpu_time, old.cpu_time)
-		logger.Debug("gds: udelta = %d, (vm.Ts - old.Ts) = %d, Vcpus = %d", udelta, (vm.Ts - old.Ts), vm.Vcpus)
+		logger.Debug("gds: udelta = %d, interval = %d, Vcpus = %d", udelta, interval, vm.Vcpus)
 
-		if (udelta > 0 && (vm.Ts - old.Ts) > 0 && vm.Vcpus > 0) {
-			vm.stats.CpuUtilization = int32((udelta * 100) / (uint64(vm.Ts - old.Ts) * 1000000))
+		if (udelta > 0 && interval > 0 && vm.Vcpus > 0) {
+			vm.stats.CpuUtilization = int32((udelta * 100) / uint64(interval * 1000000))
 		}
 		logger.Debug("gds: CpuUtilization = %d", vm.stats.CpuUtilization)
-		vm.stats.MhzUsed = int32(udelta / (uint64(vm.Ts - old.Ts) * 1000000) * uint64(imm.info.MHz))
+		vm.stats.MhzUsed = int32(udelta * uint64(imm.info.MHz) / uint64(interval * 1000000))
 
 		var delta int64 = Counter_delta_int64(vm.net_rx, old.net_rx)
 		logger.Debug("gds: net_rx delta = %d", delta)
 
-		if (delta > 0 && (vm.Ts - old.Ts) > 0) {
-			vm.stats.NetRxBw = int32((delta * 1000) / ((vm.Ts - old.Ts) * KiB))
+		if (delta > 0 && interval > 0) {
+			vm.stats.NetRxBw = int32((delta * 1000) / (interval * KiB))
 		}
 		logger.Debug("gds: NetRxBw = %d", vm.stats.NetRxBw)
 
 		delta = Counter_delta_int64(vm.net_tx, old.net_tx)
 		logger.Debug("gds: net_tx delta = %d", delta)
 
-		if (delta > 0 && (vm.Ts - old.Ts) > 0) {
-			vm.stats.NetTxBw = int32((delta * 1000) / ((vm.Ts - old.Ts) * KiB))
+		if (delta > 0 && interval > 0) {
+			vm.stats.NetTxBw = int32((delta * 1000) / (interval * KiB))
 		}
 		logger.Debug("gds: NetTxBw = %d", vm.stats.NetTxBw)
 	}
