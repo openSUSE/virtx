@@ -19,6 +19,7 @@ package storage
 
 import (
 	"errors"
+	"os"
 
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/lockman"
@@ -85,6 +86,39 @@ func Create(vm *openapi.Vmdef, old *openapi.Vmdef, uuid string) (CreatedResource
 		}
 	}
 	return created, nil
+}
+
+/*
+ * Check all the storage that is in the vm definition, to ensure paths are accessible and resources exist
+ * If resources do not exist (for example, removed by sysadmin), create new resource files.
+ * We do not do any Rollback() on resources created via Check().
+ */
+func Check(vm *openapi.Vmdef, uuid string) error {
+	var (
+		err error
+		resource_name string
+	)
+	for _, disk := range vmdef.Disks(vm) {
+		if (storage_is_managed_disk(disk)) {
+			resource_name = lockman.Get_resource_name(disk.Device, disk.Path)
+			err = lockman.Check_resource(resource_name, uuid)
+			if (err != nil) {
+				if (errors.Is(err, os.ErrNotExist)) {
+					err = lockman.Create_resource(resource_name, uuid)
+					if (err != nil) {
+						return err
+					}
+				} else {
+					return err
+				}
+			}
+		}
+		err = Detect(disk)
+		if (err != nil) {
+			return err
+		}
+	}
+	return nil
 }
 
 /*
