@@ -88,9 +88,7 @@ type SystemInfo struct {
 	Vms SystemInfoVms /* set of VmInfo to transmit plus internal data not for transmission */
 
 	/* overall internal counters for host stats */
-	cpu_idle_ns uint64
 	cpu_kernel_ns uint64
-	cpu_iowait_ns uint64
 	cpu_user_ns uint64
 }
 
@@ -302,10 +300,8 @@ func system_info_get() (SystemInfo, error) {
 	/* CPU */
 	res.Cpu.Total = int32(uint(info.Nodes * info.Sockets * info.Cores * info.Threads) * info.MHz)
 	res.Cpu.Reservedvms = int32((float64(total_vcpus_mhz) / 100.0) * hv.vcpu_load_factor)
-	si.cpu_idle_ns = cpustats.Idle
 	si.cpu_kernel_ns = cpustats.Kernel
-	si.cpu_iowait_ns = cpustats.Iowait
-	si.cpu_user_ns = cpustats.User /* unfortunately this includes guest time */
+	si.cpu_user_ns = cpustats.User
 
 	/* some of the data we can only calculate as comparison from the previous measurement */
 	if (hv.si != nil) {
@@ -314,14 +310,14 @@ func system_info_get() (SystemInfo, error) {
 			logger.Log("system_info_get: host timestamps not in order?")
 		} else {
 			var udelta uint64
-			/* idle counters are completely unreliable, behavior depends on hw cpu vendor, model etc */
-			//delta = float64(Counter_delta_uint64(si.cpu_idle_ns, old.cpu_idle_ns))
-			//res.Cpu.Free = int32(delta / (interval * 1000000) * float64(info.MHz) / float64(info.Threads))
+			/*
+			 * we sum up only libvirt "kernel" (system + irq + softirq) and "user" (usr + nice)
+			 * "iowait" we consider as Free CPU.
+			 * "guest" (guest + guest_nice) is already included in "user".
+			 */
 			udelta = Counter_delta_uint64(si.cpu_kernel_ns, hv.si.cpu_kernel_ns)
-			udelta += Counter_delta_uint64(si.cpu_iowait_ns, hv.si.cpu_iowait_ns)
 			udelta += Counter_delta_uint64(si.cpu_user_ns, hv.si.cpu_user_ns)
 			res.Cpu.Used = int32(udelta * uint64(info.MHz) / uint64(interval * 1000000))
-
 			logger.Debug("gsi: Cpu.Used = %d", res.Cpu.Used)
 
 			res.Cpu.Free = res.Cpu.Total - res.Cpu.Used
