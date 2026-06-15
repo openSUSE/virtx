@@ -689,6 +689,15 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 				},
 			},
 		},
+		Inputs: []libvirtxml.DomainInput{
+			{
+				Type: "keyboard",
+				Bus: "virtio",
+			}, {
+				Type: "tablet",
+				Bus: "virtio",
+			},
+		},
 		Graphics: []libvirtxml.DomainGraphic{
 			{
 				VNC: &libvirtxml.DomainGraphicVNC{
