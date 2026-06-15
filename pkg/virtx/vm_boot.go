@@ -23,14 +23,17 @@ import (
 	"suse.com/virtx/pkg/httpx"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/inventory"
+	"suse.com/virtx/pkg/storage"
+	"suse.com/virtx/pkg/vmdef"
 	"suse.com/virtx/pkg/model"
 )
 
 func vm_boot(w http.ResponseWriter, r *http.Request) {
 	var (
 		err error
-		uuid string
+		uuid, xml string
 		vminfo inventory.VmInfo
+		vm openapi.Vmdef
 		vr httpx.Request
 		o openapi.VmBootOptions
 	)
@@ -52,6 +55,24 @@ func vm_boot(w http.ResponseWriter, r *http.Request) {
 	}
 	if (http_host_is_remote(vminfo.Host)) {
 		http_proxy_request(vminfo.Host, w, vr)
+		return
+	}
+	xml, err = hypervisor.Dumpxml(uuid)
+	if (err != nil) {
+		logger.Log("hypervisor.Dumpxml failed: %s", err.Error())
+		http.Error(w, "could not get VM", http.StatusFailedDependency)
+		return
+	}
+	err = vmdef.From_xml(&vm, xml)
+	if (err != nil) {
+		logger.Log("vmdef.From_xml failed: %s", err.Error())
+		http.Error(w, "invalid VM data", http.StatusInternalServerError)
+		return
+	}
+	err = storage.Check(&vm, uuid)
+	if (err != nil) {
+		logger.Log("storage.Check failed: %s", err.Error())
+		http.Error(w, "storage check failed", http.StatusInsufficientStorage)
 		return
 	}
 	err = hypervisor.Boot_domain(uuid, &o)
