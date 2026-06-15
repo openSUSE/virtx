@@ -425,6 +425,31 @@ func Create_resource(resource_name string, uuid string) error {
 	return nil
 }
 
+func Check_resource(resource_name string, uuid string) error {
+	var (
+		err error
+		resource_path, lvb string
+	)
+	resource_path = Get_resource_path(resource_name)
+	_, err = os.Stat(resource_path)
+	if (err != nil) {
+		if (errors.Is(err, os.ErrNotExist)) {
+			return err
+		} else {
+			return fmt.Errorf("could not Stat: %s", err.Error())
+		}
+	}
+	lvb, err = Read_lvb(resource_path)
+	if (err != nil) {
+		return fmt.Errorf("failed to Read LVB: %s", err.Error())
+	}
+	if (lvb != uuid) {
+		return fmt.Errorf("LVB %s does not match vm %s", lvb, uuid)
+	}
+	/* Ok, the path exists, and ownership is ok */
+	return nil
+}
+
 /*
  * Delete the resource lock file and directory while holding the lease.
  */
