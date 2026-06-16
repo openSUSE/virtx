@@ -201,7 +201,10 @@ func Proxy_request(api_server string, w http.ResponseWriter, vr Request) {
 		}
 	}
 	w.WriteHeader(resp.StatusCode)
-	io.Copy(w, resp.Body)
+	_, err = io.Copy(w, resp.Body)
+	if (err != nil) {
+		logger.Log("proxy_request failed during io.Copy: %s", err.Error())
+	}
 }
 
 func Do_response(w http.ResponseWriter, http_status int, buf *bytes.Buffer) {
