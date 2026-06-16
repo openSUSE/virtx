@@ -453,3 +453,18 @@ func Test_validate_custom_field(t *testing.T) {
 		t.Error("non-alnum custom field name: expected error")
 	}
 }
+
+func Test_validate_net_invalid_model(t *testing.T) {
+	vm := valid_vmdef()
+	vm.Nets = []openapi.Net{
+		{
+			Name:    "br0",
+			Nettype: openapi.NET_BRIDGE,
+			Model:   openapi.NetModel(99),
+		},
+	}
+	err := Validate(&vm)
+	if (err == nil) {
+		t.Error("invalid net model (99): expected error")
+	}
+}
