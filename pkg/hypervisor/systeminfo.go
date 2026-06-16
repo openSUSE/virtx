@@ -482,6 +482,9 @@ func get_meminfo(key string) (uint64, error) {
 	for scanner.Scan() {
 		line := scanner.Text()
 		fields := strings.Fields(line)
+		if (len(fields) < 2) {
+			continue
+		}
 		if (fields[0] == key + ":") {
 			return strconv.ParseUint(fields[1], 10, 64)
 		}
