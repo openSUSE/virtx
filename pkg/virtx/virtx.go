@@ -60,6 +60,8 @@ func Init() {
 	servemux.HandleFunc("GET /vms/{uuid}/runstate/migrate", vm_migrate_get)
 	servemux.HandleFunc("DELETE /vms/{uuid}/runstate/migrate", vm_migrate_abort)
 	servemux.HandleFunc("PUT /vms/{uuid}/register", vm_register)
+	servemux.HandleFunc("GET /vms/{uuid}/console/vnc", vm_console_vnc)
+	servemux.HandleFunc("GET /vms/{uuid}/console/serial", vm_console_serial)
 
 	servemux.HandleFunc("GET /hosts", host_list)
 	servemux.HandleFunc("GET /hosts/{uuid}", host_get)
