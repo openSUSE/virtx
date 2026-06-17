@@ -53,6 +53,7 @@ type VirtxClient struct {
 	stat_mem bool               // show host/VM stats on mem
 	debug bool                  // verbose client output
 	live bool                   // live migration
+	console_port int            // local port for VNC console (0 = OS-assigned)
 
 	/* args */
 	host_list_options openapi.HostListOptions

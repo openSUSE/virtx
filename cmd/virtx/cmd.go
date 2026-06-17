@@ -394,6 +394,42 @@ func init() {
 	cmd_abort_migrate.AddCommand(cmd_abort_migrate_vm)
 	cmd.AddCommand(cmd_register)
 	cmd_register.AddCommand(cmd_register_vm)
+
+	var cmd_console = &cobra.Command{
+		Use:   "console",
+		Short: "Connect to a serial console",
+	}
+	var cmd_console_vm = &cobra.Command{
+		Use:   "vm UUID",
+		Short: "Connect to the serial console of a VM",
+		Long:  "Attach stdin/stdout to the VM serial console. Press Ctrl-] to exit.",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			if (!virtx.ok) {
+				vm_console_serial_req(args[0])
+			}
+		},
+	}
+	var cmd_display = &cobra.Command{
+		Use:   "display",
+		Short: "Connect to a graphical display",
+	}
+	var cmd_display_vm = &cobra.Command{
+		Use:   "vm UUID",
+		Short: "Connect to the graphical display of a VM",
+		Long:  "Open a local TCP port and connect it to the VM graphical display. Use vncviewer to connect to the printed address.",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			if (!virtx.ok) {
+				vm_console_vnc_req(args[0], virtx.console_port)
+			}
+		},
+	}
+	cmd_display_vm.Flags().IntVarP(&virtx.console_port, "port", "p", 0, "local port for vncviewer (0 = OS-assigned)")
+	cmd.AddCommand(cmd_console)
+	cmd_console.AddCommand(cmd_console_vm)
+	cmd.AddCommand(cmd_display)
+	cmd_display.AddCommand(cmd_display_vm)
 }
 
 func cmd_exec() error {
