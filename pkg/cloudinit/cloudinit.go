@@ -42,6 +42,8 @@ import (
 	"suse.com/virtx/pkg/storage"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/lockman"
+	"suse.com/virtx/pkg/paths"
+
 	. "suse.com/virtx/pkg/constants"
 )
 
@@ -126,10 +128,10 @@ func build_iso(iso_path string, stage_files []string) error {
 	}
 	args = append(args, stage_files...)
 
-	cmd := exec.Command("/usr/bin/xorrisofs", args...)
+	cmd := exec.Command(paths.Get("XORRISOFS"), args...)
 	out, err := cmd.CombinedOutput()
 	if (err != nil) {
-		return fmt.Errorf("/usr/bin/xorrisofs failed: %w\n%s",
+		return fmt.Errorf("%s failed: %w\n%s", paths.Get("XORRISOFS"),
 			err, strings.TrimSpace(string(out)))
 	}
 	return nil

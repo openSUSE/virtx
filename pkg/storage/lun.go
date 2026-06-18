@@ -31,6 +31,8 @@ import (
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/vmdef"
 	"suse.com/virtx/pkg/lockman"
+	"suse.com/virtx/pkg/paths"
+
 	. "suse.com/virtx/pkg/constants"
 )
 
@@ -47,7 +49,7 @@ func lun_wipe(path string, resource_name string, uuid string, delete bool) error
 	)
 	resource_path = lockman.Get_resource_path(resource_name)
 	args := [][]string{
-		{ "/usr/sbin/wipefs", "-a", path },
+		{ paths.Get("WIPEFS"), "-a", path },
 	}
 	/* check if device supports blkdiscard, and if so add blkdiscard to the commands, else dd */
 	dev, err = filepath.EvalSymlinks(path)
@@ -65,7 +67,7 @@ func lun_wipe(path string, resource_name string, uuid string, delete bool) error
 		return fmt.Errorf("failed to parse %s: %w", discard_path, err)
 	}
 	if (i > 0) {
-		args = append(args, []string{ "/usr/sbin/blkdiscard", path })
+		args = append(args, []string{ paths.Get("BLKDISCARD"), path })
 	} else {
 		args = append(args, []string{ "/usr/bin/dd", "if=/dev/zero", "of=" + path, "bs=1M", "count=1" })
 	}

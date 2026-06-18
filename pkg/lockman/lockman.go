@@ -37,13 +37,13 @@ import (
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/vmreg"
+	"suse.com/virtx/pkg/paths"
 
 	. "suse.com/virtx/pkg/constants"
 )
 
 const (
 	LOCK_SPACE_FILE = LOCK_DIR + LOCK_SPACE
-	SANLOCK = "/usr/sbin/sanlock"
 	LOCK_JOIN_RETRIES = 10
 	LOCK_INQ_RETRIES = 10
 	HOST_ID_MAX = 2000 /* 1..2000 are valid */
@@ -222,7 +222,7 @@ func lm_init_lockspace(path string) error {
 	args = []string{ "client", "init", "-s", sanlock_path }
 	logger.Debug("sanlock %v", args)
 
-	cmd = exec.Command(SANLOCK, args...)
+	cmd = exec.Command(paths.Get("SANLOCK"), args...)
 	output, err = cmd.CombinedOutput()
 	if (err != nil) {
 		logger.Log("%s\n", string(output))
@@ -246,7 +246,7 @@ func lm_join_lockspace(host_id uint16) int {
 	sanlock_path = fmt.Sprintf("%s:%d:%s:%d", LOCK_SPACE, host_id, LOCK_SPACE_FILE, 0)
 	args = []string{ "client", "add_lockspace", "-s", sanlock_path }
 	logger.Debug("sanlock %v", args)
-	cmd = exec.Command(SANLOCK, args...)
+	cmd = exec.Command(paths.Get("SANLOCK"), args...)
 	output, err = cmd.CombinedOutput()
 	if (err == nil) {
 		return 0
@@ -281,7 +281,7 @@ func lm_search_join_lockspace(host_uuid string) (uint16, error) {
 	sanlock_path = fmt.Sprintf("%s:%d:%s:%d", LOCK_SPACE, 0, LOCK_SPACE_FILE, 0)
 	args = []string{ "client", "host_status", "-s", sanlock_path }
 	logger.Debug("sanlock %v", args)
-	cmd = exec.Command(SANLOCK, args...)
+	cmd = exec.Command(paths.Get("SANLOCK"), args...)
 	output, err = cmd.CombinedOutput()
 	if (err != nil && len(output) != 0) { /* sanlock exits with error if there are no hosts in the list */
 		return 0, err
@@ -331,7 +331,7 @@ func lm_inq_lockspace() (uint16, error) {
 	)
 	args = []string{ "client", "gets" }
 	logger.Debug("sanlock %v", args)
-	cmd = exec.Command(SANLOCK, args...)
+	cmd = exec.Command(paths.Get("SANLOCK"), args...)
 	output, err = cmd.CombinedOutput()
 	if (err != nil) {
 		logger.Log("%s\n", string(output))
@@ -359,7 +359,7 @@ func lm_leave_lockspace() error {
 	sanlock_path = fmt.Sprintf("%s:%d:%s:%d", LOCK_SPACE, lm.host_id, LOCK_SPACE_FILE, 0)
 	args = []string{ "client", "rem_lockspace", "-s", sanlock_path }
 	logger.Debug("sanlock %v", args)
-	cmd = exec.Command(SANLOCK, args...)
+	cmd = exec.Command(paths.Get("SANLOCK"), args...)
 	output, err = cmd.CombinedOutput()
 	if (err != nil) {
 		logger.Log("%s\n", string(output))
@@ -583,7 +583,7 @@ func lm_init_resource_file(resource_path string, resource_name string, uuid stri
 	args = []string{ "client", "init", "-r", sanlock_path }
 	logger.Debug("sanlock %v", args)
 
-	cmd = exec.Command(SANLOCK, args...)
+	cmd = exec.Command(paths.Get("SANLOCK"), args...)
 	output, err = cmd.CombinedOutput()
 	if (err != nil) {
 		logger.Log("%s\n", string(output))
@@ -608,7 +608,7 @@ func Run(resource_name string, uuid string, args [][]string, no_disk bool) error
 	 */
 	sanlock_args = []string{
 		"client", "spawn", "-P" , "1", "-r", sanlock_path,
-		"-c", "3", "/usr/sbin/virtx-check-lvb", resource_path, uuid,
+		"-c", "3", paths.Get("VIRTX_CHECK_LVB"), resource_path, uuid,
 	}
 	for _, cmd := range args {
 		sanlock_args = append(sanlock_args, "-c", strconv.Itoa(len(cmd)))
@@ -619,7 +619,7 @@ func Run(resource_name string, uuid string, args [][]string, no_disk bool) error
 	}
 	logger.Debug("sanlock %v", sanlock_args)
 
-	cmd = exec.Command(SANLOCK, sanlock_args...)
+	cmd = exec.Command(paths.Get("SANLOCK"), sanlock_args...)
 	output, err = cmd.CombinedOutput()
 	if (err != nil) {
 		logger.Log("%s\n", string(output))

@@ -31,6 +31,8 @@ import (
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/vmdef"
 	"suse.com/virtx/pkg/lockman"
+	"suse.com/virtx/pkg/paths"
+
 	. "suse.com/virtx/pkg/constants"
 )
 
@@ -60,7 +62,7 @@ func vdisk_create(disk *openapi.Disk, resource_name string, uuid string) error {
 			return "falloc"
 		}
 	}()
-	args := []string{ "/usr/bin/qemu-img", "create", "-f", disk_driver, "-o", "preallocation=" + prealloc }
+	args := []string{ paths.Get("QEMU_IMG"), "create", "-f", disk_driver, "-o", "preallocation=" + prealloc }
 	if (disk_driver == "qcow2") {
 		args = append(args, "-o", "lazy_refcounts=off")
 	}
@@ -148,7 +150,7 @@ func vdisk_detect_qcow2_prov(path string) (openapi.DiskProvMode, int32, error) {
 	)
 	args := []string { "map", "--output=json", path }
 	logger.Debug("qemu-img %v", args)
-	var cmd *exec.Cmd = exec.Command("/usr/bin/qemu-img", args...)
+	var cmd *exec.Cmd = exec.Command(paths.Get("QEMU_IMG"), args...)
 	var output []byte
 	output, err = cmd.CombinedOutput()
 	if (err != nil) {
