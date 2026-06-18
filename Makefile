@@ -1,16 +1,10 @@
 .PHONY: all clean check build-tests
 
-PREFIX  ?= /usr
-SBINDIR ?= $(PREFIX)/sbin
+all: virtxd virtx virtx-check-lvb
 
 PKG_SRC=$(shell find pkg/ -name "*.go")
 VERSION=$(shell git describe --tags --always --dirty)
-LDFLAGS := \
-    -X main.version=$(VERSION) \
-    -X 'suse.com/virtx/pkg/constants.VIRTX_CHECK_LVB=$(SBINDIR)/virtx-check-lvb'
-GO_BUILD=go build -gcflags="-N -l -m" -ldflags "$(LDFLAGS)"
-
-all: virtxd virtx virtx-check-lvb
+GO_BUILD=go build -gcflags="-N -l -m" -ldflags "-X main.version=$(VERSION)"
 
 virtxd: $(PKG_SRC) ./cmd/virtxd
 	$(GO_BUILD) -o $@ ./cmd/virtxd
