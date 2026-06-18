@@ -46,3 +46,20 @@ func http_proxy_request(uuid string, w http.ResponseWriter, vr httpx.Request) {
 	}
 	httpx.Proxy_request(hostinfo.Name, w, vr)
 }
+
+func http_proxy_console(host_uuid string, vm_uuid string, console_type string, w http.ResponseWriter, r *http.Request) {
+	var (
+		hostinfo inventory.HostInfo
+		err error
+	)
+	hostinfo, err = inventory.Get_hostinfo(host_uuid)
+	if (err != nil) {
+		http.Error(w, "unknown host", http.StatusServiceUnavailable)
+		return
+	}
+	if (hostinfo.Cstate != openapi.CSTATE_ACTIVE) {
+		http.Error(w, "inactive host", http.StatusServiceUnavailable)
+		return
+	}
+	httpx.Proxy_console(hostinfo.Name, vm_uuid, console_type, w, r)
+}
