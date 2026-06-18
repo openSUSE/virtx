@@ -51,7 +51,8 @@ func xml_to_domain(t *testing.T, vm *openapi.Vmdef, uuid string) libvirtxml.Doma
 		t.Fatalf("To_xml: %v", err)
 	}
 	var d libvirtxml.Domain
-	if (err = d.Unmarshal(xmlstr); err != nil) {
+	err = d.Unmarshal(xmlstr)
+	if (err != nil) {
 		t.Fatalf("Unmarshal: %v", err)
 	}
 	return d
@@ -90,7 +91,8 @@ func wrap_domain(t *testing.T, inner string) string {
 func xml_to_vmdef(t *testing.T, xmlstr string) openapi.Vmdef {
 	t.Helper()
 	var vm openapi.Vmdef
-	if (err := From_xml(&vm, xmlstr); err != nil) {
+	err := From_xml(&vm, xmlstr)
+	if (err != nil) {
 		t.Fatalf("From_xml: %v", err)
 	}
 	return vm
@@ -428,7 +430,8 @@ func Test_to_xml_custom_fields(t *testing.T) {
 	}
 	/* parse metadata back out via From_xml to confirm the round-trip */
 	var vm2 openapi.Vmdef
-	if (err = From_xml(&vm2, xmlstr); err != nil) {
+	err = From_xml(&vm2, xmlstr)
+	if (err != nil) {
 		t.Fatalf("From_xml: %v", err)
 	}
 	/*
