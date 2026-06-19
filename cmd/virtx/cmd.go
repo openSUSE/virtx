@@ -417,7 +417,9 @@ func init() {
 	var cmd_display_vm = &cobra.Command{
 		Use:   "vm UUID",
 		Short: "Connect to the graphical display of a VM",
-		Long:  "Open a local TCP port and connect it to the VM graphical display. Use vncviewer to connect to the printed address.",
+		Long:  "Open a local TCP port and connect it to the VM graphical display.\n" +
+			"By default launches a VNC viewer, chosen via env variable VNCVIEWER\n" +
+			"or with the --viewer option, or auto-detected.",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			if (!virtx.ok) {
@@ -425,7 +427,8 @@ func init() {
 			}
 		},
 	}
-	cmd_display_vm.Flags().IntVarP(&virtx.console_port, "port", "p", 0, "local port for vncviewer (0 = OS-assigned)")
+	cmd_display_vm.Flags().StringVarP(&virtx.vnc_viewer, "viewer", "v", "", "viewer binary to launch")
+	cmd_display_vm.Flags().IntVarP(&virtx.console_port, "port", "p", 0, "listen port (0 = OS-assigned)")
 	cmd.AddCommand(cmd_console)
 	cmd_console.AddCommand(cmd_console_vm)
 	cmd.AddCommand(cmd_display)

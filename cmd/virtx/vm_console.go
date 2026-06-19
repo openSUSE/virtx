@@ -24,7 +24,9 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 
 	"golang.org/x/sys/unix"
@@ -32,6 +34,78 @@ import (
 	"suse.com/virtx/pkg/httpx"
 	"suse.com/virtx/pkg/logger"
 )
+
+type vnc_viewer_entry struct {
+	binary string
+	prefix []string
+	addr_fmt string
+}
+
+var vnc_viewer_list = []vnc_viewer_entry{
+	{"vncviewer", nil, "%s::%s"},
+	{"xtigervncviewer", nil, "%s::%s"},
+	{"xtightvncviewer", nil, "%s::%s"},
+	{"remote-viewer", nil, "vnc://%s:%s"},
+	{"krdc", nil, "vnc://%s:%s"},
+	{"remmina", []string{"-c"}, "vnc://%s:%s"},
+}
+
+func vnc_find_viewer() (string, vnc_viewer_entry) {
+	var (
+		specified string
+		path string
+		err error
+	)
+	specified = virtx.vnc_viewer
+	if (specified == "") {
+		specified = os.Getenv("VNCVIEWER")
+	}
+	if (specified != "") {
+		for _, v := range vnc_viewer_list {
+			if (v.binary == filepath.Base(specified)) {
+				return specified, v
+			}
+		}
+		/* unknown viewer: use default double-colon format */
+		return specified, vnc_viewer_entry{ specified, nil, "%s::%s" }
+	}
+	for _, v := range vnc_viewer_list {
+		path, err = exec.LookPath(v.binary)
+		if (err == nil) {
+			return path, v
+		}
+	}
+	return "", vnc_viewer_entry{}
+}
+
+func vnc_launch_viewer(addr net.Addr) {
+	var (
+		path string
+		viewer vnc_viewer_entry
+		host string
+		port string
+		args []string
+		err error
+	)
+	path, viewer = vnc_find_viewer()
+	if (path == "") {
+		return
+	}
+	host, port, err = net.SplitHostPort(addr.String())
+	if (err != nil) {
+		logger.Log("vnc_launch_viewer: could not parse address: %s", err.Error())
+		return
+	}
+	args = append(args, viewer.prefix...)
+	args = append(args, fmt.Sprintf(viewer.addr_fmt, host, port))
+	cmd := exec.Command(path, args...)
+	logger.Debug("%s %v", path, args)
+
+	err = cmd.Start()
+	if (err != nil) {
+		logger.Log("vnc_launch_viewer: failed to launch %s: %s", path, err.Error())
+	}
+}
 
 /*
  * console_dial_tunnel opens a raw TCP connection to virtxd and upgrades it
@@ -97,6 +171,7 @@ func vm_console_vnc_req(uuid string, port int) {
 		logger.Fatal("failed to listen for vncviewer: %s", err.Error())
 	}
 	fmt.Printf("VNC console ready: vncviewer %s\n", listener.Addr())
+	vnc_launch_viewer(listener.Addr())
 	vnc_conn, err = listener.Accept()
 	listener.Close()
 	if (err != nil) {
