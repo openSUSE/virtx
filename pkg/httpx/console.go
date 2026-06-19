@@ -36,14 +36,28 @@ func (p ConsolePipe) Read(b []byte) (int, error)  { return p.R.Read(b) }
 func (p ConsolePipe) Write(b []byte) (int, error) { return p.W.Write(b) }
 func (p ConsolePipe) Close() error                { return p.C.Close() }
 
-func Console_splice(a io.ReadWriteCloser, b io.ReadWriteCloser) {
-	done := make(chan struct{}, 2)
-	go func() { io.Copy(b, a); done <- struct{}{} }()
-	go func() { io.Copy(a, b); done <- struct{}{} }()
-	<-done
-	a.Close()
-	b.Close()
-	<-done
+/*
+ * Console_splice copies bytes bidirectionally between local and remote.
+ * Returns true if remote closed first, false if local closed first.
+ * Callers use this to decide whether to attempt reconnection.
+ */
+func Console_splice(local io.ReadWriteCloser, remote io.ReadWriteCloser) bool {
+	done_local := make(chan struct{})
+	done_remote := make(chan struct{})
+	go func() { io.Copy(remote, local); close(done_local) }()
+	go func() { io.Copy(local, remote); close(done_remote) }()
+	select {
+	case <-done_local:
+		local.Close()
+		remote.Close()
+		<-done_remote
+		return false
+	case <-done_remote:
+		local.Close()
+		remote.Close()
+		<-done_local
+		return true
+	}
 }
 
 /*
