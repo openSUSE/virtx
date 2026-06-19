@@ -28,11 +28,13 @@ import (
 	"os/signal"
 	"path/filepath"
 	"syscall"
+	"time"
 
 	"golang.org/x/sys/unix"
 
 	"suse.com/virtx/pkg/httpx"
 	"suse.com/virtx/pkg/logger"
+	"suse.com/virtx/pkg/model"
 )
 
 type vnc_viewer_entry struct {
@@ -108,6 +110,57 @@ func vnc_launch_viewer(addr net.Addr) {
 }
 
 /*
+ * vm_should_reconnect checks whether the VM is in a state where reconnecting
+ * makes sense: only RUNNING, PAUSED, or MIGRATING warrant a retry.
+ */
+func vm_should_reconnect(uuid string) bool {
+	var (
+		resp *http.Response
+		runinfo openapi.Vmruninfo
+		err error
+	)
+	resp, err = httpx.Do_request(virtx.api_server, "GET", "/vms/" + uuid + "/runstate", nil)
+	if (err != nil) {
+		return false
+	}
+	_, err = httpx.Decode_response_body(resp, &runinfo)
+	if (err != nil) {
+		return false
+	}
+	switch (runinfo.Runstate) {
+	case openapi.RUNSTATE_RUNNING, openapi.RUNSTATE_PAUSED, openapi.RUNSTATE_MIGRATING:
+		return true
+	}
+	return false
+}
+
+/*
+ * console_try_reconnect retries console_dial_tunnel for up to reconnect_timeout
+ * seconds. Returns the new tunnel and true on success, or false if the VM is
+ * not in a reconnectable state or the timeout expires.
+ */
+func console_try_reconnect(uuid string, console_type string) (httpx.ConsolePipe, bool) {
+	var (
+		tunnel httpx.ConsolePipe
+		err error
+		deadline time.Time
+	)
+	if (!vm_should_reconnect(uuid)) {
+		return tunnel, false
+	}
+	deadline = time.Now().Add(time.Duration(virtx.reconnect_timeout) * time.Second)
+	for time.Now().Before(deadline) {
+		tunnel, err = console_dial_tunnel(virtx.api_server, uuid, console_type)
+		if (err == nil) {
+			return tunnel, true
+		}
+		logger.Debug("console reconnect attempt failed: %s", err.Error())
+		time.Sleep(1 * time.Second)
+	}
+	return tunnel, false
+}
+
+/*
  * console_dial_tunnel opens a raw TCP connection to virtxd and upgrades it
  * to a console tunnel by sending an HTTP GET and reading the 200 response.
  */
@@ -160,25 +213,38 @@ func vm_console_vnc_req(uuid string, port int) {
 		tunnel httpx.ConsolePipe
 		listener net.Listener
 		vnc_conn net.Conn
+		ok bool
 	)
+	listener, err = net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+	if (err != nil) {
+		logger.Fatal("failed to listen for vncviewer: %s", err.Error())
+	}
+	defer listener.Close()
 	tunnel, err = console_dial_tunnel(virtx.api_server, uuid, "vnc")
 	if (err != nil) {
 		logger.Fatal("failed to establish VNC tunnel: %s", err.Error())
 	}
-	listener, err = net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
-	if (err != nil) {
-		tunnel.Close()
-		logger.Fatal("failed to listen for vncviewer: %s", err.Error())
+	logger.Debug("VNC console ready: %s", listener.Addr())
+	for {
+		vnc_launch_viewer(listener.Addr())
+		vnc_conn, err = listener.Accept()
+		if (err != nil) {
+			tunnel.Close()
+			logger.Fatal("failed to accept vncviewer connection: %s", err.Error())
+		}
+		if (!httpx.Console_splice(vnc_conn, tunnel)) {
+			break /* viewer closed */
+		}
+		if (virtx.reconnect_timeout == 0) {
+			break
+		}
+		logger.Debug("VNC connection lost, reconnecting...\r")
+		tunnel, ok = console_try_reconnect(uuid, "vnc")
+		if (!ok) {
+			break
+		}
+		logger.Debug("VNC console reconnected.")
 	}
-	fmt.Printf("VNC console ready: vncviewer %s\n", listener.Addr())
-	vnc_launch_viewer(listener.Addr())
-	vnc_conn, err = listener.Accept()
-	listener.Close()
-	if (err != nil) {
-		tunnel.Close()
-		logger.Fatal("failed to accept vncviewer connection: %s", err.Error())
-	}
-	httpx.Console_splice(vnc_conn, tunnel)
 }
 
 func vm_console_serial_req(uuid string) {
@@ -188,6 +254,9 @@ func vm_console_serial_req(uuid string) {
 		old *unix.Termios
 		fd int
 		pipe httpx.ConsolePipe
+		ok bool
+		reader *serial_stdin_reader
+		cancel_fds [2]int
 	)
 	tunnel, err = console_dial_tunnel(virtx.api_server, uuid, "serial")
 	if (err != nil) {
@@ -220,29 +289,77 @@ func vm_console_serial_req(uuid string) {
 	} else {
 		logger.Debug("stdin is not a terminal, skipping raw mode")
 	}
-	pipe = httpx.ConsolePipe{ R: &serial_stdin_reader{tunnel}, W: os.Stdout, C: tunnel }
-	httpx.Console_splice(pipe, tunnel)
+	for {
+		err = unix.Pipe(cancel_fds[:])
+		if (err != nil) {
+			logger.Fatal("vm_console_serial_req: failed to create cancel pipe: %s", err.Error())
+		}
+		reader = &serial_stdin_reader{ cancel_r: cancel_fds[0], cancel_w: cancel_fds[1] }
+		pipe = httpx.ConsolePipe{ R: reader, W: os.Stdout, C: reader }
+		if (!httpx.Console_splice(pipe, tunnel)) {
+			break /* Ctrl-] */
+		}
+		if (virtx.reconnect_timeout == 0) {
+			break
+		}
+		logger.Debug("\r\nconnection lost, reconnecting...\r")
+		tunnel, ok = console_try_reconnect(uuid, "serial")
+		if (!ok) {
+			break
+		}
+		logger.Debug("\r\nserial console reconnected.\r")
+	}
 	fmt.Print("\r\n")
 }
 
 /*
  * serial_stdin_reader wraps os.Stdin but intercepts Ctrl-] (0x1d) to exit.
+ * It uses unix.Poll to multiplex stdin with a cancel pipe, so that Close()
+ * can immediately unblock a pending Read without closing stdin itself.
  */
 type serial_stdin_reader struct {
-	tunnel io.Closer
+	cancel_r int
+	cancel_w int
 }
 
 func (s *serial_stdin_reader) Read(b []byte) (int, error) {
 	var (
+		fds []unix.PollFd
 		n int
 		err error
 	)
-	n, err = os.Stdin.Read(b)
-	for i := 0; i < n; i++ {
-		if (b[i] == 0x1d) { /* Ctrl-] */
-			s.tunnel.Close()
-			return 0, io.EOF
+	fds = []unix.PollFd{
+		{ Fd: int32(os.Stdin.Fd()), Events: unix.POLLIN },
+		{ Fd: int32(s.cancel_r), Events: unix.POLLIN },
+	}
+	for {
+		_, err = unix.Poll(fds, -1)
+		if (err == unix.EINTR) {
+			continue
+		}
+		if (err != nil) {
+			return 0, err
+		}
+		if (fds[1].Revents & (unix.POLLIN | unix.POLLHUP | unix.POLLERR) != 0) {
+			unix.Close(s.cancel_r)
+			return 0, io.EOF /* cancel signal received */
+		}
+		if (fds[0].Revents & unix.POLLIN != 0) {
+			n, err = unix.Read(int(os.Stdin.Fd()), b)
+			if (err != nil) {
+				return 0, err
+			}
+			for i := 0; i < n; i++ {
+				if (b[i] == 0x1d) { /* Ctrl-] */
+					return 0, io.EOF
+				}
+			}
+			return n, nil
 		}
 	}
-	return n, err
+}
+
+func (s *serial_stdin_reader) Close() error {
+	unix.Close(s.cancel_w)
+	return nil
 }

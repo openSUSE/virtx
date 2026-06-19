@@ -55,6 +55,7 @@ type VirtxClient struct {
 	live bool                   // live migration
 	console_port int            // local port for VNC console (0 = OS-assigned)
 	vnc_viewer string           // VNC viewer binary to launch (overrides VIRTX_VNC_VIEWER and auto-detection)
+	reconnect_timeout int       // seconds to retry reconnecting on remote close (0 = disabled)
 
 	/* args */
 	host_list_options openapi.HostListOptions

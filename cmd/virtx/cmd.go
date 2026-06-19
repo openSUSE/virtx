@@ -429,6 +429,8 @@ func init() {
 	}
 	cmd_display_vm.Flags().StringVarP(&virtx.vnc_viewer, "viewer", "v", "", "viewer binary to launch")
 	cmd_display_vm.Flags().IntVarP(&virtx.console_port, "port", "p", 0, "listen port (0 = OS-assigned)")
+	cmd_display_vm.Flags().IntVarP(&virtx.reconnect_timeout, "reconnect-timeout", "r", 5, "seconds to retry reconnecting on remote close (0 = disabled)")
+	cmd_console_vm.Flags().IntVarP(&virtx.reconnect_timeout, "reconnect-timeout", "r", 5, "seconds to retry reconnecting on remote close (0 = disabled)")
 	cmd.AddCommand(cmd_console)
 	cmd_console.AddCommand(cmd_console_vm)
 	cmd.AddCommand(cmd_display)
