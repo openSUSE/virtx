@@ -538,7 +538,7 @@ func Read_lvb(resource_path string) (string, error) {
 		uuid string
 		fd int
 	)
-	fd, err = unix.Open(resource_path, unix.O_RDONLY | unix.O_DIRECT, 0)
+	fd, err = unix.Open(resource_path, unix.O_RDONLY, 0)
 	if (err != nil) {
 		return uuid, err
 	}
@@ -573,7 +573,7 @@ func lm_init_resource_file(resource_path string, resource_name string, uuid stri
 	 * to defend against parallel initializations.
 	 * The lock directory is setgid, so the file will be owned by qemu:sanlock when created
 	 */
-	fd, err = unix.Open(resource_path, unix.O_WRONLY | unix.O_CREAT | unix.O_EXCL | unix.O_DIRECT | unix.O_SYNC, 0660)
+	fd, err = unix.Open(resource_path, unix.O_WRONLY | unix.O_CREAT | unix.O_EXCL | unix.O_SYNC, 0660)
 	if (err != nil) {
 		return err /* likely permissions */
 	}
