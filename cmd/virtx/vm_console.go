@@ -52,6 +52,12 @@ var vnc_viewer_list = []vnc_viewer_entry{
 	{"remmina", []string{"-c"}, "vnc://%s:%s"},
 }
 
+/*
+ * priority order:
+ * 1) command line option -v, --viewer
+ * 2) environment variable VNCVIEWER
+ * 3) ordered vnc_viewer_list
+ */
 func vnc_find_viewer() (string, vnc_viewer_entry) {
 	var (
 		specified string
@@ -103,6 +109,7 @@ func vnc_launch_viewer(addr net.Addr) {
 	cmd := exec.Command(path, args...)
 	logger.Debug("%s %v", path, args)
 
+	/* launches viewer in the background, does not wait. */
 	err = cmd.Start()
 	if (err != nil) {
 		logger.Log("vnc_launch_viewer: failed to launch %s: %s", path, err.Error())
@@ -162,7 +169,7 @@ func console_try_reconnect(uuid string, console_type string) (httpx.ConsolePipe,
 
 /*
  * console_dial_tunnel opens a raw TCP connection to virtxd and upgrades it
- * to a console tunnel by sending an HTTP GET and reading the 200 response.
+ * to a console tunnel by sending an HTTP GET and reading the 101 or 200 response.
  */
 func console_dial_tunnel(api_server string, uuid string, console_type string) (httpx.ConsolePipe, error) {
 	var (
