@@ -126,12 +126,15 @@ func vm_should_reconnect(uuid string) bool {
 		runinfo openapi.Vmruninfo
 		err error
 	)
-	resp, err = httpx.Do_request(virtx.api_server, "GET", "/vms/" + uuid + "/runstate", nil)
+	url := "/vms/" + uuid + "/runstate"
+	resp, err = httpx.Do_request(virtx.api_server, "GET", url, nil)
 	if (err != nil) {
+		logger.Log("vm_should_reconnect: Do_request %s failed: %s", url, err.Error())
 		return false
 	}
 	_, err = httpx.Decode_response_body(resp, &runinfo)
 	if (err != nil) {
+		logger.Log("vm_should_reconnect: Decode_resp %s failed: %s", url, err.Error())
 		return false
 	}
 	switch (runinfo.Runstate) {
