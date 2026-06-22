@@ -116,7 +116,7 @@ func Open_serial(uuid string) (io.ReadWriteCloser, error) {
 	if (err != nil) {
 		return nil, err
 	}
-	err = domain.OpenConsole("", stream, libvirt.DOMAIN_CONSOLE_FORCE)
+	err = domain.OpenConsole("", stream, 0)
 	if (err != nil) {
 		stream.Free()
 		return nil, err
