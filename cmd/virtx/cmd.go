@@ -231,19 +231,20 @@ func init() {
 			if (virtx.ok) {
 				vm_boot()
 			} else {
-				ud, _ := cmd.Flags().GetString("ci-userdata")
 				md, _ := cmd.Flags().GetString("ci-metadata")
 				nc, _ := cmd.Flags().GetString("ci-networkconfig")
-				vm_boot_req(args[0], ud, md, nc)
+				ud, _ := cmd.Flags().GetString("ci-userdata")
+				vm_boot_req(args[0], md, nc, ud)
 			}
 		},
 	}
-	cmd_boot_vm.Flags().StringP("ci-userdata", "u", "",
-		"Path to a cloud-init user-data file (e.g. #cloud-config YAML)")
 	cmd_boot_vm.Flags().StringP("ci-metadata", "m", "",
 		"Path to a cloud-init meta-data YAML file (auto-generated if omitted)")
 	cmd_boot_vm.Flags().StringP("ci-networkconfig", "c", "",
 		"Path to a cloud-init network-config file (v1 or v2 YAML)")
+	cmd_boot_vm.Flags().StringP("ci-userdata", "u", "",
+		"Path to a cloud-init user-data file (e.g. #cloud-config YAML)")
+
 	var cmd_shutdown = &cobra.Command{
 		Use:   "shutdown",
 		Short: "Shutdown / Poweroff a runnable resource",

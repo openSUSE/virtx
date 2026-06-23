@@ -52,14 +52,15 @@ import (
  * Field names match the generated model.CloudInitOptions struct so that
  * callers can copy fields directly without translation.
  * At least one of UserData or NetworkConfig must be non-empty.
+ * These options are in order they are processed by cloud-init.
  */
 type Options struct {
-	/* cloud-init user-data file contents. May be empty if NetworkConfig is set. */
-	UserData string
 	/* cloud-init meta-data file contents. Minimal content auto-generated if empty */
 	MetaData string
 	/* cloud-init network-config file contents (v1 or v2). May be empty. */
 	NetworkConfig string
+	/* cloud-init user-data file contents. May be empty if NetworkConfig is set. */
+	UserData string
 }
 
 func (o *Options) Validate() error {
@@ -87,11 +88,11 @@ func stage_files(o *Options, stage_dir string, vm_uuid string) ([]string, error)
 	if (err != nil) {
 		return files, err
 	}
-	err = stage_ci_file(&files, "user-data", o.UserData, stage_dir, "")
+	err = stage_ci_file(&files, "network-config", o.NetworkConfig, stage_dir, "")
 	if (err != nil) {
 		return files, err
 	}
-	err = stage_ci_file(&files, "network-config", o.NetworkConfig, stage_dir, "")
+	err = stage_ci_file(&files, "user-data", o.UserData, stage_dir, "")
 	if (err != nil) {
 		return files, err
 	}
