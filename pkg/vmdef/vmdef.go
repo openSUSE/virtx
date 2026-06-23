@@ -702,6 +702,7 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 			{
 				VNC: &libvirtxml.DomainGraphicVNC{
 					AutoPort: "yes",
+					SharePolicy: "ignore",
 				},
 			},
 		},
