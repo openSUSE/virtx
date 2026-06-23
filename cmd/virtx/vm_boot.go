@@ -32,10 +32,10 @@ func vm_boot_req(arg string, md_path string, nc_path string, ud_path string, vd_
 	virtx.arg = &virtx.vm_boot_options
 	virtx.result = nil
 
-	read_opt("ci-metadata", md_path)
-	read_opt("ci-networkconfig", nc_path)
-	read_opt("ci-userdata", ud_path)
-	read_opt("ci-vendordata", vd_path)
+	read_opt("meta-data", md_path)
+	read_opt("network-config", nc_path)
+	read_opt("user-data", ud_path)
+	read_opt("vendor-data", vd_path)
 }
 
 func vm_boot() {

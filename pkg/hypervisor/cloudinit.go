@@ -41,13 +41,13 @@ func cloudinit_boot_domain(uuid string, domain *libvirt.Domain, ci []openapi.Clo
 	/* translate []CloudInitOption into cloudinit.Options */
 	for _, item := range ci {
 		switch item.Name {
-		case "ci-metadata":
+		case "meta-data":
 			opts.MetaData = item.Value
-		case "ci-networkconfig":
+		case "network-config":
 			opts.NetworkConfig = item.Value
-		case "ci-userdata":
+		case "user-data":
 			opts.UserData = item.Value
-		case "ci-vendordata":
+		case "vendor-data":
 			opts.VendorData = item.Value
 		default:
 			return fmt.Errorf("cloudinit: unknown option item name %s", item.Name)
