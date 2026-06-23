@@ -61,6 +61,8 @@ type Options struct {
 	NetworkConfig string
 	/* cloud-init user-data file contents. May be empty if NetworkConfig is set. */
 	UserData string
+	/* cloud-init vendor-data file contents. May be empty. */
+	VendorData string
 }
 
 func (o *Options) Validate() error {
@@ -72,7 +74,7 @@ func (o *Options) Validate() error {
 
 /*
  * Stage CloudInit files from the input options into the Stage directory.
- * It stages currently up to 3 cloud-init files under stage_dir,
+ * It stages currently up to 4 cloud-init files under stage_dir,
  * and returns the paths to the created files as a slice.
  */
 func stage_files(o *Options, stage_dir string, vm_uuid string) ([]string, error) {
@@ -93,6 +95,10 @@ func stage_files(o *Options, stage_dir string, vm_uuid string) ([]string, error)
 		return files, err
 	}
 	err = stage_ci_file(&files, "user-data", o.UserData, stage_dir, "")
+	if (err != nil) {
+		return files, err
+	}
+	err = stage_ci_file(&files, "vendor-data", o.VendorData, stage_dir, "")
 	if (err != nil) {
 		return files, err
 	}

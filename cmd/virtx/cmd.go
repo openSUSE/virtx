@@ -234,7 +234,8 @@ func init() {
 				md, _ := cmd.Flags().GetString("ci-metadata")
 				nc, _ := cmd.Flags().GetString("ci-networkconfig")
 				ud, _ := cmd.Flags().GetString("ci-userdata")
-				vm_boot_req(args[0], md, nc, ud)
+				vd, _ := cmd.Flags().GetString("ci-vendordata")
+				vm_boot_req(args[0], md, nc, ud, vd)
 			}
 		},
 	}
@@ -244,6 +245,8 @@ func init() {
 		"Path to a cloud-init network-config file (v1 or v2 YAML)")
 	cmd_boot_vm.Flags().StringP("ci-userdata", "u", "",
 		"Path to a cloud-init user-data file (e.g. #cloud-config YAML)")
+	cmd_boot_vm.Flags().StringP("ci-vendordata", "v", "",
+		"Path to a cloud-init vendor-data file")
 
 	var cmd_shutdown = &cobra.Command{
 		Use:   "shutdown",

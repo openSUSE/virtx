@@ -26,7 +26,7 @@ import (
 	"suse.com/virtx/pkg/model"
 )
 
-func vm_boot_req(arg string, md_path string, nc_path string, ud_path string) {
+func vm_boot_req(arg string, md_path string, nc_path string, ud_path string, vd_path string) {
 	virtx.path = fmt.Sprintf("/vms/%s/runstate/boot", arg)
 	virtx.method = "POST"
 	virtx.arg = &virtx.vm_boot_options
@@ -35,6 +35,7 @@ func vm_boot_req(arg string, md_path string, nc_path string, ud_path string) {
 	read_opt("ci-metadata", md_path)
 	read_opt("ci-networkconfig", nc_path)
 	read_opt("ci-userdata", ud_path)
+	read_opt("ci-vendordata", vd_path)
 }
 
 func vm_boot() {

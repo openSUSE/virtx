@@ -47,6 +47,8 @@ func cloudinit_boot_domain(uuid string, domain *libvirt.Domain, ci []openapi.Clo
 			opts.NetworkConfig = item.Value
 		case "ci-userdata":
 			opts.UserData = item.Value
+		case "ci-vendordata":
+			opts.VendorData = item.Value
 		default:
 			return fmt.Errorf("cloudinit: unknown option item name %s", item.Name)
 		}
