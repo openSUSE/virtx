@@ -22,8 +22,9 @@ var _ MappedNullable = &VmBootOptions{}
 
 // VmBootOptions struct for VmBootOptions
 type VmBootOptions struct {
-	// ci-userdata, ci-metadata and ci-networkconfig content for a NoCloud cloud-init datasource. Content should be raw, NOT base64-encoded. ci-metadata is optional; if omitted, a minimal ci-metadata is generated automatically using the VM name as instance-id and local-hostname. 
+	// meta-data, network-config, user-data and vendor-data cloud-init content. Content should be raw strings.  meta-data is optional; if omitted it will be auto-generated with vm-uuid as instance-id and local-hostname. user-data is MANDATORY, vendor-data is optional. 
 	CloudInit []CloudInitOption `json:"cloud_init"`
+	CloudInitMethod CloudInitMethod `json:"cloud_init_method"`
 }
 
 type _VmBootOptions VmBootOptions
@@ -32,13 +33,14 @@ type _VmBootOptions VmBootOptions
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVmBootOptions(cloudInit []CloudInitOption) *VmBootOptions {
+func NewVmBootOptions(cloudInit []CloudInitOption, cloudInitMethod CloudInitMethod) *VmBootOptions {
 	this := VmBootOptions{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
     var _ = bytes.NewBuffer
 
 	this.CloudInit = cloudInit
+	this.CloudInitMethod = cloudInitMethod
 	return &this
 }
 
@@ -74,9 +76,34 @@ func (o *VmBootOptions) SetCloudInit(v []CloudInitOption) {
 	o.CloudInit = v
 }
 
+// GetCloudInitMethod returns the CloudInitMethod field value
+func (o *VmBootOptions) GetCloudInitMethod() CloudInitMethod {
+	if o == nil {
+		var ret CloudInitMethod
+		return ret
+	}
+
+	return o.CloudInitMethod
+}
+
+// GetCloudInitMethodOk returns a tuple with the CloudInitMethod field value
+// and a boolean to check if the value has been set.
+func (o *VmBootOptions) GetCloudInitMethodOk() (*CloudInitMethod, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.CloudInitMethod, true
+}
+
+// SetCloudInitMethod sets field value
+func (o *VmBootOptions) SetCloudInitMethod(v CloudInitMethod) {
+	o.CloudInitMethod = v
+}
+
 func (o VmBootOptions) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["cloud_init"] = o.CloudInit
+	toSerialize["cloud_init_method"] = o.CloudInitMethod
 	return toSerialize, nil
 }
 
