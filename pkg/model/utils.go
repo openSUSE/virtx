@@ -369,6 +369,8 @@ const (
 	OpHostGet
 	OpHostList
 	OpVmBoot
+	OpVmConsoleSerial
+	OpVmConsoleVnc
 	OpVmCreate
 	OpVmDelete
 	OpVmGet
@@ -388,6 +390,8 @@ var OperationToString = map[Operation]string{
 	OpHostGet: "HostGet",
 	OpHostList: "HostList",
 	OpVmBoot: "VmBoot",
+	OpVmConsoleSerial: "VmConsoleSerial",
+	OpVmConsoleVnc: "VmConsoleVnc",
 	OpVmCreate: "VmCreate",
 	OpVmDelete: "VmDelete",
 	OpVmGet: "VmGet",
@@ -407,6 +411,8 @@ var OperationFromString = map[string]Operation{
 	"HostGet": OpHostGet,
 	"HostList": OpHostList,
 	"VmBoot": OpVmBoot,
+	"VmConsoleSerial": OpVmConsoleSerial,
+	"VmConsoleVnc": OpVmConsoleVnc,
 	"VmCreate": OpVmCreate,
 	"VmDelete": OpVmDelete,
 	"VmGet": OpVmGet,
