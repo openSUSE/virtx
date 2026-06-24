@@ -47,27 +47,44 @@ import (
 	. "suse.com/virtx/pkg/constants"
 )
 
-/*
- * Options holds the cloud-init file contents for a single boot.
- * Field names match the generated model.CloudInitOptions struct so that
- * callers can copy fields directly without translation.
- * At least one of UserData or NetworkConfig must be non-empty.
- * These options are in order they are processed by cloud-init.
- */
-type Options struct {
-	/* cloud-init meta-data file contents. Minimal content auto-generated if empty */
-	MetaData string
-	/* cloud-init network-config file contents (v1 or v2). May be empty. */
-	NetworkConfig string
-	/* cloud-init user-data file contents. May be empty if NetworkConfig is set. */
-	UserData string
-	/* cloud-init vendor-data file contents. May be empty. */
-	VendorData string
+var ci_names = []string{"meta-data", "network-config", "user-data", "vendor-data"}
+
+func find_option(ci []openapi.CloudInitOption, name string) string {
+	for _, opt := range ci {
+		if (opt.Name == name) {
+			return opt.Value
+		}
+	}
+	return ""
 }
 
-func (o *Options) Validate() error {
-	if (o == nil || !(o.UserData != "" || o.NetworkConfig != "")) {
-		return fmt.Errorf("at least one of user_data or network_config must be provided")
+func validate_option_name(opt openapi.CloudInitOption) error {
+	for _, name := range ci_names {
+		if (opt.Name == name) {
+			return nil
+		}
+	}
+	return fmt.Errorf("unknown cloud-init option: %s", opt.Name)
+}
+
+func validate_options(ci []openapi.CloudInitOption) error {
+	var (
+		err error
+		has_ud, has_nc bool
+	)
+	for _, opt := range ci {
+		err = validate_option_name(opt)
+		if (err != nil) {
+			return err
+		}
+		if (opt.Name == "user-data") {
+			has_ud = true
+		} else if (opt.Name == "network-config") {
+			has_nc = true
+		}
+	}
+	if (!has_ud && !has_nc) {
+		return fmt.Errorf("at least one of user-data or network-config must be provided")
 	}
 	return nil
 }
@@ -77,41 +94,29 @@ func (o *Options) Validate() error {
  * It stages currently up to 4 cloud-init files under stage_dir,
  * and returns the paths to the created files as a slice.
  */
-func stage_files(o *Options, stage_dir string, vm_uuid string) ([]string, error) {
+func stage_files(ci []openapi.CloudInitOption, stage_dir string, vm_uuid string) ([]string, error) {
 	var (
 		err error
 		files []string
 	)
-	err = o.Validate()
-	if (err != nil) {
-		return files, err
+	for _, name := range ci_names {
+		value := find_option(ci, name)
+		if (value == "" && name == "meta-data") {
+			/* provide a default for meta-data */
+			value = fmt.Sprintf("instance-id: %s\nlocal-hostname: %s\n", vm_uuid, vm_uuid)
+		}
+		err = stage_ci_file(&files, name, value, stage_dir)
+		if (err != nil) {
+			return files, err
+		}
 	}
-	err = stage_ci_file(&files, "meta-data", o.MetaData, stage_dir, fmt.Sprintf("instance-id: %s\nlocal-hostname: %s\n", vm_uuid, vm_uuid))
-	if (err != nil) {
-		return files, err
-	}
-	err = stage_ci_file(&files, "network-config", o.NetworkConfig, stage_dir, "")
-	if (err != nil) {
-		return files, err
-	}
-	err = stage_ci_file(&files, "user-data", o.UserData, stage_dir, "")
-	if (err != nil) {
-		return files, err
-	}
-	err = stage_ci_file(&files, "vendor-data", o.VendorData, stage_dir, "")
-	if (err != nil) {
-		return files, err
-	}
-	return files, err
+	return files, nil
 }
 
-func stage_ci_file(files *[]string, name string, value string, stage_dir string, def string) error {
+func stage_ci_file(files *[]string, name string, value string, stage_dir string) error {
 	var f string
 
 	f = filepath.Join(stage_dir, name)
-	if (value == "") {
-		value = def
-	}
 	if (value == "") {
 		return nil
 	}
@@ -149,14 +154,14 @@ func build_iso(iso_path string, stage_files []string) error {
  * and the function returns success if the ISO has been successfully
  * created, failure otherwise.
  */
-func Create_disk(disk *openapi.Disk, uuid string, opts *Options) error {
+func Create_disk(disk *openapi.Disk, uuid string, ci []openapi.CloudInitOption) error {
 	var (
 		err error
 		stage_dir string  /* temporary staging directory in /tmp */
 		files []string    /* files to be staged in stage_dir */
 	)
 	init_disk(disk, uuid)
-	err = opts.Validate()
+	err = validate_options(ci)
 	if (err != nil) {
 		return err
 	}
@@ -172,7 +177,7 @@ func Create_disk(disk *openapi.Disk, uuid string, opts *Options) error {
 	}
 	defer os.Remove(stage_dir)
 	/* create and stage all files requested in the options */
-	files, err = stage_files(opts, stage_dir, uuid)
+	files, err = stage_files(ci, stage_dir, uuid)
 	defer func() {
 		for _, f := range files {
 			os.Remove(f)

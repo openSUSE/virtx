@@ -36,23 +36,7 @@ func cloudinit_boot_domain(uuid string, domain *libvirt.Domain, ci []openapi.Clo
 	var (
 		err error
 		disk openapi.Disk
-		opts cloudinit.Options
 	)
-	/* translate []CloudInitOption into cloudinit.Options */
-	for _, item := range ci {
-		switch item.Name {
-		case "meta-data":
-			opts.MetaData = item.Value
-		case "network-config":
-			opts.NetworkConfig = item.Value
-		case "user-data":
-			opts.UserData = item.Value
-		case "vendor-data":
-			opts.VendorData = item.Value
-		default:
-			return fmt.Errorf("cloudinit: unknown option item name %s", item.Name)
-		}
-	}
 	/*
 	 * XXX
 	 * We should do
@@ -70,7 +54,7 @@ func cloudinit_boot_domain(uuid string, domain *libvirt.Domain, ci []openapi.Clo
 	 * so that domain destruction is detected and the ISO resource
 	 * is removed.
 	 */
-	err = cloudinit.Create_disk(&disk, uuid, &opts)
+	err = cloudinit.Create_disk(&disk, uuid, ci)
 	if (err != nil) {
 		_ = domain.DestroyFlags(0)
 		return fmt.Errorf("cloudinit: %w", err)
