@@ -337,5 +337,5 @@ disaster for me being used to C.
 - **Type names** are CamelCase (required by code generators).
 - `if`: always put parentheses around conditions
 - no assignment and error checking on the same line
-- Always put spaces around binary arithmetic operators. (a + b) is OK, but (a - b) is NOT.
+- Always put spaces around binary arithmetic operators. (a + b) is OK, but (a+b) is NOT.
 - Struct literals have spaces inside braces: `Foo{ field1, field2 }` not `Foo{field1, field2}`.
