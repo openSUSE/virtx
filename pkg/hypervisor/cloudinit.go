@@ -41,6 +41,8 @@ func cloudinit_boot_domain(uuid string, conn *libvirt.Connect, domain *libvirt.D
 		return fmt.Errorf("cloudinit: %w", err)
 	}
 	switch (method) {
+	case openapi.CI_METHOD_FWCFG:
+		return cloudinit_fwcfg_boot_domain(uuid, conn, domain, ci)
 	case openapi.CI_METHOD_ISO:
 		return cloudinit_iso_boot_domain(uuid, domain, ci)
 	default:
@@ -169,4 +171,70 @@ func get_iso_xml(disk *openapi.Disk) (string, string, error) {
 		return "", "", fmt.Errorf("marshalling disk XML: %w", err)
 	}
 	return lease_xml, disk_xml, nil
+}
+
+/*
+ * cloudinit_fwcfg_boot_domain injects cloud-init data as fw_cfg sysinfo
+ * entries into the domain XML, starts the domain, then restores the original
+ * domain definition.
+ *
+ * fw_cfg is QEMU machine initialization state: unlike CDROM drives, fw_cfg
+ * entries are not hot-pluggable and there is no QMP command to add them to a
+ * running machine. The data must therefore be present in the domain XML before
+ * Create(). The persistent config is restored after boot so that subsequent
+ * boots do not carry stale cloud-init data.
+ */
+
+func cloudinit_fwcfg_boot_domain(uuid string, conn *libvirt.Connect, domain *libvirt.Domain, ci []openapi.CloudInitOption) error {
+	var (
+		err, restore_err error
+		original_xml, modified_xml string
+		d libvirtxml.Domain
+		domain2, domain3 *libvirt.Domain
+	)
+	slots := cloudinit.Create_fwcfg_slots(ci, uuid)
+
+	/* get the current inactive domain XML so we can restore it after boot */
+	original_xml, err = domain.GetXMLDesc(libvirt.DOMAIN_XML_INACTIVE)
+	if (err != nil) {
+		return fmt.Errorf("cloudinit fwcfg: get XML: %w", err)
+	}
+	if err = d.Unmarshal(original_xml); err != nil {
+		return fmt.Errorf("cloudinit fwcfg: unmarshal: %w", err)
+	}
+	var entries []libvirtxml.DomainSysInfoEntry
+	for _, slot := range slots {
+		entries = append(entries, libvirtxml.DomainSysInfoEntry{
+			Name:  slot.Name,
+			Value: string(slot.Content),
+		})
+	}
+	d.SysInfo = append(d.SysInfo, libvirtxml.DomainSysInfo{
+		FWCfg: &libvirtxml.DomainSysInfoFWCfg{
+			Entry: entries,
+		},
+	})
+	modified_xml, err = d.Marshal()
+	if (err != nil) {
+		return fmt.Errorf("cloudinit fwcfg: marshal: %w", err)
+	}
+	/* temporarily redefine the domain with fw_cfg sysinfo */
+	domain2, err = conn.DomainDefineXML(modified_xml)
+	if (err != nil) {
+		return fmt.Errorf("cloudinit fwcfg: redefine: %w", err)
+	}
+	defer domain2.Free()
+	/* start the domain; fw_cfg data is now visible in the guest sysfs */
+	err = domain2.Create()
+	/* note: err checked after restoring the original definition */
+	domain3, restore_err = conn.DomainDefineXML(original_xml)
+	if (restore_err != nil) {
+		logger.Log("cloudinit fwcfg: warning: failed to restore domain definition: %s", restore_err)
+	} else {
+		domain3.Free()
+	}
+	if (err != nil) {
+		return fmt.Errorf("cloudinit fwcfg: %w", err)
+	}
+	return nil
 }
