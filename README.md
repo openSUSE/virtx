@@ -61,6 +61,7 @@ If the connection to libvirt or the serf agent are subsequently lost, virtx will
 
 libvirt on each host should be configured as follows:
 
+```
 /etc/libvirt/virtproxyd.conf:
 listen_tls = 0
 listen_tcp = 1
@@ -85,23 +86,30 @@ group = "sanlock"
 
 /etc/sanlock/sanlock.conf: (for now, eventually we might enable watchdog):
 use_watchdog = 0
+```
 
 ---
 Start sanlock
 
+```
 systemctl start sanlock
 systemctl enable sanlock
+```
 
 Start the libvirt services as such:
 
+```
 systemctl start virtproxyd-tcp.socket virtqemud.socket
 systemctl enable virtproxyd-tcp.socket virtqemud.socket
+```
 
 If you want to configure libvirt networks for your VM (recommended: bridged instead),
 also start:
 
+```
 systemctl start virtnetworkd
 systemctl enable virtnetworkd
+```
 
 # BUILD CLUSTER
 
@@ -110,32 +118,46 @@ Install and configure all hosts in the cluster like so.
 Select an initial node to start the cluster (for example, "virt1"),
 and start the serf agent using your distro-provided service or manually with:
 
+```
 serf agent &
+```
 
 start virtxd on the initial node, using the systemd provided service or f.e.: like so:
 
+```
 sudo -u qemu -g disk nohup virtxd
+```
 
 then proceed to the next node, where you will start the serf agent in the same way:
 
+```
 serf agent &
+```
 
 but then also run the serf command to join the initial node in the same cluster:
 
+```
 serf join virt1
+```
 
 These two commands can also be packed in a single command like so:
 
+```
 serf agent -join=virt1 &
+```
 
 after that, start virtxd on this node too, again with the same command:
 
+```
 sudo -u qemu -g disk nohup virtxd
+```
 
 If you are using systemd service files for serf and virtx, you will likely just
 enable those services on all hosts, and on each host simply run a single command:
 
+```
 serf agent -join=virt1 &
+```
 
 Once all nodes have joined the cluster, you should be ready to test functionality
 using the command line client
@@ -145,29 +167,51 @@ using the command line client
 There is auto-completion for the command line client. If it is not provided by
 your distro package, you can extract it directly from the command line client. See:
 
+```
 virtx completion --help
-
-Using --help, the command line client should be discoverable.
+```
 
 If connecting from a remote host (not locally on one of the servers of the cluster),
 be sure to export the env variable to be able to contact the REST API, for example:
 
+```
 export VIRTX_API_SERVER=virt1
+```
 
 as an alternative, you can provide the api server to use using the -A option.
 
+See the command line help with
+
+```
+virtx --help
+```
+
 # TESTS
 
-I would suggest 3 tests to ensure the installation is ok:
+I would suggest a few tests to ensure the installation is ok:
 
+```
 virtx list host
+```
 
 all hosts in the cluster should be listed. This is the simplest test to ensure
+that the basics work.
 
 Create a VM adapting the examples provided in json/ starting with:
 
+```
 virtx create vm json/opensuse-15.5.json
 virtx boot vm xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+```
+
+and ensure that the new VM is visible with
+
+```
+virtx list vm
+```
+
+it might take a second or so for the new VM to appear in the list.
+
 
 # STORAGE
 
