@@ -384,7 +384,7 @@ func Boot_domain(uuid string, o *openapi.VmBootOptions) error {
 	_ = oplog_record(domain, op, openapi.OPERATION_STARTED, "", started, 0)
 
 	if (len(o.CloudInit) > 0) {
-		err = cloudinit_boot_domain(uuid, domain, o.CloudInit)
+		err = cloudinit_boot_domain(uuid, conn, domain, o.CloudInit, o.CloudInitMethod)
 	} else {
 		err = domain.Create()
 	}

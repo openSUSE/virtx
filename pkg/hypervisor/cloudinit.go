@@ -32,7 +32,27 @@ import (
 	"suse.com/virtx/pkg/vmdef"
 )
 
-func cloudinit_boot_domain(uuid string, domain *libvirt.Domain, ci []openapi.CloudInitOption) error {
+/*
+ * cloudinit_boot_domain validates options and routes to the appropriate delivery method
+ */
+func cloudinit_boot_domain(uuid string, conn *libvirt.Connect, domain *libvirt.Domain, ci []openapi.CloudInitOption, method openapi.CloudInitMethod) error {
+	err := cloudinit.Validate_options(ci)
+	if (err != nil) {
+		return fmt.Errorf("cloudinit: %w", err)
+	}
+	switch (method) {
+	case openapi.CI_METHOD_ISO:
+		return cloudinit_iso_boot_domain(uuid, domain, ci)
+	default:
+		return fmt.Errorf("cloudinit: unknown method: %d", int16(method))
+	}
+}
+
+/*
+ * cloudinit_iso_boot_domain starts the domain, then creates the NoCloud ISO
+ * and hot-attaches it as a CDROM.
+ */
+func cloudinit_iso_boot_domain(uuid string, domain *libvirt.Domain, ci []openapi.CloudInitOption) error {
 	var (
 		err error
 		disk openapi.Disk
@@ -47,24 +67,21 @@ func cloudinit_boot_domain(uuid string, domain *libvirt.Domain, ci []openapi.Clo
 	 */
 	err = domain.Create()
 	if (err != nil) {
-		return fmt.Errorf("cloudinit: %w", err)
+		return fmt.Errorf("cloudinit iso: %w", err)
 	}
 	/*
-	 * build the ISO. We need to do it after the domain is created,
-	 * so that domain destruction is detected and the ISO resource
-	 * is removed.
+	 * build the ISO after the domain is created so that domain destruction
+	 * is detected and the ISO resource is removed.
 	 */
 	err = cloudinit.Create_disk(&disk, uuid, ci)
 	if (err != nil) {
 		_ = domain.DestroyFlags(0)
-		return fmt.Errorf("cloudinit: %w", err)
+		return fmt.Errorf("cloudinit iso: %w", err)
 	}
-
-	/* attach the disk to the domain */
 	err = cloudinit_attach(&disk, domain)
 	if (err != nil) {
 		_ = domain.DestroyFlags(0)
-		return fmt.Errorf("cloudinit: %w", err)
+		return fmt.Errorf("cloudinit iso: %w", err)
 	}
 	/*
 	 * XXX
