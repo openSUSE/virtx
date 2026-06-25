@@ -239,6 +239,8 @@ func init() {
 			}
 		},
 	}
+	cmd_boot_vm.Flags().Int16VarP((*int16)(unsafe.Pointer(&virtx.vm_boot_options.CloudInitMethod)), "ci-method", "M", int16(openapi.CI_METHOD_FWCFG),
+		"cloud-init delivery method: 0=fwcfg, 1=nocloud-iso")
 	cmd_boot_vm.Flags().StringP("ci-metadata", "m", "",
 		"Path to a cloud-init meta-data YAML file (auto-generated if omitted)")
 	cmd_boot_vm.Flags().StringP("ci-networkconfig", "c", "",
