@@ -1,7 +1,7 @@
 # XXX EXPERIMENT/PROTOTYPE: DO NOT USE XXX
 
 This is still very much experimental and likely insecure, buggy, needing code review.
-Use at your own risk! You have been warned! Exclamation mark!
+Use at your own risk! You have been warned!
 
 # LICENSE
 
@@ -33,8 +33,8 @@ to control the cluster remotely, or it can be also used locally on any of the se
 On all KVM hosts, the serf service is also running, to provide the clustering layer.
 
 A separate storage product or server is providing shared storage for the cluster.
-In the current implementation, only NFS has been implemented,
-but some minimal iSCSI code has been recently added, reaching block devices mapped to /dev/
+In the current implementation, NFS and iSCSI have been considered and tested.
+In theory any block device that maps to /dev/ should work, but specific IDs for SCSI and NVMe are recognized.
 
 virtxd expects this directory to be mounted, from a remote NFS4 share:
 
@@ -61,30 +61,30 @@ If the connection to libvirt or the serf agent are subsequently lost, virtx will
 
 libvirt on each host should be configured as follows:
 
-/etc/libvirt/virtproxyd.conf:  
-listen_tls = 0  
-listen_tcp = 1  
-auth_tcp = "none"  
+/etc/libvirt/virtproxyd.conf:
+listen_tls = 0
+listen_tcp = 1
+auth_tcp = "none"
 
-/etc/libvirt/virtqemud.conf:  
-auth_unix_ro = "none"  
-auth_unix_rw = "none"  
+/etc/libvirt/virtqemud.conf:
+auth_unix_ro = "none"
+auth_unix_rw = "none"
 
-/etc/libvirt/qemu.conf:  
-user = "qemu"  
-group = "disk"  
-dynamic_ownership = 0  
-lock_manager = "sanlock"  
+/etc/libvirt/qemu.conf:
+user = "qemu"
+group = "disk"
+dynamic_ownership = 0
+lock_manager = "sanlock"
 
-/etc/libvirt/qemu-sanlock.conf:  
-auto_disk_leases = 0  
-require_lease_for_disks = 0  
-io_timeout = 0  
-user = "sanlock"  
-group = "sanlock"  
+/etc/libvirt/qemu-sanlock.conf:
+auto_disk_leases = 0
+require_lease_for_disks = 0
+io_timeout = 0
+user = "sanlock"
+group = "sanlock"
 
-/etc/sanlock/sanlock.conf: (for now, eventually we might enable watchdog):  
-use_watchdog = 0  
+/etc/sanlock/sanlock.conf: (for now, eventually we might enable watchdog):
+use_watchdog = 0
 
 ---
 Start sanlock
@@ -114,7 +114,7 @@ serf agent &
 
 start virtxd on the initial node, using the systemd provided service or f.e.: like so:
 
-sudo -u qemu -g qemu nohup virtxd
+sudo -u qemu -g disk nohup virtxd
 
 then proceed to the next node, where you will start the serf agent in the same way:
 
@@ -130,7 +130,7 @@ serf agent -join=virt1 &
 
 after that, start virtxd on this node too, again with the same command:
 
-sudo -u qemu -g qemu nohup virtxd
+sudo -u qemu -g disk nohup virtxd
 
 If you are using systemd service files for serf and virtx, you will likely just
 enable those services on all hosts, and on each host simply run a single command:
@@ -257,11 +257,9 @@ It is built alongside virtxd from the same source tree (cmd/virtx-check-lvb/).
 
 # TODO
 
-- migration (offline/live) needs more testing and probably changes
-- some testing should be done with an HTTPS proxy in front (nginx?)
-- Only NFS is implemented as shared storage (no iSCSI)
 - HA features are not implemented yet
-- ...a lot more
+- Minimal host selection algorithm (for HA)
+- Golden images?
 
 # BUGS
 
@@ -287,22 +285,13 @@ Subject to change.
 The "standard" code style for Golang is to have CamelCase everywhere which is a readability
 disaster for me being used to C.
 
-So in most places (function names, variable names, struct fields etc),
-I used instead the convention of using _.
+- **`snake_case`** for function names, variable names — not `camelCase`.
+  Type names are CamelCase since code generators use that convention, and it would be too cumbersome to do otherwise.
 
-For symbols only visible within the package, I use a short prefix for the package.
-For symbols exported, the first letter needs to be upper case, and I do not prepend the package prefix.
-
-This way, within the package, package-private symbols will look like this:
-
-vmdef_disk_to_xml()
-
-and global ones will look like this:
-
-import (
- .../vmdef
-)
-
-vmdef.To_xml()
-
-Type names are CamelCase since code generators use that convention, and it would be too cumbersome to do otherwise.
+- **Package-private symbols** get a short package prefix: e.g., `vm_list_loop` inside the `virtx` package.
+- **Exported symbols** have an uppercase first letter but still use underscores: e.g., `vmdef.To_xml()`.
+- **Type names** are CamelCase (required by code generators).
+- `if`: always put parentheses around conditions
+- no assignment and error checking on the same line
+- Always put spaces around binary arithmetic operators. (a + b) is OK, but (a - b) is NOT.
+- Struct literals have spaces inside braces: `Foo{ field1, field2 }` not `Foo{field1, field2}`.
