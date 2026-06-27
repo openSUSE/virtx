@@ -55,7 +55,7 @@ func vdisk_create(disk *openapi.Disk, resource_name string, uuid string) error {
 			return err
 		}
 		if (disk.Size == 0) { /* user asked auto-size */
-			disk.Size = vsize / MiB
+			disk.Size = int32(vsize / MiB)
 		} else if (int64(disk.Size) * MiB < vsize) {
 			return fmt.Errorf("disk.Size is smaller than disk.Source size")
 		}

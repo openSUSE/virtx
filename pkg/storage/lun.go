@@ -40,69 +40,107 @@ const (
 	DISCARD_PATH = "/sys/block/%s/queue/discard_max_bytes"
 )
 
-func lun_wipe(path string, resource_name string, uuid string, delete bool) error {
+func lun_create(disk *openapi.Disk, resource_name string, uuid string) error {
+	var (
+		err error
+		clone_args [][]string
+	)
+	disk_driver := vmdef.Validate_disk_path(disk.Path)
+	if (disk_driver != "raw") {
+		return errors.New("invalid Disk Path")
+	}
+	if (disk.Source != "") {
+		clone_args, err = lun_clone_args(disk)
+		if (err != nil) {
+			return err
+		}
+	}
+	args, err := lun_discard_args(disk.Path)
+	if (err != nil) {
+		return err
+	}
+	args = append(args, clone_args...)
+	return lockman.Run(resource_name, uuid, args, false)
+}
+
+func lun_clone_args(disk *openapi.Disk) ([][]string, error) {
+	var (
+		err error
+	)
+	source_driver := vmdef.Validate_disk_source(disk.Source)
+	if (source_driver == "") {
+		return nil, errors.New("invalid Disk Source")
+	}
+	vsize, err := vdisk_detect_vsize(disk.Source, source_driver)
+	if (err != nil) {
+		return nil, err
+	}
+	/* detect physical LUN size into disk.Size */
+	err = lun_detect(disk)
+	if (err != nil) {
+		return nil, err
+	}
+	if (int64(disk.Size) * MiB < vsize) {
+		return nil, fmt.Errorf("disk.Size is smaller than disk.Source size")
+	}
+	args := [][]string{
+		{ paths.Get("QEMU_IMG"), "convert", "-f", source_driver, "-O", "raw", disk.Source, disk.Path },
+	}
+	return args, nil
+}
+
+func lun_delete(disk *openapi.Disk, resource_name string, uuid string) error {
+	var (
+		err error
+		args [][]string
+	)
+	disk_driver := vmdef.Validate_disk_path(disk.Path)
+	if (disk_driver != "raw") {
+		return errors.New("invalid Disk Path")
+	}
+	args, err = lun_discard_args(disk.Path)
+	if (err != nil) {
+		return err
+	}
+	resource_path := lockman.Get_resource_path(resource_name)
+	args = append(args,
+		[]string{ "/usr/bin/rm", "--", resource_path },
+		[]string{ "/usr/bin/rmdir", "--", filepath.Dir(resource_path) },
+	)
+	return lockman.Run(resource_name, uuid, args, true)
+}
+
+/* return the blkdiscard or dd command appropriate for this device */
+func lun_discard_args(path string) ([][]string, error) {
 	var (
 		raw []byte
 		err error
-		dev, discard_path, resource_path string
+		dev, discard_path string
 		i int
 	)
-	resource_path = lockman.Get_resource_path(resource_name)
-	args := [][]string{
-		{ paths.Get("WIPEFS"), "-a", path },
-	}
-	/* check if device supports blkdiscard, and if so add blkdiscard to the commands, else dd */
 	dev, err = filepath.EvalSymlinks(path)
 	if (err != nil) {
-		return fmt.Errorf("could not eval symlink: %w", err)
+		return nil, fmt.Errorf("could not eval symlink: %w", err)
 	}
 	dev = strings.TrimPrefix(dev, "/dev")
 	discard_path = fmt.Sprintf(DISCARD_PATH, dev)
 	raw, err = os.ReadFile(discard_path)
 	if (err != nil) {
-		return fmt.Errorf("could not read %s: %w", discard_path, err)
+		return nil, fmt.Errorf("could not read %s: %w", discard_path, err)
 	}
 	i, err = strconv.Atoi(strings.TrimSpace(string(raw)))
 	if (err != nil) {
-		return fmt.Errorf("failed to parse %s: %w", discard_path, err)
+		return nil, fmt.Errorf("failed to parse %s: %w", discard_path, err)
+	}
+	args := [][]string{
+		{ paths.Get("WIPEFS"), "-a", path },
 	}
 	if (i > 0) {
 		args = append(args, []string{ paths.Get("BLKDISCARD"), path })
 	} else {
 		args = append(args, []string{ "/usr/bin/dd", "if=/dev/zero", "of=" + path, "bs=1M", "count=1" })
 	}
-	if (delete) {
-		args = append(args, []string{ "/usr/bin/rm", "--", resource_path })
-		args = append(args, []string{ "/usr/bin/rmdir", "--", filepath.Dir(resource_path) })
-	}
-	/* run under lease lock */
-	return lockman.Run(resource_name, uuid, args, delete)
-}
-
-func lun_create(disk *openapi.Disk, resource_name string, uuid string) error {
-	var (
-		err error
-	)
-	disk_driver := vmdef.Validate_disk_path(disk.Path)
-	if (disk_driver != "raw") {
-		return errors.New("invalid Disk Path")
-	}
-	/* wipe existing signatures, zero 1MB of data and blkdiscard, to avoid booting from previously stored data */
-	err = lun_wipe(disk.Path, resource_name, uuid, false)
-	return err
-}
-
-func lun_delete(disk *openapi.Disk, resource_name string, uuid string) error {
-	var (
-		err error
-	)
-	disk_driver := vmdef.Validate_disk_path(disk.Path)
-	if (disk_driver != "raw") {
-		return errors.New("invalid Disk Path")
-	}
-	/* clear the disk and remove resource lock */
-	err = lun_wipe(disk.Path, resource_name, uuid, true)
-	return err
+	return args, nil
 }
 
 /* detect and set disk provisioning method and virtual size */
