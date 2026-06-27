@@ -30,6 +30,7 @@ import (
 	"suse.com/virtx/pkg/virtx"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/lockman"
+	"suse.com/virtx/pkg/paths"
 )
 
 var version string = "unknown"
@@ -43,6 +44,9 @@ func main() {
 	debug = flag.Bool("D", false, "add debug info to logs")
 	flag.Parse()
 	logger.Set_debug(*debug)
+
+	/* runtime paths: initialize the runtime binary dependencies */
+	paths.Init()
 
 	/* hypervisor: initialize and start listening to hypervisor events */
 	err = hypervisor.Connect()

@@ -38,7 +38,7 @@ var prog_paths = map[string]string{
 	"VIRTX_CHECK_LVB": "/usr/sbin/virtx-check-lvb",
 }
 
-func init() {
+func Init() {
 	for key, default_path := range prog_paths {
 		var (
 			name string = filepath.Base(default_path)
