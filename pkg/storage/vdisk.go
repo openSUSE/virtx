@@ -39,11 +39,26 @@ import (
 func vdisk_create(disk *openapi.Disk, resource_name string, uuid string) error {
 	var (
 		err error
-		disk_driver, prealloc string
+		disk_driver, source_driver, prealloc string
 	)
 	disk_driver = vmdef.Validate_disk_path(disk.Path)
 	if (disk_driver == "") {
 		return errors.New("invalid Disk Path")
+	}
+	if (disk.Source != "") {
+		source_driver = vmdef.Validate_disk_source(disk.Source)
+		if (source_driver == "") {
+			return errors.New("invalid Disk Source")
+		}
+		vsize, err := vdisk_detect_vsize(disk.Source, source_driver)
+		if (err != nil) {
+			return err
+		}
+		if (disk.Size == 0) { /* user asked auto-size */
+			disk.Size = vsize / MiB
+		} else if (int64(disk.Size) * MiB < vsize) {
+			return fmt.Errorf("disk.Size is smaller than disk.Source size")
+		}
 	}
 	err = os.MkdirAll(filepath.Dir(disk.Path), 0750)
 	if (err != nil) {
@@ -62,15 +77,20 @@ func vdisk_create(disk *openapi.Disk, resource_name string, uuid string) error {
 			return "falloc"
 		}
 	}()
-	args := []string{ paths.Get("QEMU_IMG"), "create", "-f", disk_driver, "-o", "preallocation=" + prealloc }
-	if (disk_driver == "qcow2") {
-		args = append(args, "-o", "lazy_refcounts=off")
+	args := [][]string{
+		{ paths.Get("QEMU_IMG"), "create", "-f", disk_driver, "-o", "preallocation=" + prealloc },
 	}
-	args = append(args, disk.Path, fmt.Sprintf("%dM", disk.Size))
-	logger.Debug("qemu-img %v", args)
-
+	if (disk_driver == "qcow2") {
+		args[0] = append(args[0], "-o", "lazy_refcounts=off")
+	}
+	args[0] = append(args[0], disk.Path, fmt.Sprintf("%dM", disk.Size))
+	if (disk.Source != "") {
+		args = append(args, []string{
+			paths.Get("QEMU_IMG"), "convert", "-n", "-f", source_driver, "-O", disk_driver, disk.Source, disk.Path,
+		})
+	}
 	/* run provisioning under lease lock */
-	return lockman.Run(resource_name, uuid, [][]string{ args }, false)
+	return lockman.Run(resource_name, uuid, args, false)
 }
 
 func vdisk_delete(disk *openapi.Disk, resource_name string, uuid string) error {
