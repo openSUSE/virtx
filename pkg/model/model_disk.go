@@ -27,8 +27,10 @@ type Disk struct {
 	Bus DiskBus `json:"bus"`
 	Man DiskManMode `json:"man"`
 	Prov DiskProvMode `json:"prov"`
-	// size in MiB. Provide 0 if disk should not be created (unmanaged or claiming existing disk)
+	// size in MiB. Provide 0 if disk should not be created (unmanaged or claiming existing disk), or to use the source virtual size when cloning
 	Size int32 `json:"size"`
+	// golden image path under /vms/gold/ to clone from; empty string means create fresh
+	Source string `json:"source"`
 }
 
 type _Disk Disk
@@ -37,7 +39,7 @@ type _Disk Disk
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewDisk(path string, device DiskDevice, bus DiskBus, man DiskManMode, prov DiskProvMode, size int32) *Disk {
+func NewDisk(path string, device DiskDevice, bus DiskBus, man DiskManMode, prov DiskProvMode, size int32, source string) *Disk {
 	this := Disk{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
@@ -49,6 +51,7 @@ func NewDisk(path string, device DiskDevice, bus DiskBus, man DiskManMode, prov 
 	this.Man = man
 	this.Prov = prov
 	this.Size = size
+	this.Source = source
 	return &this
 }
 
@@ -204,6 +207,30 @@ func (o *Disk) SetSize(v int32) {
 	o.Size = v
 }
 
+// GetSource returns the Source field value
+func (o *Disk) GetSource() string {
+	if o == nil {
+		var ret string
+		return ret
+	}
+
+	return o.Source
+}
+
+// GetSourceOk returns a tuple with the Source field value
+// and a boolean to check if the value has been set.
+func (o *Disk) GetSourceOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Source, true
+}
+
+// SetSource sets field value
+func (o *Disk) SetSource(v string) {
+	o.Source = v
+}
+
 func (o Disk) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["path"] = o.Path
@@ -212,6 +239,7 @@ func (o Disk) ToMap() (map[string]interface{}, error) {
 	toSerialize["man"] = o.Man
 	toSerialize["prov"] = o.Prov
 	toSerialize["size"] = o.Size
+	toSerialize["source"] = o.Source
 	return toSerialize, nil
 }
 

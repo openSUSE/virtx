@@ -84,6 +84,39 @@ func Disk_driver(p string) string {
 	return ""
 }
 
+/* get disk driver type from path for golden images. No ISO. */
+func source_driver(p string) string {
+	var (
+		ext string
+	)
+	ext = filepath.Ext(p)
+	switch (ext) {
+	case ".qcow2":
+		return "qcow2"
+	case ".raw":
+		return "raw"
+	}
+	return ""
+}
+
+/* validate a golden image source path and return the driver (.qcow2 or .raw only), or "" on error */
+func Validate_disk_source(source string) string {
+	if (source == "" || !filepath.IsAbs(source)) {
+		return ""
+	}
+	if (filepath.Clean(source) != source) {
+		return ""
+	}
+	if (!strings.HasPrefix(source, GOLD_DIR)) {
+		return ""
+	}
+	driver := source_driver(source)
+	if (driver == "qcow2" || driver == "raw") {
+		return driver
+	}
+	return ""
+}
+
 /* validate a disk path and return the driver for the disk, or "" on error */
 func Validate_disk_path(path string) string {
 	if (path == "" || !filepath.IsAbs(path)) {
@@ -123,6 +156,17 @@ func vmdef_validate_disk(disk *openapi.Disk) error {
 	}
 	if (!disk.Man.IsValid()) {
 		return errors.New("invalid Disk Management mode")
+	}
+	if (disk.Source != "") {
+		if (Validate_disk_source(disk.Source) == "") {
+			return errors.New("invalid Disk Source")
+		}
+		if (disk.Man != openapi.DISK_MAN_MANAGED) {
+			return errors.New("Disk Source requires managed disk")
+		}
+		if (disk.Prov == openapi.DISK_PROV_NONE) {
+			return errors.New("Disk Source requires THIN or THICK provisioning")
+		}
 	}
 	if (disk.Device == openapi.DEVICE_LUN) {
 		if (disk.Bus != openapi.BUS_VIRTIO_SCSI) {
