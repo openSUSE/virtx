@@ -84,7 +84,7 @@ func vdisk_delete(disk *openapi.Disk, resource_name string, uuid string) error {
 	 */
 	resource_path := lockman.Get_resource_path(resource_name)
 	args := [][]string{
-		{ "/usr/bin/rm", "--", disk.Path },
+		{ "/usr/bin/rm", "-f", "--", disk.Path },
 		{ "/usr/bin/rm", "--", resource_path },
 		{ "/usr/bin/rmdir", "--", filepath.Dir(resource_path) },
 	}

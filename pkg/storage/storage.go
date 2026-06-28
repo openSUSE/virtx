@@ -47,7 +47,11 @@ func Rollback(created CreatedResources, uuid string) {
 		c created_resource
 	)
 	for _, c = range created {
-		rerr = lockman.Delete_resource(c.resource_name, uuid)
+		if (c.disk.Prov == openapi.DISK_PROV_NONE) {
+			rerr = lockman.Delete_resource(c.resource_name, uuid)
+		} else {
+			rerr = storage_delete_disk(c.disk, c.resource_name, uuid)
+		}
 		if (rerr != nil) {
 			logger.Log("Rollback failed to delete resource %s: %s", c.resource_name, rerr.Error())
 		}
