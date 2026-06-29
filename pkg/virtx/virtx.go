@@ -72,6 +72,7 @@ func Init() {
 			Addr: ":8080",
 			Handler: servemux,
 			ReadTimeout: httpx.SERVER_TIMEOUT * time.Second,
+			ConnContext: httpx.Context_with_conn,
 		},
 	}
 }

@@ -88,7 +88,9 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	/* create missing storage where needed, can change o.Vmdef in some cases */
+	stop_progress := httpx.Start_progress(r)
 	created, err = storage.Create(&o.Vmdef, &old, uuid)
+	stop_progress()
 	if (err != nil) {
 		logger.Log("vm_update_storage failed: %s", err.Error())
 		storage.Rollback(created, uuid)
