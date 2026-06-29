@@ -1,6 +1,6 @@
 module suse.com/virtx
 
-go 1.21.9
+go 1.24
 
 require (
 	github.com/google/uuid v1.6.0
@@ -33,5 +33,3 @@ require (
 	golang.org/x/sys v0.20.0 // indirect
 	golang.org/x/tools v0.20.0 // indirect
 )
-
-godebug default=go1.23
