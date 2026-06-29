@@ -129,6 +129,35 @@ func Test_disk_driver(t *testing.T) {
 	}
 }
 
+/* *** Validate_disk_source *** */
+
+func Test_validate_disk_source(t *testing.T) {
+	cases := []struct {
+		name   string
+		source string
+		want   string
+	}{
+		{"valid_qcow2", "/vms/gold/image.qcow2", "qcow2"},
+		{"valid_raw", "/vms/gold/image.raw", "raw"},
+		{"valid_subdir", "/vms/gold/vendor/sles.qcow2", "qcow2"},
+		{"empty", "", ""},
+		{"relative", "vms/gold/image.qcow2", ""},
+		{"unclean", "/vms/gold/../ds/image.qcow2", ""},
+		{"wrong_prefix", "/vms/ds/image.qcow2", ""},
+		{"iso_not_allowed", "/vms/gold/image.iso", ""},
+		{"no_extension", "/vms/gold/image", ""},
+		{"unknown_extension", "/vms/gold/image.vmdk", ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := Validate_disk_source(tc.source)
+			if (got != tc.want) {
+				t.Errorf("Validate_disk_source(%q) = %q, want %q", tc.source, got, tc.want)
+			}
+		})
+	}
+}
+
 /* *** Validate_disk_path *** */
 
 func Test_validate_disk_path(t *testing.T) {
@@ -197,6 +226,82 @@ func Test_vmdef_validate_disk_bad_path(t *testing.T) {
 	err := vmdef_validate_disk(&disk)
 	if (err == nil) {
 		t.Fatal("bad path: expected error")
+	}
+}
+
+func Test_vmdef_validate_disk_source_valid(t *testing.T) {
+	disk := openapi.Disk{
+		Path:   "/vms/ds/testvm/testvm.qcow2",
+		Device: openapi.DEVICE_DISK,
+		Bus:    openapi.BUS_VIRTIO_BLK,
+		Prov:   openapi.DISK_PROV_THIN,
+		Man:    openapi.DISK_MAN_MANAGED,
+		Size:   16384,
+		Source: "/vms/gold/sles15.qcow2",
+	}
+	err := vmdef_validate_disk(&disk)
+	if (err != nil) {
+		t.Fatalf("valid source disk rejected: %v", err)
+	}
+}
+
+func Test_vmdef_validate_disk_source_requires_managed(t *testing.T) {
+	disk := openapi.Disk{
+		Path:   "/vms/ds/testvm/testvm.qcow2",
+		Device: openapi.DEVICE_DISK,
+		Bus:    openapi.BUS_VIRTIO_BLK,
+		Prov:   openapi.DISK_PROV_THIN,
+		Man:    openapi.DISK_MAN_UNMANAGED,
+		Size:   0,
+		Source: "/vms/gold/sles15.qcow2",
+	}
+	err := vmdef_validate_disk(&disk)
+	if (err == nil) {
+		t.Fatal("Source on unmanaged disk: expected error")
+	}
+}
+
+func Test_vmdef_validate_disk_source_requires_non_none_prov(t *testing.T) {
+	disk := openapi.Disk{
+		Path:   "/dev/sda",
+		Device: openapi.DEVICE_LUN,
+		Bus:    openapi.BUS_VIRTIO_SCSI,
+		Prov:   openapi.DISK_PROV_NONE,
+		Man:    openapi.DISK_MAN_MANAGED,
+		Size:   0,
+		Source: "/vms/gold/sles15.qcow2",
+	}
+	err := vmdef_validate_disk(&disk)
+	if (err == nil) {
+		t.Fatal("Source with DISK_PROV_NONE: expected error")
+	}
+}
+
+func Test_vmdef_validate_disk_source_invalid_path(t *testing.T) {
+	disk := openapi.Disk{
+		Path:   "/vms/ds/testvm/testvm.qcow2",
+		Device: openapi.DEVICE_DISK,
+		Bus:    openapi.BUS_VIRTIO_BLK,
+		Prov:   openapi.DISK_PROV_THIN,
+		Man:    openapi.DISK_MAN_MANAGED,
+		Size:   16384,
+		Source: "/tmp/notallowed.qcow2",
+	}
+	err := vmdef_validate_disk(&disk)
+	if (err == nil) {
+		t.Fatal("Source outside GOLD_DIR: expected error")
+	}
+}
+
+func Test_vmdef_validate_disk_lun_nonzero_size(t *testing.T) {
+	disk := openapi.Disk{
+		Path: "/dev/sda", Device: openapi.DEVICE_LUN,
+		Bus: openapi.BUS_VIRTIO_SCSI, Prov: openapi.DISK_PROV_NONE, Man: openapi.DISK_MAN_UNMANAGED,
+		Size: 1024,
+	}
+	err := vmdef_validate_disk(&disk)
+	if (err == nil) {
+		t.Fatal("LUN with non-zero Size: expected error")
 	}
 }
 
