@@ -171,7 +171,7 @@ func vdisk_detect_qcow2_prov(path string) (openapi.DiskProvMode, int32, error) {
 		virtual_size uint64
 		qmaps []qmap
 	)
-	args := []string { "map", "--output=json", path }
+	args := []string { "map", "--output=json", "-f", "qcow2", path }
 	logger.Debug("qemu-img %v", args)
 	var cmd *exec.Cmd = exec.Command(paths.Get("QEMU_IMG"), args...)
 	var output []byte
