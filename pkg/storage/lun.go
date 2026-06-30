@@ -84,7 +84,10 @@ func lun_clone_args(disk *openapi.Disk) ([][]string, error) {
 		return nil, fmt.Errorf("disk.Size is smaller than disk.Source size")
 	}
 	args := [][]string{
-		{ paths.Get("QEMU_IMG"), "convert", "-f", source_driver, "-O", "raw", disk.Source, disk.Path },
+		{
+			paths.Get("QEMU_IMG"), "convert", "-n", "-t", "none", "-W", "-m", "8",
+			"-f", source_driver, "-O", "raw", disk.Source, disk.Path,
+		},
 	}
 	return args, nil
 }
