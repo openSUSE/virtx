@@ -43,8 +43,8 @@ type Request struct {
 	body []byte
 }
 type Response struct {
-	r *http.Response
-	body []byte
+	r    *http.Response
+	Body []byte
 }
 
 const (
@@ -104,7 +104,7 @@ func Decode_response_body(r *http.Response, result any) (Response, error) {
 	)
 	vr.r = r
 	defer r.Body.Close()
-	if (result == nil) {
+	if (result == nil && r.StatusCode >= 200 && r.StatusCode <= 299) {
 		return vr, nil
 	}
 	if (r.ContentLength <= 0) {
@@ -113,15 +113,15 @@ func Decode_response_body(r *http.Response, result any) (Response, error) {
 	if (r.ContentLength >= HTTP_MAX_BODY_LEN) {
 		return vr, errors.New("content-length exceeded")
 	}
+	vr.Body, err = io.ReadAll(io.LimitReader(r.Body, HTTP_MAX_BODY_LEN))
+	if (err != nil) {
+		return vr, errors.New("failed to read body")
+	}
+	if (int64(len(vr.Body)) > r.ContentLength) {
+		return vr, errors.New("body len exceeds content-length")
+	}
 	if (r.StatusCode >= 200 && r.StatusCode <= 299) {
-		vr.body, err = io.ReadAll(io.LimitReader(r.Body, HTTP_MAX_BODY_LEN))
-		if (err != nil) {
-			return vr, errors.New("failed to read body")
-		}
-		if (int64(len(vr.body)) > r.ContentLength) {
-			return vr, errors.New("body len exceeds content-length")
-		}
-		err = json.NewDecoder(bytes.NewReader(vr.body)).Decode(result)
+		err = json.NewDecoder(bytes.NewReader(vr.Body)).Decode(result)
 	}
 	return vr, err
 }

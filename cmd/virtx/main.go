@@ -22,6 +22,7 @@ import (
 	"time"
 	"net/http"
 	"fmt"
+	"strings"
 	"encoding/json"
 	"bytes"
 	writer "text/tabwriter"
@@ -121,20 +122,18 @@ func main() {
 		logger.Log("failed to send request: %s", err.Error())
 		os.Exit(1)
 	}
-	if (response.Body != nil && virtx.result != nil) {
-		_, err = httpx.Decode_response_body(response, virtx.result)
-		if (err != nil) {
-			logger.Log("failed to decode response: %s", err.Error())
-			os.Exit(1)
-		}
-		if (virtx.debug) {
-			logger.Log("result=%v", virtx.result)
-			if (virtx.result != nil) {
-				var buf bytes.Buffer
-				err = json.NewEncoder(&buf).Encode(virtx.result)
-				if (err == nil) {
-					logger.Log("JSON\n%s", buf.String())
-				}
+	vr, err := httpx.Decode_response_body(response, virtx.result)
+	if (err != nil) {
+		logger.Log("failed to decode response: %s", err.Error())
+		os.Exit(1)
+	}
+	if (virtx.debug) {
+		logger.Log("result=%v", virtx.result)
+		if (virtx.result != nil) {
+			var buf bytes.Buffer
+			err = json.NewEncoder(&buf).Encode(virtx.result)
+			if (err == nil) {
+				logger.Log("JSON\n%s", buf.String())
 			}
 		}
 	}
@@ -144,7 +143,7 @@ func main() {
 		err = cmd_exec()
 		virtx.w.Flush()
 	} else {
-		fmt.Printf("%s\n", response.Status)
+		fmt.Printf("%s: %s\n", response.Status, strings.TrimSpace(string(vr.Body)))
 	}
 }
 
