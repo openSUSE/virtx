@@ -143,7 +143,8 @@ func main() {
 		err = cmd_exec()
 		virtx.w.Flush()
 	} else {
-		fmt.Printf("%s: %s\n", response.Status, strings.TrimSpace(string(vr.Body)))
+		status := strings.Replace(response.Status, "Insufficient Storage", "Storage Error", 1)
+		fmt.Printf("%s: %s\n", status, strings.TrimSpace(string(vr.Body)))
 	}
 }
 
