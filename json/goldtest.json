@@ -1,0 +1,40 @@
+{
+    "name": "goldtest",
+    "cpudef": {
+        "model": "host-passthrough",
+        "nodes": 1,
+        "sockets": 1,
+        "cores": 16,
+        "threads": 1
+    },
+    "memory": {
+        "total": 8192,
+        "hp": false
+    },
+    "osdisk": {
+        "path": "/vms/ds/goldtest.qcow2",
+        "device": 0,
+        "bus": 0,
+        "man": 1,
+        "prov": 1,
+        "size": 32768,
+        "source": "/vms/gold/opensuse-15.6-cloud.qcow2"
+    },
+    "nets": [
+        {
+            "name": "default",
+            "nettype": 0,
+            "model": 0,
+            "mac": "52:54:00:8c:25:ef"
+        }
+    ],
+    "vlanid": 0,
+    "firmware": 1,
+    "genid": "43dc0cf8-809b-4adb-9bea-a9abb5f3d90e",
+    "custom": [
+        {
+            "name": "CID",
+            "value": "1217"
+        }
+    ]
+}
