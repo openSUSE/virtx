@@ -80,14 +80,17 @@ func vdisk_create(disk *openapi.Disk, resource_name string, uuid string) error {
 	args := [][]string{
 		{ paths.Get("QEMU_IMG"), "create", "-f", disk_driver, "-o", "preallocation=" + prealloc },
 	}
-	if (disk_driver == "qcow2") {
-		args[0] = append(args[0], "-o", "lazy_refcounts=off")
-	}
 	args[0] = append(args[0], disk.Path, fmt.Sprintf("%dM", disk.Size))
 	if (disk.Source != "") {
 		args = append(args, []string{
-			paths.Get("QEMU_IMG"), "convert", "-n", "-f", source_driver, "-O", disk_driver, disk.Source, disk.Path,
+			paths.Get("QEMU_IMG"), "convert", "-n", "-t", "none", "-W", "-m", "8",
 		})
+		if (disk.Prov == openapi.DISK_PROV_THIN) {
+			args[1] = append(args[1], "--target-is-zero")
+		}
+		args[1] = append(args[1],
+			"-f", source_driver, "-O", disk_driver, disk.Source, disk.Path,
+		)
 	}
 	/* run provisioning under lease lock */
 	return lockman.Run(resource_name, uuid, args, false)
