@@ -180,6 +180,52 @@ func vdisk_detect_qcow2_prov(path string) (openapi.DiskProvMode, int32, error) {
 	return prov, int32(virtual_size / MiB), nil
 }
 
+func vdisk_detect_vsize(path string, format string) (int64, error) {
+	switch (format) {
+	case "qcow2":
+		return vdisk_detect_qcow2_vsize(path)
+	case "raw":
+		return vdisk_detect_raw_vsize(path)
+	}
+	return 0, fmt.Errorf("invalid format: %s", format)
+}
+
+type qinfo struct {
+	VirtualSize int64 `json:"virtual-size"`
+}
+
+func vdisk_detect_qcow2_vsize(path string) (int64, error) {
+	var info qinfo
+	args := []string{ "info", "--output=json", "-f", "qcow2", path }
+	logger.Debug("qemu-img %v", args)
+	cmd := exec.Command(paths.Get("QEMU_IMG"), args...)
+	output, err := cmd.CombinedOutput()
+	if (err != nil) {
+		logger.Log("%s\n", string(output))
+		return 0, fmt.Errorf("qemu-img info failed: %w", err)
+	}
+	err = json.NewDecoder(bytes.NewReader(output)).Decode(&info)
+	if (err != nil) {
+		return 0, fmt.Errorf("qemu-img info parse failed: %w", err)
+	}
+	if (info.VirtualSize <= 0) {
+		return 0, errors.New("invalid virtual size in qemu-img info")
+	}
+	return info.VirtualSize, nil
+}
+
+func vdisk_detect_raw_vsize(path string) (int64, error) {
+	var (
+		err error
+		stat unix.Stat_t
+	)
+	err = unix.Lstat(path, &stat)
+	if (err != nil) {
+		return 0, err
+	}
+	return stat.Size, nil
+}
+
 func init() {
 	storage_ops_map[openapi.DEVICE_DISK] = storage_ops{
 		create: vdisk_create,
