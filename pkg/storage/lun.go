@@ -50,7 +50,11 @@ func lun_create(disk *openapi.Disk, resource_name string, uuid string) error {
 		return errors.New("invalid Disk Path")
 	}
 	if (disk.Source != "") {
-		clone_args, err = lun_clone_args(disk)
+		size, err := lun_detect_size(disk.Path)
+		if (err != nil) {
+			return err
+		}
+		clone_args, err = lun_clone_args(disk, size)
 		if (err != nil) {
 			return err
 		}
@@ -63,7 +67,7 @@ func lun_create(disk *openapi.Disk, resource_name string, uuid string) error {
 	return lockman.Run(resource_name, uuid, args, false)
 }
 
-func lun_clone_args(disk *openapi.Disk) ([][]string, error) {
+func lun_clone_args(disk *openapi.Disk, size int64) ([][]string, error) {
 	var (
 		err error
 	)
@@ -75,13 +79,8 @@ func lun_clone_args(disk *openapi.Disk) ([][]string, error) {
 	if (err != nil) {
 		return nil, err
 	}
-	/* detect physical LUN size into disk.Size */
-	err = lun_detect(disk)
-	if (err != nil) {
-		return nil, err
-	}
-	if (int64(disk.Size) * MiB < vsize) {
-		return nil, fmt.Errorf("disk.Size is smaller than disk.Source size")
+	if (size < vsize) {
+		return nil, fmt.Errorf("disk Size is smaller than Source size")
 	}
 	args := [][]string{
 		{
@@ -150,12 +149,27 @@ func lun_discard_args(path string) ([][]string, error) {
 func lun_detect(disk *openapi.Disk) error {
 	var (
 		err error
+		size int64
+	)
+	size, err = lun_detect_size(disk.Path)
+	if (err != nil) {
+		return err
+	}
+	disk.Size = int32(size / MiB)
+	/* XXX we cannot know THIN vs THICK, depends on that the storage product is doing XXX */
+	disk.Prov = openapi.DISK_PROV_THIN
+	return nil
+}
+
+func lun_detect_size(path string) (int64, error) {
+	var (
+		err error
 		size uint64
 		errno syscall.Errno
 	)
-	f, err := os.Open(disk.Path)
+	f, err := os.Open(path)
 	if (err != nil) {
-		return err
+		return 0, err
 	}
 	defer f.Close()
 	/*
@@ -169,12 +183,9 @@ func lun_detect(disk *openapi.Disk) error {
 		uintptr(unsafe.Pointer(&size)),
 	)
 	if (errno != 0) {
-		return errno
+		return 0, errno
 	}
-	disk.Size = int32(size / MiB)
-	/* XXX we cannot know THIN vs THICK, depends on that the storage product is doing XXX */
-	disk.Prov = openapi.DISK_PROV_THIN
-	return nil
+	return int64(size), nil
 }
 
 func init() {
