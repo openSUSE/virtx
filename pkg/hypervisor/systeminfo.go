@@ -649,7 +649,6 @@ func get_domain_stats(d *libvirt.Domain, vm *SystemInfoVm, old *SystemInfoVm, im
 
 		var delta int64 = Counter_delta_int64(vm.net_rx, old.net_rx)
 		logger.Debug("gds: net_rx delta = %d", delta)
-
 		if (delta > 0 && interval > 0) {
 			vm.stats.NetRxBw = int32((delta * 1000) / (interval * KiB))
 		}
@@ -657,7 +656,6 @@ func get_domain_stats(d *libvirt.Domain, vm *SystemInfoVm, old *SystemInfoVm, im
 
 		delta = Counter_delta_int64(vm.net_tx, old.net_tx)
 		logger.Debug("gds: net_tx delta = %d", delta)
-
 		if (delta > 0 && interval > 0) {
 			vm.stats.NetTxBw = int32((delta * 1000) / (interval * KiB))
 		}
