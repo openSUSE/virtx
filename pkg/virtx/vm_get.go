@@ -40,7 +40,7 @@ func vm_get(w http.ResponseWriter, r *http.Request) {
 	)
 	vr, err = httpx.Decode_request_body(r, nil)
 	if (err != nil) {
-		logger.Log(err.Error())
+		logger.Log("%s", err.Error())
 		http.Error(w, "failed to decode body", http.StatusBadRequest)
 		return
 	}

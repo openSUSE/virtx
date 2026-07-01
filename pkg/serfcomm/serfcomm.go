@@ -171,7 +171,7 @@ func handle_member_change(e map[string]any, newstate openapi.Cstate) {
 		logger.Debug("%s %s", name, uuid)
 		err = inventory.Set_host_state(uuid, newstate)
 		if (err != nil) {
-			logger.Log(err.Error())
+			logger.Log("%s", err.Error())
 		}
 	}
 }
@@ -207,7 +207,7 @@ func handle_user_event(e map[string]any) {
 			logger.Debug("Decode %s: OK  %d %s %s", name, ve.Ts, ve.Uuid, ve.Runstate)
 			err = inventory.Update_vm_state(&ve)
 			if (err != nil) {
-				logger.Log(err.Error())
+				logger.Log("%s", err.Error())
 			}
 		}
 	case LABEL_VM_INFO:
@@ -222,7 +222,7 @@ func handle_user_event(e map[string]any) {
 			logger.Debug("Decode %s: OK  %d %s %s %d", name, vm.Ts, vm.Uuid, vm.Name, vm.Runstate)
 			err = inventory.Update_vm(&vm)
 			if (err != nil) {
-				logger.Log(err.Error())
+				logger.Log("%s", err.Error())
 			}
 		}
 	default:
@@ -245,17 +245,17 @@ func send_system_info(ch <-chan hypervisor.SystemInfo) {
 			/* we have a full System Info with Host Information and all VMs */
 			err = update_tags(&si.Host.HostInfo)
 			if (err != nil) {
-				logger.Log("update_tags: " + err.Error())
+				logger.Log("update_tags: %s", err.Error())
 			}
 			err = send_host_info(&si.Host.HostInfo)
 			if (err != nil) {
-				logger.Log("send_host_info: " + err.Error())
+				logger.Log("send_host_info: %s", err.Error())
 			}
 		}
 		for _, vm := range si.Vms {
 			err = send_vm_info(&vm.VmInfo)
 			if (err != nil) {
-				logger.Log("send_vm_info: " + err.Error())
+				logger.Log("send_vm_info: %s", err.Error())
 			}
 		}
 	}
@@ -270,7 +270,7 @@ func send_vm_events(eventCh <-chan inventory.VmEvent) {
 			continue
 		}
 		if err := send_vm_event(&e); err != nil {
-			logger.Log(err.Error())
+			logger.Log("%s", err.Error())
 		}
 	}
 	logger.Debug("SendVmEvents loop exit")
@@ -313,11 +313,11 @@ func Shutdown() {
 	if (serf.c != nil) {
 		err = serf.c.Stop(serf.stream)
 		if (err != nil) {
-			logger.Log(err.Error())
+			logger.Log("%s", err.Error())
 		}
 		err = serf.c.Close()
 		if (err != nil) {
-			logger.Log(err.Error())
+			logger.Log("%s", err.Error())
 		}
 	}
 	logger.Debug("serfcomm shutdown complete.")

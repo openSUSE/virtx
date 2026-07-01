@@ -51,19 +51,19 @@ func main() {
 	/* hypervisor: initialize and start listening to hypervisor events */
 	err = hypervisor.Connect()
 	if (err != nil) {
-		logger.Fatal(err.Error())
+		logger.Fatal("%s", err.Error())
 	}
 	defer hypervisor.Shutdown()
 
 	/* hypervisor: wait for the system information to be filled before proceeding */
 	err = hypervisor.Wait_system_info()
 	if (err != nil) {
-		logger.Fatal(err.Error())
+		logger.Fatal("%s", err.Error())
 	}
 	/* lockman: initialize the lock manager (needs system info to get the hypervisor Uuid()). */
 	err = lockman.Init(machine.Uuid())
 	if (err != nil) {
-		logger.Fatal(err.Error())
+		logger.Fatal("%s", err.Error())
 	}
 	defer lockman.Shutdown()
 
@@ -76,7 +76,7 @@ func main() {
 	 */
 	err = serfcomm.Connect()
 	if (err != nil) {
-		logger.Fatal(err.Error())
+		logger.Fatal("%s", err.Error())
 	}
 	defer serfcomm.Shutdown()
 
@@ -94,8 +94,8 @@ func main() {
 		defer shutdownCancel()
 		err = virtx.Shutdown(shutdownCtx)
 		if (err != nil) {
-			logger.Log(err.Error())
-			logger.Fatal(virtx.Close().Error())
+			logger.Log("%s", err.Error())
+			logger.Fatal("%s", virtx.Close().Error())
 		}
 	}()
 

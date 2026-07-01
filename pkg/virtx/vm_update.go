@@ -44,7 +44,7 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 	)
 	vr, err = httpx.Decode_request_body(r, &o)
 	if (err != nil) {
-		logger.Log(err.Error())
+		logger.Log("%s", err.Error())
 		http.Error(w, "failed to decode body", http.StatusBadRequest)
 		return
 	}
