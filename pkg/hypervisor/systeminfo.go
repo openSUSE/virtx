@@ -71,10 +71,11 @@ type SystemInfoVm struct {
 	stats openapi.Vmstats       /* the Vm statistics collected on this host */
 
 	/* overall internal counters for Vm Stats */
-	hp bool                     /* hugepages used */
-	cpu_time uint64             /* Total cpu time consumed in nanoseconds from libvirt.DomainCPUStats.CpuTime */
-	disk_rd, disk_wr int64      /* Disk Read/Written bytes */
-	net_rx, net_tx int64        /* Net Rx/Tx bytes */
+	hp bool                      /* hugepages used */
+	cpu_time uint64              /* Total cpu time consumed in nanoseconds from libvirt.DomainCPUStats.CpuTime */
+	disk_rd, disk_wr int64       /* Disk Read/Written bytes */
+	disk_rd_io, disk_wr_io int64 /* Disk Read/Write IO operations */
+	net_rx, net_tx int64         /* Net Rx/Tx bytes */
 }
 
 type SystemInfoHost struct {
@@ -597,6 +598,12 @@ func get_domain_stats(d *libvirt.Domain, vm *SystemInfoVm, old *SystemInfoVm, im
 			if (blkstat.WrBytesSet) {
 				vm.disk_wr += blkstat.WrBytes
 			}
+			if (blkstat.RdReqSet) {
+				vm.disk_rd_io += blkstat.RdReq
+			}
+			if (blkstat.WrReqSet) {
+				vm.disk_wr_io += blkstat.WrReq
+			}
 		}
 		for _, net := range xd.Devices.Interfaces {
 			if (net.Target.Dev != "") {
@@ -670,6 +677,20 @@ func get_domain_stats(d *libvirt.Domain, vm *SystemInfoVm, old *SystemInfoVm, im
 			vm.stats.DiskWrBw = int32((delta * 1000) / (interval * KiB))
 		}
 		logger.Debug("gds: DiskWrBw = %d", vm.stats.DiskWrBw)
+
+		delta = Counter_delta_int64(vm.disk_rd_io, old.disk_rd_io)
+		logger.Debug("gds: disk_rd_io delta = %d", delta)
+		if (delta > 0 && interval > 0) {
+			vm.stats.DiskRdIops = int32((delta * 1000) / interval)
+		}
+		logger.Debug("gds: DiskRdIops = %d", vm.stats.DiskRdIops)
+
+		delta = Counter_delta_int64(vm.disk_wr_io, old.disk_wr_io)
+		logger.Debug("gds: disk_wr_io delta = %d", delta)
+		if (delta > 0 && interval > 0) {
+			vm.stats.DiskWrIops = int32((delta * 1000) / interval)
+		}
+		logger.Debug("gds: DiskWrIops = %d", vm.stats.DiskWrIops)
 
 		delta = Counter_delta_int64(vm.net_rx, old.net_rx)
 		logger.Debug("gds: net_rx delta = %d", delta)

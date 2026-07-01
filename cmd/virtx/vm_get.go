@@ -44,10 +44,10 @@ func vm_get(vm *openapi.Vm) {
 			vm_get_net(&net)
 		}
 	} else if (virtx.stat_disk) {
-		fmt.Fprintf(virtx.w, "DISK_CAP\t DISK_ALLOC\t  DISK_PHYS\t READ_KiBs\tWRITE_KiBs\n")
-		fmt.Fprintf(virtx.w, "%7d MiB\t%7d MiB\t%7d MiB\t%10d\t%10d\n",
+		fmt.Fprintf(virtx.w, "DISK_CAP\t DISK_ALLOC\t  DISK_PHYS\t READ_KiBs\tWRITE_KiBs\tREAD_IOPS\tWRITE_IOPS\n")
+		fmt.Fprintf(virtx.w, "%7d MiB\t%7d MiB\t%7d MiB\t%10d\t%10d\t%10d\t%10d\n",
 			vm.Stats.DiskCapacity, vm.Stats.DiskAllocation, vm.Stats.DiskPhysical,
-			vm.Stats.DiskRdBw, vm.Stats.DiskWrBw,
+			vm.Stats.DiskRdBw, vm.Stats.DiskWrBw, vm.Stats.DiskRdIops, vm.Stats.DiskWrIops,
 		)
 	} else if (virtx.stat_net) {
 		fmt.Fprintf(virtx.w, "NETWORK_RX\t NETWORK_TX\n")

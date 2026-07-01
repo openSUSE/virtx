@@ -40,6 +40,10 @@ type Vmstats struct {
 	DiskRdBw int32 `json:"disk_rd_bw"`
 	// Disk Write KiB/s
 	DiskWrBw int32 `json:"disk_wr_bw"`
+	// Disk Read IOPS
+	DiskRdIops int32 `json:"disk_rd_iops"`
+	// Disk Write IOPS
+	DiskWrIops int32 `json:"disk_wr_iops"`
 	// Net Rx KiB/s
 	NetRxBw int32 `json:"net_rx_bw"`
 	// Net Tx KiB/s
@@ -53,7 +57,7 @@ type _Vmstats Vmstats
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVmstats(cpuUtilization int32, mhzUsed int32, memoryCapacity int64, memoryUsed int64, diskCapacity int64, diskAllocation int64, diskPhysical int64, diskRdBw int32, diskWrBw int32, netRxBw int32, netTxBw int32, oplog OplogList) *Vmstats {
+func NewVmstats(cpuUtilization int32, mhzUsed int32, memoryCapacity int64, memoryUsed int64, diskCapacity int64, diskAllocation int64, diskPhysical int64, diskRdBw int32, diskWrBw int32, diskRdIops int32, diskWrIops int32, netRxBw int32, netTxBw int32, oplog OplogList) *Vmstats {
 	this := Vmstats{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
@@ -68,6 +72,8 @@ func NewVmstats(cpuUtilization int32, mhzUsed int32, memoryCapacity int64, memor
 	this.DiskPhysical = diskPhysical
 	this.DiskRdBw = diskRdBw
 	this.DiskWrBw = diskWrBw
+	this.DiskRdIops = diskRdIops
+	this.DiskWrIops = diskWrIops
 	this.NetRxBw = netRxBw
 	this.NetTxBw = netTxBw
 	this.Oplog = oplog
@@ -298,6 +304,54 @@ func (o *Vmstats) SetDiskWrBw(v int32) {
 	o.DiskWrBw = v
 }
 
+// GetDiskRdIops returns the DiskRdIops field value
+func (o *Vmstats) GetDiskRdIops() int32 {
+	if o == nil {
+		var ret int32
+		return ret
+	}
+
+	return o.DiskRdIops
+}
+
+// GetDiskRdIopsOk returns a tuple with the DiskRdIops field value
+// and a boolean to check if the value has been set.
+func (o *Vmstats) GetDiskRdIopsOk() (*int32, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.DiskRdIops, true
+}
+
+// SetDiskRdIops sets field value
+func (o *Vmstats) SetDiskRdIops(v int32) {
+	o.DiskRdIops = v
+}
+
+// GetDiskWrIops returns the DiskWrIops field value
+func (o *Vmstats) GetDiskWrIops() int32 {
+	if o == nil {
+		var ret int32
+		return ret
+	}
+
+	return o.DiskWrIops
+}
+
+// GetDiskWrIopsOk returns a tuple with the DiskWrIops field value
+// and a boolean to check if the value has been set.
+func (o *Vmstats) GetDiskWrIopsOk() (*int32, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.DiskWrIops, true
+}
+
+// SetDiskWrIops sets field value
+func (o *Vmstats) SetDiskWrIops(v int32) {
+	o.DiskWrIops = v
+}
+
 // GetNetRxBw returns the NetRxBw field value
 func (o *Vmstats) GetNetRxBw() int32 {
 	if o == nil {
@@ -381,6 +435,8 @@ func (o Vmstats) ToMap() (map[string]interface{}, error) {
 	toSerialize["disk_physical"] = o.DiskPhysical
 	toSerialize["disk_rd_bw"] = o.DiskRdBw
 	toSerialize["disk_wr_bw"] = o.DiskWrBw
+	toSerialize["disk_rd_iops"] = o.DiskRdIops
+	toSerialize["disk_wr_iops"] = o.DiskWrIops
 	toSerialize["net_rx_bw"] = o.NetRxBw
 	toSerialize["net_tx_bw"] = o.NetTxBw
 	toSerialize["oplog"] = o.Oplog
