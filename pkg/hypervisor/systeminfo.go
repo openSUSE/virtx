@@ -73,8 +73,8 @@ type SystemInfoVm struct {
 	/* overall internal counters for Vm Stats */
 	hp bool                     /* hugepages used */
 	cpu_time uint64             /* Total cpu time consumed in nanoseconds from libvirt.DomainCPUStats.CpuTime */
-	net_rx int64                /* Net Rx bytes */
-	net_tx int64                /* Net Tx bytes */
+	disk_rd, disk_wr int64      /* Disk Read/Written bytes */
+	net_rx, net_tx int64        /* Net Rx/Tx bytes */
 }
 
 type SystemInfoHost struct {
@@ -588,6 +588,16 @@ func get_domain_stats(d *libvirt.Domain, vm *SystemInfoVm, old *SystemInfoVm, im
 			vm.stats.DiskAllocation += int64(blockinfo.Allocation / MiB)
 			vm.stats.DiskPhysical += int64(blockinfo.Physical / MiB)
 		}
+		var blkstat *libvirt.DomainBlockStats
+		blkstat, err = d.BlockStats("")
+		if (err == nil) {
+			if (blkstat.RdBytesSet) {
+				vm.disk_rd += blkstat.RdBytes
+			}
+			if (blkstat.WrBytesSet) {
+				vm.disk_wr += blkstat.WrBytes
+			}
+		}
 		for _, net := range xd.Devices.Interfaces {
 			if (net.Target.Dev != "") {
 				var netstat *libvirt.DomainInterfaceStats
@@ -647,7 +657,21 @@ func get_domain_stats(d *libvirt.Domain, vm *SystemInfoVm, old *SystemInfoVm, im
 		logger.Debug("gds: CpuUtilization = %d", vm.stats.CpuUtilization)
 		vm.stats.MhzUsed = int32(udelta * uint64(imm.info.MHz) / uint64(interval * 1000000))
 
-		var delta int64 = Counter_delta_int64(vm.net_rx, old.net_rx)
+		var delta int64 = Counter_delta_int64(vm.disk_rd, old.disk_rd)
+		logger.Debug("gds: disk_rd delta = %d", delta)
+		if (delta > 0 && interval > 0) {
+			vm.stats.DiskRdBw = int32((delta * 1000) / (interval * KiB))
+		}
+		logger.Debug("gds: DiskRdBw = %d", vm.stats.DiskRdBw)
+
+		delta = Counter_delta_int64(vm.disk_wr, old.disk_wr)
+		logger.Debug("gds: disk_wr delta = %d", delta)
+		if (delta > 0 && interval > 0) {
+			vm.stats.DiskWrBw = int32((delta * 1000) / (interval * KiB))
+		}
+		logger.Debug("gds: DiskWrBw = %d", vm.stats.DiskWrBw)
+
+		delta = Counter_delta_int64(vm.net_rx, old.net_rx)
 		logger.Debug("gds: net_rx delta = %d", delta)
 		if (delta > 0 && interval > 0) {
 			vm.stats.NetRxBw = int32((delta * 1000) / (interval * KiB))
