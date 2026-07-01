@@ -1,4 +1,4 @@
-.PHONY: all clean check build-tests
+.PHONY: all clean check build-tests vet
 
 all: virtxd virtx virtx-check-lvb
 
@@ -36,3 +36,6 @@ check: build-tests
 
 clean:
 	rm -f virtxd virtx virtx-check-lvb
+
+vet:
+	go vet ./... && go vet -vettool=${GOPATH}/bin/shadow ./...
