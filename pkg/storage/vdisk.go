@@ -40,6 +40,7 @@ func vdisk_create(disk *openapi.Disk, resource_name string, uuid string) error {
 	var (
 		err error
 		disk_driver, source_driver, prealloc string
+		vsize int64
 	)
 	disk_driver = vmdef.Validate_disk_path(disk.Path)
 	if (disk_driver == "") {
@@ -50,7 +51,7 @@ func vdisk_create(disk *openapi.Disk, resource_name string, uuid string) error {
 		if (source_driver == "") {
 			return errors.New("invalid Disk Source")
 		}
-		vsize, err := vdisk_detect_vsize(disk.Source, source_driver)
+		vsize, err = vdisk_detect_vsize(disk.Source, source_driver)
 		if (err != nil) {
 			return err
 		}

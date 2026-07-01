@@ -44,13 +44,14 @@ func lun_create(disk *openapi.Disk, resource_name string, uuid string) error {
 	var (
 		err error
 		clone_args [][]string
+		size int64
 	)
 	disk_driver := vmdef.Validate_disk_path(disk.Path)
 	if (disk_driver != "raw") {
 		return errors.New("invalid Disk Path")
 	}
 	if (disk.Source != "") {
-		size, err := lun_detect_size(disk.Path)
+		size, err = lun_detect_size(disk.Path)
 		if (err != nil) {
 			return err
 		}
