@@ -80,6 +80,10 @@ func vm_get(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not get VM stats", http.StatusNotFound)
 		return
 	}
+	err = hypervisor.Log_domain(uuid, &vm.Oplog)
+	if (err != nil) {
+		logger.Log("WARNING: failed to get oplog for %s: %s", uuid, err.Error())
+	}
 	err = json.NewEncoder(&buf).Encode(&vm)
 	if (err != nil) {
 		logger.Log("failed to encode JSON")

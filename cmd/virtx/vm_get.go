@@ -71,7 +71,7 @@ func vm_get(vm *openapi.Vm) {
 	} else {
 		var (
 			boot_ts int64
-			items []openapi.OplogItem = vm.Stats.Oplog.Items
+			items []openapi.OplogItem = vm.Oplog.Items
 			o openapi.Operation
 		)
 		for i := 0; i < len(items); i++ {

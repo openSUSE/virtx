@@ -429,19 +429,8 @@ func check_vmreg(host_uuid string, si *SystemInfo) {
 func Get_Vmstats(uuid string) (openapi.Vmstats, error) {
 	hv.m.RLock()
 	defer hv.m.RUnlock()
-	var (
-		stats openapi.Vmstats
-		err error
-	)
-	stats, err = system_info_get_vmstats(hv.si, uuid)
-	if (err != nil) {
-		return stats, err
-	}
-	err = Log_domain(uuid, &stats.Oplog)
-	if (err != nil) {
-		logger.Log("WARNING: failed to get oplog for %s: %s", uuid, err.Error())
-	}
-	return stats, nil
+
+	return system_info_get_vmstats(hv.si, uuid)
 }
 
 func Get_host() openapi.Host {
