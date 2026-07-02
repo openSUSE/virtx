@@ -368,6 +368,7 @@ const (
     _ Operation = iota  // dummy first element to start iota at 1
 	OpHostGet
 	OpHostList
+	OpHostStatsGet
 	OpVmBoot
 	OpVmConsoleSerial
 	OpVmConsoleVnc
@@ -390,6 +391,7 @@ const (
 var OperationToString = map[Operation]string{
 	OpHostGet: "HostGet",
 	OpHostList: "HostList",
+	OpHostStatsGet: "HostStatsGet",
 	OpVmBoot: "VmBoot",
 	OpVmConsoleSerial: "VmConsoleSerial",
 	OpVmConsoleVnc: "VmConsoleVnc",
@@ -412,6 +414,7 @@ var OperationToString = map[Operation]string{
 var OperationFromString = map[string]Operation{
 	"HostGet": OpHostGet,
 	"HostList": OpHostList,
+	"HostStatsGet": OpHostStatsGet,
 	"VmBoot": OpVmBoot,
 	"VmConsoleSerial": OpVmConsoleSerial,
 	"VmConsoleVnc": OpVmConsoleVnc,

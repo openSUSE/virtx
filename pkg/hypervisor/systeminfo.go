@@ -80,7 +80,7 @@ type SystemInfoVm struct {
 
 type SystemInfoHost struct {
 	inventory.HostInfo          /* embedded Host data to be trasmitted to Serf */
-	res openapi.Hostresources   /* the Host resource statistics collected on this host */
+	stats openapi.Hoststats     /* the Host resource statistics collected on this host */
 }
 
 type SystemInfo struct {
@@ -148,7 +148,7 @@ func system_info_get() (SystemInfo, error) {
 		vms SystemInfoVms = make(SystemInfoVms)
 		err error
 		caps *libvirtxml.Caps
-		res *openapi.Hostresources
+		stats *openapi.Hoststats
 		info *libvirt.NodeInfo
 	)
 	var (
@@ -271,36 +271,36 @@ func system_info_get() (SystemInfo, error) {
 	if (err != nil) {
 		goto out
 	}
-	res = &si.Host.res
+	stats = &si.Host.stats
 	/* Hugepages */
-	res.Hp.Total = int32(si.imm.hp_total / KiB) /* /proc/meminfo is in KiB, translate to MiB */
-	res.Hp.Free = int32(hp_free / KiB)       /* /proc/meminfo is in KiB, translate to MiB */
+	stats.Hp.Total = int32(si.imm.hp_total / KiB) /* /proc/meminfo is in KiB, translate to MiB */
+	stats.Hp.Free = int32(hp_free / KiB)       /* /proc/meminfo is in KiB, translate to MiB */
 
 	/* Normal Memory (4k pages). Info is in KiB, so convert to MiB and subtract the memory stolen by Hp */
-	res.Memory.Total = int32(info.Memory / KiB) - res.Hp.Total
-	res.Memory.Free = int32(memory_free / MiB) /* this returns in bytes, translate to MiB */
+	stats.Memory.Total = int32(info.Memory / KiB) - stats.Hp.Total
+	stats.Memory.Free = int32(memory_free / MiB) /* this returns in bytes, translate to MiB */
 
 	/* HP derived calculations */
-	res.Hp.Used = res.Hp.Total - res.Hp.Free
-	res.Hp.Reservedvms = int32(total_hp_capacity)
-	res.Hp.Usedvms = int32(total_hp_capacity)
-	res.Hp.Usedos = res.Hp.Used - res.Hp.Usedvms
-	res.Hp.Availablevms = res.Hp.Total - res.Hp.Reservedvms - res.Hp.Usedos
+	stats.Hp.Used = stats.Hp.Total - stats.Hp.Free
+	stats.Hp.Reservedvms = int32(total_hp_capacity)
+	stats.Hp.Usedvms = int32(total_hp_capacity)
+	stats.Hp.Usedos = stats.Hp.Used - stats.Hp.Usedvms
+	stats.Hp.Availablevms = stats.Hp.Total - stats.Hp.Reservedvms - stats.Hp.Usedos
 	/* Set the HostInfo HP available field */
-	si.Host.Hpavailable = res.Hp.Availablevms
+	si.Host.Hpavailable = stats.Hp.Availablevms
 
 	/* Normal Memory derived calculations */
-	res.Memory.Used = res.Memory.Total - res.Memory.Free
-	res.Memory.Reservedvms = int32(total_memory_capacity)
-	res.Memory.Usedvms = int32(total_memory_used)
-	res.Memory.Usedos = res.Memory.Used - res.Memory.Usedvms
-	res.Memory.Availablevms = res.Memory.Total - res.Memory.Reservedvms - res.Memory.Usedos
+	stats.Memory.Used = stats.Memory.Total - stats.Memory.Free
+	stats.Memory.Reservedvms = int32(total_memory_capacity)
+	stats.Memory.Usedvms = int32(total_memory_used)
+	stats.Memory.Usedos = stats.Memory.Used - stats.Memory.Usedvms
+	stats.Memory.Availablevms = stats.Memory.Total - stats.Memory.Reservedvms - stats.Memory.Usedos
 	/* Set the HostInfo Memory available field */
-	si.Host.Memoryavailable = res.Memory.Availablevms
+	si.Host.Memoryavailable = stats.Memory.Availablevms
 
 	/* CPU */
-	res.Cpu.Total = int32(uint(info.Nodes * info.Sockets * info.Cores * info.Threads) * info.MHz)
-	res.Cpu.Reservedvms = int32((float64(total_vcpus_mhz) / 100.0) * hv.vcpu_load_factor)
+	stats.Cpu.Total = int32(uint(info.Nodes * info.Sockets * info.Cores * info.Threads) * info.MHz)
+	stats.Cpu.Reservedvms = int32((float64(total_vcpus_mhz) / 100.0) * hv.vcpu_load_factor)
 	si.cpu_kernel_ns = cpustats.Kernel
 	si.cpu_user_ns = cpustats.User
 
@@ -318,20 +318,20 @@ func system_info_get() (SystemInfo, error) {
 			 */
 			udelta = Counter_delta_uint64(si.cpu_kernel_ns, hv.si.cpu_kernel_ns)
 			udelta += Counter_delta_uint64(si.cpu_user_ns, hv.si.cpu_user_ns)
-			res.Cpu.Used = int32(udelta * uint64(info.MHz) / uint64(interval * 1000000))
-			logger.Debug("gsi: Cpu.Used = %d", res.Cpu.Used)
+			stats.Cpu.Used = int32(udelta * uint64(info.MHz) / uint64(interval * 1000000))
+			logger.Debug("gsi: Cpu.Used = %d", stats.Cpu.Used)
 
-			res.Cpu.Free = res.Cpu.Total - res.Cpu.Used
-			logger.Debug("gsi: Cpu.Free = %d", res.Cpu.Free)
+			stats.Cpu.Free = stats.Cpu.Total - stats.Cpu.Used
+			logger.Debug("gsi: Cpu.Free = %d", stats.Cpu.Free)
 
-			res.Cpu.Usedvms = total_vcpus_mhz_used
-			logger.Debug("gsi: Cpu.Usedvms = %d", res.Cpu.Usedvms)
+			stats.Cpu.Usedvms = total_vcpus_mhz_used
+			logger.Debug("gsi: Cpu.Usedvms = %d", stats.Cpu.Usedvms)
 
-			res.Cpu.Usedos = res.Cpu.Used - res.Cpu.Usedvms
-			logger.Debug("gsi: Cpu.Usedos = %d", res.Cpu.Usedos)
+			stats.Cpu.Usedos = stats.Cpu.Used - stats.Cpu.Usedvms
+			logger.Debug("gsi: Cpu.Usedos = %d", stats.Cpu.Usedos)
 
-			res.Cpu.Availablevms = res.Cpu.Total - res.Cpu.Reservedvms - res.Cpu.Usedos
-			logger.Debug("gsi: Cpu.Availablevms = %d", res.Cpu.Availablevms)
+			stats.Cpu.Availablevms = stats.Cpu.Total - stats.Cpu.Reservedvms - stats.Cpu.Usedos
+			logger.Debug("gsi: Cpu.Availablevms = %d", stats.Cpu.Availablevms)
 		}
 	}
 	si.Vms = vms
@@ -756,9 +756,12 @@ func system_info_get_host(si *SystemInfo) openapi.Host {
 		},
 		Cstate: si.Host.Cstate,
 		Lockid: lockman.Lockid(),
-		Resources: si.Host.res,
 		Ts: si.Host.Ts,
 	}
+}
+
+func system_info_get_hoststats(si *SystemInfo) openapi.Hoststats {
+	return si.Host.stats
 }
 
 func get_system_info_loop_done() bool {

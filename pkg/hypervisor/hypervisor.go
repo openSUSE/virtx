@@ -438,3 +438,10 @@ func Get_host() openapi.Host {
 	defer hv.m.RUnlock()
 	return system_info_get_host(hv.si)
 }
+
+func Get_hoststats() (openapi.Hoststats) {
+	hv.m.RLock()
+	defer hv.m.RUnlock()
+
+	return system_info_get_hoststats(hv.si)
+}

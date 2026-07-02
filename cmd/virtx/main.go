@@ -50,10 +50,6 @@ type VirtxClient struct {
 	mem bool                    // show mem info
 	disk bool                   // show disk info
 	net bool                    // show net info
-	stat_disk bool              // show VM stats on disks
-	stat_net bool               // show VM stats on nets
-	stat_cpu bool               // show host/VM stats on cpus
-	stat_mem bool               // show host/VM stats on mem
 	debug bool                  // verbose client output
 	live bool                   // live migration
 	console_port int            // local port for VNC console (0 = OS-assigned)

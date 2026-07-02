@@ -66,6 +66,7 @@ func Init() {
 
 	servemux.HandleFunc("GET /hosts", host_list)
 	servemux.HandleFunc("GET /hosts/{uuid}", host_get)
+	servemux.HandleFunc("GET /hosts/{uuid}/stats", host_stats_get)
 
 	service = Service{
 		servemux: servemux,

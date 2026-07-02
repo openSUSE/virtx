@@ -1,0 +1,68 @@
+/*
+ * Copyright (c) 2026 SUSE LLC
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, see
+ * <https://www.gnu.org/licenses/>
+ */
+package virtx
+
+import (
+	"net/http"
+	"encoding/json"
+	"bytes"
+	"suse.com/virtx/pkg/httpx"
+	"suse.com/virtx/pkg/logger"
+	"suse.com/virtx/pkg/model"
+	"suse.com/virtx/pkg/hypervisor"
+	"suse.com/virtx/pkg/inventory"
+)
+
+func host_stats_get(w http.ResponseWriter, r *http.Request) {
+	var (
+		err error
+		uuid string
+		hostinfo inventory.HostInfo
+		stats openapi.Hoststats
+		buf bytes.Buffer
+		vr httpx.Request
+	)
+	vr, err = httpx.Decode_request_body(r, nil)
+	if (err != nil) {
+		logger.Log("%s", err.Error())
+		http.Error(w, "failed to decode body", http.StatusBadRequest)
+		return
+	}
+	uuid = r.PathValue("uuid")
+	if (uuid == "") {
+		http.Error(w, "could not get uuid", http.StatusBadRequest)
+		return
+	}
+	hostinfo, err = inventory.Get_hostinfo(uuid)
+	if (err != nil) {
+		http.Error(w, "unknown uuid", http.StatusNotFound)
+		return
+	}
+	if (http_host_is_remote(hostinfo.Uuid)) {
+		http_proxy_request(hostinfo.Uuid, w, vr)
+		return
+	}
+	stats = hypervisor.Get_hoststats()
+	err = json.NewEncoder(&buf).Encode(&stats)
+	if (err != nil) {
+		logger.Log("failed to encode JSON")
+		http.Error(w, "Failed to encode JSON", http.StatusInternalServerError)
+		return
+	}
+	httpx.Do_response(w, http.StatusOK, &buf)
+}

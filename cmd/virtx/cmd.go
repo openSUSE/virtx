@@ -98,8 +98,6 @@ func init() {
 			}
 		},
 	}
-	cmd_get_host.Flags().BoolVarP(&virtx.stat_cpu, "stat-cpu", "C", false, "Show cpu statistics")
-	cmd_get_host.Flags().BoolVarP(&virtx.stat_mem, "stat-mem", "M", false, "Show memory statistics")
 	var cmd_get_vm = &cobra.Command{
 		Use:   "vm UUID",
 		Short: "Fetch and show all details of the VM",
@@ -140,6 +138,23 @@ func init() {
 	cmd_get_stats_vm.Flags().BoolVarP(&virtx.mem, "mem", "m", false, "Show memory statistics")
 	cmd_get_stats_vm.Flags().BoolVarP(&virtx.disk, "disk", "k", false, "Show disk statistics")
 	cmd_get_stats_vm.Flags().BoolVarP(&virtx.net, "net", "n", false, "Show network statistics")
+	var cmd_get_stats_host = &cobra.Command{
+		Use:   "host UUID",
+		Short: "Show the statistics of the HOST",
+		Long:  "Show the stats of the specified HOST, identified by UUID",
+		Args:  cobra.ExactArgs(1), /* UUID */
+		Run: func(cmd *cobra.Command, args []string) {
+			if (virtx.ok) {
+				if (virtx.result != nil) {
+					host_stats_get(virtx.result.(*openapi.Hoststats))
+				}
+			} else {
+				host_stats_get_req(args[0])
+			}
+		},
+	}
+	cmd_get_stats_host.Flags().BoolVarP(&virtx.cpu, "cpu", "c", false, "Show cpu statistics")
+	cmd_get_stats_host.Flags().BoolVarP(&virtx.mem, "mem", "m", false, "Show memory statistics")
 	var cmd_get_runstate = &cobra.Command{
 		Use:   "runstate",
 		Short: "Show the runstate of the resource",
@@ -388,6 +403,7 @@ func init() {
 	cmd_get.AddCommand(cmd_get_vm)
 	cmd_get.AddCommand(cmd_get_stats)
 	cmd_get_stats.AddCommand(cmd_get_stats_vm)
+	cmd_get_stats.AddCommand(cmd_get_stats_host)
 	cmd_get.AddCommand(cmd_get_runstate)
 	cmd_get_runstate.AddCommand(cmd_get_runstate_vm)
 	cmd_get.AddCommand(cmd_get_migrate)
