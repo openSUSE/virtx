@@ -59,7 +59,6 @@ func init() {
 	cmd_list_host.Flags().Int16VarP((*int16)(unsafe.Pointer(&virtx.host_list_options.Filter.Cstate)), "state", "s", 0, "Filter by Cluster State")
 	cmd_list_host.Flags().Int32VarP(&virtx.host_list_options.Filter.Memoryavailable, "memory", "m", 0, "Filter by available normal memory")
 	cmd_list_host.Flags().Int32VarP(&virtx.host_list_options.Filter.Hpavailable, "hp", "H", 0, "Filter by available HugePages memory")
-
 	var cmd_list_vm = &cobra.Command{
 		Use:   "vm",
 		Short: "List VMs in the cluster",
@@ -118,11 +117,29 @@ func init() {
 	}
 	cmd_get_vm.Flags().BoolVarP(&virtx.disk, "disk", "k", false, "Show VM disks")
 	cmd_get_vm.Flags().BoolVarP(&virtx.net, "net", "n", false, "Show VM networks")
-	cmd_get_vm.Flags().BoolVarP(&virtx.stat_disk, "stat-disk", "K", false, "Show disk statistics")
-	cmd_get_vm.Flags().BoolVarP(&virtx.stat_net, "stat-net", "N", false, "Show network statistics")
-	cmd_get_vm.Flags().BoolVarP(&virtx.stat_cpu, "stat-cpu", "C", false, "Show cpu statistics")
-	cmd_get_vm.Flags().BoolVarP(&virtx.stat_mem, "stat-mem", "M", false, "Show memory statistics")
-
+	var cmd_get_stats = &cobra.Command{
+		Use:   "stats",
+		Short: "Show the statistics of the resource",
+	}
+	var cmd_get_stats_vm = &cobra.Command{
+		Use:   "vm UUID",
+		Short: "Show the statistics of the VM",
+		Long:  "Show the stats of the specified VM, identified by UUID",
+		Args:  cobra.ExactArgs(1), /* UUID */
+		Run: func(cmd *cobra.Command, args []string) {
+			if (virtx.ok) {
+				if (virtx.result != nil) {
+					vm_stats_get(virtx.result.(*openapi.Vmstats))
+				}
+			} else {
+				vm_stats_get_req(args[0])
+			}
+		},
+	}
+	cmd_get_stats_vm.Flags().BoolVarP(&virtx.cpu, "cpu", "c", false, "Show cpu statistics")
+	cmd_get_stats_vm.Flags().BoolVarP(&virtx.mem, "mem", "m", false, "Show memory statistics")
+	cmd_get_stats_vm.Flags().BoolVarP(&virtx.disk, "disk", "k", false, "Show disk statistics")
+	cmd_get_stats_vm.Flags().BoolVarP(&virtx.net, "net", "n", false, "Show network statistics")
 	var cmd_get_runstate = &cobra.Command{
 		Use:   "runstate",
 		Short: "Show the runstate of the resource",
@@ -369,6 +386,8 @@ func init() {
 	cmd.AddCommand(cmd_get)
 	cmd_get.AddCommand(cmd_get_host)
 	cmd_get.AddCommand(cmd_get_vm)
+	cmd_get.AddCommand(cmd_get_stats)
+	cmd_get_stats.AddCommand(cmd_get_stats_vm)
 	cmd_get.AddCommand(cmd_get_runstate)
 	cmd_get_runstate.AddCommand(cmd_get_runstate_vm)
 	cmd_get.AddCommand(cmd_get_migrate)

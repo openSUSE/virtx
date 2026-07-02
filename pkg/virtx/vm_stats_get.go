@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024-2026 SUSE LLC
+ * Copyright (c) 2026 SUSE LLC
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -21,20 +21,20 @@ import (
 	"net/http"
 	"encoding/json"
 	"bytes"
-	"suse.com/virtx/pkg/hypervisor"
+
 	"suse.com/virtx/pkg/logger"
-	"suse.com/virtx/pkg/model"
-	"suse.com/virtx/pkg/vmdef"
+	"suse.com/virtx/pkg/hypervisor"
 	"suse.com/virtx/pkg/httpx"
+	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/inventory"
 )
 
-func vm_get(w http.ResponseWriter, r *http.Request) {
+func vm_stats_get(w http.ResponseWriter, r *http.Request) {
 	var (
 		err error
-		uuid, xml string
+		uuid string
 		vminfo inventory.VmInfo
-		vm openapi.Vm
+		vmstats openapi.Vmstats
 		buf bytes.Buffer
 		vr httpx.Request
 	)
@@ -46,7 +46,7 @@ func vm_get(w http.ResponseWriter, r *http.Request) {
 	}
 	uuid = r.PathValue("uuid")
 	if (uuid == "") {
-		http.Error(w, "could not get uuid", http.StatusBadRequest)
+		http.Error(w, "vm_stats_get: Failed to decode parameters", http.StatusBadRequest)
 		return
 	}
 	vminfo, err = inventory.Get_vminfo(uuid)
@@ -58,27 +58,12 @@ func vm_get(w http.ResponseWriter, r *http.Request) {
 		http_proxy_request(vminfo.Host, w, vr)
 		return
 	}
-	xml, err = hypervisor.Dumpxml(uuid)
+	vmstats, err = hypervisor.Get_vmstats(uuid)
 	if (err != nil) {
-		logger.Log("hypervisor.Dumpxml failed: %s", err.Error())
-		http.Error(w, "could not get VM", http.StatusFailedDependency)
+		http.Error(w, "vm_stats_get: stats not found", http.StatusNotFound)
 		return
 	}
-	err = vmdef.From_xml(&vm.Def, xml)
-	if (err != nil) {
-		logger.Log("vmdef.From_xml failed: %s", err.Error())
-		http.Error(w, "invalid VM data", http.StatusInternalServerError)
-		return
-	}
-	vm.Uuid = uuid
-	vm.Runinfo.Runstate = vminfo.Runstate
-	vm.Runinfo.Host = vminfo.Host
-	vm.Ts = vminfo.Ts
-	err = hypervisor.Log_domain(uuid, &vm.Oplog)
-	if (err != nil) {
-		logger.Log("WARNING: failed to get oplog for %s: %s", uuid, err.Error())
-	}
-	err = json.NewEncoder(&buf).Encode(&vm)
+	err = json.NewEncoder(&buf).Encode(&vmstats)
 	if (err != nil) {
 		logger.Log("failed to encode JSON")
 		http.Error(w, "Failed to encode JSON", http.StatusInternalServerError)

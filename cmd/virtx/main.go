@@ -46,8 +46,10 @@ type VirtxClient struct {
 	ok bool                     // used by cmd to know whether to prepare the request or process the response
 	client http.Client          // the HTTP client
 	force int                   // how much force to apply
-	disk bool                   // show VM disks
-	net bool                    // show VM nets
+	cpu bool                    // show cpu info
+	mem bool                    // show mem info
+	disk bool                   // show disk info
+	net bool                    // show net info
 	stat_disk bool              // show VM stats on disks
 	stat_net bool               // show VM stats on nets
 	stat_cpu bool               // show host/VM stats on cpus

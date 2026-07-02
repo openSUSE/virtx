@@ -43,31 +43,6 @@ func vm_get(vm *openapi.Vm) {
 		for _, net := range (vm.Def.Nets) {
 			vm_get_net(&net)
 		}
-	} else if (virtx.stat_disk) {
-		fmt.Fprintf(virtx.w, "DISK_CAP\t DISK_ALLOC\t  DISK_PHYS\t READ_KiBs\tWRITE_KiBs\tREAD_IOPS\tWRITE_IOPS\n")
-		fmt.Fprintf(virtx.w, "%7d MiB\t%7d MiB\t%7d MiB\t%10d\t%10d\t%10d\t%10d\n",
-			vm.Stats.DiskCapacity, vm.Stats.DiskAllocation, vm.Stats.DiskPhysical,
-			vm.Stats.DiskRdBw, vm.Stats.DiskWrBw, vm.Stats.DiskRdIops, vm.Stats.DiskWrIops,
-		)
-	} else if (virtx.stat_net) {
-		fmt.Fprintf(virtx.w, "NETWORK_RX\t NETWORK_TX\n")
-		fmt.Fprintf(virtx.w, "%7d KiB\t%7d KiB\n", vm.Stats.NetRxBw, vm.Stats.NetTxBw)
-
-	} else if (virtx.stat_cpu) {
-		fmt.Fprintf(virtx.w, "VCPU MODEL\tSOCKETS\t CORES\tTHREADS\t CPU%%\t   CPU_USED\n")
-		fmt.Fprintf(virtx.w, "%s\t%7d\t%7d\t%7d\t%5d\t%7d MHz\n", vm.Def.Cpudef.Model,
-			vm.Def.Cpudef.Sockets, vm.Def.Cpudef.Cores, vm.Def.Cpudef.Threads,
-			vm.Stats.CpuUtilization, vm.Stats.MhzUsed)
-	} else if (virtx.stat_mem) {
-		if (vm.Def.Memory.Hp) {
-			fmt.Fprintf(virtx.w, " MEM_CAP_HP\t    USED_HP\t  USED_NORM\n")
-			fmt.Fprintf(virtx.w, "%7d MiB\t%7d MiB\t%7d MiB\n",
-				vm.Stats.MemoryCapacity, vm.Stats.MemoryCapacity, vm.Stats.MemoryUsed)
-		} else {
-			fmt.Fprintf(virtx.w, "    MEM_CAP\t   MEM_USED\n")
-			fmt.Fprintf(virtx.w, "%7d MiB\t%7d MiB\n",
-				vm.Stats.MemoryCapacity, vm.Stats.MemoryUsed)
-		}
 	} else {
 		var (
 			boot_ts int64
@@ -80,9 +55,11 @@ func vm_get(vm *openapi.Vm) {
 				break
 			}
 		}
-		fmt.Fprintf(virtx.w, "NAME\tHOST\tVLAN\tCUSTOM\tLAST BOOT\tSTATE\n")
-		fmt.Fprintf(virtx.w, "%s\t%s\t%4d\t%v\t%s\t%s\n",
-			vm.Def.Name, vm.Runinfo.Host, vm.Def.Vlanid, vm.Def.Custom, ts.String(boot_ts), vm.Runinfo.Runstate)
+		fmt.Fprintf(virtx.w, "NAME\tHOST\tVCPU\tSOCKETS\t CORES\tTHREADS\tVLAN\tCUSTOM\tLAST BOOT\tSTATE\n")
+		fmt.Fprintf(virtx.w, "%s\t%s\t%s\t%7d\t%7d\t%7d\t%4d\t%v\t%s\t%s\n",
+			vm.Def.Name, vm.Runinfo.Host, vm.Def.Cpudef.Model,
+			vm.Def.Cpudef.Sockets, vm.Def.Cpudef.Cores, vm.Def.Cpudef.Threads,
+			vm.Def.Vlanid, vm.Def.Custom, ts.String(boot_ts), vm.Runinfo.Runstate)
 	}
 }
 

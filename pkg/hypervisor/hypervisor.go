@@ -426,7 +426,7 @@ func check_vmreg(host_uuid string, si *SystemInfo) {
 	}
 }
 
-func Get_Vmstats(uuid string) (openapi.Vmstats, error) {
+func Get_vmstats(uuid string) (openapi.Vmstats, error) {
 	hv.m.RLock()
 	defer hv.m.RUnlock()
 

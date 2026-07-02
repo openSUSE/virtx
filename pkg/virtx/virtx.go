@@ -51,6 +51,7 @@ func Init() {
 	servemux.HandleFunc("PUT /vms/{uuid}", vm_update)
 	servemux.HandleFunc("GET /vms/{uuid}", vm_get)
 	servemux.HandleFunc("DELETE /vms/{uuid}", vm_delete)
+	servemux.HandleFunc("GET /vms/{uuid}/stats", vm_stats_get)
 	servemux.HandleFunc("GET /vms/{uuid}/runstate", vm_runstate_get)
 	servemux.HandleFunc("POST /vms/{uuid}/runstate/boot", vm_boot)
 	servemux.HandleFunc("DELETE /vms/{uuid}/runstate/boot", vm_shutdown)
