@@ -22,6 +22,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"os"
+	"path/filepath"
 	"bytes"
 	"bufio"
 	"strings"
@@ -62,6 +63,9 @@ type SystemInfoImm struct {
 	/* from /etc/os-release or /usr/lib/os-release */
 	os_id string
 	os_version string
+	/* physical/bond NICs (not enslaved, not virtual), discovered once at startup */
+	nic_ifaces []string
+	nic_capacity int32 /* total Rx/Tx link capacity in KiB/s across all qualifying NICs */
 }
 
 type SystemInfoVms map[string]SystemInfoVm
@@ -91,6 +95,8 @@ type SystemInfo struct {
 	/* overall internal counters for host stats */
 	cpu_kernel_ns uint64
 	cpu_user_ns uint64
+	nic_rx uint64  /* cumulative Rx bytes across all qualifying physical NICs */
+	nic_tx uint64  /* cumulative Tx bytes across all qualifying physical NICs */
 }
 
 /*
@@ -170,6 +176,10 @@ func system_info_get() (SystemInfo, error) {
 
 		total_vcpus_mhz uint32
 		total_vcpus_mhz_used int32
+		total_vm_net_rx_bw int32  /* aggregate VM net Rx KiB/s */
+		total_vm_net_tx_bw int32  /* aggregate VM net Tx KiB/s */
+		total_vm_disk_rd_bw int32 /* aggregate VM disk read KiB/s (NFS/iSCSI Rx) */
+		total_vm_disk_wr_bw int32 /* aggregate VM disk write KiB/s (NFS/iSCSI Tx) */
 		cpustats *libvirt.NodeCPUStats
 	)
 
@@ -275,6 +285,10 @@ func system_info_get() (SystemInfo, error) {
 		total_memory_used += uint64(vm.stats.MemoryUsed)
 		total_vcpus_mhz += uint32(vm.Vcpus) * uint32(info.MHz)
 		total_vcpus_mhz_used += vm.stats.MhzUsed
+		total_vm_net_rx_bw += vm.stats.NetRxBw
+		total_vm_net_tx_bw += vm.stats.NetTxBw
+		total_vm_disk_rd_bw += vm.stats.DiskRdBw
+		total_vm_disk_wr_bw += vm.stats.DiskWrBw
 		vms[vm.Uuid] = vm
 	}
 	/* now calculate host resources */
@@ -326,6 +340,11 @@ func system_info_get() (SystemInfo, error) {
 	si.cpu_kernel_ns = cpustats.Kernel
 	si.cpu_user_ns = cpustats.User
 
+	/* Network: read cumulative byte counters for the physical NICs discovered at startup */
+	si.nic_rx, si.nic_tx = get_nic_bytes(si.imm.nic_ifaces)
+	stats.NetRx.Total = si.imm.nic_capacity
+	stats.NetTx.Total = si.imm.nic_capacity
+
 	/* some of the data we can only calculate as comparison from the previous measurement */
 	if (hv.si != nil) {
 		var interval int64 = si.Host.Ts - hv.si.Host.Ts
@@ -354,6 +373,30 @@ func system_info_get() (SystemInfo, error) {
 
 			stats.Cpu.Availablevms = stats.Cpu.Total - stats.Cpu.Reservedvms - stats.Cpu.Usedother
 			logger.Debug("gsi: Cpu.Availablevms = %d", stats.Cpu.Availablevms)
+
+			/* Network Rx: usedvms = VM net Rx + VM disk reads (NFS/iSCSI arriving over NIC) */
+			udelta = Counter_delta_uint64(si.nic_rx, hv.si.nic_rx)
+			stats.NetRx.Used = int32((udelta * 1000) / uint64(interval * KiB))
+			stats.NetRx.Free = stats.NetRx.Total - stats.NetRx.Used
+			stats.NetRx.Usedvmsnet = total_vm_net_rx_bw
+			stats.NetRx.Usedvmsdisk = total_vm_disk_rd_bw
+			stats.NetRx.Usedvms = stats.NetRx.Usedvmsnet + stats.NetRx.Usedvmsdisk
+			stats.NetRx.Usedother = stats.NetRx.Used - stats.NetRx.Usedvms
+			/* we do not have bandwidth reservations per VM at least for now */
+			stats.NetRx.Availablevms = stats.NetRx.Free
+			logger.Debug("gsi: NetRx.Used = %d, Usedvms = %d, Usedother = %d", stats.NetRx.Used, stats.NetRx.Usedvms, stats.NetRx.Usedother)
+
+			/* Network Tx: usedvms = VM net Tx + VM disk writes (NFS/iSCSI leaving over NIC) */
+			udelta = Counter_delta_uint64(si.nic_tx, hv.si.nic_tx)
+			stats.NetTx.Used = int32((udelta * 1000) / uint64(interval * KiB))
+			stats.NetTx.Free = stats.NetTx.Total - stats.NetTx.Used
+			stats.NetTx.Usedvmsnet = total_vm_net_tx_bw
+			stats.NetTx.Usedvmsdisk = total_vm_disk_wr_bw
+			stats.NetTx.Usedvms = stats.NetTx.Usedvmsnet + stats.NetTx.Usedvmsdisk
+			stats.NetTx.Usedother = stats.NetTx.Used - stats.NetTx.Usedvms
+			/* we do not have bandwidth reservations per VM at least for now */
+			stats.NetTx.Availablevms = stats.NetTx.Free
+			logger.Debug("gsi: NetTx.Used = %d, Usedvms = %d, Usedother = %d", stats.NetTx.Used, stats.NetTx.Usedvms, stats.NetTx.Usedother)
 		}
 	}
 	si.Vms = vms
@@ -449,6 +492,7 @@ func system_info_get_immutable(imm *SystemInfoImm) error {
 	/* get the total physical memory (KiB) used by default-sized hugepages */
 	imm.hp_total = hp_total * imm.hp_size
 	imm.os_id, imm.os_version = get_os_version()
+	imm.nic_ifaces, imm.nic_capacity = get_nic_ifaces()
 
 	if (imm.caps.Host.CPU.Counter != nil) {
 		/* TSC frequency is in Hz */
@@ -541,6 +585,135 @@ func get_os_version() (string, string) {
 		}
 	}
 	return id, version_id
+}
+
+/*
+ * Discover qualifying physical NICs and bond masters (not enslaved, not virtual).
+ * Returns the interface names and total link capacity in KiB/s.
+ * Called once at startup in system_info_get_immutable().
+ */
+func get_nic_ifaces() ([]string, int32) {
+	var (
+		err error
+		entries []os.DirEntry
+		ifaces []string
+		capacity int32
+	)
+	entries, err = os.ReadDir("/sys/class/net")
+	if (err != nil) {
+		logger.Log("get_nic_ifaces: %s", err.Error())
+		return ifaces, 0
+	}
+	for _, entry := range entries {
+		var (
+			ifname string = entry.Name()
+			sysnet string = "/sys/class/net/" + ifname
+			physical_err, bond_err error
+		)
+		_, err = os.Stat(sysnet + "/master")
+		if (err == nil) {
+			/* enslaved — skip only if master is a bond; bridge ports are included */
+			var master_link string
+			master_link, err = os.Readlink(sysnet + "/master")
+			if (err != nil) {
+				logger.Log("get_nic_ifaces: readlink %s/master: %s", sysnet, err.Error())
+				continue
+			}
+			_, err = os.Stat("/sys/class/net/" + filepath.Base(master_link) + "/bonding")
+			if (err == nil) {
+				continue /* bond slave */
+			}
+			/* bridge port or other master type — fall through and include */
+		} else if (!errors.Is(err, os.ErrNotExist)) {
+			logger.Log("get_nic_ifaces: stat %s/master: %s", sysnet, err.Error())
+			continue /* cannot determine enslavement, skip to be safe */
+		}
+		_, physical_err = os.Stat(sysnet + "/device")
+		if (physical_err != nil && !errors.Is(physical_err, os.ErrNotExist)) {
+			logger.Log("get_nic_ifaces: stat %s/device: %s", sysnet, physical_err.Error())
+		}
+		_, bond_err = os.Stat(sysnet + "/bonding")
+		if (bond_err != nil && !errors.Is(bond_err, os.ErrNotExist)) {
+			logger.Log("get_nic_ifaces: stat %s/bonding: %s", sysnet, bond_err.Error())
+		}
+		if (physical_err != nil && bond_err != nil) {
+			continue /* neither physical NIC nor bond master */
+		}
+		ifaces = append(ifaces, ifname)
+		{
+			var (
+				speed_data []byte
+				speed int64
+			)
+			speed_data, err = os.ReadFile(sysnet + "/speed")
+			if (err == nil) {
+				speed, err = strconv.ParseInt(strings.TrimSpace(string(speed_data)), 10, 64)
+				if (err == nil && speed > 0) {
+					capacity += int32(speed * 125000 / 1024)
+				}
+			}
+		}
+	}
+	return ifaces, capacity
+}
+
+/*
+ * Read cumulative Rx/Tx byte counters from /proc/net/dev for the given interfaces.
+ * Called every system_info_loop tick.
+ */
+func get_nic_bytes(ifaces []string) (uint64, uint64) {
+	var (
+		err error
+		data []byte
+		scanner *bufio.Scanner
+		rx_bytes, tx_bytes uint64
+		iface_set map[string]bool
+	)
+	if (len(ifaces) == 0) {
+		return 0, 0
+	}
+	iface_set = make(map[string]bool, len(ifaces))
+	for _, iface := range ifaces {
+		iface_set[iface] = true
+	}
+	data, err = os.ReadFile("/proc/net/dev")
+	if (err != nil) {
+		logger.Log("get_nic_bytes: %s", err.Error())
+		return 0, 0
+	}
+	scanner = bufio.NewScanner(bytes.NewReader(data))
+	for scanner.Scan() {
+		var (
+			line string = scanner.Text()
+			colon int
+			ifname string
+			fields []string
+			rx, tx uint64
+		)
+		colon = strings.Index(line, ":")
+		if (colon < 0) {
+			continue
+		}
+		ifname = strings.TrimSpace(line[:colon])
+		if (!iface_set[ifname]) {
+			continue
+		}
+		fields = strings.Fields(line[colon + 1:])
+		if (len(fields) < 9) {
+			continue
+		}
+		rx, err = strconv.ParseUint(fields[0], 10, 64)
+		if (err != nil) {
+			continue
+		}
+		tx, err = strconv.ParseUint(fields[8], 10, 64)
+		if (err != nil) {
+			continue
+		}
+		rx_bytes += rx
+		tx_bytes += tx
+	}
+	return rx_bytes, tx_bytes
 }
 
 type xmlDisk struct {
