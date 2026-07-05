@@ -20,11 +20,13 @@ import (
 // checks if the Hoststats type satisfies the MappedNullable interface at compile time
 var _ MappedNullable = &Hoststats{}
 
-// Hoststats Host statistics. CPU in MHz, Memory in MiB
+// Hoststats Host statistics. CPU in MHz, Memory in MiB, Network in KiB/s
 type Hoststats struct {
 	Cpu Hostresource `json:"cpu"`
 	Memory Hostresource `json:"memory"`
 	Hp Hostresource `json:"hp"`
+	NetRx Hostnetresource `json:"net_rx"`
+	NetTx Hostnetresource `json:"net_tx"`
 }
 
 type _Hoststats Hoststats
@@ -33,7 +35,7 @@ type _Hoststats Hoststats
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewHoststats(cpu Hostresource, memory Hostresource, hp Hostresource) *Hoststats {
+func NewHoststats(cpu Hostresource, memory Hostresource, hp Hostresource, netRx Hostnetresource, netTx Hostnetresource) *Hoststats {
 	this := Hoststats{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
@@ -42,6 +44,8 @@ func NewHoststats(cpu Hostresource, memory Hostresource, hp Hostresource) *Hosts
 	this.Cpu = cpu
 	this.Memory = memory
 	this.Hp = hp
+	this.NetRx = netRx
+	this.NetTx = netTx
 	return &this
 }
 
@@ -125,11 +129,61 @@ func (o *Hoststats) SetHp(v Hostresource) {
 	o.Hp = v
 }
 
+// GetNetRx returns the NetRx field value
+func (o *Hoststats) GetNetRx() Hostnetresource {
+	if o == nil {
+		var ret Hostnetresource
+		return ret
+	}
+
+	return o.NetRx
+}
+
+// GetNetRxOk returns a tuple with the NetRx field value
+// and a boolean to check if the value has been set.
+func (o *Hoststats) GetNetRxOk() (*Hostnetresource, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.NetRx, true
+}
+
+// SetNetRx sets field value
+func (o *Hoststats) SetNetRx(v Hostnetresource) {
+	o.NetRx = v
+}
+
+// GetNetTx returns the NetTx field value
+func (o *Hoststats) GetNetTx() Hostnetresource {
+	if o == nil {
+		var ret Hostnetresource
+		return ret
+	}
+
+	return o.NetTx
+}
+
+// GetNetTxOk returns a tuple with the NetTx field value
+// and a boolean to check if the value has been set.
+func (o *Hoststats) GetNetTxOk() (*Hostnetresource, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.NetTx, true
+}
+
+// SetNetTx sets field value
+func (o *Hoststats) SetNetTx(v Hostnetresource) {
+	o.NetTx = v
+}
+
 func (o Hoststats) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["cpu"] = o.Cpu
 	toSerialize["memory"] = o.Memory
 	toSerialize["hp"] = o.Hp
+	toSerialize["net_rx"] = o.NetRx
+	toSerialize["net_tx"] = o.NetTx
 	return toSerialize, nil
 }
 
