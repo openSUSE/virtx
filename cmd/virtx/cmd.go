@@ -155,6 +155,7 @@ func init() {
 	}
 	cmd_get_stats_host.Flags().BoolVarP(&virtx.cpu, "cpu", "c", false, "Show cpu statistics")
 	cmd_get_stats_host.Flags().BoolVarP(&virtx.mem, "mem", "m", false, "Show memory statistics")
+	cmd_get_stats_host.Flags().BoolVarP(&virtx.net, "net", "n", false, "Show network statistics")
 	var cmd_get_runstate = &cobra.Command{
 		Use:   "runstate",
 		Short: "Show the runstate of the resource",

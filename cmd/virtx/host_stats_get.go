@@ -60,4 +60,14 @@ func host_stats_get(stats *openapi.Hoststats) {
 		)
 		fmt.Fprintf(virtx.w, "------------------------------------------------------------------------------------------\n")
 	}
+	if (virtx.net || all) {
+		fmt.Fprintf(virtx.w, "   RX_TOTAL\t    RX_USED\t    RX_FREE\t    RES_VMS\t   USED_VMS\t      (NET)\t     (DISK)\t USED_OTHER\t    AVL_VMS\n")
+		fmt.Fprintf(virtx.w, "%7d KiB\t%7d KiB\t%7d KiB\t%7d KiB\t%7d KiB\t%7d KiB\t%7d KiB\t%7d KiB\t%7d KiB\n",
+			stats.NetRx.Total, stats.NetRx.Used, stats.NetRx.Free, stats.NetRx.Reservedvms, stats.NetRx.Usedvms, stats.NetRx.Usedvmsnet, stats.NetRx.Usedvmsdisk, stats.NetRx.Usedother, stats.NetRx.Availablevms,
+		)
+		fmt.Fprintf(virtx.w, "   TX_TOTAL\t    TX_USED\t    TX_FREE\t    RES_VMS\t   USED_VMS\t      (NET)\t     (DISK)\t USED_OTHER\t    AVL_VMS\n")
+		fmt.Fprintf(virtx.w, "%7d KiB\t%7d KiB\t%7d KiB\t%7d KiB\t%7d KiB\t%7d KiB\t%7d KiB\t%7d KiB\t%7d KiB\n",
+			stats.NetTx.Total, stats.NetTx.Used, stats.NetTx.Free, stats.NetTx.Reservedvms, stats.NetTx.Usedvms, stats.NetTx.Usedvmsnet, stats.NetTx.Usedvmsdisk, stats.NetTx.Usedother, stats.NetTx.Availablevms,
+		)
+	}
 }
