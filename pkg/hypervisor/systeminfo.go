@@ -166,7 +166,7 @@ func system_info_get() (SystemInfo, error) {
 
 		/* for hugetlbfs backed domains */
 		total_hp_capacity uint64
-		/* total_hp_used is not needed, because all backing pages are "in use" */
+		total_hp_used uint64
 
 		total_vcpus_mhz uint32
 		total_vcpus_mhz_used int32
@@ -243,6 +243,27 @@ func system_info_get() (SystemInfo, error) {
 		}
 		if (vm.hp) {
 			total_hp_capacity += uint64(vm.stats.MemoryCapacity)
+			/*
+			 * to calculate total HPG used by VM we check the runstate.
+			 * If the VM is still inactive, we say hugepages are not allocated
+			 * and if it's active, we say they are.
+			 *
+			 * We consider the border cases of STARTUP and TERMINATING.
+			 * STARTUP is excluded: we say hugepages are not allocated.
+			 * This can cause an undercount of hp.Usedvms for a brief moment,
+			 * which will be captured by a transient increase of hp.Usedother,
+			 * until the VM transitions to RUNNING.
+			 *
+			 * TERMINATING can be long, so we do count HPGs as allocated.
+			 * This can overcount hp.Usedvms for a brief moment, so this can
+			 * lead to a negative hp.Usedother.
+			 */
+			switch (vm.Runstate) {
+			case openapi.RUNSTATE_NONE, openapi.RUNSTATE_DELETED, openapi.RUNSTATE_POWEROFF, openapi.RUNSTATE_STARTUP:
+			default:
+				total_hp_used += uint64(vm.stats.MemoryCapacity)
+			}
+
 		} else {
 			total_memory_capacity += uint64(vm.stats.MemoryCapacity)
 		}
@@ -283,7 +304,8 @@ func system_info_get() (SystemInfo, error) {
 	/* HP derived calculations */
 	stats.Hp.Used = stats.Hp.Total - stats.Hp.Free
 	stats.Hp.Reservedvms = int32(total_hp_capacity)
-	stats.Hp.Usedvms = int32(total_hp_capacity)
+	stats.Hp.Usedvms = int32(total_hp_used)
+	/* Usedother could briefly go negative in rare cases when QEMU releases HPG in TERMINATING state */
 	stats.Hp.Usedother = stats.Hp.Used - stats.Hp.Usedvms
 	stats.Hp.Availablevms = stats.Hp.Total - stats.Hp.Reservedvms - stats.Hp.Usedother
 	/* Set the HostInfo HP available field */
