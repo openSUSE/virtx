@@ -38,22 +38,25 @@ func host_stats_get(stats *openapi.Hoststats) {
 		all = true
 	}
 	if (virtx.cpu || all) {
-		fmt.Fprintf(virtx.w, "  CPU_TOTAL\t   CPU_USED\t   CPU_FREE\tCPU_USED_OS\tCPU_USED_VM\t CPU_RES_VM\t CPU_AVL_VM\n")
+		fmt.Fprintf(virtx.w, "  CPU_TOTAL\t   CPU_USED\t   CPU_FREE\t   RES_VMS\t  USED_VMS\t USED_OTHER\t   AVL_VMS\n")
 		fmt.Fprintf(virtx.w, "%7d MHz\t%7d MHz\t%7d MHz\t%7d MHz\t%7d MHz\t%7d MHz\t%7d MHz\n",
-			stats.Cpu.Total, stats.Cpu.Used, stats.Cpu.Free, stats.Cpu.Usedos, stats.Cpu.Usedvms, stats.Cpu.Reservedvms, stats.Cpu.Availablevms,
+			stats.Cpu.Total, stats.Cpu.Used, stats.Cpu.Free,
+			stats.Cpu.Reservedvms, stats.Cpu.Usedvms, stats.Cpu.Usedother, stats.Cpu.Availablevms,
 		)
 		fmt.Fprintf(virtx.w, "------------------------------------------------------------------------------------------\n")
 	}
 	if (virtx.mem || all) {
-		fmt.Fprintf(virtx.w, "  MEM_TOTAL\t   MEM_USED\t   MEM_FREE\tMEM_USED_OS\tMEM_USED_VM\t MEM_RES_VM\t MEM_AVL_VM\n")
+		fmt.Fprintf(virtx.w, "  MEM_TOTAL\t   MEM_USED\t   MEM_FREE\t   RES_VMS\t  USED_VMS\t USED_OTHER\t   AVL_VMS\n")
 		fmt.Fprintf(virtx.w, "%7d MiB\t%7d MiB\t%7d MiB\t%7d MiB\t%7d MiB\t%7d MiB\t%7d MiB\n",
-			stats.Memory.Total, stats.Memory.Used, stats.Memory.Free, stats.Memory.Usedos, stats.Memory.Usedvms, stats.Memory.Reservedvms, stats.Memory.Availablevms,
+			stats.Memory.Total, stats.Memory.Used, stats.Memory.Free,
+			stats.Memory.Reservedvms, stats.Memory.Usedvms, stats.Memory.Usedother, stats.Memory.Availablevms,
 		)
 		fmt.Fprintf(virtx.w, "------------------------------------------------------------------------------------------\n")
 
-		fmt.Fprintf(virtx.w, "  HPG_TOTAL\t   HPG_USED\t   HPG_FREE\tHPG_USED_OS\tHPG_USED_VM\t HPG_RES_VM\t HPG_AVL_VM\n")
+		fmt.Fprintf(virtx.w, "  HPG_TOTAL\t   HPG_USED\t   HPG_FREE\t   RES_VMS\t  USED_VMS\t USED_OTHER\t   AVL_VMS\n")
 		fmt.Fprintf(virtx.w, "%7d MiB\t%7d MiB\t%7d MiB\t%7d MiB\t%7d MiB\t%7d MiB\t%7d MiB\n",
-			stats.Hp.Total, stats.Hp.Used, stats.Hp.Free, stats.Hp.Usedos, stats.Hp.Usedvms, stats.Hp.Reservedvms, stats.Hp.Availablevms,
+			stats.Hp.Total, stats.Hp.Used, stats.Hp.Free,
+			stats.Hp.Reservedvms, stats.Hp.Usedvms, stats.Hp.Usedother, stats.Hp.Availablevms,
 		)
 		fmt.Fprintf(virtx.w, "------------------------------------------------------------------------------------------\n")
 	}

@@ -28,12 +28,12 @@ type Hostresource struct {
 	Used int32 `json:"used"`
 	// amount currently free (does not take into account reservations)
 	Free int32 `json:"free"`
-	// amount used by the OS and the host stack, excluding the amount used for VMs
-	Usedos int32 `json:"usedos"`
 	// amount pre-reserved for running the guests currently on this host
 	Reservedvms int32 `json:"reservedvms"`
 	// amount used for running vm guests
 	Usedvms int32 `json:"usedvms"`
+	// amount used by the OS and the host stack, excluding the amount used for VMs
+	Usedother int32 `json:"usedother"`
 	// amount available for other VMs (total - reservedvms - usedos)
 	Availablevms int32 `json:"availablevms"`
 }
@@ -44,7 +44,7 @@ type _Hostresource Hostresource
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewHostresource(total int32, used int32, free int32, usedos int32, reservedvms int32, usedvms int32, availablevms int32) *Hostresource {
+func NewHostresource(total int32, used int32, free int32, reservedvms int32, usedvms int32, usedother int32, availablevms int32) *Hostresource {
 	this := Hostresource{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
@@ -53,9 +53,9 @@ func NewHostresource(total int32, used int32, free int32, usedos int32, reserved
 	this.Total = total
 	this.Used = used
 	this.Free = free
-	this.Usedos = usedos
 	this.Reservedvms = reservedvms
 	this.Usedvms = usedvms
+	this.Usedother = usedother
 	this.Availablevms = availablevms
 	return &this
 }
@@ -140,30 +140,6 @@ func (o *Hostresource) SetFree(v int32) {
 	o.Free = v
 }
 
-// GetUsedos returns the Usedos field value
-func (o *Hostresource) GetUsedos() int32 {
-	if o == nil {
-		var ret int32
-		return ret
-	}
-
-	return o.Usedos
-}
-
-// GetUsedosOk returns a tuple with the Usedos field value
-// and a boolean to check if the value has been set.
-func (o *Hostresource) GetUsedosOk() (*int32, bool) {
-	if o == nil {
-		return nil, false
-	}
-	return &o.Usedos, true
-}
-
-// SetUsedos sets field value
-func (o *Hostresource) SetUsedos(v int32) {
-	o.Usedos = v
-}
-
 // GetReservedvms returns the Reservedvms field value
 func (o *Hostresource) GetReservedvms() int32 {
 	if o == nil {
@@ -212,6 +188,30 @@ func (o *Hostresource) SetUsedvms(v int32) {
 	o.Usedvms = v
 }
 
+// GetUsedother returns the Usedother field value
+func (o *Hostresource) GetUsedother() int32 {
+	if o == nil {
+		var ret int32
+		return ret
+	}
+
+	return o.Usedother
+}
+
+// GetUsedotherOk returns a tuple with the Usedother field value
+// and a boolean to check if the value has been set.
+func (o *Hostresource) GetUsedotherOk() (*int32, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Usedother, true
+}
+
+// SetUsedother sets field value
+func (o *Hostresource) SetUsedother(v int32) {
+	o.Usedother = v
+}
+
 // GetAvailablevms returns the Availablevms field value
 func (o *Hostresource) GetAvailablevms() int32 {
 	if o == nil {
@@ -241,9 +241,9 @@ func (o Hostresource) ToMap() (map[string]interface{}, error) {
 	toSerialize["total"] = o.Total
 	toSerialize["used"] = o.Used
 	toSerialize["free"] = o.Free
-	toSerialize["usedos"] = o.Usedos
 	toSerialize["reservedvms"] = o.Reservedvms
 	toSerialize["usedvms"] = o.Usedvms
+	toSerialize["usedother"] = o.Usedother
 	toSerialize["availablevms"] = o.Availablevms
 	return toSerialize, nil
 }

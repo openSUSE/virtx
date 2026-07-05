@@ -284,8 +284,8 @@ func system_info_get() (SystemInfo, error) {
 	stats.Hp.Used = stats.Hp.Total - stats.Hp.Free
 	stats.Hp.Reservedvms = int32(total_hp_capacity)
 	stats.Hp.Usedvms = int32(total_hp_capacity)
-	stats.Hp.Usedos = stats.Hp.Used - stats.Hp.Usedvms
-	stats.Hp.Availablevms = stats.Hp.Total - stats.Hp.Reservedvms - stats.Hp.Usedos
+	stats.Hp.Usedother = stats.Hp.Used - stats.Hp.Usedvms
+	stats.Hp.Availablevms = stats.Hp.Total - stats.Hp.Reservedvms - stats.Hp.Usedother
 	/* Set the HostInfo HP available field */
 	si.Host.Hpavailable = stats.Hp.Availablevms
 
@@ -293,8 +293,8 @@ func system_info_get() (SystemInfo, error) {
 	stats.Memory.Used = stats.Memory.Total - stats.Memory.Free
 	stats.Memory.Reservedvms = int32(total_memory_capacity)
 	stats.Memory.Usedvms = int32(total_memory_used)
-	stats.Memory.Usedos = stats.Memory.Used - stats.Memory.Usedvms
-	stats.Memory.Availablevms = stats.Memory.Total - stats.Memory.Reservedvms - stats.Memory.Usedos
+	stats.Memory.Usedother = stats.Memory.Used - stats.Memory.Usedvms
+	stats.Memory.Availablevms = stats.Memory.Total - stats.Memory.Reservedvms - stats.Memory.Usedother
 	/* Set the HostInfo Memory available field */
 	si.Host.Memoryavailable = stats.Memory.Availablevms
 
@@ -327,10 +327,10 @@ func system_info_get() (SystemInfo, error) {
 			stats.Cpu.Usedvms = total_vcpus_mhz_used
 			logger.Debug("gsi: Cpu.Usedvms = %d", stats.Cpu.Usedvms)
 
-			stats.Cpu.Usedos = stats.Cpu.Used - stats.Cpu.Usedvms
-			logger.Debug("gsi: Cpu.Usedos = %d", stats.Cpu.Usedos)
+			stats.Cpu.Usedother = stats.Cpu.Used - stats.Cpu.Usedvms
+			logger.Debug("gsi: Cpu.Usedother = %d", stats.Cpu.Usedother)
 
-			stats.Cpu.Availablevms = stats.Cpu.Total - stats.Cpu.Reservedvms - stats.Cpu.Usedos
+			stats.Cpu.Availablevms = stats.Cpu.Total - stats.Cpu.Reservedvms - stats.Cpu.Usedother
 			logger.Debug("gsi: Cpu.Availablevms = %d", stats.Cpu.Availablevms)
 		}
 	}
