@@ -1,3 +1,3 @@
 #! /bin/bash
 
-sudo -b -u qemu -g disk nohup ./virtxd
+sudo setpriv --reuid qemu --regid qemu --groups disk,sanlock --inh-caps=-all -- nohup ./virtxd &
