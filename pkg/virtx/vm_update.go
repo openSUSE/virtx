@@ -23,7 +23,7 @@ import (
 	"suse.com/virtx/pkg/hypervisor"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/model"
-	"suse.com/virtx/pkg/vmreg"
+	"suse.com/virtx/pkg/reg"
 	"suse.com/virtx/pkg/vmdef"
 	"suse.com/virtx/pkg/httpx"
 	"suse.com/virtx/pkg/inventory"
@@ -75,9 +75,9 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	/* read the configuration of the VM from the registry on disk */
-	xml, err = vmreg.Load(host, uuid)
+	xml, err = reg.Load(host, uuid)
 	if (err != nil) {
-		logger.Log("vmreg.Load(%s, %s) failed: %s", host, uuid, err.Error())
+		logger.Log("reg.Load(%s, %s) failed: %s", host, uuid, err.Error())
 		http.Error(w, "could not Load VM", http.StatusInternalServerError)
 		return
 	}

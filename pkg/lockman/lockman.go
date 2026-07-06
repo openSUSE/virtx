@@ -36,7 +36,7 @@ import (
 
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/model"
-	"suse.com/virtx/pkg/vmreg"
+	"suse.com/virtx/pkg/reg"
 	"suse.com/virtx/pkg/paths"
 
 	. "suse.com/virtx/pkg/constants"
@@ -79,12 +79,12 @@ func Init(host_uuid string) error {
 	}
 	if (lm.host_id == 0) {
 		/* we are not yet in the lockspace */
-		err = vmreg.Load_lockid(host_uuid, &lm.host_id)
+		err = reg.Load_lockid(host_uuid, &lm.host_id)
 		if (err != nil) {
 			if (errors.Is(err, os.ErrNotExist)) {
-				logger.Debug("lockid is not cached in vmreg yet")
+				logger.Debug("lockid is not cached in reg yet")
 			} else {
-				return errors.New("vmreg: failed to Load_lockid: " + err.Error())
+				return errors.New("reg: failed to Load_lockid: " + err.Error())
 			}
 		}
 		for i := 0; i < LOCK_JOIN_RETRIES; i++ {
@@ -92,9 +92,9 @@ func Init(host_uuid string) error {
 				/* host_id is not cached so search for a free slot dynamically */
 				lm.host_id, err = lm_search_join_lockspace(host_uuid)
 				if (err == nil) {
-					err = vmreg.Save_lockid(host_uuid, lm.host_id)
+					err = reg.Save_lockid(host_uuid, lm.host_id)
 					if (err != nil) {
-						return errors.New("vmreg: failed to Save_lockid: " + err.Error())
+						return errors.New("reg: failed to Save_lockid: " + err.Error())
 					}
 					break /* SUCCESS! */
 				}

@@ -123,7 +123,7 @@ func system_info_loop(seconds int) error {
 			return err
 		}
 	}
-	check_vmreg(machine.Uuid(), &si)
+	check_reg(machine.Uuid(), &si)
 	set_system_info_loop_done()
 
 	/* this first info is missing vm cpu stats and host cpu stats */

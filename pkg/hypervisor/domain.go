@@ -26,7 +26,7 @@ import (
 
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/logger"
-	"suse.com/virtx/pkg/vmreg"
+	"suse.com/virtx/pkg/reg"
 	"suse.com/virtx/pkg/machine"
 	"suse.com/virtx/pkg/inventory"
 	"suse.com/virtx/pkg/ts"
@@ -136,9 +136,9 @@ func Define_domain(xml string, uuid string) error {
 		return err
 	}
 	/* store the processed XML in /vms/reg/host-uuid/vm-uuid.xml */
-	err = vmreg.Save(machine.Uuid(), uuid, xml)
+	err = reg.Save(machine.Uuid(), uuid, xml)
 	if (err != nil) {
-		logger.Log("Define_domain: failed to vmreg.Save(%s, %s)", machine.Uuid(), uuid)
+		logger.Log("Define_domain: failed to reg.Save(%s, %s)", machine.Uuid(), uuid)
 	}
 	return nil
 }
@@ -202,9 +202,9 @@ func Migrate_domain(hostname string, host_uuid string, host_old string, uuid str
 	}
 	defer domain2.Free()
 	/* move the xml file to /vms/reg/host_uuid/uuid.xml */
-	err = vmreg.Move(host_uuid, host_old, uuid)
+	err = reg.Move(host_uuid, host_old, uuid)
 	if (err != nil) {
-		logger.Log("Migrate_domain: failed to vmreg.Move(%s, %s, %s)", host_uuid, host_old, uuid)
+		logger.Log("Migrate_domain: failed to reg.Move(%s, %s, %s)", host_uuid, host_old, uuid)
 		msg += fmt.Sprintf(" WARNING:%s.", err.Error())
 	}
 	_ = oplog_record(domain2, openapi.OpVmMigrate, openapi.OPERATION_COMPLETED, msg + " Migrated.", started, ts.Now())
@@ -523,9 +523,9 @@ func Delete_domain(uuid string) error {
 		return err
 	}
 	/* remove the registered xml file */
-	err = vmreg.Delete(machine.Uuid(), uuid)
+	err = reg.Delete(machine.Uuid(), uuid)
 	if (err != nil) {
-		logger.Log("Delete_domain: failed to vmreg.Delete(%s, %s)", machine.Uuid(), uuid)
+		logger.Log("Delete_domain: failed to reg.Delete(%s, %s)", machine.Uuid(), uuid)
 	}
 	return nil
 }

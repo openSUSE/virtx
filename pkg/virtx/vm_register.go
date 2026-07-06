@@ -24,7 +24,7 @@ import (
 	"suse.com/virtx/pkg/machine"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/model"
-	"suse.com/virtx/pkg/vmreg"
+	"suse.com/virtx/pkg/reg"
 	"suse.com/virtx/pkg/vmdef"
 	"suse.com/virtx/pkg/httpx"
 	"suse.com/virtx/pkg/inventory"
@@ -60,20 +60,20 @@ func vm_register(w http.ResponseWriter, r *http.Request) {
 		 * the uuid is known to inventory
 		 *
 		 * in this case the domain must exist in this libvirt.
-		 * Check if it exists in vmreg, and if not register it from libvirt
+		 * Check if it exists in reg, and if not register it from libvirt
 		 */
 		if (vminfo.Host != o.Host || vminfo.Host != machine.Uuid()) {
 			http.Error(w, "invalid host for this VM", http.StatusUnprocessableEntity)
 			return
 		}
-		err = vm_register_vmreg(o.Host, uuid)
+		err = vm_register_reg(o.Host, uuid)
 		if (err == nil) {
 			status = http.StatusOK
 		}
 	} else {
 		/* the uuid is unknown to inventory
 		 *
-		 * Check if it exists in libvirt, and if not register it from vmreg.
+		 * Check if it exists in libvirt, and if not register it from reg.
 		 */
 		err = vm_register_libvirt(o.Host, uuid)
 		if (err == nil) {
@@ -88,8 +88,8 @@ func vm_register(w http.ResponseWriter, r *http.Request) {
 	httpx.Do_response(w, status, nil)
 }
 
-/* register from libvirt into vmreg */
-func vm_register_vmreg(host_uuid string, uuid string) error {
+/* register from libvirt into reg */
+func vm_register_reg(host_uuid string, uuid string) error {
 	var (
 		err error
 		vm openapi.Vmdef
@@ -108,21 +108,21 @@ func vm_register_vmreg(host_uuid string, uuid string) error {
 		return err
 	}
 	/* store the processed XML in /vms/reg/host-uuid/vm-uuid.xml */
-	err = vmreg.Save(host_uuid, uuid, xml)
+	err = reg.Save(host_uuid, uuid, xml)
 	if (err != nil) {
 		return err
 	}
 	return nil
 }
 
-/* register from vmreg into libvirt */
+/* register from reg into libvirt */
 func vm_register_libvirt(host_uuid string, uuid string) error {
 	var (
 		err error
 		vm openapi.Vmdef
 		xml string
 	)
-	xml, err = vmreg.Load(host_uuid, uuid)
+	xml, err = reg.Load(host_uuid, uuid)
 	if (err != nil) {
 		return err
 	}

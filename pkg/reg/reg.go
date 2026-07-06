@@ -16,7 +16,7 @@
  * <https://www.gnu.org/licenses/>
  */
 
-package vmreg
+package reg
 
 import (
 	"fmt"
@@ -259,7 +259,7 @@ func Uuids(host_uuid string) ([]string, error) {
 	return uuids, nil
 }
 
-/* get all the Hosts present in vmreg */
+/* get all the Hosts present in reg */
 func Hosts() ([]string, error) {
 	var (
 		uuids []string
