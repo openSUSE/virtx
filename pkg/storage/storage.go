@@ -20,6 +20,7 @@ package storage
 import (
 	"errors"
 	"os"
+	"fmt"
 
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/lockman"
@@ -86,7 +87,7 @@ func Create(vm *openapi.Vmdef, old *openapi.Vmdef, uuid string) (CreatedResource
 			err = Detect(disk)
 		}
 		if (err != nil) {
-			return created, err
+			return created, fmt.Errorf("disk %s: %w", disk.Path, err)
 		}
 	}
 	return created, nil
