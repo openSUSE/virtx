@@ -107,7 +107,7 @@ func vm_register_vmreg(host_uuid string, uuid string) error {
 	if (err != nil) {
 		return err
 	}
-	/* store the processed XML in /vms/xml/host-uuid/vm-uuid.xml */
+	/* store the processed XML in /vms/reg/host-uuid/vm-uuid.xml */
 	err = vmreg.Save(host_uuid, uuid, xml)
 	if (err != nil) {
 		return err

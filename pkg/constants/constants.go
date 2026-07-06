@@ -26,7 +26,7 @@ const (
 
 const (
 	VMS_DIR = "/vms/"
-	REG_DIR = "/vms/xml/"
+	REG_DIR = "/vms/reg/"
 	DS_DIR = "/vms/ds/"
 	CI_DIR = "/vms/ds/ci/"
 	GOLD_DIR = "/vms/gold/"

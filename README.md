@@ -36,9 +36,8 @@ A separate storage product or server is providing shared storage for the cluster
 In the current implementation, NFS and iSCSI have been considered and tested.
 In theory any block device that maps to /dev/ should work, but specific IDs for SCSI and NVMe are recognized.
 
-virtxd expects this directory to be mounted, from a remote NFS4 share:
-
-/vms/xml
+virtxd expects directory /vms to be mounted, as a single or multiple remote NFS4 shares,
+notably for /vms/reg as the VM and host register (vmreg).
 
 For iSCSI, virtxd currently assumes an existing iSCSI configuration with LUNs (with multipath f.e.)
 already mapped to
