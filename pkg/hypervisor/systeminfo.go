@@ -815,9 +815,6 @@ func get_domain_stats(d *libvirt.Domain, vm *SystemInfoVm, old *SystemInfoVm, im
 					vm.net_tx += netstat.TxBytes
 				}
 			}
-			if (len(net.Vlan.Tags) > 0) {
-				vm.Vlanid = int16(net.Vlan.Tags[0].Id) /* XXX only one VlandID for each VM is recognized XXX */
-			}
 		}
 	}
 	{

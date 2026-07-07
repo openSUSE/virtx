@@ -103,9 +103,6 @@ func Search_vms(f openapi.VmListFields) openapi.VmList {
 		if (f.Runstate > 0 && (vm.Runstate != f.Runstate)) {
 			continue
 		}
-		if (f.Vlanid > 0 && (vm.Vlanid != f.Vlanid)) {
-			continue
-		}
 		if (f.Custom.Name != "") {
 			var found bool
 			for _, custom := range vm.Custom {
@@ -129,7 +126,6 @@ func Search_vms(f openapi.VmListFields) openapi.VmList {
 				Name: vm.Name,
 				Host: vm.Host,
 				Runstate: vm.Runstate,
-				Vlanid: vm.Vlanid,
 				Custom: f.Custom,
 				Ts: vm.Ts,
 			},

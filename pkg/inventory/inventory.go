@@ -63,7 +63,6 @@ type VmEvent struct {
 type VmInfo struct {
 	VmEvent                     /* embedded basic information */
 	Name string                 /* VM Name */
-	Vlanid int16                /* XXX need requirements engineering for Vlans XXX */
 	Custom []openapi.CustomField
 	Vcpus int16                 /* total number of vcpus in this VM */
 }
