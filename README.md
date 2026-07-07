@@ -36,22 +36,46 @@ A separate storage product or server is providing shared storage for the cluster
 In the current implementation, NFS and iSCSI have been considered and tested.
 In theory any block device that maps to /dev/ should work, but specific IDs for SCSI and NVMe are recognized.
 
-virtxd expects directory /vms to be mounted, as a single or multiple remote NFS4 shares,
-notably for /vms/reg as the VM and host register (vmreg).
+virtxd expects an NFSv4 directory
 
-For iSCSI, virtxd currently assumes an existing iSCSI configuration with LUNs (with multipath f.e.)
-already mapped to
+/vms
+
+to be created and mounted on all the hosts of the cluster. It should be owned by qemu:qemu.
+
+In the simplest configuration, this is sufficient for virtxd to then create all the subdirectories needed there:
+
+/vms/reg  is the VM and host register. This is for the most part just managed by VirtX.
+          When the cluster starts the first time, a number of subdirectories is created, one for every host
+          in the cluster, if it does not exist already. The directory name is the host UUID.
+
+          Host-specific OPTIONAL parameters ("options") are stored as regular files (one file per option)
+          inside the host directory. Nothing is functionally required, but the user may want to configure
+          certain parameters to optimize the cluster. These parameters are read once when virtxd starts.
+
+          Current host options:
+
+          lockid: this is the sanlock "host_id", used by sanlock to uniquely identify each host [1-2000].
+                  Normally this value is dynamically generated when the cluster starts if not existing.
+
+/vms/lock is where resource lock files are stored. Should only be looked at in case cleanup becomes necessary,
+          but normally this is fully managed by VirtX.
+
+/vms/ds   is meant to contain all NFS "datastores". Could be just part of the same /vms share, or it could be
+          a separate single share, or it could contain multiple subdirectories, each a mountpoint for a different
+          NFS "datastore". This is entirely up to the user / admin (or automation) to configure and replicate
+          identically on all hosts.
+
+/vms/gold is where to put golden images, for example ready-to-use cloud images. These are used during vm creation
+          to initialize the OS disk with a full copy (potentially extended in size) of a cloud image.
+
+For iSCSI storage (or potentially FC, not tested yet), virtxd currently assumes an existing iSCSI configuration
+with LUNs (with multipath f.e.) already mapped to
 
 /dev/...
 
-For NFS4 storage, virtxd expects this additional directory to be mounted:
+The virtxd daemon has been tested running as qemu:qemu with supplementary groups "disk" and "sanlock".
 
-/vms/ds
-
-In the simplest configuration with NFS, it could be a single /vms mountpoint.
-Typically the mounted directories should be owned by qemu:disk.
-
-The virtxd daemon monitors the state of local VMs via libvirt, and offers a REST API backend to connect to.
+virtxd monitors the state of local VMs via libvirt, and offers a REST API backend to connect to.
 serf agent and libvirt must be already running when starting virtxd, or virtxd will not start successfully.
 If the connection to libvirt or the serf agent are subsequently lost, virtx will attempt to reconnect every 5 seconds.
 
@@ -221,7 +245,7 @@ All storage is assumed to be shared storage, and it is also assumed that
 the NFSv4 shares mounted into /vms/ds, as well as all the LUNs and mpath devices
 visible as /dev/disk/by-id/... are already in place, mounted and visible from
 all hosts in the cluster, and that the mount options are safe for VM storage operations
-with sanlock.
+including live migration with sanlock.
 
 The VirtX API for VM Creation includes in its definition all disks required by the VM,
 and for each disk whether it is Managed and whether it is Provisioned by VirtX.
@@ -236,9 +260,9 @@ and any operation involving the disk will happen under a resource lease.
 All this locking is _cooperative_, ie there is nothing preventing a process
 on the host to trample over this mechanism.
 
-At VM Deletion time, if the REST client explicitly requests the storage
-associated with the VM to be deleted, then Managed virtual disks will be deleted,
-and LUNs will be wiped.
+At VM Deletion time, the REST client can explicitly requests the storage
+associated with the VM to be deleted, and in that case the Managed virtual
+disks will be deleted, and LUNs will be wiped.
 
 # UNMANAGED DISKS
 
