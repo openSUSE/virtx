@@ -76,7 +76,6 @@ func init() {
 	cmd_list_vm.Flags().StringVarP(&virtx.vm_list_options.Filter.Name, "name", "n", "", "Filter by VM Name")
 	cmd_list_vm.Flags().StringVarP(&virtx.vm_list_options.Filter.Host, "host", "h", "", "Filter by Host UUID")
 	cmd_list_vm.Flags().Int16VarP((*int16)(unsafe.Pointer(&virtx.vm_list_options.Filter.Runstate)), "state", "s", 0, "Filter by VM Runstate")
-	cmd_list_vm.Flags().Int16VarP(&virtx.vm_list_options.Filter.Vlanid,	"vlanid", "v", 0, "Filter by VM Vlanid")
 	cmd_list_vm.Flags().StringVarP(&virtx.vm_list_options.Filter.Custom.Name, "custom-name", "N", "", "Filter by VM Custom Field Name")
 	cmd_list_vm.Flags().StringVarP(&virtx.vm_list_options.Filter.Custom.Value, "custom-value", "V", "", "Filter by VM Custom Field Value")
 	var cmd_get = &cobra.Command{

@@ -55,11 +55,11 @@ func vm_get(vm *openapi.Vm) {
 				break
 			}
 		}
-		fmt.Fprintf(virtx.w, "NAME\tHOST\tVCPU\tSOCKETS\t CORES\tTHREADS\tVLAN\tCUSTOM\tLAST BOOT\tSTATE\n")
-		fmt.Fprintf(virtx.w, "%s\t%s\t%s\t%7d\t%7d\t%7d\t%4d\t%v\t%s\t%s\n",
+		fmt.Fprintf(virtx.w, "NAME\tHOST\tVCPU\tSOCKETS\t CORES\tTHREADS\tCUSTOM\tLAST BOOT\tSTATE\n")
+		fmt.Fprintf(virtx.w, "%s\t%s\t%s\t%7d\t%7d\t%7d\t%v\t%s\t%s\n",
 			vm.Def.Name, vm.Runinfo.Host, vm.Def.Cpudef.Model,
 			vm.Def.Cpudef.Sockets, vm.Def.Cpudef.Cores, vm.Def.Cpudef.Threads,
-			vm.Def.Vlanid, vm.Def.Custom, ts.String(boot_ts), vm.Runinfo.Runstate)
+			vm.Def.Custom, ts.String(boot_ts), vm.Runinfo.Runstate)
 	}
 }
 
