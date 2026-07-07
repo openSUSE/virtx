@@ -26,6 +26,8 @@ type Net struct {
 	Nettype NetType `json:"nettype"`
 	Model NetModel `json:"model"`
 	Mac string `json:"mac"`
+	// vlanid for all traffic from/to this VM. 0=no vlanid, 1=reserved, max=4095
+	Vlanid int16 `json:"vlanid"`
 }
 
 type _Net Net
@@ -34,7 +36,7 @@ type _Net Net
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewNet(name string, nettype NetType, model NetModel, mac string) *Net {
+func NewNet(name string, nettype NetType, model NetModel, mac string, vlanid int16) *Net {
 	this := Net{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
@@ -44,6 +46,7 @@ func NewNet(name string, nettype NetType, model NetModel, mac string) *Net {
 	this.Nettype = nettype
 	this.Model = model
 	this.Mac = mac
+	this.Vlanid = vlanid
 	return &this
 }
 
@@ -151,12 +154,37 @@ func (o *Net) SetMac(v string) {
 	o.Mac = v
 }
 
+// GetVlanid returns the Vlanid field value
+func (o *Net) GetVlanid() int16 {
+	if o == nil {
+		var ret int16
+		return ret
+	}
+
+	return o.Vlanid
+}
+
+// GetVlanidOk returns a tuple with the Vlanid field value
+// and a boolean to check if the value has been set.
+func (o *Net) GetVlanidOk() (*int16, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Vlanid, true
+}
+
+// SetVlanid sets field value
+func (o *Net) SetVlanid(v int16) {
+	o.Vlanid = v
+}
+
 func (o Net) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["name"] = o.Name
 	toSerialize["nettype"] = o.Nettype
 	toSerialize["model"] = o.Model
 	toSerialize["mac"] = o.Mac
+	toSerialize["vlanid"] = o.Vlanid
 	return toSerialize, nil
 }
 

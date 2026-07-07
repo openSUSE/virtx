@@ -45,7 +45,6 @@ func valid_vmdef() openapi.Vmdef {
 		},
 		Disks:    []openapi.Disk{},
 		Nets:     []openapi.Net{},
-		Vlanid:   0,
 		Firmware: openapi.FIRMWARE_UEFI,
 		Genid:    "",
 		Custom:   []openapi.CustomField{},
@@ -501,21 +500,34 @@ func Test_validate_too_many_nets(t *testing.T) {
 	}
 }
 
-func Test_validate_vlanid(t *testing.T) {
+func Test_validate_net_vlanid(t *testing.T) {
 	vm := valid_vmdef()
-	vm.Vlanid = -1
+	vm.Nets = []openapi.Net{
+		{
+			Name: "br0", Nettype: openapi.NET_BRIDGE, Model: openapi.NET_MODEL_VIRTIO,
+		},
+	}
+	vm.Nets[0].Vlanid = -1
 	err := Validate(&vm)
 	if (err == nil) {
 		t.Error("vlanid -1: expected error")
 	}
-
-	vm.Vlanid = 4095
+	vm.Nets[0].Vlanid = 0
+	err = Validate(&vm)
+	if (err != nil) {
+		t.Errorf("vlanid 0: unexpected error: %v", err)
+	}
+	vm.Nets[0].Vlanid = 1
+	err = Validate(&vm)
+	if (err == nil) {
+		t.Error("vlanid 1: expected error")
+	}
+	vm.Nets[0].Vlanid = 4095
 	err = Validate(&vm)
 	if (err == nil) {
 		t.Error("vlanid 4095: expected error (max 4094)")
 	}
-
-	vm.Vlanid = 4094
+	vm.Nets[0].Vlanid = 4094
 	err = Validate(&vm)
 	if (err != nil) {
 		t.Errorf("vlanid 4094: unexpected error: %v", err)

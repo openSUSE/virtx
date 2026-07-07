@@ -356,9 +356,11 @@ func Test_to_xml_net_libvirt(t *testing.T) {
 
 func Test_to_xml_vlan(t *testing.T) {
 	vm := xml_base_vmdef()
-	vm.Vlanid = 100
 	vm.Nets = []openapi.Net{
-		{Name: "br0", Nettype: openapi.NET_BRIDGE, Model: openapi.NET_MODEL_VIRTIO},
+		{
+			Name: "br0", Nettype: openapi.NET_BRIDGE, Model: openapi.NET_MODEL_VIRTIO,
+			Vlanid: 100,
+		},
 	}
 	d := xml_to_domain(t, &vm, "test-uuid-9")
 
@@ -669,8 +671,11 @@ func Test_from_xml_vlanid(t *testing.T) {
 	xml := wrap_domain(t, inner)
 	vm := xml_to_vmdef(t, xml)
 
-	if (vm.Vlanid != 200) {
-		t.Errorf("Vlanid: got %d, want 200", vm.Vlanid)
+	if (len(vm.Nets) < 1) {
+		t.Errorf("Vlanid: looking for vlanid %d, no interfaces?", 200)
+	}
+	if (vm.Nets[0].Vlanid != 200) {
+		t.Errorf("Vlanid: got %d, want 200", vm.Nets[0].Vlanid)
 	}
 }
 

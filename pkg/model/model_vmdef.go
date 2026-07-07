@@ -32,8 +32,6 @@ type Vmdef struct {
 	Disks []Disk `json:"disks"`
 	// networks and bridges attached to the VM
 	Nets []Net `json:"nets"`
-	// vlanid for all traffic from/to this VM. 0 = no vlanid, -1 = automatically assign
-	Vlanid int16 `json:"vlanid"`
 	Firmware FirmwareType `json:"firmware"`
 	// VM generation ID. Use special value \"auto\" to autogenerate
 	Genid string `json:"genid"`
@@ -47,7 +45,7 @@ type _Vmdef Vmdef
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVmdef(name string, cpudef Cpudef, memory VmdefMemory, numa Numa, osdisk Disk, disks []Disk, nets []Net, vlanid int16, firmware FirmwareType, genid string, custom []CustomField) *Vmdef {
+func NewVmdef(name string, cpudef Cpudef, memory VmdefMemory, numa Numa, osdisk Disk, disks []Disk, nets []Net, firmware FirmwareType, genid string, custom []CustomField) *Vmdef {
 	this := Vmdef{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
@@ -60,7 +58,6 @@ func NewVmdef(name string, cpudef Cpudef, memory VmdefMemory, numa Numa, osdisk 
 	this.Osdisk = osdisk
 	this.Disks = disks
 	this.Nets = nets
-	this.Vlanid = vlanid
 	this.Firmware = firmware
 	this.Genid = genid
 	this.Custom = custom
@@ -243,30 +240,6 @@ func (o *Vmdef) SetNets(v []Net) {
 	o.Nets = v
 }
 
-// GetVlanid returns the Vlanid field value
-func (o *Vmdef) GetVlanid() int16 {
-	if o == nil {
-		var ret int16
-		return ret
-	}
-
-	return o.Vlanid
-}
-
-// GetVlanidOk returns a tuple with the Vlanid field value
-// and a boolean to check if the value has been set.
-func (o *Vmdef) GetVlanidOk() (*int16, bool) {
-	if o == nil {
-		return nil, false
-	}
-	return &o.Vlanid, true
-}
-
-// SetVlanid sets field value
-func (o *Vmdef) SetVlanid(v int16) {
-	o.Vlanid = v
-}
-
 // GetFirmware returns the Firmware field value
 func (o *Vmdef) GetFirmware() FirmwareType {
 	if o == nil {
@@ -348,7 +321,6 @@ func (o Vmdef) ToMap() (map[string]interface{}, error) {
 	toSerialize["osdisk"] = o.Osdisk
 	toSerialize["disks"] = o.Disks
 	toSerialize["nets"] = o.Nets
-	toSerialize["vlanid"] = o.Vlanid
 	toSerialize["firmware"] = o.Firmware
 	toSerialize["genid"] = o.Genid
 	toSerialize["custom"] = o.Custom

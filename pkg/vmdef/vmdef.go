@@ -214,9 +214,6 @@ func Validate(vmdef *openapi.Vmdef) error {
 	if (len(vmdef.Nets) > NETS_MAX) {
 		return errors.New("invalid Nets")
 	}
-	if (vmdef.Vlanid < 0 || vmdef.Vlanid > VLAN_MAX) {
-		return errors.New("invalid Vlanid")
-	}
 	/* *** DISKS *** */
 	for _, disk := range Disks(vmdef) {
 		err = vmdef_validate_disk(disk)
@@ -231,6 +228,9 @@ func Validate(vmdef *openapi.Vmdef) error {
 		}
 		if (!net.Model.IsValid()) {
 			return errors.New("invalid Net model")
+		}
+		if (net.Vlanid < 0 || net.Vlanid == 1 || net.Vlanid > 4094) {
+			return errors.New("invalid Vlanid")
 		}
 	}
 	/* *** CUSTOM FIELDS *** */
@@ -679,10 +679,10 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 				return nil
 			}(),
 			VLan: func() *libvirtxml.DomainInterfaceVLan {
-				if (vmdef.Vlanid > 0) {
+				if (net.Vlanid > 1) {
 					return &libvirtxml.DomainInterfaceVLan{
 						Tags: []libvirtxml.DomainInterfaceVLanTag{
-							{ ID: uint(vmdef.Vlanid), },
+							{ ID: uint(net.Vlanid), },
 						},
 					}
 				}
@@ -924,9 +924,7 @@ func From_xml(vmdef *openapi.Vmdef, xmlstr string) error {
 			return errors.New("missing Interface Source Bridge or Network")
 		}
 		if (domain_interface.VLan != nil && len(domain_interface.VLan.Tags) > 0) {
-			vmdef.Vlanid = int16(domain_interface.VLan.Tags[0].ID)
-		} else {
-			vmdef.Vlanid = 0
+			net.Vlanid = int16(domain_interface.VLan.Tags[0].ID)
 		}
 		if (domain_interface.Model == nil) {
 			return errors.New("missing Interface Model")

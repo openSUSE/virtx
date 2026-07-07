@@ -26,8 +26,6 @@ type VmListFields struct {
 	// Unique Identifier for VMs, Hosts, Networks; RFC 4122
 	Host string `json:"host"`
 	Runstate Vmrunstate `json:"runstate"`
-	// vlanid for all traffic from/to this VM. 0 = no vlanid, -1 = automatically assign
-	Vlanid int16 `json:"vlanid"`
 	Custom CustomField `json:"custom"`
 	// 64bit UTC Unix timestamp in milliseconds since Epoc. A 0 value is used if the timestamp is not available.
 	Ts int64 `json:"ts"`
@@ -39,7 +37,7 @@ type _VmListFields VmListFields
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVmListFields(name string, host string, runstate Vmrunstate, vlanid int16, custom CustomField, ts int64) *VmListFields {
+func NewVmListFields(name string, host string, runstate Vmrunstate, custom CustomField, ts int64) *VmListFields {
 	this := VmListFields{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
@@ -48,7 +46,6 @@ func NewVmListFields(name string, host string, runstate Vmrunstate, vlanid int16
 	this.Name = name
 	this.Host = host
 	this.Runstate = runstate
-	this.Vlanid = vlanid
 	this.Custom = custom
 	this.Ts = ts
 	return &this
@@ -134,30 +131,6 @@ func (o *VmListFields) SetRunstate(v Vmrunstate) {
 	o.Runstate = v
 }
 
-// GetVlanid returns the Vlanid field value
-func (o *VmListFields) GetVlanid() int16 {
-	if o == nil {
-		var ret int16
-		return ret
-	}
-
-	return o.Vlanid
-}
-
-// GetVlanidOk returns a tuple with the Vlanid field value
-// and a boolean to check if the value has been set.
-func (o *VmListFields) GetVlanidOk() (*int16, bool) {
-	if o == nil {
-		return nil, false
-	}
-	return &o.Vlanid, true
-}
-
-// SetVlanid sets field value
-func (o *VmListFields) SetVlanid(v int16) {
-	o.Vlanid = v
-}
-
 // GetCustom returns the Custom field value
 func (o *VmListFields) GetCustom() CustomField {
 	if o == nil {
@@ -211,7 +184,6 @@ func (o VmListFields) ToMap() (map[string]interface{}, error) {
 	toSerialize["name"] = o.Name
 	toSerialize["host"] = o.Host
 	toSerialize["runstate"] = o.Runstate
-	toSerialize["vlanid"] = o.Vlanid
 	toSerialize["custom"] = o.Custom
 	toSerialize["ts"] = o.Ts
 	return toSerialize, nil
