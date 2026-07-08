@@ -156,7 +156,11 @@ func Migrate_domain(hostname string, host_uuid string, host_old string, uuid str
 	params.URISet = true
 	if (live) {
 		params.ParallelConnectionsSet = true
-		params.ParallelConnections = vcpus
+		if (vcpus > 8) {
+			params.ParallelConnections = 8
+		} else {
+			params.ParallelConnections = vcpus
+		}
 		flags = libvirt.MIGRATE_LIVE         |
 			libvirt.MIGRATE_PERSIST_DEST     |
 			libvirt.MIGRATE_ABORT_ON_ERROR   |
