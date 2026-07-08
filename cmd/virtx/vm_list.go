@@ -32,8 +32,12 @@ func vm_list_req() {
 }
 
 func vm_list(list *openapi.VmList) {
-
-	fmt.Fprintf(virtx.w, "UUID\tNAME\tHOST\tCUSTOM\tSTATE\tAGE\n")
+	/*
+	 * XXX the reason why we have an empty column field here, is to NOT show custom
+	 * since we can search for only one custom fields at a time, and we can only return one as well.
+	 * maybe something to improve in the future.
+	 */
+	fmt.Fprintf(virtx.w, "UUID\tNAME\tHOST\t \tSTATE\tAGE\n")
 	for _, item := range (list.Items) {
 		fmt.Fprintf(virtx.w, "%s\t%s\t%s\t%v\t%s\t%s\n", item.Uuid, item.Fields.Name, item.Fields.Host,
 			item.Fields.Custom, item.Fields.Runstate, ts.Since(item.Fields.Ts))
