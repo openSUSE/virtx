@@ -882,8 +882,8 @@ func Test_to_xml_disk_lun(t *testing.T) {
 	if (disk.RawIO != "yes") {
 		t.Errorf("RawIO: got %q, want yes", disk.RawIO)
 	}
-	if (disk.Driver == nil || disk.Driver.Cache != "directsync") {
-		t.Errorf("Driver.Cache: got %q, want directsync", disk.Driver.Cache)
+	if (disk.Driver == nil || disk.Driver.Cache != "none") {
+		t.Errorf("Driver.Cache: got %q, want none", disk.Driver.Cache)
 	}
 	if (disk.Source == nil || disk.Source.Block == nil) {
 		t.Fatal("Source.Block is nil")

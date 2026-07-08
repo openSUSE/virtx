@@ -322,13 +322,7 @@ func Disk_to_xml(disk *openapi.Disk, disk_count map[string]int, iothread_count *
 		Driver: &libvirtxml.DomainDiskDriver{
 			Name: "qemu",
 			Type: disk_driver,
-			Cache: func() string {
-				if (disk.Device == openapi.DEVICE_LUN) {
-					return "directsync"
-				} else {
-					return "none"
-				}
-			}(),
+			Cache: "none",
 			IOThread: func() *uint {
 				if (ctrl_type == "virtio" && use_iothread) { /* virtio-blk. */
 					*iothread_count += 1
