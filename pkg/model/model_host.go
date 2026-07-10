@@ -28,6 +28,8 @@ type Host struct {
 	Cstate Cstate `json:"cstate"`
 	// Unique ID in the cluster used to register the lockspace.
 	Lockid int16 `json:"lockid"`
+	// IP address in the migration network. Empty if migration_network is not configured.
+	MigrationAddr string `json:"migration_addr"`
 	// 64bit UTC Unix timestamp in milliseconds since Epoc. A 0 value is used if the timestamp is not available.
 	Ts int64 `json:"ts"`
 }
@@ -38,7 +40,7 @@ type _Host Host
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewHost(uuid string, def Hostdef, cstate Cstate, lockid int16, ts int64) *Host {
+func NewHost(uuid string, def Hostdef, cstate Cstate, lockid int16, migrationAddr string, ts int64) *Host {
 	this := Host{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
@@ -48,6 +50,7 @@ func NewHost(uuid string, def Hostdef, cstate Cstate, lockid int16, ts int64) *H
 	this.Def = def
 	this.Cstate = cstate
 	this.Lockid = lockid
+	this.MigrationAddr = migrationAddr
 	this.Ts = ts
 	return &this
 }
@@ -156,6 +159,30 @@ func (o *Host) SetLockid(v int16) {
 	o.Lockid = v
 }
 
+// GetMigrationAddr returns the MigrationAddr field value
+func (o *Host) GetMigrationAddr() string {
+	if o == nil {
+		var ret string
+		return ret
+	}
+
+	return o.MigrationAddr
+}
+
+// GetMigrationAddrOk returns a tuple with the MigrationAddr field value
+// and a boolean to check if the value has been set.
+func (o *Host) GetMigrationAddrOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.MigrationAddr, true
+}
+
+// SetMigrationAddr sets field value
+func (o *Host) SetMigrationAddr(v string) {
+	o.MigrationAddr = v
+}
+
 // GetTs returns the Ts field value
 func (o *Host) GetTs() int64 {
 	if o == nil {
@@ -186,6 +213,7 @@ func (o Host) ToMap() (map[string]interface{}, error) {
 	toSerialize["def"] = o.Def
 	toSerialize["cstate"] = o.Cstate
 	toSerialize["lockid"] = o.Lockid
+	toSerialize["migration_addr"] = o.MigrationAddr
 	toSerialize["ts"] = o.Ts
 	return toSerialize, nil
 }
