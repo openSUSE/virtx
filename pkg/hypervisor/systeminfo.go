@@ -593,6 +593,32 @@ func get_os_version() (string, string) {
 }
 
 /*
+ * Read the link speed of a network interface and return it in KiB/s.
+ * /sys/class/net/<ifname>/speed reports in Mbit/s. Returns 0 if unavailable.
+ */
+func get_iface_speed(ifname string) int32 {
+	var (
+		err error
+		speed_data []byte
+		speed int64
+	)
+	speed_data, err = os.ReadFile("/sys/class/net/" + ifname + "/speed")
+	if (err != nil) {
+		logger.Log("get_iface_speed: %s: %s", ifname, err.Error())
+		return 0
+	}
+	speed, err = strconv.ParseInt(strings.TrimSpace(string(speed_data)), 10, 64)
+	if (err != nil) {
+		logger.Log("get_iface_speed: %s: %s", ifname, err.Error())
+		return 0
+	}
+	if (speed <= 0) {
+		return 0
+	}
+	return int32(speed * 125000 / 1024) /* KiB/s = Mbit/s * (1000000 / 8 bytes) / 1024 */
+}
+
+/*
  * Discover qualifying physical NICs and bond masters (not enslaved, not virtual).
  * Returns the interface names and total link capacity in KiB/s.
  * Called once at startup in system_info_get_immutable().
@@ -645,19 +671,7 @@ func get_nic_ifaces() ([]string, int32) {
 			continue /* neither physical NIC nor bond master */
 		}
 		ifaces = append(ifaces, ifname)
-		{
-			var (
-				speed_data []byte
-				speed int64
-			)
-			speed_data, err = os.ReadFile(sysnet + "/speed")
-			if (err == nil) {
-				speed, err = strconv.ParseInt(strings.TrimSpace(string(speed_data)), 10, 64)
-				if (err == nil && speed > 0) {
-					capacity += int32(speed * 125000 / 1024)
-				}
-			}
-		}
+		capacity += get_iface_speed(ifname)
 	}
 	return ifaces, capacity
 }
