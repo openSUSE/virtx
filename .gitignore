@@ -1,4 +1,7 @@
 /copy_virtx.sh
+/killall_virtx.sh
+/startall_virtx.sh
+/update_virtx.sh
 .vscode
 /virtx-check-lvb
 /json/
