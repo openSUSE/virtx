@@ -23,6 +23,7 @@ import (
 	"os"
 	"errors"
 	"path/filepath"
+	"strings"
 	. "suse.com/virtx/pkg/constants"
 )
 
@@ -39,6 +40,25 @@ func reg_dir(host_uuid string) string {
 
 func reg_lockid(host_uuid string) string {
 	return fmt.Sprintf("%s/%s/%s", REG_DIR, host_uuid, "lockid")
+}
+
+/* Load the cluster-wide migration network (CIDR subnet). Returns empty string if not configured. */
+func Load_migration_network() (string, error) {
+	var (
+		err error
+		data []byte
+		s string
+	)
+	data, err = os.ReadFile(REG_DIR + "migration_network")
+	if (err != nil) {
+		if (errors.Is(err, os.ErrNotExist)) {
+			/* not configured, it's ok */
+			return "", nil
+		}
+		return "", err
+	}
+	s = strings.TrimSpace(string(data))
+	return s, nil
 }
 
 func reg_syncdir(dirname string) error {

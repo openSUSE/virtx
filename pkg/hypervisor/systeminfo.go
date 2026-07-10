@@ -21,6 +21,7 @@ import (
 	"time"
 	"encoding/xml"
 	"errors"
+	"net"
 	"os"
 	"path/filepath"
 	"bytes"
@@ -35,6 +36,7 @@ import (
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/inventory"
 	"suse.com/virtx/pkg/lockman"
+	"suse.com/virtx/pkg/reg"
 	"suse.com/virtx/pkg/ts"
 	"suse.com/virtx/pkg/machine"
 
@@ -66,6 +68,8 @@ type SystemInfoImm struct {
 	/* physical/bond NICs (not enslaved, not virtual), discovered once at startup */
 	nic_ifaces []string
 	nic_capacity int32 /* total Rx/Tx link capacity in KiB/s across all qualifying NICs */
+	/* IP address on the migration network, empty if not configured */
+	migration_addr string
 }
 
 type SystemInfoVms map[string]SystemInfoVm
@@ -493,6 +497,7 @@ func system_info_get_immutable(imm *SystemInfoImm) error {
 	imm.hp_total = hp_total * imm.hp_size
 	imm.os_id, imm.os_version = get_os_version()
 	imm.nic_ifaces, imm.nic_capacity = get_nic_ifaces()
+	imm.migration_addr = discover_migration_addr()
 
 	if (imm.caps.Host.CPU.Counter != nil) {
 		/* TSC frequency is in Hz */
@@ -655,6 +660,63 @@ func get_nic_ifaces() ([]string, int32) {
 		}
 	}
 	return ifaces, capacity
+}
+
+/*
+ * Discover the host's IP address in the migration network.
+ * Reads the cluster-wide CIDR from /vms/reg/migration_network, then scans all the
+ * Interfaces for an address in that subnet.
+ * Returns empty string if migration_network is not configured or no match is found.
+ */
+func discover_migration_addr() string {
+	var (
+		err error
+		subnet string
+		network *net.IPNet
+		ifaces []net.Interface
+		addrs []net.Addr
+	)
+	subnet, err = reg.Load_migration_network()
+	if (err != nil) {
+		logger.Log("discover_migration_addr: %s", err.Error())
+		return ""
+	}
+	if (subnet == "") {
+		logger.Debug("discover_migration_addr: %s", "no migration_network configured")
+		return ""
+	}
+	_, network, err = net.ParseCIDR(subnet)
+	if (err != nil) {
+		logger.Log("discover_migration_addr: %s", err.Error())
+		return ""
+	}
+	ifaces, err = net.Interfaces()
+	if (err != nil) {
+		logger.Log("discover_migration_addr: %s", err.Error())
+		return ""
+	}
+	for _, iface := range ifaces {
+		addrs, err = iface.Addrs()
+		if (err != nil) {
+			logger.Log("discover_migration_addr: %s: %s", iface.Name, err.Error())
+			continue
+		}
+		logger.Debug("discover_migration_addr: %s addrs = %v", iface.Name, addrs)
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+			if (ip != nil && network.Contains(ip)) {
+				return ip.String()
+			}
+		}
+	}
+	logger.Log("discover_migration_addr: %s", "address not found in ifaces")
+	return ""
 }
 
 /*
@@ -948,6 +1010,7 @@ func system_info_get_host(si *SystemInfo) openapi.Host {
 		},
 		Cstate: si.Host.Cstate,
 		Lockid: lockman.Lockid(),
+		MigrationAddr: si.imm.migration_addr,
 		Ts: si.Host.Ts,
 	}
 }
