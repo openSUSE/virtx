@@ -38,6 +38,7 @@ func vm_migrate(w http.ResponseWriter, r *http.Request) {
 		host_old_id string
 		host_new inventory.HostInfo
 		proxy_hostid string
+		migration_addr string
 	)
 	vr, err = httpx.Decode_request_body(r, &o)
 	if (err != nil) {
@@ -92,8 +93,27 @@ func vm_migrate(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to get host", http.StatusInternalServerError)
 		return
 	}
+	if (o.MigrationType == openapi.MIGRATION_LIVE) {
+		var (
+			dest openapi.Host
+			resp *http.Response
+		)
+		resp, err = httpx.Do_request(host_new.Name, "GET", "/hosts/" + o.Host, nil)
+		if (err != nil) {
+			logger.Log("failed to request migration address: %s", err.Error())
+			http.Error(w, "failed to request migration address", http.StatusInternalServerError)
+			return
+		}
+		_, err = httpx.Decode_response_body(resp, &dest)
+		if (err != nil) {
+			logger.Log("failed to decode migration address: %s", err.Error())
+			http.Error(w, "failed to decode migration address", http.StatusInternalServerError)
+			return
+		}
+		migration_addr = dest.MigrationAddr
+	}
 	go func() {
-		err = hypervisor.Migrate_domain(host_new.Name, o.Host, host_old_id, uuid, o.MigrationType == openapi.MIGRATION_LIVE, int(vminfo.Vcpus))
+		err = hypervisor.Migrate_domain(host_new.Name, migration_addr, o.Host, host_old_id, uuid, o.MigrationType == openapi.MIGRATION_LIVE, int(vminfo.Vcpus))
 		if (err != nil) {
 			logger.Log("migration of domain %s failed: %s", uuid, err.Error())
 		} else {

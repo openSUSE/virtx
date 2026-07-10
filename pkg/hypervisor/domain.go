@@ -143,7 +143,7 @@ func Define_domain(xml string, uuid string) error {
 	return nil
 }
 
-func Migrate_domain(hostname string, host_uuid string, host_old string, uuid string, live bool, vcpus int) error {
+func Migrate_domain(hostname string, migration_addr string, host_uuid string, host_old string, uuid string, live bool, vcpus int) error {
 	var (
 		err error
 		conn, conn2 *libvirt.Connect
@@ -152,7 +152,11 @@ func Migrate_domain(hostname string, host_uuid string, host_old string, uuid str
 		flags libvirt.DomainMigrateFlags
 		msg string
 	)
-	params.URI = "tcp://" + hostname
+	if (migration_addr != "") {
+		params.URI = "tcp://" + migration_addr
+	} else {
+		params.URI = "tcp://" + hostname
+	}
 	params.URISet = true
 	if (live) {
 		params.ParallelConnectionsSet = true
