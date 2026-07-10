@@ -31,10 +31,10 @@ func host_get_req(arg string) {
 }
 
 func host_get(host *openapi.Host) {
-	fmt.Fprintf(virtx.w, "NAME\tOS\tVERSION\tCPU\tVENDOR\tMODEL\tNODES\tSOCKS\tCORES\tTH\tTSC_FREQ\tFWVER\tFWDATE\tCSTATE\tLOCKID\n")
-	fmt.Fprintf(virtx.w, "%s\t%s\t%s\t%s\t%s\t%s\t%5d\t%5d\t%5d\t%2d\t%d\t%s\t%s\t%s\t %4d\n",
+	fmt.Fprintf(virtx.w, "NAME\tOS\tVERSION\tCPU\tVENDOR\tMODEL\tNODES\tSOCKS\tCORES\tTH\tTSC_FREQ\tFWVER\tFWDATE\tCSTATE\tLOCKID\tMIGRATION_ADDR\n")
+	fmt.Fprintf(virtx.w, "%s\t%s\t%s\t%s\t%s\t%s\t%5d\t%5d\t%5d\t%2d\t%d\t%s\t%s\t%s\t %4d\t%s\n",
 		host.Def.Name, host.Def.Osid, host.Def.Osv, host.Def.Cpuarch.Arch, host.Def.Cpuarch.Vendor,
 		host.Def.Cpudef.Model, host.Def.Cpudef.Nodes, host.Def.Cpudef.Sockets, host.Def.Cpudef.Cores, host.Def.Cpudef.Threads,
-		host.Def.Tscfreq, host.Def.Sysinfo.Version, host.Def.Sysinfo.Date, host.Cstate, host.Lockid,
+		host.Def.Tscfreq, host.Def.Sysinfo.Version, host.Def.Sysinfo.Date, host.Cstate, host.Lockid, host.MigrationAddr,
 	)
 }
