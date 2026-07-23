@@ -231,11 +231,6 @@ func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventL
 	}
 }
 
-/*
- * Start listening for domain events and collecting system information.
- * Sets the lifecycle_id, vm_event_ch and system_info_ch fields of the Hypervisor struct.
- * Collects system information every "seconds" seconds.
- */
 func start_listening() error {
 	/* assert(hv.m.IsLocked()) */
 	var err error
