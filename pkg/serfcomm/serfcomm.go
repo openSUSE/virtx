@@ -135,7 +135,7 @@ func recv_serf_events() {
 			case "member-failed":
 				handle_member_change(e, openapi.CSTATE_FAILED)
 			case "member-join":
-				handle_member_change(e, openapi.CSTATE_ACTIVE)
+				/* do nothing. We will wait for the next HI from this host */
 			}
 		}
 
