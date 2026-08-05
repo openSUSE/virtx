@@ -154,6 +154,7 @@ func recv_serf_events() {
 		for ; err != nil; err = Connect() {
 			time.Sleep(time.Duration(RECONNECT_SECONDS) * time.Second)
 		}
+		logger.Log("reconnected.")
 	}
 }
 

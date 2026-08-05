@@ -286,6 +286,7 @@ func init_system_info_loop() {
 		for ; err != nil; err = Connect() {
 			time.Sleep(time.Duration(LIBVIRT_RECONNECT_SECONDS) * time.Second)
 		}
+		logger.Log("reconnected.")
 	}
 }
 
