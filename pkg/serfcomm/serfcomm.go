@@ -139,14 +139,17 @@ func recv_serf_events() {
 			}
 		}
 
+		logger.Debug("RecvSerfEvents loop exit")
 		serf.m.Lock()
-		serf.c.Stop(serf.stream)
-		serf.c.Close()
-		serf.c = nil
+		if (serf.c == nil) {
+			/* Shutdown() tore the connection down: do not reconnect */
+			serf.m.Unlock()
+			return
+		}
+		stop_listening()
 		serf.m.Unlock()
 
-		logger.Debug("RecvSerfEvents loop exit")
-		logger.Debug("reconnect to serf, attempt every %d seconds...", RECONNECT_SECONDS)
+		logger.Log("reconnect to serf, attempt every %d seconds...", RECONNECT_SECONDS)
 		var err error = errors.New("")
 		for ; err != nil; err = Connect() {
 			time.Sleep(time.Duration(RECONNECT_SECONDS) * time.Second)
@@ -304,21 +307,28 @@ func Start_listening(
 	go recv_serf_events()
 }
 
+func stop_listening() {
+	/* assert(serf.m.Lock()) */
+	var err error
+	if (serf.c == nil) {
+		return
+	}
+	err = serf.c.Stop(serf.stream)
+	if (err != nil) {
+		logger.Log("%s", err.Error())
+	}
+	err = serf.c.Close()
+	if (err != nil) {
+		logger.Log("%s", err.Error())
+	}
+	serf.c = nil
+}
+
 func Shutdown() {
 	serf.m.Lock()
 	defer serf.m.Unlock()
 
-	var err error
 	logger.Debug("serfcomm is shutting down...")
-	if (serf.c != nil) {
-		err = serf.c.Stop(serf.stream)
-		if (err != nil) {
-			logger.Log("%s", err.Error())
-		}
-		err = serf.c.Close()
-		if (err != nil) {
-			logger.Log("%s", err.Error())
-		}
-	}
+	stop_listening()
 	logger.Debug("serfcomm shutdown complete.")
 }

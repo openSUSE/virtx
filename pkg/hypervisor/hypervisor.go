@@ -282,7 +282,7 @@ func init_system_info_loop() {
 		err = system_info_loop(SYSTEM_INFO_LOOP_SECONDS)
 		/* we should from system_info_loop only if there is a libvirt error that requires reconnection */
 		/* assert(err != nil) */
-		logger.Debug("reconnect, attempt every %d seconds...", LIBVIRT_RECONNECT_SECONDS)
+		logger.Log("reconnect, attempt every %d seconds...", LIBVIRT_RECONNECT_SECONDS)
 		for ; err != nil; err = Connect() {
 			time.Sleep(time.Duration(LIBVIRT_RECONNECT_SECONDS) * time.Second)
 		}
