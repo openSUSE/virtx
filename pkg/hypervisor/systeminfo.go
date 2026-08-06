@@ -613,6 +613,7 @@ func get_iface_speed(ifname string) int32 {
 		return 0
 	}
 	if (speed <= 0) {
+		logger.Log("get_iface_speed: %s: %d", ifname, speed)
 		return 0
 	}
 	return int32(speed * 125000 / 1024) /* KiB/s = Mbit/s * (1000000 / 8 bytes) / 1024 */
