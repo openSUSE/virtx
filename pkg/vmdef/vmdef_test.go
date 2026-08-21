@@ -27,6 +27,8 @@ func valid_vmdef() openapi.Vmdef {
 	return openapi.Vmdef{
 		Name: "testvm",
 		Cpudef: openapi.Cpudef{
+			Arch:    "x86_64",
+			Vendor:  "",
 			Model:   "host-passthrough",
 			Nodes:   1,
 			Sockets: 2,
@@ -398,39 +400,43 @@ func Test_validate_memory(t *testing.T) {
 }
 
 func Test_validate_cpu(t *testing.T) {
-	vm := valid_vmdef()
-	vm.Cpudef.Model = ""
-	err := Validate(&vm)
-	if (err == nil) {
-		t.Error("empty cpu model: expected error")
+	cases := []struct {
+		name    string
+		setup   func(*openapi.Cpudef)
+		wantErr bool
+	}{
+		{"zero sockets",     func(c *openapi.Cpudef) { c.Sockets = 0 }, true},
+		{"zero cores",       func(c *openapi.Cpudef) { c.Cores = 0 }, true},
+		{"zero threads",     func(c *openapi.Cpudef) { c.Threads = 0 }, true},
+		{"threads > 1",      func(c *openapi.Cpudef) { c.Threads = 2 }, true},
+		{"empty arch",       func(c *openapi.Cpudef) { c.Arch = "" }, true},
+		{"non-empty vendor", func(c *openapi.Cpudef) { c.Vendor = "Intel" }, true},
+		{"empty model",      func(c *openapi.Cpudef) { c.Model = "" }, true},
+		{"host-model",       func(c *openapi.Cpudef) { c.Model = "host-model" }, true},
+		{"maximum",          func(c *openapi.Cpudef) { c.Model = "maximum" }, true},
+		{"unversioned model",func(c *openapi.Cpudef) { c.Model = "Skylake-Client" }, true},
+		{"versioned model",  func(c *openapi.Cpudef) { c.Model = "Skylake-Client-v3" }, false},
+		{"aarch64 non-passthrough", func(c *openapi.Cpudef) {
+			c.Arch = "aarch64"
+			c.Model = "Skylake-Client-v3"
+		}, true},
+		{"aarch64 host-passthrough", func(c *openapi.Cpudef) {
+			c.Arch = "aarch64"
+			c.Model = "host-passthrough"
+		}, false},
 	}
-
-	vm = valid_vmdef()
-	vm.Cpudef.Sockets = 0
-	err = Validate(&vm)
-	if (err == nil) {
-		t.Error("zero sockets: expected error")
-	}
-
-	vm = valid_vmdef()
-	vm.Cpudef.Cores = 0
-	err = Validate(&vm)
-	if (err == nil) {
-		t.Error("zero cores: expected error")
-	}
-
-	vm = valid_vmdef()
-	vm.Cpudef.Threads = 0
-	err = Validate(&vm)
-	if (err == nil) {
-		t.Error("zero threads: expected error")
-	}
-
-	vm = valid_vmdef()
-	vm.Cpudef.Threads = 2
-	err = Validate(&vm)
-	if (err == nil) {
-		t.Error("threads > 1: expected error (unsupported)")
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			vm := valid_vmdef()
+			tc.setup(&vm.Cpudef)
+			err := Validate(&vm)
+			if (tc.wantErr && err == nil) {
+				t.Error("expected error")
+			}
+			if (!tc.wantErr && err != nil) {
+				t.Errorf("unexpected error: %v", err)
+			}
+		})
 	}
 }
 

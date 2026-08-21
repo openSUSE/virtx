@@ -24,6 +24,7 @@ import (
 	"strings"
 	"path/filepath"
 	"fmt"
+	"regexp"
 
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/machine"
@@ -184,6 +185,46 @@ func vmdef_validate_disk(disk *openapi.Disk) error {
 	return nil
 }
 
+var cpumodel_suffix = regexp.MustCompile(`-v\d+$`)
+
+func vmdef_validate_cpu(cpu *openapi.Cpudef) error {
+	if (cpu.Sockets < 1 ||	cpu.Cores < 1 || cpu.Threads < 1) {
+		return errors.New("no cpu topology provided")
+	}
+	if (cpu.Threads > 1) {
+		return errors.New("unsupported cpu topology")
+	}
+	if (cpu.Vendor != "") {
+		return errors.New("cpu vendor should not be provided")
+	}
+	if (cpu.Model == "") {
+		return errors.New("no cpu model provided")
+	}
+	/*
+	 * "host-model" and "maximum" are not allowed. host-model is a mess in practice,
+	 * and "maximum" is just the same as host-passthrough when used with KVM, so it is
+	 * redundant.
+	 *
+	 * For ARM64 only host-passthrough is allowed, since there are no versioned models
+	 * for it (yet/ever?)
+	 */
+	switch (cpu.Arch) {
+	case "":
+		return errors.New("no cpu arch provided")
+	case "aarch64":
+		if (cpu.Model != "host-passthrough") {
+			return errors.New("aarch64 only allows cpu host-passthrough")
+		}
+	case "x86_64":
+		if (cpu.Model != "host-passthrough" && !cpumodel_suffix.MatchString(cpu.Model)) {
+			return errors.New("unversioned cpu model not allowed")
+		}
+	default:
+		return errors.New("invalid arch")
+	}
+	return nil
+}
+
 /* validate before generating the xml */
 func Validate(vmdef *openapi.Vmdef) error {
 	var err error
@@ -193,14 +234,9 @@ func Validate(vmdef *openapi.Vmdef) error {
 	if (vmdef.Memory.Total < 1) {
 		return errors.New("invalid memory size")
 	}
-	if (vmdef.Cpudef.Model == "") {
-		return errors.New("no cpu model provided")
-	}
-	if (vmdef.Cpudef.Sockets < 1 ||	vmdef.Cpudef.Cores < 1 || vmdef.Cpudef.Threads < 1) {
-		return errors.New("no cpu topology provided")
-	}
-	if (vmdef.Cpudef.Threads > 1) {
-		return errors.New("unsupported cpu topology")
+	err = vmdef_validate_cpu(&vmdef.Cpudef)
+	if (err != nil) {
+		return err
 	}
 	if (vmdef.Genid != "" && vmdef.Genid != "auto" && len(vmdef.Genid) != 36) {
 		return errors.New("invalid Genid")
@@ -493,7 +529,7 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 	}
 	domain_cpu := libvirtxml.DomainCPU{
 		Migratable: func() string {
-			if (vmdef.Cpudef.Model == "host-passthrough" || vmdef.Cpudef.Model == "maximum") {
+			if (vmdef.Cpudef.Model == "host-passthrough") {
 				return "on"
 			} else {
 				return ""
@@ -522,15 +558,13 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 			Threads: int(vmdef.Cpudef.Threads),
 		},
 		Mode: func() string {
-			if (vmdef.Cpudef.Model == "host-model" || vmdef.Cpudef.Model == "host-passthrough" ||
-				vmdef.Cpudef.Model == "maximum") {
+			if (vmdef.Cpudef.Model == "host-passthrough") {
 				return vmdef.Cpudef.Model
 			}
 			return ""
 		}(),
 		Model: func() *libvirtxml.DomainCPUModel {
-			if (vmdef.Cpudef.Model == "host-model" || vmdef.Cpudef.Model == "host-passthrough" ||
-				vmdef.Cpudef.Model == "maximum") {
+			if (vmdef.Cpudef.Model == "host-passthrough") {
 				return nil
 			}
 			return &libvirtxml.DomainCPUModel{
