@@ -41,7 +41,6 @@ func host_list(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to decode body", http.StatusBadRequest)
 		return
 	}
-	/* filters: [name, cpuarch, cpudef, hoststate, memoryavailable] */
 	host_list = inventory.Search_hosts(o.Filter)
 	err = json.NewEncoder(&buf).Encode(&host_list)
 	if (err != nil) {

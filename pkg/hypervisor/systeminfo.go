@@ -209,8 +209,8 @@ func system_info_get() (SystemInfo, error) {
 	if (err != nil) {
 		goto out
 	}
-	si.Host.Cpuarch.Arch = caps.Host.CPU.Arch
-	si.Host.Cpuarch.Vendor = caps.Host.CPU.Vendor
+	si.Host.Cpudef.Arch = caps.Host.CPU.Arch
+	si.Host.Cpudef.Vendor = caps.Host.CPU.Vendor
 	si.Host.Cpudef.Model = caps.Host.CPU.Model
 	si.Host.Cpudef.Nodes = int16(info.Nodes)
 	si.Host.Cpudef.Sockets = int16(info.Sockets)
@@ -1006,7 +1006,6 @@ func system_info_get_host(si *SystemInfo) openapi.Host {
 		Uuid: machine.Uuid(),
 		Def: openapi.Hostdef{
 			Name: si.Host.Name,
-			Cpuarch: si.Host.Cpuarch,
 			Cpudef: si.Host.Cpudef,
 			Tscfreq: func() int64 {
 				if (si.imm.caps.Host.CPU.Counter != nil) {

@@ -54,8 +54,8 @@ func init() {
 		},
 	}
 	cmd_list_host.Flags().StringVarP(&virtx.host_list_options.Filter.Name, "name", "n", "", "Filter by Host Name")
-	cmd_list_host.Flags().StringVarP(&virtx.host_list_options.Filter.Cpuarch.Arch, "arch", "a", "", "Filter by CPU Architecture (x86_64, aarch64)")
-	cmd_list_host.Flags().StringVarP(&virtx.host_list_options.Filter.Cpuarch.Vendor, "vendor", "v", "", "Filter by CPU Vendor (Intel, AMD, ...)")
+	cmd_list_host.Flags().StringVarP(&virtx.host_list_options.Filter.Cpudef.Arch, "arch", "a", "", "Filter by CPU Architecture (x86_64, aarch64)")
+	cmd_list_host.Flags().StringVarP(&virtx.host_list_options.Filter.Cpudef.Vendor, "vendor", "v", "", "Filter by CPU Vendor (Intel, AMD, ...)")
 	cmd_list_host.Flags().Int16VarP((*int16)(unsafe.Pointer(&virtx.host_list_options.Filter.Cstate)), "state", "s", 0, "Filter by Cluster State")
 	cmd_list_host.Flags().Int32VarP(&virtx.host_list_options.Filter.Memoryavailable, "memory", "m", 0, "Filter by available normal memory")
 	cmd_list_host.Flags().Int32VarP(&virtx.host_list_options.Filter.Hpavailable, "hp", "H", 0, "Filter by available HugePages memory")

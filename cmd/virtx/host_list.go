@@ -38,7 +38,7 @@ func host_list(list *openapi.HostList) {
 	for _, item := range (list.Items) {
 		fmt.Fprintf(virtx.w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%7d\t%7d MiB\t%7d MiB\t%s\t%s\n",
 			item.Uuid, item.Fields.Name, item.Fields.Osid, item.Fields.Osv,
-			item.Fields.Cpuarch.Arch, item.Fields.Cpuarch.Vendor, item.Fields.Cpudef.Model,
+			item.Fields.Cpudef.Arch, item.Fields.Cpudef.Vendor, item.Fields.Cpudef.Model,
 			item.Fields.Cpudef.Nodes * item.Fields.Cpudef.Sockets * item.Fields.Cpudef.Cores * item.Fields.Cpudef.Threads,
 			item.Fields.Memoryavailable, item.Fields.Hpavailable,
 			item.Fields.Cstate, ts.Since(item.Fields.Ts))

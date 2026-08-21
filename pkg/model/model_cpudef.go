@@ -22,6 +22,10 @@ var _ MappedNullable = &Cpudef{}
 
 // Cpudef struct for Cpudef
 type Cpudef struct {
+	// the CPU base architecture. Examples: \"x86_64\", \"aarch64\". \"\" -> not set 
+	Arch string `json:"arch"`
+	// vendor as per libvirt definition, x86_vendors.xml, arm_vendors.xml. Examples: \"Intel\", \"AMD\". \"\" -> not set 
+	Vendor string `json:"vendor"`
 	// libvirt cpu model. \"\" -> not set
 	Model string `json:"model"`
 	// number of NUMA nodes. 0 -> not set
@@ -40,12 +44,14 @@ type _Cpudef Cpudef
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewCpudef(model string, nodes int16, sockets int16, cores int16, threads int16) *Cpudef {
+func NewCpudef(arch string, vendor string, model string, nodes int16, sockets int16, cores int16, threads int16) *Cpudef {
 	this := Cpudef{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
     var _ = bytes.NewBuffer
 
+	this.Arch = arch
+	this.Vendor = vendor
 	this.Model = model
 	this.Nodes = nodes
 	this.Sockets = sockets
@@ -60,6 +66,54 @@ func NewCpudef(model string, nodes int16, sockets int16, cores int16, threads in
 func NewCpudefWithDefaults() *Cpudef {
 	this := Cpudef{}
 	return &this
+}
+
+// GetArch returns the Arch field value
+func (o *Cpudef) GetArch() string {
+	if o == nil {
+		var ret string
+		return ret
+	}
+
+	return o.Arch
+}
+
+// GetArchOk returns a tuple with the Arch field value
+// and a boolean to check if the value has been set.
+func (o *Cpudef) GetArchOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Arch, true
+}
+
+// SetArch sets field value
+func (o *Cpudef) SetArch(v string) {
+	o.Arch = v
+}
+
+// GetVendor returns the Vendor field value
+func (o *Cpudef) GetVendor() string {
+	if o == nil {
+		var ret string
+		return ret
+	}
+
+	return o.Vendor
+}
+
+// GetVendorOk returns a tuple with the Vendor field value
+// and a boolean to check if the value has been set.
+func (o *Cpudef) GetVendorOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Vendor, true
+}
+
+// SetVendor sets field value
+func (o *Cpudef) SetVendor(v string) {
+	o.Vendor = v
 }
 
 // GetModel returns the Model field value
@@ -184,6 +238,8 @@ func (o *Cpudef) SetThreads(v int16) {
 
 func (o Cpudef) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
+	toSerialize["arch"] = o.Arch
+	toSerialize["vendor"] = o.Vendor
 	toSerialize["model"] = o.Model
 	toSerialize["nodes"] = o.Nodes
 	toSerialize["sockets"] = o.Sockets

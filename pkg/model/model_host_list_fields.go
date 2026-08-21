@@ -23,7 +23,6 @@ var _ MappedNullable = &HostListFields{}
 // HostListFields struct for HostListFields
 type HostListFields struct {
 	Name string `json:"name"`
-	Cpuarch Cpuarch `json:"cpuarch"`
 	Cpudef Cpudef `json:"cpudef"`
 	Cstate Cstate `json:"cstate"`
 	// normal memory available for running new VMs in MiB
@@ -42,14 +41,13 @@ type _HostListFields HostListFields
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewHostListFields(name string, cpuarch Cpuarch, cpudef Cpudef, cstate Cstate, memoryavailable int32, hpavailable int32, osid string, osv string, ts int64) *HostListFields {
+func NewHostListFields(name string, cpudef Cpudef, cstate Cstate, memoryavailable int32, hpavailable int32, osid string, osv string, ts int64) *HostListFields {
 	this := HostListFields{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
     var _ = bytes.NewBuffer
 
 	this.Name = name
-	this.Cpuarch = cpuarch
 	this.Cpudef = cpudef
 	this.Cstate = cstate
 	this.Memoryavailable = memoryavailable
@@ -90,30 +88,6 @@ func (o *HostListFields) GetNameOk() (*string, bool) {
 // SetName sets field value
 func (o *HostListFields) SetName(v string) {
 	o.Name = v
-}
-
-// GetCpuarch returns the Cpuarch field value
-func (o *HostListFields) GetCpuarch() Cpuarch {
-	if o == nil {
-		var ret Cpuarch
-		return ret
-	}
-
-	return o.Cpuarch
-}
-
-// GetCpuarchOk returns a tuple with the Cpuarch field value
-// and a boolean to check if the value has been set.
-func (o *HostListFields) GetCpuarchOk() (*Cpuarch, bool) {
-	if o == nil {
-		return nil, false
-	}
-	return &o.Cpuarch, true
-}
-
-// SetCpuarch sets field value
-func (o *HostListFields) SetCpuarch(v Cpuarch) {
-	o.Cpuarch = v
 }
 
 // GetCpudef returns the Cpudef field value
@@ -287,7 +261,6 @@ func (o *HostListFields) SetTs(v int64) {
 func (o HostListFields) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["name"] = o.Name
-	toSerialize["cpuarch"] = o.Cpuarch
 	toSerialize["cpudef"] = o.Cpudef
 	toSerialize["cstate"] = o.Cstate
 	toSerialize["memoryavailable"] = o.Memoryavailable

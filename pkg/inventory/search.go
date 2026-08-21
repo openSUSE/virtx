@@ -23,8 +23,6 @@ import (
 	"suse.com/virtx/pkg/model"
 )
 
-/* filters: [name, cpuarch, cpudef, hoststate, memoryavailable] */
-
 func Search_hosts(f openapi.HostListFields) openapi.HostList {
 	inventory.m.RLock()
 	defer inventory.m.RUnlock()
@@ -38,10 +36,10 @@ func Search_hosts(f openapi.HostListFields) openapi.HostList {
 		if (f.Name != "" && !strings.Contains(hostinfo.Name, f.Name)) {
 			continue
 		}
-		if (f.Cpuarch.Arch != "" && (hostinfo.Cpuarch.Arch != f.Cpuarch.Arch)) {
+		if (f.Cpudef.Arch != "" && (hostinfo.Cpudef.Arch != f.Cpudef.Arch)) {
 			continue
 		}
-		if (f.Cpuarch.Vendor != "" && (hostinfo.Cpuarch.Vendor != f.Cpuarch.Vendor)) {
+		if (f.Cpudef.Vendor != "" && (hostinfo.Cpudef.Vendor != f.Cpudef.Vendor)) {
 			continue
 		}
 		if (f.Cpudef.Model != "" && (hostinfo.Cpudef.Model != f.Cpudef.Model)) {
