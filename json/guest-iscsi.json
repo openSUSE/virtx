@@ -1,6 +1,7 @@
 {
     "name": "guest-iscsi",
     "cpudef": {
+        "arch": "x86_64",
         "model": "host-passthrough",
         "sockets": 8,
         "cores": 1,

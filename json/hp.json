@@ -1,6 +1,7 @@
 {
     "name": "opensuse-15.5",
     "cpudef": {
+        "arch": "x86_64",
         "model": "host-passthrough",
         "sockets": 16,
         "cores": 1,
