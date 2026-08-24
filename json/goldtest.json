@@ -2,7 +2,6 @@
     "name": "goldtest",
     "cpudef": {
         "model": "host-passthrough",
-        "nodes": 1,
         "sockets": 1,
         "cores": 16,
         "threads": 1

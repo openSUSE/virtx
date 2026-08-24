@@ -2,7 +2,6 @@
     "name": "opensuse-15.5",
     "cpudef": {
         "model": "host-passthrough",
-        "nodes": 1,
         "sockets": 16,
         "cores": 1,
         "threads": 1
