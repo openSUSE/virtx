@@ -128,6 +128,9 @@ func Test_to_xml_basic(t *testing.T) {
 	if (d.OS == nil || d.OS.Type == nil) {
 		t.Fatal("OS or OS.Type is nil")
 	}
+	if (d.OS.Type.Arch != "x86_64") {
+		t.Errorf("OS.Type.Arch: got %q, want x86_64", d.OS.Type.Arch)
+	}
 	if (d.OS.Type.Machine != "q35") {
 		t.Errorf("OS.Type.Machine: got %q, want q35", d.OS.Type.Machine)
 	}
@@ -466,7 +469,7 @@ const base_inner_xml = `
     <topology sockets='2' cores='4' threads='1'/>
   </cpu>
   <os>
-    <type machine='q35'>hvm</type>
+    <type arch='x86_64' machine='q35'>hvm</type>
     <firmware>efi</firmware>
   </os>
   <devices>
@@ -500,6 +503,9 @@ func Test_from_xml_basic(t *testing.T) {
 	}
 	if (vm.Cpudef.Model != "host-passthrough") {
 		t.Errorf("Cpudef.Model: got %q, want host-passthrough", vm.Cpudef.Model)
+	}
+	if (vm.Cpudef.Arch != "x86_64") {
+		t.Errorf("Cpudef.Arch: got %q, want x86_64", vm.Cpudef.Arch)
 	}
 	if (vm.Firmware != openapi.FIRMWARE_UEFI) {
 		t.Errorf("Firmware: got %d, want UEFI", vm.Firmware)
