@@ -188,6 +188,9 @@ func vmdef_validate_disk(disk *openapi.Disk) error {
 var cpumodel_suffix = regexp.MustCompile(`-v\d+$`)
 
 func vmdef_validate_cpu(cpu *openapi.Cpudef) error {
+	if (cpu.Nodes != 0) {
+		return errors.New("nodes are unsupported in vm definitions")
+	}
 	if (cpu.Sockets < 1 ||	cpu.Cores < 1 || cpu.Threads < 1) {
 		return errors.New("no cpu topology provided")
 	}

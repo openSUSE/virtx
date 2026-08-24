@@ -30,7 +30,7 @@ func valid_vmdef() openapi.Vmdef {
 			Arch:    "x86_64",
 			Vendor:  "",
 			Model:   "host-passthrough",
-			Nodes:   1,
+			Nodes:   0,
 			Sockets: 2,
 			Cores:   4,
 			Threads: 1,
@@ -405,6 +405,7 @@ func Test_validate_cpu(t *testing.T) {
 		setup   func(*openapi.Cpudef)
 		wantErr bool
 	}{
+		{"nodes non-zero",   func(c *openapi.Cpudef) { c.Nodes = 2 }, true},
 		{"zero sockets",     func(c *openapi.Cpudef) { c.Sockets = 0 }, true},
 		{"zero cores",       func(c *openapi.Cpudef) { c.Cores = 0 }, true},
 		{"zero threads",     func(c *openapi.Cpudef) { c.Threads = 0 }, true},
