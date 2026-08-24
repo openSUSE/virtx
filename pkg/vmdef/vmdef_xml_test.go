@@ -19,27 +19,15 @@ package vmdef
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"libvirt.org/go/libvirtxml"
 
 	"suse.com/virtx/pkg/lockman"
-	"suse.com/virtx/pkg/machine"
 	"suse.com/virtx/pkg/metadata"
 	"suse.com/virtx/pkg/model"
 	. "suse.com/virtx/pkg/constants"
 )
-
-/*
- * TestMain sets the host architecture expected by To_xml. All tests in this
- * package run under x86_64. Tests that need a different arch temporarily
- * override and restore it.
- */
-func TestMain(m *testing.M) {
-	machine.Set_arch("x86_64")
-	os.Exit(m.Run())
-}
 
 /* --- helpers --- */
 
@@ -452,10 +440,8 @@ func Test_to_xml_custom_fields(t *testing.T) {
 }
 
 func Test_to_xml_invalid_arch(t *testing.T) {
-	machine.Set_arch("unsupported-arch")
-	defer machine.Set_arch("x86_64")
-
 	vm := xml_base_vmdef()
+	vm.Cpudef.Arch = "unsupported-arch"
 	_, err := To_xml(&vm, "test-uuid-14")
 	if (err == nil) {
 		t.Error("expected error for unsupported arch")

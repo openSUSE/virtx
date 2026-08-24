@@ -27,7 +27,6 @@ import (
 	"regexp"
 
 	"suse.com/virtx/pkg/model"
-	"suse.com/virtx/pkg/machine"
 	"suse.com/virtx/pkg/metadata"
 	"suse.com/virtx/pkg/lockman"
 
@@ -515,7 +514,7 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 	domain_vcpu := libvirtxml.DomainVCPU{
 		Value: vcpus,
 	}
-	switch (machine.Arch()) {
+	switch (vmdef.Cpudef.Arch) {
 	case "aarch64":
 		domain_features = &libvirtxml.DomainFeatureList{
 			ACPI: &libvirtxml.DomainFeature{},
@@ -603,6 +602,7 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 	}()
 	domain_os := libvirtxml.DomainOS{
 		Type: &libvirtxml.DomainOSType{
+			Arch: vmdef.Cpudef.Arch,
 			Machine: vmdef.Firmware.Machine(), /* always use machine "pc" for BIOS and "q35" for UEFI */
 			Type: "hvm",
 		},
@@ -901,6 +901,10 @@ func From_xml(vmdef *openapi.Vmdef, xmlstr string) error {
 	if (domain.OS == nil) {
 		return errors.New("missing OS");
 	}
+	if (domain.OS.Type == nil) {
+		return errors.New("missing OS Type");
+	}
+	vmdef.Cpudef.Arch = domain.OS.Type.Arch
 	err = vmdef.Firmware.Parse(domain.OS.Firmware)
 	if (err != nil) {
 		/*
