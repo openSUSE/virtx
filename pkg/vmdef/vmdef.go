@@ -501,7 +501,13 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 		}(),
 		Check: "none",
 		MaxPhysAddr: func() *libvirtxml.DomainCPUMaxPhysAddr {
-			phys_bits := uint(bits.Len64(uint64(vmdef.Memory.Total)) + 20)
+			/*
+			 * Calculate needed phys bits from total memory in MiB.
+			 * bits.Len64 is the minimum number of bits required to represent Total.
+			 * We add 20 since it's in MiB, and we add 1 to account for PCI hole,
+			 * MMIO and other system stuff.
+			 */
+			phys_bits := uint(bits.Len64(uint64(vmdef.Memory.Total)) + 20 + 1)
 			if (phys_bits < 36) { /* minimum required by AMD64 spec */
 				phys_bits = 36;
 			}
