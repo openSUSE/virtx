@@ -30,6 +30,7 @@ import (
 	"errors"
 
 	"libvirt.org/go/libvirt"
+	"libvirt.org/go/libvirtxml"
 
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/logger"
@@ -440,4 +441,35 @@ func Get_hoststats() (openapi.Hoststats) {
 	defer hv.m.RUnlock()
 
 	return system_info_get_hoststats(hv.si)
+}
+
+func get_cpumodels() ([]string, error) {
+	var (
+		xml_data string
+		caps libvirtxml.DomainCaps
+		models []string
+		err error
+	)
+	xml_data, err = hv.conn.GetDomainCapabilities("", machine.Arch(), "", "kvm", 0)
+	if (err != nil) {
+		return models, err
+	}
+	err = caps.Unmarshal(xml_data)
+	if (err != nil) {
+		return models, err
+	}
+	if (caps.CPU == nil) {
+		return models, errors.New("no CPU section in domain capabilities")
+	}
+	for _, mode := range caps.CPU.Modes {
+		if (mode.Name != "custom" || mode.Supported != "yes") {
+			continue
+		}
+		for _, model := range mode.Models {
+			if (model.Usable == "yes") {
+				models = append(models, model.Name)
+			}
+		}
+	}
+	return models, nil
 }
