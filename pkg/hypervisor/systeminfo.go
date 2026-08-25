@@ -192,10 +192,6 @@ func system_info_get() (SystemInfo, error) {
 		if (err != nil) {
 			goto out
 		}
-		/***** SET THE HYPERVISOR UUID AND ARCHITECTURE *****/
-		machine.Set_uuid(si.imm.caps.Host.UUID)
-		machine.Set_arch(si.imm.caps.Host.CPU.Arch)
-		/****************************************************/
 	} else {
 		si.imm = hv.si.imm
 	}
@@ -460,6 +456,19 @@ func system_info_get_immutable(imm *SystemInfoImm) error {
 	err = imm.caps.Unmarshal(data)
 	if (err != nil) {
 		return err
+	}
+	/***** SET THE HYPERVISOR UUID AND ARCHITECTURE *****/
+	machine.Set_uuid(imm.caps.Host.UUID)
+	machine.Set_arch(imm.caps.Host.CPU.Arch)
+	/****************************************************/
+	var models []string
+	models, err = get_cpumodels()
+	if (err != nil) {
+		return errors.New("failed to get_cpumodels: " + err.Error())
+	}
+	err = reg.Save_cpumodels(imm.caps.Host.UUID, models)
+	if (err != nil) {
+		return errors.New("failed to Save_cpumodels: " + err.Error())
 	}
 	data, err = hv.conn.GetSysinfo(0)
 	if (err != nil) {
