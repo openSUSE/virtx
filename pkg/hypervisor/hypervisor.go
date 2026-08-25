@@ -28,6 +28,7 @@ import (
 	"strconv"
 	"fmt"
 	"errors"
+	"regexp"
 
 	"libvirt.org/go/libvirt"
 	"libvirt.org/go/libvirtxml"
@@ -443,6 +444,8 @@ func Get_hoststats() (openapi.Hoststats) {
 	return system_info_get_hoststats(hv.si)
 }
 
+var cpumodel_suffix *regexp.Regexp = regexp.MustCompile(CPUMODEL_VER)
+
 func get_cpumodels() ([]string, error) {
 	var (
 		xml_data string
@@ -466,7 +469,7 @@ func get_cpumodels() ([]string, error) {
 			continue
 		}
 		for _, model := range mode.Models {
-			if (model.Usable == "yes") {
+			if (model.Usable == "yes" && cpumodel_suffix.MatchString(model.Name)) {
 				models = append(models, model.Name)
 			}
 		}
