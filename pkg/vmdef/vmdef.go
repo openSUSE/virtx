@@ -184,7 +184,7 @@ func vmdef_validate_disk(disk *openapi.Disk) error {
 	return nil
 }
 
-var cpumodel_suffix = regexp.MustCompile(`-v\d+$`)
+var cpumodel_suffix *regexp.Regexp = regexp.MustCompile(CPUMODEL_VER)
 
 func vmdef_validate_cpu(cpu *openapi.Cpudef) error {
 	if (cpu.Nodes != 0) {
