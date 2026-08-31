@@ -125,6 +125,11 @@ func Start_progress(r *http.Request) func() {
 	}
 }
 
+/* Switch_body replaces the request body payload in place. */
+func (vr *Request) Switch_body(body []byte) {
+	vr.body = body
+}
+
 func Decode_request_body(r *http.Request, arg any) (Request, error) {
 	var (
 		err error

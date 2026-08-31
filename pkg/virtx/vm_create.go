@@ -27,6 +27,7 @@ import (
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/vmdef"
 	"suse.com/virtx/pkg/httpx"
+	"suse.com/virtx/pkg/sched"
 	"suse.com/virtx/pkg/storage"
 )
 
@@ -43,6 +44,24 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 		logger.Log("%s", err.Error())
 		http.Error(w, "failed to decode body", http.StatusBadRequest)
 		return
+	}
+	if (o.Host == "") {
+		o.Host = sched.Schedule_vmdef(&o.Vmdef)
+		if (o.Host == "") {
+			http.Error(w, "no suitable host available", http.StatusServiceUnavailable)
+			return
+		}
+		if (http_host_is_remote(o.Host)) {
+			/* re-encode body with the scheduled host so the target creates locally */
+			var buf bytes.Buffer
+			err = json.NewEncoder(&buf).Encode(&o)
+			if (err != nil) {
+				logger.Log("vm_create: failed to encode scheduled request: %s", err.Error())
+				http.Error(w, "failed", http.StatusInternalServerError)
+				return
+			}
+			vr.Switch_body(buf.Bytes())
+		}
 	}
 	if (http_host_is_remote(o.Host)) { /* need to proxy */
 		http_proxy_request(o.Host, w, vr)
