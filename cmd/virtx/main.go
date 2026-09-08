@@ -52,6 +52,7 @@ type VirtxClient struct {
 	net bool                    // show net info
 	debug bool                  // verbose client output
 	live bool                   // live migration
+	sys bool                    // show system/firmware info
 	console_port int            // local port for VNC console (0 = OS-assigned)
 	vnc_viewer string           // VNC viewer binary to launch (overrides VIRTX_VNC_VIEWER and auto-detection)
 	reconnect_timeout int       // seconds to retry reconnecting on remote close (0 = disabled)

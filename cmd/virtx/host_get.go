@@ -31,10 +31,28 @@ func host_get_req(arg string) {
 }
 
 func host_get(host *openapi.Host) {
-	fmt.Fprintf(virtx.w, "NAME\tOS\tVERSION\tCPU\tVENDOR\tMODEL\tNODES\tSOCKS\tCORES\tTH\tTSC_FREQ\tFWVER\tFWDATE\tCSTATE\tLOCKID\tMIGRATION_ADDR\n")
-	fmt.Fprintf(virtx.w, "%s\t%s\t%s\t%s\t%s\t%s\t%5d\t%5d\t%5d\t%2d\t%d\t%s\t%s\t%s\t %4d\t%s\n",
-		host.Def.Name, host.Def.Osid, host.Def.Osv, host.Def.Cpudef.Arch, host.Def.Cpudef.Vendor,
-		host.Def.Cpudef.Model, host.Def.Cpudef.Nodes, host.Def.Cpudef.Sockets, host.Def.Cpudef.Cores, host.Def.Cpudef.Threads,
-		host.Def.Tscfreq, host.Def.Sysinfo.Version, host.Def.Sysinfo.Date, host.Cstate, host.Lockid, host.Net.MigrationAddr,
-	)
+	if (virtx.cpu) {
+		fmt.Fprintf(virtx.w, "ARCH\tVENDOR\tMODEL\tNODES\tSOCKS\tCORES\tTH\tTSC_FREQ\n")
+		fmt.Fprintf(virtx.w, "%s\t%s\t%s\t%5d\t%5d\t%5d\t%2d\t%d\n",
+			host.Def.Cpudef.Arch, host.Def.Cpudef.Vendor, host.Def.Cpudef.Model,
+			host.Def.Cpudef.Nodes, host.Def.Cpudef.Sockets, host.Def.Cpudef.Cores, host.Def.Cpudef.Threads,
+			host.Def.Tscfreq,
+		)
+	} else if (virtx.net) {
+		fmt.Fprintf(virtx.w, "MGMT_IFACE\tMGMT_ADDR\tMIG_IFACE\tMIG_ADDR\n")
+		fmt.Fprintf(virtx.w, "%s\t%s\t%s\t%s\n",
+			host.Net.ManagementIface, host.Net.ManagementAddr,
+			host.Net.MigrationIface, host.Net.MigrationAddr,
+		)
+	} else if (virtx.sys) {
+		fmt.Fprintf(virtx.w, "OS\tVERSION\tFWVER\tFWDATE\n")
+		fmt.Fprintf(virtx.w, "%s\t%s\t%s\t%s\n",
+			host.Def.Osid, host.Def.Osv, host.Def.Sysinfo.Version, host.Def.Sysinfo.Date,
+		)
+	} else {
+		fmt.Fprintf(virtx.w, "NAME\tCSTATE\tLOCKID\n")
+		fmt.Fprintf(virtx.w, "%s\t%s\t %4d\n",
+			host.Def.Name, host.Cstate, host.Lockid,
+		)
+	}
 }
