@@ -110,7 +110,7 @@ func vm_migrate(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "failed to decode migration address", http.StatusInternalServerError)
 			return
 		}
-		migration_addr = dest.MigrationAddr
+		migration_addr = dest.Net.MigrationAddr
 	}
 	go func() {
 		err = hypervisor.Migrate_domain(host_new.Name, migration_addr, o.Host, host_old_id, uuid, o.MigrationType == openapi.MIGRATION_LIVE, int(vminfo.Vcpus))

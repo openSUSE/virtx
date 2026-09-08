@@ -28,14 +28,7 @@ type Host struct {
 	Cstate Cstate `json:"cstate"`
 	// Unique ID in the cluster used to register the lockspace.
 	Lockid int16 `json:"lockid"`
-	// IP in the management network, derived from serf. Empty until serf is reachable.
-	ManagementAddr string `json:"management_addr"`
-	// Network interface serving the management IP address. Can be empty.
-	ManagementIface string `json:"management_iface"`
-	// IP address in the migration network. Empty if migration_network is not configured.
-	MigrationAddr string `json:"migration_addr"`
-	// Network interface for the migration network. Empty if migration_network is not configured.
-	MigrationIface string `json:"migration_iface"`
+	Net HostNet `json:"net"`
 	// 64bit UTC Unix timestamp in milliseconds since Epoc. A 0 value is used if the timestamp is not available.
 	Ts int64 `json:"ts"`
 }
@@ -46,7 +39,7 @@ type _Host Host
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewHost(uuid string, def Hostdef, cstate Cstate, lockid int16, managementAddr string, managementIface string, migrationAddr string, migrationIface string, ts int64) *Host {
+func NewHost(uuid string, def Hostdef, cstate Cstate, lockid int16, net HostNet, ts int64) *Host {
 	this := Host{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
@@ -56,10 +49,7 @@ func NewHost(uuid string, def Hostdef, cstate Cstate, lockid int16, managementAd
 	this.Def = def
 	this.Cstate = cstate
 	this.Lockid = lockid
-	this.ManagementAddr = managementAddr
-	this.ManagementIface = managementIface
-	this.MigrationAddr = migrationAddr
-	this.MigrationIface = migrationIface
+	this.Net = net
 	this.Ts = ts
 	return &this
 }
@@ -168,100 +158,28 @@ func (o *Host) SetLockid(v int16) {
 	o.Lockid = v
 }
 
-// GetManagementAddr returns the ManagementAddr field value
-func (o *Host) GetManagementAddr() string {
+// GetNet returns the Net field value
+func (o *Host) GetNet() HostNet {
 	if o == nil {
-		var ret string
+		var ret HostNet
 		return ret
 	}
 
-	return o.ManagementAddr
+	return o.Net
 }
 
-// GetManagementAddrOk returns a tuple with the ManagementAddr field value
+// GetNetOk returns a tuple with the Net field value
 // and a boolean to check if the value has been set.
-func (o *Host) GetManagementAddrOk() (*string, bool) {
+func (o *Host) GetNetOk() (*HostNet, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.ManagementAddr, true
+	return &o.Net, true
 }
 
-// SetManagementAddr sets field value
-func (o *Host) SetManagementAddr(v string) {
-	o.ManagementAddr = v
-}
-
-// GetManagementIface returns the ManagementIface field value
-func (o *Host) GetManagementIface() string {
-	if o == nil {
-		var ret string
-		return ret
-	}
-
-	return o.ManagementIface
-}
-
-// GetManagementIfaceOk returns a tuple with the ManagementIface field value
-// and a boolean to check if the value has been set.
-func (o *Host) GetManagementIfaceOk() (*string, bool) {
-	if o == nil {
-		return nil, false
-	}
-	return &o.ManagementIface, true
-}
-
-// SetManagementIface sets field value
-func (o *Host) SetManagementIface(v string) {
-	o.ManagementIface = v
-}
-
-// GetMigrationAddr returns the MigrationAddr field value
-func (o *Host) GetMigrationAddr() string {
-	if o == nil {
-		var ret string
-		return ret
-	}
-
-	return o.MigrationAddr
-}
-
-// GetMigrationAddrOk returns a tuple with the MigrationAddr field value
-// and a boolean to check if the value has been set.
-func (o *Host) GetMigrationAddrOk() (*string, bool) {
-	if o == nil {
-		return nil, false
-	}
-	return &o.MigrationAddr, true
-}
-
-// SetMigrationAddr sets field value
-func (o *Host) SetMigrationAddr(v string) {
-	o.MigrationAddr = v
-}
-
-// GetMigrationIface returns the MigrationIface field value
-func (o *Host) GetMigrationIface() string {
-	if o == nil {
-		var ret string
-		return ret
-	}
-
-	return o.MigrationIface
-}
-
-// GetMigrationIfaceOk returns a tuple with the MigrationIface field value
-// and a boolean to check if the value has been set.
-func (o *Host) GetMigrationIfaceOk() (*string, bool) {
-	if o == nil {
-		return nil, false
-	}
-	return &o.MigrationIface, true
-}
-
-// SetMigrationIface sets field value
-func (o *Host) SetMigrationIface(v string) {
-	o.MigrationIface = v
+// SetNet sets field value
+func (o *Host) SetNet(v HostNet) {
+	o.Net = v
 }
 
 // GetTs returns the Ts field value
@@ -294,10 +212,7 @@ func (o Host) ToMap() (map[string]interface{}, error) {
 	toSerialize["def"] = o.Def
 	toSerialize["cstate"] = o.Cstate
 	toSerialize["lockid"] = o.Lockid
-	toSerialize["management_addr"] = o.ManagementAddr
-	toSerialize["management_iface"] = o.ManagementIface
-	toSerialize["migration_addr"] = o.MigrationAddr
-	toSerialize["migration_iface"] = o.MigrationIface
+	toSerialize["net"] = o.Net
 	toSerialize["ts"] = o.Ts
 	return toSerialize, nil
 }

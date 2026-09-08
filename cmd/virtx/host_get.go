@@ -35,6 +35,6 @@ func host_get(host *openapi.Host) {
 	fmt.Fprintf(virtx.w, "%s\t%s\t%s\t%s\t%s\t%s\t%5d\t%5d\t%5d\t%2d\t%d\t%s\t%s\t%s\t %4d\t%s\n",
 		host.Def.Name, host.Def.Osid, host.Def.Osv, host.Def.Cpudef.Arch, host.Def.Cpudef.Vendor,
 		host.Def.Cpudef.Model, host.Def.Cpudef.Nodes, host.Def.Cpudef.Sockets, host.Def.Cpudef.Cores, host.Def.Cpudef.Threads,
-		host.Def.Tscfreq, host.Def.Sysinfo.Version, host.Def.Sysinfo.Date, host.Cstate, host.Lockid, host.MigrationAddr,
+		host.Def.Tscfreq, host.Def.Sysinfo.Version, host.Def.Sysinfo.Date, host.Cstate, host.Lockid, host.Net.MigrationAddr,
 	)
 }

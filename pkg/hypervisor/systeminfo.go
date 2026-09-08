@@ -1037,10 +1037,12 @@ func system_info_get_host(si *SystemInfo) openapi.Host {
 		},
 		Cstate: si.Host.Cstate,
 		Lockid: lockman.Lockid(),
-		MigrationAddr: si.imm.migration_addr,
-		MigrationIface: si.imm.migration_iface,
-		ManagementAddr: si.imm.management_addr,
-		ManagementIface: si.imm.management_iface,
+		Net: openapi.HostNet{
+			ManagementAddr: si.imm.management_addr,
+			ManagementIface: si.imm.management_iface,
+			MigrationAddr: si.imm.migration_addr,
+			MigrationIface: si.imm.migration_iface,
+		},
 		Ts: si.Host.Ts,
 	}
 }
