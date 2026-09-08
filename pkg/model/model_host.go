@@ -34,6 +34,8 @@ type Host struct {
 	ManagementIface string `json:"management_iface"`
 	// IP address in the migration network. Empty if migration_network is not configured.
 	MigrationAddr string `json:"migration_addr"`
+	// Network interface for the migration network. Empty if migration_network is not configured.
+	MigrationIface string `json:"migration_iface"`
 	// 64bit UTC Unix timestamp in milliseconds since Epoc. A 0 value is used if the timestamp is not available.
 	Ts int64 `json:"ts"`
 }
@@ -44,7 +46,7 @@ type _Host Host
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewHost(uuid string, def Hostdef, cstate Cstate, lockid int16, managementAddr string, managementIface string, migrationAddr string, ts int64) *Host {
+func NewHost(uuid string, def Hostdef, cstate Cstate, lockid int16, managementAddr string, managementIface string, migrationAddr string, migrationIface string, ts int64) *Host {
 	this := Host{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
@@ -57,6 +59,7 @@ func NewHost(uuid string, def Hostdef, cstate Cstate, lockid int16, managementAd
 	this.ManagementAddr = managementAddr
 	this.ManagementIface = managementIface
 	this.MigrationAddr = migrationAddr
+	this.MigrationIface = migrationIface
 	this.Ts = ts
 	return &this
 }
@@ -237,6 +240,30 @@ func (o *Host) SetMigrationAddr(v string) {
 	o.MigrationAddr = v
 }
 
+// GetMigrationIface returns the MigrationIface field value
+func (o *Host) GetMigrationIface() string {
+	if o == nil {
+		var ret string
+		return ret
+	}
+
+	return o.MigrationIface
+}
+
+// GetMigrationIfaceOk returns a tuple with the MigrationIface field value
+// and a boolean to check if the value has been set.
+func (o *Host) GetMigrationIfaceOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.MigrationIface, true
+}
+
+// SetMigrationIface sets field value
+func (o *Host) SetMigrationIface(v string) {
+	o.MigrationIface = v
+}
+
 // GetTs returns the Ts field value
 func (o *Host) GetTs() int64 {
 	if o == nil {
@@ -270,6 +297,7 @@ func (o Host) ToMap() (map[string]interface{}, error) {
 	toSerialize["management_addr"] = o.ManagementAddr
 	toSerialize["management_iface"] = o.ManagementIface
 	toSerialize["migration_addr"] = o.MigrationAddr
+	toSerialize["migration_iface"] = o.MigrationIface
 	toSerialize["ts"] = o.Ts
 	return toSerialize, nil
 }
