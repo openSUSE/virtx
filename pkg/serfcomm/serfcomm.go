@@ -19,6 +19,7 @@ package serfcomm
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 	"encoding/binary"
 	"time"
@@ -265,6 +266,24 @@ func send_vm_events(eventCh <-chan inventory.VmEvent) {
 	logger.Debug("SendVmEvents loop exit")
 }
 
+func discover_management_addr(uuid string) (string, error) {
+	/* assert serf.m.Lock() */
+	var (
+		members []client.Member
+		err error
+	)
+	members, err = serf.c.Members()
+	if (err != nil) {
+		return "", err
+	}
+	for _, m := range members {
+		if (m.Tags["uuid"] == uuid) {
+			return m.Addr.String(), nil
+		}
+	}
+	return "", fmt.Errorf("could not find our UUID '%s' in serf", uuid)
+}
+
 func Connect() error {
 	serf.m.Lock()
 	defer serf.m.Unlock()
@@ -272,6 +291,7 @@ func Connect() error {
 	var (
 		err error
 		uuid string = machine.Uuid()
+		addr string
 	)
 	serf.c, err = client.NewRPCClient(RPC_ADDR)
 	if (err != nil) {
@@ -292,6 +312,14 @@ func Connect() error {
 		serf.c = nil
 		return err
 	}
+	addr, err = discover_management_addr(uuid)
+	if (err != nil) {
+		serf.c.Stop(serf.stream)
+		serf.c.Close()
+		serf.c = nil
+		return err
+	}
+	hypervisor.Set_management_addr(addr)
 	return nil
 }
 

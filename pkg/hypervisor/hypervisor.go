@@ -437,6 +437,14 @@ func Get_host() openapi.Host {
 	return system_info_get_host(hv.si)
 }
 
+func Set_management_addr(addr string) {
+	hv.m.Lock()
+	defer hv.m.Unlock()
+	if (hv.si != nil) {
+		hv.si.imm.management_addr = addr
+	}
+}
+
 func Get_hoststats() (openapi.Hoststats) {
 	hv.m.RLock()
 	defer hv.m.RUnlock()
