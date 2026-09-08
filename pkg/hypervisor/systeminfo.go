@@ -70,8 +70,9 @@ type SystemInfoImm struct {
 	nic_capacity int32 /* total Rx/Tx link capacity in KiB/s across all qualifying NICs */
 	/* IP address on the migration network, empty if not configured */
 	migration_addr string
-	/* IP on the management network, fetched from serf. Empty until serf connects. */
+	/* IP and interface on the management network, fetched from serf. Empty until serf connects. */
 	management_addr string
+	management_iface string
 }
 
 type SystemInfoVms map[string]SystemInfoVm
@@ -1037,6 +1038,7 @@ func system_info_get_host(si *SystemInfo) openapi.Host {
 		Lockid: lockman.Lockid(),
 		MigrationAddr: si.imm.migration_addr,
 		ManagementAddr: si.imm.management_addr,
+		ManagementIface: si.imm.management_iface,
 		Ts: si.Host.Ts,
 	}
 }

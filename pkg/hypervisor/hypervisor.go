@@ -437,11 +437,12 @@ func Get_host() openapi.Host {
 	return system_info_get_host(hv.si)
 }
 
-func Set_management_addr(addr string) {
+func Set_management_net(addr string, iface string) {
 	hv.m.Lock()
 	defer hv.m.Unlock()
 	if (hv.si != nil) {
 		hv.si.imm.management_addr = addr
+		hv.si.imm.management_iface = iface
 	}
 }
 

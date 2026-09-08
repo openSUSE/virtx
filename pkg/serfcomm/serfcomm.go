@@ -20,6 +20,7 @@ package serfcomm
 import (
 	"errors"
 	"fmt"
+	"net"
 	"sync"
 	"encoding/binary"
 	"time"
@@ -284,6 +285,40 @@ func discover_management_addr(uuid string) (string, error) {
 	return "", fmt.Errorf("could not find our UUID '%s' in serf", uuid)
 }
 
+func discover_management_iface(addr string) string {
+	var (
+		err error
+		ifaces []net.Interface
+		addrs []net.Addr
+	)
+	ifaces, err = net.Interfaces()
+	if (err != nil) {
+		logger.Log("discover_management_iface: %s", err.Error())
+		return ""
+	}
+	for _, iface := range ifaces {
+		addrs, err = iface.Addrs()
+		if (err != nil) {
+			logger.Log("discover_management_iface: %s: %s", iface.Name, err.Error())
+			continue
+		}
+		for _, a := range addrs {
+			var ip net.IP
+			switch v := a.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+			if (ip != nil && ip.String() == addr) {
+				return iface.Name
+			}
+		}
+	}
+	logger.Log("discover_management_iface: no interface found with addr %s", addr)
+	return ""
+}
+
 func Connect() error {
 	serf.m.Lock()
 	defer serf.m.Unlock()
@@ -292,6 +327,7 @@ func Connect() error {
 		err error
 		uuid string = machine.Uuid()
 		addr string
+		iface string
 	)
 	serf.c, err = client.NewRPCClient(RPC_ADDR)
 	if (err != nil) {
@@ -319,7 +355,8 @@ func Connect() error {
 		serf.c = nil
 		return err
 	}
-	hypervisor.Set_management_addr(addr)
+	iface = discover_management_iface(addr)
+	hypervisor.Set_management_net(addr, iface)
 	return nil
 }
 
