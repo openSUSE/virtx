@@ -28,6 +28,8 @@ type Host struct {
 	Cstate Cstate `json:"cstate"`
 	// Unique ID in the cluster used to register the lockspace.
 	Lockid int16 `json:"lockid"`
+	// IP in the management network, derived from serf. Empty until serf is reachable.
+	ManagementAddr string `json:"management_addr"`
 	// IP address in the migration network. Empty if migration_network is not configured.
 	MigrationAddr string `json:"migration_addr"`
 	// 64bit UTC Unix timestamp in milliseconds since Epoc. A 0 value is used if the timestamp is not available.
@@ -40,7 +42,7 @@ type _Host Host
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewHost(uuid string, def Hostdef, cstate Cstate, lockid int16, migrationAddr string, ts int64) *Host {
+func NewHost(uuid string, def Hostdef, cstate Cstate, lockid int16, managementAddr string, migrationAddr string, ts int64) *Host {
 	this := Host{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
@@ -50,6 +52,7 @@ func NewHost(uuid string, def Hostdef, cstate Cstate, lockid int16, migrationAdd
 	this.Def = def
 	this.Cstate = cstate
 	this.Lockid = lockid
+	this.ManagementAddr = managementAddr
 	this.MigrationAddr = migrationAddr
 	this.Ts = ts
 	return &this
@@ -159,6 +162,30 @@ func (o *Host) SetLockid(v int16) {
 	o.Lockid = v
 }
 
+// GetManagementAddr returns the ManagementAddr field value
+func (o *Host) GetManagementAddr() string {
+	if o == nil {
+		var ret string
+		return ret
+	}
+
+	return o.ManagementAddr
+}
+
+// GetManagementAddrOk returns a tuple with the ManagementAddr field value
+// and a boolean to check if the value has been set.
+func (o *Host) GetManagementAddrOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.ManagementAddr, true
+}
+
+// SetManagementAddr sets field value
+func (o *Host) SetManagementAddr(v string) {
+	o.ManagementAddr = v
+}
+
 // GetMigrationAddr returns the MigrationAddr field value
 func (o *Host) GetMigrationAddr() string {
 	if o == nil {
@@ -213,6 +240,7 @@ func (o Host) ToMap() (map[string]interface{}, error) {
 	toSerialize["def"] = o.Def
 	toSerialize["cstate"] = o.Cstate
 	toSerialize["lockid"] = o.Lockid
+	toSerialize["management_addr"] = o.ManagementAddr
 	toSerialize["migration_addr"] = o.MigrationAddr
 	toSerialize["ts"] = o.Ts
 	return toSerialize, nil
