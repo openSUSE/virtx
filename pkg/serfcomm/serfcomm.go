@@ -29,6 +29,7 @@ import (
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/encoding/sbinary"
+	"suse.com/virtx/pkg/machine"
 )
 
 const (
@@ -60,18 +61,6 @@ func send_user_event(label string, payload []byte) error {
 		return errors.New("RPC client closed")
 	}
 	return serf.c.UserEvent(label, payload, false)
-}
-
-func update_tags(hostinfo *inventory.HostInfo) error {
-	serf.m.Lock()
-	defer serf.m.Unlock()
-
-	if (serf.c == nil) {
-		return errors.New("RPC client closed")
-	}
-	addTags := map[string]string { "uuid": hostinfo.Uuid }
-	removeTags := []string {}
-	return serf.c.UpdateTags(addTags, removeTags)
 }
 
 func send_host_info(host_info *inventory.HostInfo) error {
@@ -247,10 +236,6 @@ func send_system_info(ch <-chan hypervisor.SystemInfo) {
 		}
 		if (si.Host.Uuid != "") {
 			/* we have a full System Info with Host Information and all VMs */
-			err = update_tags(&si.Host.HostInfo)
-			if (err != nil) {
-				logger.Log("update_tags: %s", err.Error())
-			}
 			err = send_host_info(&si.Host.HostInfo)
 			if (err != nil) {
 				logger.Log("send_host_info: %s", err.Error())
@@ -284,7 +269,10 @@ func Connect() error {
 	serf.m.Lock()
 	defer serf.m.Unlock()
 
-	var err error
+	var (
+		err error
+		uuid string = machine.Uuid()
+	)
 	serf.c, err = client.NewRPCClient(RPC_ADDR)
 	if (err != nil) {
 		serf.c = nil
@@ -293,6 +281,13 @@ func Connect() error {
 	serf.channel = make(chan map[string]any, 64)
 	serf.stream, err = serf.c.Stream("*", serf.channel)
 	if (err != nil) {
+		serf.c.Close()
+		serf.c = nil
+		return err
+	}
+	err = serf.c.UpdateTags(map[string]string{"uuid": uuid}, []string{})
+	if (err != nil) {
+		serf.c.Stop(serf.stream)
 		serf.c.Close()
 		serf.c = nil
 		return err
