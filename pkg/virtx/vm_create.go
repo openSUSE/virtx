@@ -59,7 +59,11 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if (http_host_is_remote(o.Host)) {
-			/* re-encode body with the scheduled host so the target creates locally */
+			/*
+			 * re-encode body with the scheduled host so the target creates locally.
+			 * Note that here we only switch the body, the actual proxying happens below
+			 * in the next http_host_is_remote(o.Host) check.
+			 */
 			var buf bytes.Buffer
 			err = json.NewEncoder(&buf).Encode(&o)
 			if (err != nil) {
