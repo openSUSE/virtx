@@ -45,6 +45,13 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to decode body", http.StatusBadRequest)
 		return
 	}
+	/* Validate before scheduling: the scheduler filters on arch and memory size */
+	err = vmdef.Validate(&o.Vmdef)
+	if (err != nil) {
+		logger.Log("vmdef.Validate failed: %s", err.Error())
+		http.Error(w, "invalid parameters", http.StatusBadRequest)
+		return
+	}
 	if (o.Host == "") {
 		o.Host = sched.Schedule_vmdef(&o.Vmdef)
 		if (o.Host == "") {
@@ -65,13 +72,6 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 	}
 	if (http_host_is_remote(o.Host)) { /* need to proxy */
 		http_proxy_request(o.Host, w, vr)
-		return
-	}
-	/* Validate vmdef first */
-	err = vmdef.Validate(&o.Vmdef)
-	if (err != nil) {
-		logger.Log("vmdef.Validate failed: %s", err.Error())
-		http.Error(w, "invalid parameters", http.StatusBadRequest)
 		return
 	}
 	uuid = New_uuid()
