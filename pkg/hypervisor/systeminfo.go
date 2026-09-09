@@ -108,6 +108,32 @@ type SystemInfo struct {
 }
 
 /*
+ * One-time initialization, performed after the first successful system_info_get().
+ * Publishes the host identity, reconciles the registration directory and saves the
+ * cpu models. Any failure here is fatal: we refuse to run half-initialized.
+ */
+func system_info_init(si *SystemInfo) {
+	var (
+		uuid string = si.imm.caps.Host.UUID
+		arch string = si.imm.caps.Host.CPU.Arch
+		models []string
+		err error
+	)
+	machine.Set_uuid(uuid)
+	machine.Set_arch(arch)
+	check_reg(uuid, si)
+	models, err = Get_cpumodels(arch)
+	if (err != nil) {
+		logger.Fatal("system_info_init: failed to Get_cpumodels: %s", err.Error())
+	}
+	err = reg.Save_cpumodels(uuid, models)
+	if (err != nil) {
+		logger.Fatal("system_info_init: failed to Save_cpumodels: %s", err.Error())
+	}
+	set_system_info_loop_done()
+}
+
+/*
  * Regularly fetch all system information (host info and vms info), and send it via system_info_ch.
  */
 func system_info_loop(seconds int) error {
@@ -123,20 +149,20 @@ func system_info_loop(seconds int) error {
 	ticker = time.NewTicker(time.Duration(seconds) * time.Second)
 	defer ticker.Stop()
 
-	si, err = system_info_get()
-	if (err != nil) {
-		logger.Log("system_info_loop: failed to system_info_get: %s", err.Error())
-		libvirt_err, ok = err.(libvirt.Error)
-		if (ok && libvirt_err.Level >= libvirt.ERR_ERROR) {
-			return err
+	/*
+	 * Cold start only: if we are already initialized this is a restart after a
+	 * libvirt reconnect, and we just resume ticking.
+	 */
+	if (!get_system_info_loop_done()) {
+		si, err = system_info_get()
+		if (err != nil) {
+			logger.Fatal("system_info_loop: initial system_info_get failed: %s", err.Error())
 		}
+		system_info_init(&si)
+		/* this first info is missing vm cpu stats and host cpu stats */
+		hv.system_info_ch <- si
+		delete_ghosts(si.Vms, si.Host.Ts)
 	}
-	check_reg(machine.Uuid(), &si)
-	set_system_info_loop_done()
-
-	/* this first info is missing vm cpu stats and host cpu stats */
-	hv.system_info_ch <- si
-	delete_ghosts(si.Vms, si.Host.Ts)
 
 	for range ticker.C {
 		si, err = system_info_get()
@@ -460,19 +486,6 @@ func system_info_get_immutable(imm *SystemInfoImm) error {
 	err = imm.caps.Unmarshal(data)
 	if (err != nil) {
 		return err
-	}
-	/***** SET THE HYPERVISOR UUID AND ARCHITECTURE *****/
-	machine.Set_uuid(imm.caps.Host.UUID)
-	machine.Set_arch(imm.caps.Host.CPU.Arch)
-	/****************************************************/
-	var models []string
-	models, err = get_cpumodels()
-	if (err != nil) {
-		return errors.New("failed to get_cpumodels: " + err.Error())
-	}
-	err = reg.Save_cpumodels(imm.caps.Host.UUID, models)
-	if (err != nil) {
-		return errors.New("failed to Save_cpumodels: " + err.Error())
 	}
 	data, err = hv.conn.GetSysinfo(0)
 	if (err != nil) {

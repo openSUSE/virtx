@@ -455,14 +455,16 @@ func Get_hoststats() (openapi.Hoststats) {
 
 var cpumodel_suffix *regexp.Regexp = regexp.MustCompile(CPUMODEL_VER)
 
-func get_cpumodels() ([]string, error) {
+func Get_cpumodels(arch string) ([]string, error) {
+	hv.m.RLock()
+	defer hv.m.RUnlock()
 	var (
 		xml_data string
 		caps libvirtxml.DomainCaps
 		models []string
 		err error
 	)
-	xml_data, err = hv.conn.GetDomainCapabilities("", machine.Arch(), "", "kvm", 0)
+	xml_data, err = hv.conn.GetDomainCapabilities("", arch, "", "kvm", 0)
 	if (err != nil) {
 		return models, err
 	}
