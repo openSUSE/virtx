@@ -55,7 +55,11 @@ func main() {
 	}
 	defer hypervisor.Shutdown()
 
-	/* hypervisor: wait for the system information to be filled before proceeding */
+	/*
+	 * hypervisor: wait for the system information to be filled before proceeding.
+	 * Everything below relies on this: machine.Uuid(), machine.Arch() and a non-nil
+	 * hv.si are only guaranteed once this returns. Do not move anything above it.
+	 */
 	err = hypervisor.Wait_system_info()
 	if (err != nil) {
 		logger.Fatal("%s", err.Error())

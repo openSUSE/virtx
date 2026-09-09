@@ -431,21 +431,22 @@ func Get_vmstats(uuid string) (openapi.Vmstats, error) {
 	return system_info_get_vmstats(hv.si, uuid)
 }
 
+/* assert hv.si != nil, guaranteed by system_info_init() before HTTP starts */
 func Get_host() openapi.Host {
 	hv.m.RLock()
 	defer hv.m.RUnlock()
 	return system_info_get_host(hv.si)
 }
 
+/* assert hv.si != nil, guaranteed by system_info_init() before serfcomm connects */
 func Set_management_net(addr string, iface string) {
 	hv.m.Lock()
 	defer hv.m.Unlock()
-	if (hv.si != nil) {
-		hv.si.imm.management_addr = addr
-		hv.si.imm.management_iface = iface
-	}
+	hv.si.imm.management_addr = addr
+	hv.si.imm.management_iface = iface
 }
 
+/* assert hv.si != nil, guaranteed by system_info_init() before HTTP starts */
 func Get_hoststats() (openapi.Hoststats) {
 	hv.m.RLock()
 	defer hv.m.RUnlock()

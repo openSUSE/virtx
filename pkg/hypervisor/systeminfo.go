@@ -1010,15 +1010,13 @@ func freeDomains(doms []libvirt.Domain) {
 	}
 }
 
+/* assert si != nil, guaranteed by system_info_init() before HTTP starts */
 func system_info_get_vmstats(si *SystemInfo, uuid string) (openapi.Vmstats, error) {
 	/* assert hv.m.RLock() */
 	var (
 		vm SystemInfoVm
 		present bool
 	)
-	if (si == nil) {
-		return openapi.Vmstats{}, errors.New("SystemInfo not available")
-	}
 	vm, present = si.Vms[uuid]
 	if (!present) {
 		return openapi.Vmstats{}, errors.New("could not find vm")
