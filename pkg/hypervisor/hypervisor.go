@@ -94,8 +94,8 @@ func Connect() error {
 }
 
 /*
- * the system_info_loop is going to initialize important information,
- * including the host / libvirt Uuid and Cpuarch.
+ * system_info_init() initializes important information, including the host
+ * libvirt Uuid and CPU arch.
  * We need for this information to be available, before we attempt to
  * initialize the other packages that depend on this information.
  */
