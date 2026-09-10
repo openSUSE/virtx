@@ -31,6 +31,6 @@ func vm_runstate_get_req(arg string) {
 }
 
 func vm_runstate_get(runinfo *openapi.Vmruninfo) {
-	fmt.Fprintf(virtx.w, "HOST\tSTATE\n")
-	fmt.Fprintf(virtx.w, "%s\t%s\n", runinfo.Host, runinfo.Runstate)
+	fmt.Fprintf(virtx.w, "HOST\t[HOSTNAME]\tSTATE\n")
+	fmt.Fprintf(virtx.w, "%s\t%s\t%s\n", runinfo.Host, host_name(runinfo.Host), runinfo.Runstate)
 }
