@@ -20,6 +20,8 @@ package main
 
 import (
 	"fmt"
+	"slices"
+	"strings"
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/ts"
 )
@@ -32,6 +34,12 @@ func vm_list_req() {
 }
 
 func vm_list(list *openapi.VmList) {
+	slices.SortFunc(list.Items, func(a, b openapi.VmListItem) int {
+		if (a.Fields.Name != b.Fields.Name) {
+			return strings.Compare(a.Fields.Name, b.Fields.Name)
+		}
+		return strings.Compare(a.Uuid, b.Uuid)
+	})
 	/*
 	 * XXX the reason why we have an empty column field here, is to NOT show custom
 	 * since we can search for only one custom fields at a time, and we can only return one as well.

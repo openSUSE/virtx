@@ -20,6 +20,8 @@ package main
 
 import (
 	"fmt"
+	"slices"
+	"strings"
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/ts"
 )
@@ -32,7 +34,12 @@ func host_list_req() {
 }
 
 func host_list(list *openapi.HostList) {
-
+	slices.SortFunc(list.Items, func(a, b openapi.HostListItem) int {
+		if (a.Fields.Name != b.Fields.Name) {
+			return strings.Compare(a.Fields.Name, b.Fields.Name)
+		}
+		return strings.Compare(a.Uuid, b.Uuid)
+	})
 	fmt.Fprintf(virtx.w, "UUID\tNAME\tOS\tVERSION\tCPU\tVENDOR\tMODEL\tTHREADS\t MEM_AVL_VM\t HPG_AVL_VM\tCSTATE\tAGE\n")
 
 	for _, item := range (list.Items) {
