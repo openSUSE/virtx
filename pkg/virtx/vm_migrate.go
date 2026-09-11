@@ -113,7 +113,7 @@ func vm_migrate(w http.ResponseWriter, r *http.Request) {
 		migration_addr = dest.Net.MigrationAddr
 	}
 	go func() {
-		err = hypervisor.Migrate_domain(host_new.Name, migration_addr, o.Host, host_old_id, uuid, o.MigrationType == openapi.MIGRATION_LIVE, int(vminfo.Vcpus))
+		err = hypervisor.Migrate_domain(host_new.Name, migration_addr, o.Host, host_old_id, uuid, o.MigrationType == openapi.MIGRATION_LIVE)
 		if (err != nil) {
 			logger.Log("migration of domain %s failed: %s", uuid, err.Error())
 		} else {

@@ -143,7 +143,7 @@ func Define_domain(xml string, uuid string) error {
 	return nil
 }
 
-func Migrate_domain(hostname string, migration_addr string, host_uuid string, host_old string, uuid string, live bool, vcpus int) error {
+func Migrate_domain(hostname string, migration_addr string, host_uuid string, host_old string, uuid string, live bool) error {
 	var (
 		err error
 		conn, conn2 *libvirt.Connect
@@ -152,6 +152,16 @@ func Migrate_domain(hostname string, migration_addr string, host_uuid string, ho
 		flags libvirt.DomainMigrateFlags
 		msg string
 	)
+	conn, err = libvirt.NewConnect(LIBVIRT_URI)
+	if (err != nil) {
+		return err
+	}
+	defer conn.Close()
+	domain, err = conn.LookupDomainByUUIDString(uuid)
+	if (err != nil) {
+		return err
+	}
+	defer domain.Free()
 	if (migration_addr != "") {
 		params.URI = "tcp://" + migration_addr
 	} else {
@@ -159,8 +169,16 @@ func Migrate_domain(hostname string, migration_addr string, host_uuid string, ho
 	}
 	params.URISet = true
 	if (live) {
+		var info *libvirt.DomainInfo
+		info, err = domain.GetInfo()
+		if (err != nil) {
+			return err
+		}
+		var vcpus int = int(info.NrVirtCpu)
 		params.ParallelConnectionsSet = true
-		if (vcpus > 8) {
+		if (vcpus < 1) {
+			params.ParallelConnections = 1
+		} else if (vcpus > 8) {
 			params.ParallelConnections = 8
 		} else {
 			params.ParallelConnections = vcpus
@@ -179,21 +197,11 @@ func Migrate_domain(hostname string, migration_addr string, host_uuid string, ho
 			libvirt.MIGRATE_UNDEFINE_SOURCE  |
 			libvirt.MIGRATE_UNSAFE
 	}
-	conn, err = libvirt.NewConnect(LIBVIRT_URI)
-	if (err != nil) {
-		return err
-	}
-	defer conn.Close()
 	conn2, err = libvirt.NewConnect("qemu+tcp://" + hostname + "/system")
 	if (err != nil) {
 		return err
 	}
 	defer conn2.Close()
-	domain, err = conn.LookupDomainByUUIDString(uuid)
-	if (err != nil) {
-		return err
-	}
-	defer domain.Free()
 	started := ts.Now()
 	if (live) {
 		msg = "live"
