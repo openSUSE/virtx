@@ -28,7 +28,7 @@ type Cpudef struct {
 	Vendor string `json:"vendor"`
 	// libvirt cpu model. \"\" -> not set
 	Model string `json:"model"`
-	// number of NUMA nodes. 0 -> not set
+	// number of NUMA nodes. 0 -> not set. For VM definitions, this MUST be zero.
 	Nodes int16 `json:"nodes"`
 	// number of sockets per node. 0 -> not set
 	Sockets int16 `json:"sockets"`
