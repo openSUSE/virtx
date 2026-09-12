@@ -98,6 +98,7 @@ auth_unix_rw = "none"
 user = "qemu"
 group = "disk"
 dynamic_ownership = 0
+security_default_confined = 0
 lock_manager = "sanlock"
 
 /etc/libvirt/qemu-sanlock.conf:
