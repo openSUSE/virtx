@@ -64,7 +64,6 @@ type VmInfo struct {
 	VmEvent                     /* embedded basic information */
 	Name string                 /* VM Name */
 	Custom []openapi.CustomField
-	Vcpus int16                 /* total number of vcpus in this VM */
 }
 
 type HostsInventory map[string]Hostdata
