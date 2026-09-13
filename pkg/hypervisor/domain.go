@@ -197,6 +197,7 @@ func Migrate_domain(hostname string, migration_addr string, host_uuid string, ho
 			libvirt.MIGRATE_UNDEFINE_SOURCE  |
 			libvirt.MIGRATE_UNSAFE
 	}
+	logger.Debug("Migrate_domain: params=%+v flags=%+v", params, flags)
 	conn2, err = libvirt.NewConnect("qemu+tcp://" + hostname + "/system")
 	if (err != nil) {
 		return err
