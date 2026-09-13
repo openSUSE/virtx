@@ -264,9 +264,14 @@ func system_info_get() (SystemInfo, error) {
 			oldvm SystemInfoVm
 			present bool
 		)
-		vm.VmInfo.VmEvent, vm.Name, err = get_domain_info(&d)
+		err = get_domain_event(&d, &vm.VmInfo.VmEvent)
 		if (err != nil) {
-			logger.Log("could not get_domain_info: %s", err.Error())
+			logger.Log("could not get_domain_event: %s", err.Error())
+			continue
+		}
+		err = get_domain_details(&d, &vm.VmInfo.VmDetails)
+		if (err != nil) {
+			logger.Log("could not get_domain_details: %s", err.Error())
 			continue
 		}
 		vm.Ts = si.Host.Ts

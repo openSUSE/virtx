@@ -136,8 +136,7 @@ func Shutdown() {
 func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventLifecycle) {
 	/* e.Detail: see all DomainEvent*DetailType types */
 	var (
-		ve inventory.VmEvent
-		name string
+		vi inventory.VmInfo
 		persistent bool
 		err error
 	)
@@ -157,14 +156,14 @@ func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventL
 	}
 	if (e.Event == libvirt.DOMAIN_EVENT_UNDEFINED) {
 		/* VM has been DELETED */
-		ve.Uuid, err = d.GetUUIDString()
+		vi.Uuid, err = d.GetUUIDString()
 		if (err != nil) {
 			logger.Log("lifecycle_cb: GetUUIDString error: %s", err.Error())
 			return
 		}
-		ve.Runstate = openapi.RUNSTATE_DELETED
-		ve.Host = machine.Uuid()
-		ve.Ts = ts.Now()
+		vi.Runstate = openapi.RUNSTATE_DELETED
+		vi.Host = machine.Uuid()
+		vi.Ts = ts.Now()
 	} else {
 		persistent, err = d.IsPersistent()
 		if (err != nil) {
@@ -174,8 +173,8 @@ func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventL
 		if (!persistent) {
 			return /* ignore transient domains (ongoing migrations) */
 		}
-		ve, name, err = get_domain_info(d)
-		ve.Ts = ts.Now()
+		err = get_domain_event(d, &vi.VmEvent)
+		vi.Ts = ts.Now()
 	}
 	if (err != nil) {
 		logger.Log("lifecycle_cb: event %d: %s:", e.Event, err.Error())
@@ -187,18 +186,22 @@ func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventL
 		)
 		si.Host.Uuid = "" /* not necessary, but for documentation, do not send Host Data */
 		si.Vms = make(SystemInfoVms)
-		vm.VmInfo.VmEvent = ve
-		vm.Name = name
-		err = get_domain_stats(d, &vm, nil, &si.imm)
+		err = get_domain_details(d, &vi.VmDetails)
 		if (err != nil) {
-			logger.Log("lifecycle_cb: failed to get_domain_stats for uuid %s", ve.Uuid)
+			logger.Log("lifecycle_cb: failed to get_domain_details for uuid %s", vi.Uuid)
 		} else {
-			si.Vms[vm.Uuid] = vm
-			hv.system_info_ch <- si
+			vm.VmInfo = vi
+			err = get_domain_stats(d, &vm, nil, &si.imm)
+			if (err != nil) {
+				logger.Log("lifecycle_cb: failed to get_domain_stats for uuid %s", vi.Uuid)
+			} else {
+				si.Vms[vm.Uuid] = vm
+				hv.system_info_ch <- si
+			}
 		}
-	} else if (ve.Runstate != openapi.RUNSTATE_NONE) {
-		logger.Debug("[VmEvent] %s/%s: %v state: %d", name, ve.Uuid, e, ve.Runstate)
-		hv.vm_event_ch <- ve
+	} else if (vi.Runstate != openapi.RUNSTATE_NONE) {
+		logger.Debug("[VmEvent] %s: %v state: %d", vi.Uuid, e, vi.Runstate)
+		hv.vm_event_ch <- vi.VmEvent
 	}
 	/* check for the need to remove a cloudinit disk resource file */
 	if ((e.Event == libvirt.DOMAIN_EVENT_STOPPED && e.Detail != int(libvirt.DOMAIN_EVENT_STOPPED_MIGRATED)) ||
@@ -226,7 +229,7 @@ func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventL
 		 *   Needs to be tested.
 		 *   XXX
 		 */
-		err = cloudinit.Delete_disk(ve.Uuid)
+		err = cloudinit.Delete_disk(vi.Uuid)
 		if (err != nil) {
 			logger.Log("lifecycle_cb: cloudinit : %s", err)
 		}

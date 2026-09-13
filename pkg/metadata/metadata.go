@@ -24,8 +24,7 @@ import (
 )
 
 type Vm struct {
-	XMLName xml.Name `xml:"virtx-vm data-vm"`
-	XMLNS string `xml:"xmlns:virtx-vm,attr"`
+	XMLName xml.Name `xml:""`
 
 	Fields []Field `xml:"field"`
 }
@@ -37,7 +36,6 @@ func (vm *Vm) To_xml(fields []openapi.CustomField) (string, error) {
 	)
 	*vm = Vm{
 		XMLName: xml.Name{ Space: "virtx-vm", Local: "data-vm" },
-		XMLNS: "virtx-vm",
 		Fields: []Field{},
 	}
 	for _, custom := range fields {

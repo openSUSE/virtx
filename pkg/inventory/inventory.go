@@ -62,6 +62,11 @@ type VmEvent struct {
  */
 type VmInfo struct {
 	VmEvent                     /* embedded basic information */
+	VmDetails                   /* embedded details read from the domain metadata */
+}
+
+/* VmDetails: the fields derived from the domain metadata, filled by get_domain_details */
+type VmDetails struct {
 	Name string                 /* VM Name */
 	Custom []openapi.CustomField
 }

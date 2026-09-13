@@ -29,41 +29,35 @@ import (
 	"suse.com/virtx/pkg/reg"
 	"suse.com/virtx/pkg/machine"
 	"suse.com/virtx/pkg/inventory"
+	"suse.com/virtx/pkg/metadata"
 	"suse.com/virtx/pkg/ts"
 )
 
 /*
- * get basic information about a Domain.
+ * get_domain_event fills the runstate essentials (Uuid, Runstate, Host) of a Domain.
  *
- * Note that we return an inventory.VmEvent for convenience, but the timestamp is not set
- * (ve.Ts). This is left to the caller, because in most cases for a systeminfo collection
- * we want to keep the same timestamp for all related systeminfovms, equal to the host one.
- * This is easier for debugging.
+ * Note that the timestamp is not set (ve.Ts). This is left to the caller, because in
+ * most cases for a systeminfo collection we want to keep the same timestamp for all
+ * related systeminfovms, equal to the host one. This is easier for debugging.
  * We also want to avoid tight loops calling gettimeofday() just to update the Ts for all
  * the VMs, if we have a large number of them.
  */
-func get_domain_info(d *libvirt.Domain) (inventory.VmEvent, string, error) {
+func get_domain_event(d *libvirt.Domain, ve *inventory.VmEvent) error {
 	/* assert (hv.m.IsRLocked) */
 	var (
-		ve inventory.VmEvent
-		name string
 		reason int
 		state libvirt.DomainState
 		err error
 	)
-	name, err = d.GetMetadata(libvirt.DOMAIN_METADATA_TITLE, "", libvirt.DOMAIN_AFFECT_CONFIG)
-	if (err != nil) {
-		goto out
-	}
 	ve.Uuid, err = d.GetUUIDString()
 	if (err != nil) {
-		goto out
+		return err
 	}
 	state, reason, err = d.GetState()
 	if (err != nil) {
-		goto out
+		return err
 	}
-	logger.Debug("get_domain_info: state %d, reason %d", state, reason)
+	logger.Debug("get_domain_event: state %d, reason %d", state, reason)
 	switch (state) {
 	//case libvirt.DOMAIN_NOSTATE: /* leave ve.Runstate RUNSTATE_NONE */
 	case libvirt.DOMAIN_RUNNING:
@@ -111,8 +105,30 @@ func get_domain_info(d *libvirt.Domain) (inventory.VmEvent, string, error) {
 		logger.Log("Unhandled state %d, reason %d", state, reason)
 	}
 	ve.Host = machine.Uuid()
-out:
-	return ve, name, err
+	return nil
+}
+
+/*
+ * get_domain_details fills the inventory.VmDetails read from the domain metadata: the
+ * Name and the Custom fields. A domain without virtx-vm metadata is not an error, the
+ * Custom fields will just be empty.
+ */
+func get_domain_details(d *libvirt.Domain, vd *inventory.VmDetails) error {
+	/* assert (hv.m.IsRLocked) */
+	var (
+		meta metadata.Vm
+		meta_xml string
+		err error
+	)
+	vd.Name, err = d.GetMetadata(libvirt.DOMAIN_METADATA_TITLE, "", libvirt.DOMAIN_AFFECT_CONFIG)
+	if (err != nil) {
+		return err
+	}
+	meta_xml, err = d.GetMetadata(libvirt.DOMAIN_METADATA_ELEMENT, "virtx-vm", libvirt.DOMAIN_AFFECT_CONFIG)
+	if (err != nil) {
+		return nil
+	}
+	return meta.From_xml(meta_xml, &vd.Custom)
 }
 
 func Define_domain(xml string, uuid string) error {
