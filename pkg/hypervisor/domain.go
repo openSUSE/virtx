@@ -91,8 +91,8 @@ func get_domain_info(d *libvirt.Domain) (inventory.VmEvent, string, error) {
 		case int(libvirt.DOMAIN_SHUTOFF_CRASHED):
 			ve.Runstate = openapi.RUNSTATE_CRASHED
 		case int(libvirt.DOMAIN_SHUTOFF_MIGRATED):
-			/* XXX I have never seen this yet in my migration tests XXX */
-			logger.Log("XXX DOMAIN_SHUTOFF_MIGRATED encountered XXX")
+			/* XXX I started to see this in my migration tests since 16.1 XXX */
+			logger.Log("XXX DOMAIN_SHUTOFF_MIGRATED encountered, started to see since 16.1 XXX")
 			ve.Runstate = openapi.RUNSTATE_DELETED
 		case int(libvirt.DOMAIN_SHUTOFF_DESTROYED):
 			_ = oplog_complete(d, openapi.OpVmShutdown, "forced shutdown")
