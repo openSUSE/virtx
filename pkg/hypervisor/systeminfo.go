@@ -83,6 +83,7 @@ type SystemInfoVm struct {
 	stats openapi.Vmstats       /* the Vm statistics collected on this host */
 
 	/* overall internal counters for Vm Stats */
+	vcpus uint                   /* number of vcpus active (for active domains), 0 for inactive. */
 	hp bool                      /* hugepages used */
 	cpu_time uint64              /* Total cpu time consumed in nanoseconds from libvirt.DomainCPUStats.CpuTime */
 	disk_rd, disk_wr int64       /* Disk Read/Written bytes */
@@ -313,7 +314,7 @@ func system_info_get() (SystemInfo, error) {
 		 * The total memory used on the host will be HP capacity + memory used.
 		 */
 		total_memory_used += uint64(vm.stats.MemoryUsed)
-		total_vcpus_mhz += uint32(vm.Vcpus) * uint32(info.MHz)
+		total_vcpus_mhz += uint32(vm.vcpus) * uint32(info.MHz)
 		total_vcpus_mhz_used += vm.stats.MhzUsed
 		total_vm_net_rx_bw += vm.stats.NetRxBw
 		total_vm_net_tx_bw += vm.stats.NetTxBw
@@ -927,7 +928,7 @@ func get_domain_stats(d *libvirt.Domain, vm *SystemInfoVm, old *SystemInfoVm, im
 		if (err != nil) {
 			return err
 		}
-		vm.Vcpus = int16(info.NrVirtCpu)
+		vm.vcpus = info.NrVirtCpu
 		vm.cpu_time = info.CpuTime
 		vm.stats.MemoryCapacity = int64(info.Memory / KiB) /* convert from KiB to MiB */
 		/*
@@ -951,9 +952,9 @@ func get_domain_stats(d *libvirt.Domain, vm *SystemInfoVm, old *SystemInfoVm, im
 		/* finally, calculate deltas from previous Vm cpu and net stats */
 		var interval int64 = vm.Ts - old.Ts
 		var udelta uint64 = Counter_delta_uint64(vm.cpu_time, old.cpu_time)
-		logger.Debug("gds: udelta = %d, interval = %d, Vcpus = %d", udelta, interval, vm.Vcpus)
+		logger.Debug("gds: udelta = %d, interval = %d, vcpus = %d", udelta, interval, vm.vcpus)
 
-		if (udelta > 0 && interval > 0 && vm.Vcpus > 0) {
+		if (udelta > 0 && interval > 0 && vm.vcpus > 0) {
 			vm.stats.CpuUtilization = int32((udelta * 100) / uint64(interval * 1000000))
 		}
 		logger.Debug("gds: CpuUtilization = %d", vm.stats.CpuUtilization)
