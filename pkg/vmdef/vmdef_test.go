@@ -468,6 +468,38 @@ func Test_validate_genid(t *testing.T) {
 	}
 }
 
+func Test_validate_custom(t *testing.T) {
+	cases := []struct {
+		name string
+		custom []openapi.CustomField
+		wantErr bool
+	}{
+		{"none", []openapi.CustomField{}, false},
+		{"one_field", []openapi.CustomField{{Name: "ENV", Value: "prod"}}, false},
+		{"two_fields", []openapi.CustomField{{Name: "ENV", Value: "prod"}, {Name: "TIER", Value: "web"}}, false},
+		{"name_at_limit", []openapi.CustomField{{Name: "ABCDEFGH", Value: "v"}}, false},
+		{"value_at_limit", []openapi.CustomField{{Name: "K", Value: "0123456789abcdef"}}, false},
+		{"three_fields", []openapi.CustomField{{Name: "A", Value: "1"}, {Name: "B", Value: "2"}, {Name: "C", Value: "3"}}, true},
+		{"empty_name", []openapi.CustomField{{Name: "", Value: "prod"}}, true},
+		{"name_too_long", []openapi.CustomField{{Name: "ABCDEFGHI", Value: "v"}}, true},
+		{"value_too_long", []openapi.CustomField{{Name: "K", Value: "0123456789abcdefg"}}, true},
+		{"non_alnum", []openapi.CustomField{{Name: "EN V", Value: "prod"}}, true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			vm := valid_vmdef()
+			vm.Custom = tc.custom
+			err := Validate(&vm)
+			if (tc.wantErr && err == nil) {
+				t.Error("expected error")
+			}
+			if (!tc.wantErr && err != nil) {
+				t.Errorf("unexpected error: %v", err)
+			}
+		})
+	}
+}
+
 func Test_validate_no_osdisk(t *testing.T) {
 	vm := valid_vmdef()
 	vm.Osdisk.Path = ""
