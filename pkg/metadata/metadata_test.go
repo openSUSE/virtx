@@ -107,6 +107,43 @@ func Test_vm_to_xml_skips_empty_name(t *testing.T) {
 	}
 }
 
+/*
+ * From_xml must parse both the namespaced element (as embedded in the full domain XML)
+ * and the namespace-stripped element that libvirt GetMetadata returns. This is the whole
+ * reason Vm uses XMLName xml:"" instead of requiring the "virtx-vm" namespace.
+ */
+func Test_vm_from_xml_namespaces(t *testing.T) {
+	cases := []struct {
+		name string
+		xmlstr string
+	}{
+		{
+			"namespaced", /* as found in the full domain XML metadata */
+			`<data-vm xmlns="virtx-vm"><field name="CID">1217</field></data-vm>`,
+		},
+		{
+			"stripped", /* as returned by libvirt GetMetadata (namespace lost) */
+			`<data-vm><field name="CID">1217</field></data-vm>`,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var vm Vm
+			var parsed []openapi.CustomField
+			err := vm.From_xml(tc.xmlstr, &parsed)
+			if (err != nil) {
+				t.Fatalf("From_xml: %v", err)
+			}
+			if (len(parsed) != 1) {
+				t.Fatalf("expected 1 field, got %d", len(parsed))
+			}
+			if (parsed[0].Name != "CID" || parsed[0].Value != "1217") {
+				t.Errorf("expected {CID,1217}, got {%q,%q}", parsed[0].Name, parsed[0].Value)
+			}
+		})
+	}
+}
+
 /* *** Operation.To_xml / Operation.From_xml *** */
 
 func Test_operation_to_xml_from_xml_roundtrip(t *testing.T) {
