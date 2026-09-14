@@ -272,9 +272,15 @@ func Validate(vmdef *openapi.Vmdef) error {
 		}
 	}
 	/* *** CUSTOM FIELDS *** */
+	if (len(vmdef.Custom) > CUSTOM_FIELDS_MAX) {
+		return errors.New("too many Custom Fields")
+	}
 	for _, custom := range vmdef.Custom {
 		if (custom.Name == "") {
 			continue
+		}
+		if (len(custom.Name) > CUSTOM_NAME_MAX || len(custom.Value) > CUSTOM_VALUE_MAX) {
+			return errors.New("Custom Field too long")
 		}
 		if (!custom.IsAlnum()) {
 			return errors.New("invalid Custom Field")
