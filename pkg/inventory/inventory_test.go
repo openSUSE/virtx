@@ -60,6 +60,17 @@ func add_vm(t *testing.T, uuid, host, name string, state openapi.Vmrunstate, ts 
 	}
 }
 
+func add_vm_custom(t *testing.T, uuid string, host string, name string, custom []openapi.CustomField) {
+	t.Helper()
+	err := Update_vm(&VmInfo{
+		VmEvent: VmEvent{Uuid: uuid, Host: host, Runstate: openapi.RUNSTATE_RUNNING, Ts: 100},
+		VmDetails: VmDetails{Name: name, Custom: custom},
+	})
+	if (err != nil) {
+		t.Fatalf("add_vm_custom(%q): %v", uuid, err)
+	}
+}
+
 func vm_event(uuid, host string, state openapi.Vmrunstate, ts int64) *VmEvent {
 	return &VmEvent{Uuid: uuid, Host: host, Runstate: state, Ts: ts}
 }
@@ -492,6 +503,72 @@ func Test_search_vms_by_custom_field(t *testing.T) {
 	list := Search_vms(openapi.VmListFields{Custom: []openapi.CustomField{{Name: "ENV", Value: "prod"}}})
 	assert_search_vms_contains(t, list, "vm1")
 	assert_search_vms_lacks(t, list, "vm2")
+}
+
+func Test_custom_fields_match(t *testing.T) {
+	vm := []openapi.CustomField{
+		{Name: "ENV", Value: "prod"},
+		{Name: "TIER", Value: "web"},
+	}
+	cases := []struct {
+		name string
+		filter []openapi.CustomField
+		want bool
+	}{
+		{"empty_filter_matches", nil, true},
+		{"single_exact", []openapi.CustomField{{Name: "ENV", Value: "prod"}}, true},
+		{"single_value_mismatch", []openapi.CustomField{{Name: "ENV", Value: "dev"}}, false},
+		{"single_name_missing", []openapi.CustomField{{Name: "ZONE", Value: "a"}}, false},
+		{"name_only_present", []openapi.CustomField{{Name: "ENV", Value: ""}}, true},
+		{"name_only_missing", []openapi.CustomField{{Name: "ZONE", Value: ""}}, false},
+		{"multi_all_present", []openapi.CustomField{{Name: "ENV", Value: "prod"}, {Name: "TIER", Value: "web"}}, true},
+		{"multi_one_missing", []openapi.CustomField{{Name: "ENV", Value: "prod"}, {Name: "TIER", Value: "db"}}, false},
+		{"multi_name_only", []openapi.CustomField{{Name: "ENV", Value: ""}, {Name: "TIER", Value: ""}}, true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := custom_fields_match(vm, tc.filter)
+			if (got != tc.want) {
+				t.Errorf("custom_fields_match(%v) = %v, want %v", tc.filter, got, tc.want)
+			}
+		})
+	}
+}
+
+func Test_search_vms_custom_multi(t *testing.T) {
+	reset()
+	add_host("h1", "node1", openapi.CSTATE_ACTIVE, 512, 100)
+	add_vm_custom(t, "vm1", "h1", "web-prod", []openapi.CustomField{{Name: "ENV", Value: "prod"}, {Name: "TIER", Value: "web"}})
+	add_vm_custom(t, "vm2", "h1", "web-dev", []openapi.CustomField{{Name: "ENV", Value: "dev"}, {Name: "TIER", Value: "web"}})
+	add_vm_custom(t, "vm3", "h1", "plain", nil)
+
+	/* AND of two exact pairs: only vm1 has both */
+	list := Search_vms(openapi.VmListFields{Custom: []openapi.CustomField{
+		{Name: "ENV", Value: "prod"}, {Name: "TIER", Value: "web"}}})
+	assert_search_vms_contains(t, list, "vm1")
+	assert_search_vms_lacks(t, list, "vm2")
+	assert_search_vms_lacks(t, list, "vm3")
+
+	/* name-only (any value): every VM that has a TIER field */
+	list = Search_vms(openapi.VmListFields{Custom: []openapi.CustomField{{Name: "TIER", Value: ""}}})
+	assert_search_vms_contains(t, list, "vm1")
+	assert_search_vms_contains(t, list, "vm2")
+	assert_search_vms_lacks(t, list, "vm3")
+
+	/* the returned item carries the VM's real custom fields, not the filter */
+	list = Search_vms(openapi.VmListFields{Custom: []openapi.CustomField{{Name: "ENV", Value: "prod"}}})
+	var vm1 *openapi.VmListItem
+	for i := range list.Items {
+		if (list.Items[i].Uuid == "vm1") {
+			vm1 = &list.Items[i]
+		}
+	}
+	if (vm1 == nil) {
+		t.Fatal("vm1 not found in search results")
+	}
+	if (len(vm1.Fields.Custom) != 2) {
+		t.Fatalf("expected vm1 to carry its 2 real custom fields, got %d", len(vm1.Fields.Custom))
+	}
 }
 
 func Test_search_vms_ts_filter(t *testing.T) {
