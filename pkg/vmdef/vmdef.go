@@ -277,7 +277,7 @@ func Validate(vmdef *openapi.Vmdef) error {
 	}
 	for _, custom := range vmdef.Custom {
 		if (custom.Name == "") {
-			continue
+			return errors.New("Custom Field Name is empty")
 		}
 		if (len(custom.Name) > CUSTOM_NAME_MAX || len(custom.Value) > CUSTOM_VALUE_MAX) {
 			return errors.New("Custom Field too long")
