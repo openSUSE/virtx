@@ -53,7 +53,7 @@ func add_vm(t *testing.T, uuid, host, name string, state openapi.Vmrunstate, ts 
 	t.Helper()
 	err := Update_vm(&VmInfo{
 		VmEvent: VmEvent{Uuid: uuid, Host: host, Runstate: state, Ts: ts},
-		Name: name,
+		VmDetails: VmDetails{Name: name},
 	})
 	if (err != nil) {
 		t.Fatalf("add_vm(%q): %v", uuid, err)
@@ -471,12 +471,14 @@ func Test_search_vms_by_custom_field(t *testing.T) {
 
 	vm_match := &VmInfo{
 		VmEvent: VmEvent{Uuid: "vm1", Host: "h1", Runstate: openapi.RUNSTATE_RUNNING, Ts: 100},
-		Name:   "vm-with-custom",
-		Custom: []openapi.CustomField{{Name: "ENV", Value: "prod"}},
+		VmDetails: VmDetails{
+			Name:   "vm-with-custom",
+			Custom: []openapi.CustomField{{Name: "ENV", Value: "prod"}},
+		},
 	}
 	vm_nomatch := &VmInfo{
 		VmEvent: VmEvent{Uuid: "vm2", Host: "h1", Runstate: openapi.RUNSTATE_RUNNING, Ts: 100},
-		Name:   "vm-no-custom",
+		VmDetails: VmDetails{Name: "vm-no-custom"},
 	}
 	err := Update_vm(vm_match)
 	if (err != nil) {
@@ -487,7 +489,7 @@ func Test_search_vms_by_custom_field(t *testing.T) {
 		t.Fatalf("Update_vm vm2: %v", err)
 	}
 
-	list := Search_vms(openapi.VmListFields{Custom: openapi.CustomField{Name: "ENV", Value: "prod"}})
+	list := Search_vms(openapi.VmListFields{Custom: []openapi.CustomField{{Name: "ENV", Value: "prod"}}})
 	assert_search_vms_contains(t, list, "vm1")
 	assert_search_vms_lacks(t, list, "vm2")
 }

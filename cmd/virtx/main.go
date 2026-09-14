@@ -60,6 +60,8 @@ type VirtxClient struct {
 	/* args */
 	host_list_options openapi.HostListOptions
 	vm_list_options openapi.VmListOptions
+	custom_names []string       // repeatable --custom-name, paired with custom_values
+	custom_values []string      // repeatable --custom-value, paired with custom_names
 	vm_create_options openapi.VmCreateOptions
 	vm_update_options openapi.VmUpdateOptions
 	vm_shutdown_options openapi.VmShutdownOptions

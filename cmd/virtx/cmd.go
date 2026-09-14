@@ -76,8 +76,8 @@ func init() {
 	cmd_list_vm.Flags().StringVarP(&virtx.vm_list_options.Filter.Name, "name", "n", "", "Filter by VM Name")
 	cmd_list_vm.Flags().StringVarP(&virtx.vm_list_options.Filter.Host, "host", "h", "", "Filter by Host UUID")
 	cmd_list_vm.Flags().Int16VarP((*int16)(unsafe.Pointer(&virtx.vm_list_options.Filter.Runstate)), "state", "s", 0, "Filter by VM Runstate")
-	cmd_list_vm.Flags().StringVarP(&virtx.vm_list_options.Filter.Custom.Name, "custom-name", "N", "", "Filter by VM Custom Field Name")
-	cmd_list_vm.Flags().StringVarP(&virtx.vm_list_options.Filter.Custom.Value, "custom-value", "V", "", "Filter by VM Custom Field Value")
+	cmd_list_vm.Flags().StringArrayVarP(&virtx.custom_names, "custom-name", "N", []string{}, "Filter by VM Custom Field Name (repeatable)")
+	cmd_list_vm.Flags().StringArrayVarP(&virtx.custom_values, "custom-value", "V", []string{}, "Filter by VM Custom Field Value (repeatable)")
 	var cmd_get = &cobra.Command{
 		Use:   "get",
 		Short: "Fetch and display all details about a resource",

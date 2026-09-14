@@ -26,7 +26,8 @@ type VmListFields struct {
 	// Unique Identifier for VMs, Hosts, Networks; RFC 4122
 	Host string `json:"host"`
 	Runstate Vmrunstate `json:"runstate"`
-	Custom CustomField `json:"custom"`
+	// Custom Fields
+	Custom []CustomField `json:"custom"`
 	// 64bit UTC Unix timestamp in milliseconds since Epoc. A 0 value is used if the timestamp is not available.
 	Ts int64 `json:"ts"`
 }
@@ -37,7 +38,7 @@ type _VmListFields VmListFields
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVmListFields(name string, host string, runstate Vmrunstate, custom CustomField, ts int64) *VmListFields {
+func NewVmListFields(name string, host string, runstate Vmrunstate, custom []CustomField, ts int64) *VmListFields {
 	this := VmListFields{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
@@ -132,9 +133,9 @@ func (o *VmListFields) SetRunstate(v Vmrunstate) {
 }
 
 // GetCustom returns the Custom field value
-func (o *VmListFields) GetCustom() CustomField {
+func (o *VmListFields) GetCustom() []CustomField {
 	if o == nil {
-		var ret CustomField
+		var ret []CustomField
 		return ret
 	}
 
@@ -143,15 +144,15 @@ func (o *VmListFields) GetCustom() CustomField {
 
 // GetCustomOk returns a tuple with the Custom field value
 // and a boolean to check if the value has been set.
-func (o *VmListFields) GetCustomOk() (*CustomField, bool) {
+func (o *VmListFields) GetCustomOk() ([]CustomField, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.Custom, true
+	return o.Custom, true
 }
 
 // SetCustom sets field value
-func (o *VmListFields) SetCustom(v CustomField) {
+func (o *VmListFields) SetCustom(v []CustomField) {
 	o.Custom = v
 }
 

@@ -84,6 +84,29 @@ func Search_hosts(f openapi.HostListFields) openapi.HostList {
 	return list
 }
 
+/*
+ * custom_fields_match returns true if every filter pair is present in vm (AND).
+ * A filter with an empty value matches the name regardless of value.
+ */
+func custom_fields_match(vm []openapi.CustomField, filter []openapi.CustomField) bool {
+	for _, want := range filter {
+		var found bool
+		for _, have := range vm {
+			if (have.Name != want.Name) {
+				continue
+			}
+			if (want.Value == "" || have.Value == want.Value) {
+				found = true
+				break
+			}
+		}
+		if (!found) {
+			return false
+		}
+	}
+	return true
+}
+
 func Search_vms(f openapi.VmListFields) openapi.VmList {
 	inventory.m.RLock()
 	defer inventory.m.RUnlock()
@@ -101,19 +124,8 @@ func Search_vms(f openapi.VmListFields) openapi.VmList {
 		if (f.Runstate > 0 && (vm.Runstate != f.Runstate)) {
 			continue
 		}
-		if (f.Custom.Name != "") {
-			var found bool
-			for _, custom := range vm.Custom {
-				if (custom.Name == f.Custom.Name) {
-					if (custom.Value == f.Custom.Value) {
-						found = true
-						break
-					}
-				}
-			}
-			if (!found) {
-				continue
-			}
+		if (len(f.Custom) > 0 && !custom_fields_match(vm.Custom, f.Custom)) {
+			continue
 		}
 		if (f.Ts != 0 && (vm.Ts > f.Ts)) { /* return only older entries */
 			continue
@@ -124,7 +136,7 @@ func Search_vms(f openapi.VmListFields) openapi.VmList {
 				Name: vm.Name,
 				Host: vm.Host,
 				Runstate: vm.Runstate,
-				Custom: f.Custom,
+				Custom: vm.Custom,
 				Ts: vm.Ts,
 			},
 		}
