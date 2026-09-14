@@ -79,7 +79,7 @@ func Test_encode_decode_int8(t *testing.T) {
 func Test_encode_decode_bool(t *testing.T) {
 	cases := []struct {
 		name string
-		val  bool
+		val bool
 	}{
 		{"true", true},
 		{"false", false},
@@ -246,7 +246,7 @@ func Test_encode_decode_int64(t *testing.T) {
 func Test_encode_decode_string(t *testing.T) {
 	cases := []struct {
 		name string
-		val  string
+		val string
 	}{
 		{"empty", ""},
 		{"short", "hello"},
@@ -469,9 +469,9 @@ func Test_decode_nil_pointer(t *testing.T) {
 
 func Test_encode_buffer_too_small(t *testing.T) {
 	cases := []struct {
-		name    string
+		name string
 		bufsize int
-		data    any
+		data any
 	}{
 		{"uint16_in_1byte", 1, uint16(1)},
 		{"uint32_in_2bytes", 2, uint32(1)},

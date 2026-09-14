@@ -134,9 +134,9 @@ func Test_disk_driver(t *testing.T) {
 
 func Test_validate_disk_source(t *testing.T) {
 	cases := []struct {
-		name   string
+		name string
 		source string
-		want   string
+		want string
 	}{
 		{"valid_qcow2", "/vms/gold/image.qcow2", "qcow2"},
 		{"valid_raw", "/vms/gold/image.raw", "raw"},
@@ -360,8 +360,8 @@ func Test_validate_valid_vmdef(t *testing.T) {
 
 func Test_validate_name(t *testing.T) {
 	cases := []struct {
-		name    string
-		vmname  string
+		name string
+		vmname string
 		wantErr bool
 	}{
 		{"empty", "", true},
@@ -401,8 +401,8 @@ func Test_validate_memory(t *testing.T) {
 
 func Test_validate_cpu(t *testing.T) {
 	cases := []struct {
-		name    string
-		setup   func(*openapi.Cpudef)
+		name string
+		setup func(*openapi.Cpudef)
 		wantErr bool
 	}{
 		{"nodes non-zero",   func(c *openapi.Cpudef) { c.Nodes = 2 }, true},
@@ -443,8 +443,8 @@ func Test_validate_cpu(t *testing.T) {
 
 func Test_validate_genid(t *testing.T) {
 	cases := []struct {
-		name    string
-		genid   string
+		name string
+		genid string
 		wantErr bool
 	}{
 		{"empty", "", false},

@@ -26,7 +26,7 @@ import (
 func Test_disk_device_string(t *testing.T) {
 	cases := []struct {
 		device DiskDevice
-		want   string
+		want string
 	}{
 		{DEVICE_DISK, "disk"},
 		{DEVICE_CDROM, "cdrom"},
@@ -43,8 +43,8 @@ func Test_disk_device_string(t *testing.T) {
 
 func Test_disk_device_parse(t *testing.T) {
 	cases := []struct {
-		input   string
-		want    DiskDevice
+		input string
+		want DiskDevice
 		wantErr bool
 	}{
 		{"disk", DEVICE_DISK, false},
@@ -75,7 +75,7 @@ func Test_disk_device_parse(t *testing.T) {
 func Test_net_type_string(t *testing.T) {
 	cases := []struct {
 		nettype NetType
-		want    string
+		want string
 	}{
 		{NET_BRIDGE, "bridge"},
 		{NET_LIBVIRT, "network"},
@@ -94,7 +94,7 @@ func Test_net_type_string(t *testing.T) {
 func Test_net_model_string(t *testing.T) {
 	cases := []struct {
 		model NetModel
-		want  string
+		want string
 	}{
 		{NET_MODEL_VIRTIO, "virtio"},
 		{NET_MODEL_E1000E, "e1000e"},
@@ -111,8 +111,8 @@ func Test_net_model_string(t *testing.T) {
 
 func Test_net_model_parse(t *testing.T) {
 	cases := []struct {
-		input   string
-		want    NetModel
+		input string
+		want NetModel
 		wantErr bool
 	}{
 		{"virtio", NET_MODEL_VIRTIO, false},
@@ -141,7 +141,7 @@ func Test_net_model_parse(t *testing.T) {
 
 func Test_firmware_type_string(t *testing.T) {
 	cases := []struct {
-		fw   FirmwareType
+		fw FirmwareType
 		want string
 	}{
 		{FIRMWARE_BIOS, "bios"},
@@ -158,8 +158,8 @@ func Test_firmware_type_string(t *testing.T) {
 
 func Test_firmware_type_parse(t *testing.T) {
 	cases := []struct {
-		input   string
-		want    FirmwareType
+		input string
+		want FirmwareType
 		wantErr bool
 	}{
 		{"bios", FIRMWARE_BIOS, false},
@@ -186,7 +186,7 @@ func Test_firmware_type_parse(t *testing.T) {
 
 func Test_firmware_type_machine(t *testing.T) {
 	cases := []struct {
-		fw   FirmwareType
+		fw FirmwareType
 		want string
 	}{
 		{FIRMWARE_BIOS, "pc"},
@@ -205,7 +205,7 @@ func Test_firmware_type_machine(t *testing.T) {
 
 func Test_disk_bus_string(t *testing.T) {
 	cases := []struct {
-		bus  DiskBus
+		bus DiskBus
 		want string
 	}{
 		{BUS_VIRTIO_BLK, "virtio"},
@@ -224,11 +224,11 @@ func Test_disk_bus_string(t *testing.T) {
 
 func Test_disk_bus_parse(t *testing.T) {
 	cases := []struct {
-		name      string
+		name string
 		ctrl_type string
 		ctrl_model string
-		want      DiskBus
-		wantErr   bool
+		want DiskBus
+		wantErr bool
 	}{
 		{"virtio", "virtio", "", BUS_VIRTIO_BLK, false},
 		{"sata", "sata", "", BUS_SATA, false},
@@ -276,8 +276,8 @@ func Test_disk_man_mode_string(t *testing.T) {
 
 func Test_disk_man_mode_parse(t *testing.T) {
 	cases := []struct {
-		input   byte
-		want    DiskManMode
+		input byte
+		want DiskManMode
 		wantErr bool
 	}{
 		{'U', DISK_MAN_UNMANAGED, false},
@@ -323,8 +323,8 @@ func Test_disk_prov_mode_string(t *testing.T) {
 
 func Test_disk_prov_mode_parse(t *testing.T) {
 	cases := []struct {
-		input   byte
-		want    DiskProvMode
+		input byte
+		want DiskProvMode
 		wantErr bool
 	}{
 		{'U', DISK_PROV_NONE, false},
@@ -354,7 +354,7 @@ func Test_disk_prov_mode_parse(t *testing.T) {
 func Test_custom_isalnum(t *testing.T) {
 	cases := []struct {
 		input string
-		want  bool
+		want bool
 	}{
 		{"ABC", true},
 		{"abc", true},
@@ -377,9 +377,9 @@ func Test_custom_isalnum(t *testing.T) {
 
 func Test_custom_field_is_alnum(t *testing.T) {
 	cases := []struct {
-		name  string
+		name string
 		field CustomField
-		want  bool
+		want bool
 	}{
 		{"both_valid", CustomField{Name: "CID", Value: "1217"}, true},
 		{"name_invalid", CustomField{Name: "C-ID", Value: "1217"}, false},
@@ -401,7 +401,7 @@ func Test_custom_field_is_alnum(t *testing.T) {
 func Test_cstate_string(t *testing.T) {
 	cases := []struct {
 		state Cstate
-		want  string
+		want string
 	}{
 		{CSTATE_INVALID, "invalid"},
 		{CSTATE_ACTIVE, "active"},
@@ -422,7 +422,7 @@ func Test_cstate_string(t *testing.T) {
 func Test_vmrunstate_string(t *testing.T) {
 	cases := []struct {
 		state Vmrunstate
-		want  string
+		want string
 	}{
 		{RUNSTATE_NONE, "none"},
 		{RUNSTATE_DELETED, "deleted"},
@@ -449,7 +449,7 @@ func Test_vmrunstate_string(t *testing.T) {
 func Test_migration_state_string(t *testing.T) {
 	cases := []struct {
 		state MigrationState
-		want  string
+		want string
 	}{
 		{MIGRATION_NONE, "none"},
 		{MIGRATION_SETUP, "setup"},
@@ -473,8 +473,8 @@ func Test_migration_state_string(t *testing.T) {
 
 func Test_migration_state_parse(t *testing.T) {
 	cases := []struct {
-		input   string
-		want    MigrationState
+		input string
+		want MigrationState
 		wantErr bool
 	}{
 		{"none", MIGRATION_NONE, false},
@@ -511,7 +511,7 @@ func Test_migration_state_parse(t *testing.T) {
 func Test_operation_state_string(t *testing.T) {
 	cases := []struct {
 		state OperationState
-		want  string
+		want string
 	}{
 		{OPERATION_STARTED, "started"},
 		{OPERATION_FAILED, "failed"},
@@ -528,8 +528,8 @@ func Test_operation_state_string(t *testing.T) {
 
 func Test_operation_state_parse(t *testing.T) {
 	cases := []struct {
-		input   string
-		want    OperationState
+		input string
+		want OperationState
 		wantErr bool
 	}{
 		{"started", OPERATION_STARTED, false},
@@ -558,7 +558,7 @@ func Test_operation_state_parse(t *testing.T) {
 
 func Test_operation_string(t *testing.T) {
 	cases := []struct {
-		op   Operation
+		op Operation
 		want string
 	}{
 		{OpHostGet, "HostGet"},
@@ -578,8 +578,8 @@ func Test_operation_string(t *testing.T) {
 
 func Test_operation_parse(t *testing.T) {
 	cases := []struct {
-		input   string
-		want    Operation
+		input string
+		want Operation
 		wantErr bool
 	}{
 		{"HostGet", OpHostGet, false},

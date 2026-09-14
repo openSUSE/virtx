@@ -25,8 +25,8 @@ import (
 func Test_counter_delta_uint64(t *testing.T) {
 	cases := []struct {
 		name string
-		c1   uint64
-		c0   uint64
+		c1 uint64
+		c0 uint64
 		want uint64
 	}{
 		{"normal",       100, 50,                  50},
@@ -49,8 +49,8 @@ func Test_counter_delta_uint64(t *testing.T) {
 func Test_counter_delta_int64(t *testing.T) {
 	cases := []struct {
 		name string
-		c1   int64
-		c0   int64
+		c1 int64
+		c0 int64
 		want int64
 	}{
 		{"normal",       100, 50,                   50},

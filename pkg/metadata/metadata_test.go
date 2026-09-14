@@ -27,7 +27,7 @@ import (
 
 func Test_vm_to_xml_from_xml_roundtrip(t *testing.T) {
 	cases := []struct {
-		name   string
+		name string
 		fields []openapi.CustomField
 		expect int
 	}{
@@ -148,12 +148,12 @@ func Test_vm_from_xml_namespaces(t *testing.T) {
 
 func Test_operation_to_xml_from_xml_roundtrip(t *testing.T) {
 	cases := []struct {
-		name  string
-		op    openapi.Operation
+		name string
+		op openapi.Operation
 		state openapi.OperationState
-		msg   string
-		ts    int64
-		te    int64
+		msg string
+		ts int64
+		te int64
 	}{
 		{
 			"boot_started",
