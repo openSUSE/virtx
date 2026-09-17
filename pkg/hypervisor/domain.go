@@ -151,7 +151,7 @@ func Define_domain(xml string, uuid string) error {
 	if (err != nil) {
 		return err
 	}
-	/* store the processed XML in /vms/reg/host-uuid/vm-uuid.xml */
+	/* store the processed XML in /vms/reg/host-uuid/vm-uuid/vm-uuid.xml */
 	err = reg.Save(machine.Uuid(), uuid, xml)
 	if (err != nil) {
 		logger.Log("Define_domain: failed to reg.Save(%s, %s)", machine.Uuid(), uuid)
@@ -234,7 +234,7 @@ func Migrate_domain(hostname string, migration_addr string, host_uuid string, ho
 		return err
 	}
 	defer domain2.Free()
-	/* move the xml file to /vms/reg/host_uuid/uuid.xml */
+	/* move the per-VM directory to /vms/reg/host_uuid/uuid/ */
 	err = reg.Move(host_uuid, host_old, uuid)
 	if (err != nil) {
 		logger.Log("Migrate_domain: failed to reg.Move(%s, %s, %s)", host_uuid, host_old, uuid)

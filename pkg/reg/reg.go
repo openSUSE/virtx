@@ -26,10 +26,20 @@ import (
 )
 
 /*
- * get the path of the actual processed xml file in shared storage registered for this VM
+ * Each VM has its own directory in <REG_DIR>/<host_uuid>/<vm_uuid>/ .
+ * The processed libvirt xml (dumpxml from a defined, not run domain)
+ * is stored inside it as:
+ * <REG_DIR>/<host_uuid>/<vm_uuid>/<vm_uuid>.xml
  */
+
+/* get the path of the per-VM directory registered for this VM */
+func reg_vmdir(host_uuid string, vm_uuid string) string {
+	return fmt.Sprintf("%s/%s/%s", REG_DIR, host_uuid, vm_uuid)
+}
+
+/* get the path of the actual processed xml file in shared storage registered for this VM */
 func reg_file(host_uuid string, vm_uuid string) string {
-	return fmt.Sprintf("%s/%s/%s.xml", REG_DIR, host_uuid, vm_uuid)
+	return fmt.Sprintf("%s/%s/%s/%s.xml", REG_DIR, host_uuid, vm_uuid, vm_uuid)
 }
 
 func reg_dir(host_uuid string) string {
@@ -66,9 +76,8 @@ func Load(host_uuid string, vm_uuid string) (string, error) {
 }
 
 /*
- * we split into subdirs to avoid bottlenecks with a single directory
- * containing a large number of files in NFS.
- * We try to atomically replace any preexisting file, to avoid corruption.
+ * We try to atomically write, to avoid corruption of a pre-existing file,
+ * or a half-written new file.
  */
 func Save(host_uuid string, vm_uuid string, xml string) error {
 	var (
@@ -79,6 +88,22 @@ func Save(host_uuid string, vm_uuid string, xml string) error {
 	/* target file for the save */
 	filename = reg_file(host_uuid, vm_uuid)
 	dirname = filepath.Dir(filename)
+	/* ensure the per-VM directory exists */
+	err = os.MkdirAll(dirname, 0750)
+	if (err != nil) {
+		return err
+	}
+	/*
+	 * on failure, remove the per-VM directory if it is left empty, so a failed
+	 * save does not leave behind a VM dir with no xml. os.Remove only removes an
+	 * empty directory, so an existing registration or a concurrent successful
+	 * save (which has placed the xml) is never disturbed.
+	 */
+	defer func() {
+		if (err != nil) {
+			os.Remove(dirname)
+		}
+	}()
 	/* create temporary file */
 	tmp, err = os.CreateTemp(dirname, fmt.Sprintf("%s.tmp-*", vm_uuid))
 	if (err != nil) {
@@ -108,12 +133,21 @@ func Save(host_uuid string, vm_uuid string, xml string) error {
 	if (err != nil) {
 		return err
 	}
-	/* now try the atomic rename */
+	/*
+	 * now try the atomic rename. This is the commit point,
+	 * so we use a separate error variable after this (serr),
+	 * so that the deferred cleanups do not delete our directories.
+	 */
 	err = os.Rename(tmpname, filename)
 	if (err != nil) {
 		return err
 	}
+	/* sync the VM dir to persist the xml file then host for the vm entry */
 	serr := reg_syncdir(dirname)
+	if (serr != nil) {
+		return serr
+	}
+	serr = reg_syncdir(filepath.Dir(dirname))
 	if (serr != nil) {
 		return serr
 	}
@@ -126,26 +160,30 @@ func Save(host_uuid string, vm_uuid string, xml string) error {
 func Move(new_host string, old_host string, uuid string) error {
 	var (
 		err error
-		dirname, filename string
-		dirname_old, filename_old string
+		vmdir, vmdir_old string
+		hostdir, hostdir_old string
 	)
-	/* target file for the save */
-	filename = reg_file(new_host, uuid)
-	dirname = filepath.Dir(filename)
-	/* source file for the move */
-	filename_old = reg_file(old_host, uuid)
-	dirname_old = filepath.Dir(filename_old)
+	/* destination and source per-VM directories */
+	vmdir = reg_vmdir(new_host, uuid)
+	vmdir_old = reg_vmdir(old_host, uuid)
+	hostdir = filepath.Dir(vmdir)
+	hostdir_old = filepath.Dir(vmdir_old)
 
-	/* try the atomic rename */
-	err = os.Rename(filename_old, filename)
+	/* ensure the destination host directory exists */
+	err = os.MkdirAll(hostdir, 0750)
 	if (err != nil) {
 		return err
 	}
-	err = reg_syncdir(dirname)
+	/* try the atomic rename of the whole VM directory */
+	err = os.Rename(vmdir_old, vmdir)
 	if (err != nil) {
 		return err
 	}
-	err = reg_syncdir(dirname_old)
+	err = reg_syncdir(hostdir)
+	if (err != nil) {
+		return err
+	}
+	err = reg_syncdir(hostdir_old)
 	if (err != nil) {
 		return err
 	}
@@ -155,14 +193,14 @@ func Move(new_host string, old_host string, uuid string) error {
 func Delete(host_uuid string, vm_uuid string) error {
 	var (
 		err error
-		filename string
+		vmdir string
 	)
-	filename = reg_file(host_uuid, vm_uuid)
-	err = os.Remove(filename)
+	vmdir = reg_vmdir(host_uuid, vm_uuid)
+	err = os.RemoveAll(vmdir)
 	if (err != nil) {
 		return err
 	}
-	err = reg_syncdir(filepath.Dir(filename))
+	err = reg_syncdir(filepath.Dir(vmdir))
 	if (err != nil) {
 		return err
 	}
@@ -195,18 +233,16 @@ func Uuids(host_uuid string) ([]string, error) {
 		return nil, err
 	}
 	for i, _ = range(entries) {
-		if (entries[i].IsDir()) {
+		/* each VM is a directory named by its uuid; host option files are skipped */
+		if (!entries[i].IsDir()) {
 			continue
 		}
 		name = entries[i].Name()
 		length = len(name)
-		if (length != 40) {
+		if (length != 36) {
 			continue
 		}
-		if (name[length - 4:] != ".xml") {
-			continue
-		}
-		uuids = append(uuids, name[:length - 4])
+		uuids = append(uuids, name)
 	}
 	return uuids, nil
 }
