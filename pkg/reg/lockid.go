@@ -39,6 +39,10 @@ func Save_lockid(host_uuid string, lockid uint16) error {
 	/* target file for the save */
 	filename = reg_lockid(host_uuid)
 	dirname = filepath.Dir(filename)
+	err = os.MkdirAll(dirname, 0750)
+	if (err != nil) {
+		return err
+	}
 	value = fmt.Sprintf("%d\n", lockid)
 	err = os.WriteFile(filename, []byte(value), 0640)
 	if (err != nil) {

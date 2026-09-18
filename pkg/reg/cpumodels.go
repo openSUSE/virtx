@@ -33,14 +33,19 @@ func reg_cpumodels(host_uuid string) string {
 func Save_cpumodels(host_uuid string, models []string) error {
 	var (
 		err error
-		filename string
+		dirname, filename string
 	)
 	filename = reg_cpumodels(host_uuid)
+	dirname = filepath.Dir(filename)
+	err = os.MkdirAll(dirname, 0750)
+	if (err != nil) {
+		return err
+	}
 	err = os.WriteFile(filename, []byte(strings.Join(models, "\n") + "\n"), 0640)
 	if (err != nil) {
 		return err
 	}
-	return reg_syncdir(filepath.Dir(filename))
+	return reg_syncdir(dirname)
 }
 
 func Load_cpumodels(host_uuid string) ([]string, error) {
