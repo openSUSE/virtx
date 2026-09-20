@@ -48,7 +48,7 @@ func Save_lockid(host_uuid string, lockid uint16) error {
 	if (err != nil) {
 		return err
 	}
-	err = reg_syncdir(dirname)
+	err = Syncdir(dirname)
 	if (err != nil) {
 		return err
 	}

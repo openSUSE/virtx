@@ -33,7 +33,7 @@ import (
  */
 
 /* get the path of the per-VM directory registered for this VM */
-func reg_vmdir(host_uuid string, vm_uuid string) string {
+func Vmdir(host_uuid string, vm_uuid string) string {
 	return fmt.Sprintf("%s/%s/%s", REG_DIR, host_uuid, vm_uuid)
 }
 
@@ -46,7 +46,7 @@ func reg_dir(host_uuid string) string {
 	return fmt.Sprintf("%s/%s", REG_DIR, host_uuid)
 }
 
-func reg_syncdir(dirname string) error {
+func Syncdir(dirname string) error {
 	dir, err := os.Open(dirname)
 	if (err != nil) {
 		return err
@@ -143,11 +143,11 @@ func Save(host_uuid string, vm_uuid string, xml string) error {
 		return err
 	}
 	/* sync the VM dir to persist the xml file then host for the vm entry */
-	serr := reg_syncdir(dirname)
+	serr := Syncdir(dirname)
 	if (serr != nil) {
 		return serr
 	}
-	serr = reg_syncdir(filepath.Dir(dirname))
+	serr = Syncdir(filepath.Dir(dirname))
 	if (serr != nil) {
 		return serr
 	}
@@ -164,8 +164,8 @@ func Move(new_host string, old_host string, uuid string) error {
 		hostdir, hostdir_old string
 	)
 	/* destination and source per-VM directories */
-	vmdir = reg_vmdir(new_host, uuid)
-	vmdir_old = reg_vmdir(old_host, uuid)
+	vmdir = Vmdir(new_host, uuid)
+	vmdir_old = Vmdir(old_host, uuid)
 	hostdir = filepath.Dir(vmdir)
 	hostdir_old = filepath.Dir(vmdir_old)
 
@@ -179,11 +179,11 @@ func Move(new_host string, old_host string, uuid string) error {
 	if (err != nil) {
 		return err
 	}
-	err = reg_syncdir(hostdir)
+	err = Syncdir(hostdir)
 	if (err != nil) {
 		return err
 	}
-	err = reg_syncdir(hostdir_old)
+	err = Syncdir(hostdir_old)
 	if (err != nil) {
 		return err
 	}
@@ -195,12 +195,12 @@ func Delete(host_uuid string, vm_uuid string) error {
 		err error
 		vmdir string
 	)
-	vmdir = reg_vmdir(host_uuid, vm_uuid)
+	vmdir = Vmdir(host_uuid, vm_uuid)
 	err = os.RemoveAll(vmdir)
 	if (err != nil) {
 		return err
 	}
-	err = reg_syncdir(filepath.Dir(vmdir))
+	err = Syncdir(filepath.Dir(vmdir))
 	if (err != nil) {
 		return err
 	}

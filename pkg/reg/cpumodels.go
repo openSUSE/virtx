@@ -45,7 +45,7 @@ func Save_cpumodels(host_uuid string, models []string) error {
 	if (err != nil) {
 		return err
 	}
-	return reg_syncdir(dirname)
+	return Syncdir(dirname)
 }
 
 func Load_cpumodels(host_uuid string) ([]string, error) {
