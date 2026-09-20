@@ -41,11 +41,7 @@ func Save_cpumodels(host_uuid string, models []string) error {
 	if (err != nil) {
 		return err
 	}
-	err = os.WriteFile(filename, []byte(strings.Join(models, "\n") + "\n"), 0640)
-	if (err != nil) {
-		return err
-	}
-	return Syncdir(dirname)
+	return reg_save_file(filename, []byte(strings.Join(models, "\n") + "\n"))
 }
 
 func Load_cpumodels(host_uuid string) ([]string, error) {

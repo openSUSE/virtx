@@ -44,15 +44,7 @@ func Save_lockid(host_uuid string, lockid uint16) error {
 		return err
 	}
 	value = fmt.Sprintf("%d\n", lockid)
-	err = os.WriteFile(filename, []byte(value), 0640)
-	if (err != nil) {
-		return err
-	}
-	err = Syncdir(dirname)
-	if (err != nil) {
-		return err
-	}
-	return nil
+	return reg_save_file(filename, []byte(value))
 }
 
 /* Load the sanlock host_id; we call it "lockid" here to avoid semantic clashes */
