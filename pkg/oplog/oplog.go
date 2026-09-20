@@ -28,7 +28,6 @@ import (
 	"strings"
 	"sync"
 	"suse.com/virtx/pkg/encoding/sbinary"
-	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/machine"
 	"suse.com/virtx/pkg/reg"
 	"suse.com/virtx/pkg/model"
@@ -508,31 +507,4 @@ func Load_last(vm_uuid string, op openapi.Operation, state *openapi.OperationSta
 	*ts_end = recs[0].Te
 	*msgs, *msge, err = oplog_msg(vm_uuid, op, &recs[0])
 	return err
-}
-
-/*
- * Load_list fills an OplogList with the last record for each VM operation
- * type on the local host, for use in the vm_get response.
- */
-func Load_list(vm_uuid string, list *openapi.OplogList) error {
-	var ops = [...]openapi.Operation{ openapi.OpVmBoot, openapi.OpVmMigrate, openapi.OpVmPause, openapi.OpVmResume, openapi.OpVmShutdown }
-	list.Items = make([]openapi.OplogItem, 0, len(ops))
-	for i := 0; i < len(ops); i++ {
-		recs, err := oplog_tail(vm_uuid, ops[i], 1)
-		if (err != nil || len(recs) == 0) {
-			continue
-		}
-		msgs, msge, err := oplog_msg(vm_uuid, ops[i], &recs[0])
-		if (err != nil) {
-			logger.Log("oplog.Load_list: %s: %s", ops[i].String(), err.Error())
-		}
-		list.Items = append(list.Items, openapi.OplogItem{
-			Op: ops[i].String(),
-			Ts: recs[0].Ts,
-			Te: recs[0].Te,
-			Status: recs[0].Status.String(),
-			Msg: msgs + " " + msge,
-		})
-	}
-	return nil
 }

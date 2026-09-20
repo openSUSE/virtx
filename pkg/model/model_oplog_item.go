@@ -28,7 +28,8 @@ type OplogItem struct {
 	// 64bit UTC Unix timestamp in milliseconds since Epoc. A 0 value is used if the timestamp is not available.
 	Te int64 `json:"te"`
 	Status string `json:"status"`
-	Msg string `json:"msg"`
+	Msgs string `json:"msgs"`
+	Msge string `json:"msge"`
 }
 
 type _OplogItem OplogItem
@@ -37,7 +38,7 @@ type _OplogItem OplogItem
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewOplogItem(op string, ts int64, te int64, status string, msg string) *OplogItem {
+func NewOplogItem(op string, ts int64, te int64, status string, msgs string, msge string) *OplogItem {
 	this := OplogItem{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
@@ -47,7 +48,8 @@ func NewOplogItem(op string, ts int64, te int64, status string, msg string) *Opl
 	this.Ts = ts
 	this.Te = te
 	this.Status = status
-	this.Msg = msg
+	this.Msgs = msgs
+	this.Msge = msge
 	return &this
 }
 
@@ -155,28 +157,52 @@ func (o *OplogItem) SetStatus(v string) {
 	o.Status = v
 }
 
-// GetMsg returns the Msg field value
-func (o *OplogItem) GetMsg() string {
+// GetMsgs returns the Msgs field value
+func (o *OplogItem) GetMsgs() string {
 	if o == nil {
 		var ret string
 		return ret
 	}
 
-	return o.Msg
+	return o.Msgs
 }
 
-// GetMsgOk returns a tuple with the Msg field value
+// GetMsgsOk returns a tuple with the Msgs field value
 // and a boolean to check if the value has been set.
-func (o *OplogItem) GetMsgOk() (*string, bool) {
+func (o *OplogItem) GetMsgsOk() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.Msg, true
+	return &o.Msgs, true
 }
 
-// SetMsg sets field value
-func (o *OplogItem) SetMsg(v string) {
-	o.Msg = v
+// SetMsgs sets field value
+func (o *OplogItem) SetMsgs(v string) {
+	o.Msgs = v
+}
+
+// GetMsge returns the Msge field value
+func (o *OplogItem) GetMsge() string {
+	if o == nil {
+		var ret string
+		return ret
+	}
+
+	return o.Msge
+}
+
+// GetMsgeOk returns a tuple with the Msge field value
+// and a boolean to check if the value has been set.
+func (o *OplogItem) GetMsgeOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Msge, true
+}
+
+// SetMsge sets field value
+func (o *OplogItem) SetMsge(v string) {
+	o.Msge = v
 }
 
 func (o OplogItem) ToMap() (map[string]interface{}, error) {
@@ -185,7 +211,8 @@ func (o OplogItem) ToMap() (map[string]interface{}, error) {
 	toSerialize["ts"] = o.Ts
 	toSerialize["te"] = o.Te
 	toSerialize["status"] = o.Status
-	toSerialize["msg"] = o.Msg
+	toSerialize["msgs"] = o.Msgs
+	toSerialize["msge"] = o.Msge
 	return toSerialize, nil
 }
 

@@ -608,7 +608,3 @@ func Delete_domain(uuid string) error {
 	}
 	return nil
 }
-
-func Log_domain(uuid string, list *openapi.OplogList) error {
-	return oplog.Load_list(uuid, list)
-}

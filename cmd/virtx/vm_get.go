@@ -21,7 +21,6 @@ package main
 import (
 	"fmt"
 	"suse.com/virtx/pkg/model"
-	"suse.com/virtx/pkg/ts"
 )
 
 func vm_get_req(arg string) {
@@ -44,22 +43,11 @@ func vm_get(vm *openapi.Vm) {
 			vm_get_net(&net)
 		}
 	} else {
-		var (
-			boot_ts int64
-			items []openapi.OplogItem = vm.Oplog.Items
-			o openapi.Operation
-		)
-		for i := 0; i < len(items); i++ {
-			if (o.Parse(items[i].Op) == nil && o == openapi.OpVmBoot) {
-				boot_ts = items[i].Te
-				break
-			}
-		}
-		fmt.Fprintf(virtx.w, "NAME\tHOST\t[HOSTNAME]\tVCPU\tSOCKETS\t CORES\tTHREADS\tCUSTOM\tLAST BOOT\tSTATE\n")
-		fmt.Fprintf(virtx.w, "%s\t%s\t%s\t%s\t%7d\t%7d\t%7d\t%v\t%s\t%s\n",
+		fmt.Fprintf(virtx.w, "NAME\tHOST\t[HOSTNAME]\tVCPU\tSOCKETS\t CORES\tTHREADS\tCUSTOM\tSTATE\n")
+		fmt.Fprintf(virtx.w, "%s\t%s\t%s\t%s\t%7d\t%7d\t%7d\t%v\t%s\n",
 			vm.Def.Name, vm.Runinfo.Host, host_name(vm.Runinfo.Host), vm.Def.Cpudef.Model,
 			vm.Def.Cpudef.Sockets, vm.Def.Cpudef.Cores, vm.Def.Cpudef.Threads,
-			vm.Def.Custom, ts.String(boot_ts), vm.Runinfo.Runstate)
+			vm.Def.Custom, vm.Runinfo.Runstate)
 	}
 }
 
