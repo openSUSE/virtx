@@ -76,14 +76,66 @@ func Load(host_uuid string, vm_uuid string) (string, error) {
 }
 
 /*
- * We try to atomically write, to avoid corruption of a pre-existing file,
- * or a half-written new file.
+ * reg_save_file writes data to a temporary file in the same directory, syncs
+ * it, and renames it over filename, so that a reader (possibly on another
+ * host) sees either the old file or the new one, never a partial one.
+ *
+ * The directory containing filename must already exist.
+ */
+func reg_save_file(filename string, data []byte) error {
+	var (
+		err error
+		tmp *os.File
+		tmpname, dirname string
+	)
+	dirname = filepath.Dir(filename)
+	/* create temporary file */
+	tmp, err = os.CreateTemp(dirname, fmt.Sprintf("%s.tmp-*", filepath.Base(filename)))
+	if (err != nil) {
+		return err
+	}
+	tmpname = tmp.Name()
+	defer func() {
+		if (err != nil) {
+			tmp.Close()
+			os.Remove(tmpname)
+		}
+	}()
+	/* write the data, sync, close, set permissions */
+	_, err = tmp.Write(data)
+	if (err != nil) {
+		return err
+	}
+	err = tmp.Sync()
+	if (err != nil) {
+		return err
+	}
+	err = tmp.Close()
+	if (err != nil) {
+		return err
+	}
+	err = os.Chmod(tmpname, 0640)
+	if (err != nil) {
+		return err
+	}
+	/*
+	 * now try the atomic rename. This is the commit point, so afterwards we
+	 * leave err alone, so that the deferred cleanup does not remove the file.
+	 */
+	err = os.Rename(tmpname, filename)
+	if (err != nil) {
+		return err
+	}
+	return Syncdir(dirname)
+}
+
+/*
+ * Save the domain XML
  */
 func Save(host_uuid string, vm_uuid string, xml string) error {
 	var (
 		err error
-		tmp *os.File
-		tmpname, dirname, filename string
+		dirname, filename string
 	)
 	/* target file for the save */
 	filename = reg_file(host_uuid, vm_uuid)
@@ -104,54 +156,12 @@ func Save(host_uuid string, vm_uuid string, xml string) error {
 			os.Remove(dirname)
 		}
 	}()
-	/* create temporary file */
-	tmp, err = os.CreateTemp(dirname, fmt.Sprintf("%s.tmp-*", vm_uuid))
+	err = reg_save_file(filename, []byte(xml))
 	if (err != nil) {
 		return err
 	}
-	tmpname = tmp.Name()
-	defer func() {
-		if (err != nil) {
-			tmp.Close()
-			os.Remove(tmpname)
-		}
-	}()
-	/* write the data, sync, close, set permissions */
-	_, err = tmp.Write([]byte(xml))
-	if (err != nil) {
-		return err
-	}
-	err = tmp.Sync()
-	if (err != nil) {
-		return err
-	}
-	err = tmp.Close()
-	if (err != nil) {
-		return err
-	}
-	err = os.Chmod(tmpname, 0640)
-	if (err != nil) {
-		return err
-	}
-	/*
-	 * now try the atomic rename. This is the commit point,
-	 * so we use a separate error variable after this (serr),
-	 * so that the deferred cleanups do not delete our directories.
-	 */
-	err = os.Rename(tmpname, filename)
-	if (err != nil) {
-		return err
-	}
-	/* sync the VM dir to persist the xml file then host for the vm entry */
-	serr := Syncdir(dirname)
-	if (serr != nil) {
-		return serr
-	}
-	serr = Syncdir(filepath.Dir(dirname))
-	if (serr != nil) {
-		return serr
-	}
-	return nil
+	/* reg_save_file synced the VM dir, now sync the host dir for the vm entry */
+	return Syncdir(filepath.Dir(dirname))
 }
 
 /*
