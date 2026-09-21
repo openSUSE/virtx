@@ -21,16 +21,19 @@ import (
 	"net/http"
 	"encoding/json"
 	"bytes"
+	"fmt"
 
 	"suse.com/virtx/pkg/hypervisor"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/machine"
 	"suse.com/virtx/pkg/model"
+	"suse.com/virtx/pkg/oplog"
 	"suse.com/virtx/pkg/reg"
 	"suse.com/virtx/pkg/vmdef"
 	"suse.com/virtx/pkg/httpx"
 	"suse.com/virtx/pkg/sched"
 	"suse.com/virtx/pkg/storage"
+	"suse.com/virtx/pkg/ts"
 )
 
 func vm_create(w http.ResponseWriter, r *http.Request) {
@@ -85,6 +88,7 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed", http.StatusInternalServerError)
 		return
 	}
+	ts_start := ts.Now()
 	/* create storage if needed, can change o.Vmdef in some cases */
 	stop_progress := httpx.Start_progress(r)
 	created, err = storage.Create(&o.Vmdef, nil, uuid)
@@ -113,6 +117,13 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 	if (reg_err != nil) {
 		logger.Log("vm_create: reg.Save failed: %s", reg_err.Error())
 		w.Header().Set("Warning", `299 VirtX "VM created but registration failed"`)
+	} else {
+		msg := fmt.Sprintf("name: %s, mem: %d MiB(hp: %t), numa: %t, osdisk: %s", o.Vmdef.Name,
+			o.Vmdef.Memory.Total, o.Vmdef.Memory.Hp, o.Vmdef.Numa.Placement, o.Vmdef.Osdisk.Path)
+		oplog_err := oplog.StartEnd(uuid, openapi.OpVmCreate, openapi.OPERATION_COMPLETED, msg, "Created.", ts_start)
+		if (oplog_err != nil) {
+			logger.Log("vm_create: oplog: %s", oplog_err.Error())
+		}
 	}
 	var buf bytes.Buffer
 	err = json.NewEncoder(&buf).Encode(&uuid)
