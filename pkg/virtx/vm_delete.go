@@ -23,6 +23,7 @@ import (
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/machine"
 	"suse.com/virtx/pkg/model"
+	"suse.com/virtx/pkg/oplog"
 	"suse.com/virtx/pkg/reg"
 	"suse.com/virtx/pkg/vmdef"
 	"suse.com/virtx/pkg/httpx"
@@ -77,11 +78,28 @@ func vm_delete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid VM data", http.StatusInternalServerError)
 		return
 	}
+	oplog_off, oplog_err := oplog.Start(uuid, openapi.OpVmDelete, vm.Name)
+	defer func() {
+		if (oplog_err != nil) {
+			logger.Log("vm_delete: oplog: %s", oplog_err.Error())
+		}
+	}()
 	err = hypervisor.Undefine_domain(uuid)
 	if (err != nil) {
 		logger.Log("Undefine_domain failed: %s", err.Error())
+		if (oplog_err == nil) {
+			oplog_err = oplog.End(uuid, openapi.OpVmDelete, openapi.OPERATION_FAILED, err.Error(), oplog_off)
+		}
 		http.Error(w, "Failed to delete VM", http.StatusFailedDependency)
 		return
+	}
+	/*
+	 * log COMPLETED before reg.Delete removes the vmdir (carrying the oplog with it).
+	 * If reg.Delete fails, the COMPLETED record survives as evidence that the
+	 * libvirt undefine succeeded even though the registry was not cleaned up.
+	 */
+	if (oplog_err == nil) {
+		oplog_err = oplog.End(uuid, openapi.OpVmDelete, openapi.OPERATION_COMPLETED, "Deleted.", oplog_off)
 	}
 	reg_err := reg.Delete(machine.Uuid(), uuid)
 	if (reg_err != nil) {
