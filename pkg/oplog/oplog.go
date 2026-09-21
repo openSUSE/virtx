@@ -457,6 +457,40 @@ func Start(vm_uuid string, op openapi.Operation, msg string) (int64, error) {
 }
 
 /*
+ * StartEnd appends a single already-finished record for operations that cannot
+ * write a STARTED record first (ie VmCreate): no Vmdir exists at that time.
+ * ts_start should be captured by the caller at the real start time, so that the
+ * information is preserved and passed here.
+ */
+func StartEnd(vm_uuid string, op openapi.Operation, state openapi.OperationState, msgs string, msge string, ts_start int64) error {
+	var (
+		err error
+		msgs_off, msge_off int64
+	)
+	msgs_off, err = oplog_append_msg(vm_uuid, op, msgs)
+	if (err != nil) {
+		return err
+	}
+	rec := record{
+		Status: state,
+		Ts: ts_start,
+		Te: ts.Now(),
+		Msg_start_off: msgs_off,
+		Msg_end_roff: 0,
+		Reserved: 0,
+	}
+	if (msge != "") {
+		msge_off, err = oplog_append_msg(vm_uuid, op, msge)
+		if (err != nil) {
+			return err
+		}
+		rec.Msg_end_roff = int32(msge_off - msgs_off)
+	}
+	_, err = oplog_append(&rec, vm_uuid, op)
+	return err
+}
+
+/*
  * End updates the STARTED record at the given offset with the final outcome.
  * state should be OPERATION_COMPLETED or OPERATION_FAILED.
  * msg is stored after the message the STARTED record already has.
