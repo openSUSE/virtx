@@ -18,13 +18,11 @@
 package hypervisor
 
 import (
-	"errors"
 	"libvirt.org/go/libvirt"
 
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/oplog"
-	"suse.com/virtx/pkg/reg"
 	"suse.com/virtx/pkg/machine"
 	"suse.com/virtx/pkg/inventory"
 	"suse.com/virtx/pkg/metadata"
@@ -156,47 +154,4 @@ func Dumpxml(uuid string) (string, error) {
 		return "", err
 	}
 	return xml, nil
-}
-
-func Delete_domain(uuid string) error {
-	var (
-		err error
-		conn *libvirt.Connect
-		domain *libvirt.Domain
-	)
-	conn, err = libvirt.NewConnect(LIBVIRT_URI)
-	if (err != nil) {
-		return err
-	}
-	defer conn.Close()
-	domain, err = conn.LookupDomainByUUIDString(uuid)
-	if (err != nil) {
-		return err
-	}
-	defer domain.Free()
-	var (
-		ds libvirt.DomainState
-		//reason int
-	)
-	ds, _, err = domain.GetState()
-	if (err != nil) {
-		return err
-	}
-	if (ds != libvirt.DOMAIN_SHUTOFF && ds != libvirt.DOMAIN_CRASHED) {
-		return errors.New("libvirt domain is not SHUTOFF or CRASHED")
-	}
-	err = domain.UndefineFlags(libvirt.DOMAIN_UNDEFINE_MANAGED_SAVE |
-		libvirt.DOMAIN_UNDEFINE_SNAPSHOTS_METADATA |
-		libvirt.DOMAIN_UNDEFINE_NVRAM |
-		libvirt.DOMAIN_UNDEFINE_CHECKPOINTS_METADATA)
-	//libvirt.DOMAIN_UNDEFINE_TPM
-	if (err != nil) {
-		return err
-	}
-	/* remove the registered xml file */
-	err = reg.Delete(machine.Uuid(), uuid)
-	if (err != nil) {
-		logger.Log("Delete_domain: failed to reg.Delete(%s, %s)", machine.Uuid(), uuid)
-	}
-	return nil
 }
