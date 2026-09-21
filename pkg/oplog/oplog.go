@@ -278,6 +278,10 @@ func oplog_append(rec *record, vm_uuid string, op openapi.Operation) (int64, err
 		buf []byte = make([]byte, RECORD_SIZE)
 		offset int64
 	)
+	/* set Ts under the lock so the record order matches write order */
+	if (rec.Status == openapi.OPERATION_STARTED) {
+		rec.Ts = ts.Now()
+	}
 	_, err = sbinary.Encode(buf, binary.LittleEndian, rec)
 	if (err != nil) {
 		return 0, err
@@ -447,7 +451,7 @@ func Start(vm_uuid string, op openapi.Operation, msg string) (int64, error) {
 	}
 	rec := record{
 		Status: openapi.OPERATION_STARTED,
-		Ts: ts.Now(),
+		Ts: 0,
 		Te: 0,
 		Msg_start_off: msg_off,
 		Msg_end_roff: 0,
