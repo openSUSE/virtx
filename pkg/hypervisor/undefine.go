@@ -27,7 +27,7 @@ import (
 	"suse.com/virtx/pkg/machine"
 )
 
-func Delete_domain(uuid string) error {
+func Undefine_domain(uuid string) error {
 	var (
 		err error
 		conn *libvirt.Connect
@@ -65,7 +65,7 @@ func Delete_domain(uuid string) error {
 	/* remove the registered xml file */
 	err = reg.Delete(machine.Uuid(), uuid)
 	if (err != nil) {
-		logger.Log("Delete_domain: failed to reg.Delete(%s, %s)", machine.Uuid(), uuid)
+		logger.Log("Undefine_domain: failed to reg.Delete(%s, %s)", machine.Uuid(), uuid)
 	}
 	return nil
 }

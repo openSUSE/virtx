@@ -75,9 +75,9 @@ func vm_delete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid VM data", http.StatusInternalServerError)
 		return
 	}
-	err = hypervisor.Delete_domain(uuid)
+	err = hypervisor.Undefine_domain(uuid)
 	if (err != nil) {
-		logger.Log("Delete_domain failed: %s", err.Error())
+		logger.Log("Undefine_domain failed: %s", err.Error())
 		http.Error(w, "Failed to delete VM", http.StatusFailedDependency)
 		return
 	}
