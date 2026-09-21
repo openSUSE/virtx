@@ -27,7 +27,6 @@ import (
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/oplog"
-	"suse.com/virtx/pkg/reg"
 )
 
 func Migrate_domain(hostname string, migration_addr string, host_uuid string, host_old string, uuid string, live bool) error {
@@ -117,11 +116,6 @@ func Migrate_domain(hostname string, migration_addr string, host_uuid string, ho
 	 */
 	if (oplog_err == nil) {
 		oplog_err = oplog.End(uuid, openapi.OpVmMigrate, openapi.OPERATION_COMPLETED, "Migrated.", oplog_off)
-	}
-	/* move the per-VM directory to /vms/reg/host_uuid/uuid/ (carries the oplog files with it) */
-	err = reg.Move(host_uuid, host_old, uuid)
-	if (err != nil) {
-		logger.Log("Migrate_domain: failed to reg.Move(%s, %s, %s)", host_uuid, host_old, uuid)
 	}
 	return nil
 }

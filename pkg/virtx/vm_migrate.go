@@ -23,6 +23,7 @@ import (
 	"suse.com/virtx/pkg/hypervisor"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/model"
+	"suse.com/virtx/pkg/reg"
 	"suse.com/virtx/pkg/httpx"
 	"suse.com/virtx/pkg/inventory"
 )
@@ -116,6 +117,12 @@ func vm_migrate(w http.ResponseWriter, r *http.Request) {
 		err = hypervisor.Migrate_domain(host_new.Name, migration_addr, o.Host, host_old_id, uuid, o.MigrationType == openapi.MIGRATION_LIVE)
 		if (err != nil) {
 			logger.Log("migration of domain %s failed: %s", uuid, err.Error())
+			return
+		}
+		/* move the per-VM directory to the destination host path (carries the oplog with it) */
+		err = reg.Move(o.Host, host_old_id, uuid)
+		if (err != nil) {
+			logger.Log("migration of domain %s: reg.Move failed: %s", uuid, err.Error())
 		} else {
 			logger.Debug("migration of domain %s successful", uuid)
 		}
