@@ -19,6 +19,7 @@ package virtx
 
 import (
 	"net/http"
+	"os"
 
 	"suse.com/virtx/pkg/hypervisor"
 	"suse.com/virtx/pkg/machine"
@@ -66,7 +67,10 @@ func vm_register(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "invalid host for this VM", http.StatusUnprocessableEntity)
 			return
 		}
-		err = vm_register_reg(o.Host, uuid)
+		err = reg.Access(o.Host, uuid)
+		if (err != nil && os.IsNotExist(err)) {
+			err = vm_register_reg(o.Host, uuid)
+		}
 		if (err == nil) {
 			status = http.StatusOK
 		}
