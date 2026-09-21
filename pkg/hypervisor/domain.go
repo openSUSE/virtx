@@ -134,34 +134,6 @@ func get_domain_details(d *libvirt.Domain, vd *inventory.VmDetails) error {
 	return meta.From_xml(meta_xml, &vd.Custom)
 }
 
-func Define_domain(xml string, uuid string) error {
-	var (
-		err error
-		conn *libvirt.Connect
-		domain *libvirt.Domain
-	)
-	conn, err = libvirt.NewConnect(LIBVIRT_URI)
-	if (err != nil) {
-		return err
-	}
-	defer conn.Close()
-	domain, err = conn.DomainDefineXML(xml)
-	if (err != nil) {
-		return err
-	}
-	defer domain.Free()
-	xml, err = domain.GetXMLDesc(libvirt.DOMAIN_XML_INACTIVE)
-	if (err != nil) {
-		return err
-	}
-	/* store the processed XML in /vms/reg/host-uuid/vm-uuid/vm-uuid.xml */
-	err = reg.Save(machine.Uuid(), uuid, xml)
-	if (err != nil) {
-		logger.Log("Define_domain: failed to reg.Save(%s, %s)", machine.Uuid(), uuid)
-	}
-	return nil
-}
-
 func Dumpxml(uuid string) (string, error) {
 	var (
 		err error
