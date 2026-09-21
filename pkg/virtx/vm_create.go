@@ -24,7 +24,9 @@ import (
 
 	"suse.com/virtx/pkg/hypervisor"
 	"suse.com/virtx/pkg/logger"
+	"suse.com/virtx/pkg/machine"
 	"suse.com/virtx/pkg/model"
+	"suse.com/virtx/pkg/reg"
 	"suse.com/virtx/pkg/vmdef"
 	"suse.com/virtx/pkg/httpx"
 	"suse.com/virtx/pkg/sched"
@@ -100,12 +102,17 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid parameters", http.StatusBadRequest)
 		return
 	}
-	err = hypervisor.Define_domain(xml, uuid)
+	xml, err = hypervisor.Define_domain(xml)
 	if (err != nil) {
 		logger.Log("hypervisor.Define_domain failed: %s", err.Error())
 		storage.Rollback(created, uuid)
 		http.Error(w, "could not define VM", http.StatusFailedDependency)
 		return
+	}
+	reg_err := reg.Save(machine.Uuid(), uuid, xml)
+	if (reg_err != nil) {
+		logger.Log("vm_create: reg.Save failed: %s", reg_err.Error())
+		w.Header().Set("Warning", `299 VirtX "VM created but registration failed"`)
 	}
 	var buf bytes.Buffer
 	err = json.NewEncoder(&buf).Encode(&uuid)

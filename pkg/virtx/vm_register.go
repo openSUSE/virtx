@@ -75,9 +75,22 @@ func vm_register(w http.ResponseWriter, r *http.Request) {
 		 *
 		 * Check if it exists in libvirt, and if not register it from reg.
 		 */
-		err = vm_register_libvirt(o.Host, uuid)
+		var canonical_xml string
+		canonical_xml, err = vm_register_libvirt(o.Host, uuid)
 		if (err == nil) {
 			status = http.StatusCreated
+			/*
+			 * libvirt may canonicalize the XML differently from what is stored
+			 * in the registry. Save it back so the registry stays consistent with
+			 * what libvirt actually has. A failure here is non-fatal: the VM is
+			 * registered in libvirt and the registry has the original XML, which
+			 * is close enough for recovery purposes.
+			 */
+			reg_err := reg.Save(o.Host, uuid, canonical_xml)
+			if (reg_err != nil) {
+				logger.Log("vm_register: reg.Save failed: %s", reg_err.Error())
+				w.Header().Set("Warning", `299 VirtX "VM registered but registration update failed"`)
+			}
 		}
 	}
 	if (err != nil) {
@@ -115,8 +128,8 @@ func vm_register_reg(host_uuid string, uuid string) error {
 	return nil
 }
 
-/* register from reg into libvirt */
-func vm_register_libvirt(host_uuid string, uuid string) error {
+/* register from reg into libvirt; returns the canonical XML as post-processed by libvirt */
+func vm_register_libvirt(host_uuid string, uuid string) (string, error) {
 	var (
 		err error
 		vm openapi.Vmdef
@@ -124,19 +137,19 @@ func vm_register_libvirt(host_uuid string, uuid string) error {
 	)
 	xml, err = reg.Load(host_uuid, uuid)
 	if (err != nil) {
-		return err
+		return "", err
 	}
 	err = vmdef.From_xml(&vm, xml)
 	if (err != nil) {
-		return err
+		return "", err
 	}
 	err = vmdef.Validate(&vm)
 	if (err != nil) {
-		return err
+		return "", err
 	}
-	err = hypervisor.Define_domain(xml, uuid)
+	xml, err = hypervisor.Define_domain(xml)
 	if (err != nil) {
-		return err
+		return "", err
 	}
-	return nil
+	return xml, nil
 }

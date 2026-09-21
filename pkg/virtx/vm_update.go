@@ -22,6 +22,7 @@ import (
 
 	"suse.com/virtx/pkg/hypervisor"
 	"suse.com/virtx/pkg/logger"
+	"suse.com/virtx/pkg/machine"
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/reg"
 	"suse.com/virtx/pkg/vmdef"
@@ -105,17 +106,24 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	/* redefine the updated domain */
-	err = hypervisor.Define_domain(xml, uuid)
+	xml, err = hypervisor.Define_domain(xml)
 	if (err != nil) {
 		logger.Log("hypervisor.Define_domain failed: %s", err.Error())
 		storage.Rollback(created, uuid)
 		http.Error(w, "could not define VM", http.StatusFailedDependency)
 		return
 	}
-	err = storage.Delete(&old, &o.Vmdef, uuid, o.Deletestorage)
-	if (err != nil) {
-		w.Header().Set("Warning", `299 VirtX "some resources could not be deleted"`)
-		/* respond with Ok (there was a Warning) */
+	reg_err := reg.Save(machine.Uuid(), uuid, xml)
+	if (reg_err != nil) {
+		logger.Log("vm_update: reg.Save failed: %s", reg_err.Error())
+		w.Header().Set("Warning", `299 VirtX "VM updated but registration failed"`)
+	}
+	storage_err := storage.Delete(&old, &o.Vmdef, uuid, o.Deletestorage)
+	if (storage_err != nil) {
+		w.Header().Add("Warning", `299 VirtX "some resources could not be deleted"`)
+	}
+	if (reg_err != nil || storage_err != nil) {
+		/* respond with Ok (there were Warnings) */
 		httpx.Do_response(w, http.StatusOK, nil)
 	} else {
 		/* respond with NoContent (no warnings) */

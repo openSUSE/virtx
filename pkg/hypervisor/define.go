@@ -19,13 +19,9 @@ package hypervisor
 
 import (
 	"libvirt.org/go/libvirt"
-
-	"suse.com/virtx/pkg/logger"
-	"suse.com/virtx/pkg/reg"
-	"suse.com/virtx/pkg/machine"
 )
 
-func Define_domain(xml string, uuid string) error {
+func Define_domain(xml string) (string, error) {
 	var (
 		err error
 		conn *libvirt.Connect
@@ -33,22 +29,17 @@ func Define_domain(xml string, uuid string) error {
 	)
 	conn, err = libvirt.NewConnect(LIBVIRT_URI)
 	if (err != nil) {
-		return err
+		return "", err
 	}
 	defer conn.Close()
 	domain, err = conn.DomainDefineXML(xml)
 	if (err != nil) {
-		return err
+		return "", err
 	}
 	defer domain.Free()
 	xml, err = domain.GetXMLDesc(libvirt.DOMAIN_XML_INACTIVE)
 	if (err != nil) {
-		return err
+		return "", err
 	}
-	/* store the processed XML in /vms/reg/host-uuid/vm-uuid/vm-uuid.xml */
-	err = reg.Save(machine.Uuid(), uuid, xml)
-	if (err != nil) {
-		logger.Log("Define_domain: failed to reg.Save(%s, %s)", machine.Uuid(), uuid)
-	}
-	return nil
+	return xml, nil
 }
