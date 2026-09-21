@@ -19,8 +19,6 @@ package hypervisor
 
 import (
 	"errors"
-	"fmt"
-
 	"libvirt.org/go/libvirt"
 
 	"suse.com/virtx/pkg/model"
@@ -186,47 +184,6 @@ func Dumpxml(uuid string) (string, error) {
 		return "", err
 	}
 	return xml, nil
-}
-
-func Shutdown_domain(uuid string, force int16) error {
-	var (
-		err error
-		conn *libvirt.Connect
-		domain *libvirt.Domain
-		op openapi.Operation = openapi.OpVmShutdown
-	)
-	conn, err = libvirt.NewConnect(LIBVIRT_URI)
-	if (err != nil) {
-		return err
-	}
-	defer conn.Close()
-	domain, err = conn.LookupDomainByUUIDString(uuid)
-	if (err != nil) {
-		return err
-	}
-	defer domain.Free()
-	msg := fmt.Sprintf("shutdown force=%d.", force)
-	oplog_off, oplog_err := oplog.Start(uuid, op, msg)
-	defer func() {
-		if (oplog_err != nil) {
-			logger.Log("Shutdown_domain: oplog: %s", oplog_err.Error())
-		}
-	}()
-	if (force == 0) {
-		err = domain.Shutdown()
-	} else if (force == 1) {
-		err = domain.DestroyFlags(libvirt.DOMAIN_DESTROY_GRACEFUL)
-	} else {
-		err = domain.DestroyFlags(0)
-	}
-	if (err != nil) {
-		if (oplog_err == nil) {
-			oplog_err = oplog.End(uuid, op, openapi.OPERATION_FAILED, err.Error(), oplog_off)
-		}
-	} else {
-		/* we will wait for the lifecycle event to set the operation to completed */
-	}
-	return err
 }
 
 func Delete_domain(uuid string) error {
