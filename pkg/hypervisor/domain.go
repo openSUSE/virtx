@@ -188,42 +188,6 @@ func Dumpxml(uuid string) (string, error) {
 	return xml, nil
 }
 
-func Pause_domain(uuid string) error {
-	var (
-		err error
-		conn *libvirt.Connect
-		domain *libvirt.Domain
-		op openapi.Operation = openapi.OpVmPause
-	)
-	conn, err = libvirt.NewConnect(LIBVIRT_URI)
-	if (err != nil) {
-		return err
-	}
-	defer conn.Close()
-	domain, err = conn.LookupDomainByUUIDString(uuid)
-	if (err != nil) {
-		return err
-	}
-	defer domain.Free()
-	oplog_off, oplog_err := oplog.Start(uuid, op, "")
-	defer func() {
-		if (oplog_err != nil) {
-			logger.Log("Pause_domain: oplog: %s", oplog_err.Error())
-		}
-	}()
-	err = domain.Suspend()
-	if (err != nil) {
-		if (oplog_err == nil) {
-			oplog_err = oplog.End(uuid, op, openapi.OPERATION_FAILED, err.Error(), oplog_off)
-		}
-		return err
-	}
-	if (oplog_err == nil) {
-		oplog_err = oplog.End(uuid, op, openapi.OPERATION_COMPLETED, "", oplog_off)
-	}
-	return nil
-}
-
 func Resume_domain(uuid string) error {
 	var (
 		err error
