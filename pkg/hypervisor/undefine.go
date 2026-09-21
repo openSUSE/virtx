@@ -21,10 +21,6 @@ import (
 	"errors"
 
 	"libvirt.org/go/libvirt"
-
-	"suse.com/virtx/pkg/logger"
-	"suse.com/virtx/pkg/reg"
-	"suse.com/virtx/pkg/machine"
 )
 
 func Undefine_domain(uuid string) error {
@@ -59,13 +55,5 @@ func Undefine_domain(uuid string) error {
 		libvirt.DOMAIN_UNDEFINE_NVRAM |
 		libvirt.DOMAIN_UNDEFINE_CHECKPOINTS_METADATA)
 	//libvirt.DOMAIN_UNDEFINE_TPM
-	if (err != nil) {
-		return err
-	}
-	/* remove the registered xml file */
-	err = reg.Delete(machine.Uuid(), uuid)
-	if (err != nil) {
-		logger.Log("Undefine_domain: failed to reg.Delete(%s, %s)", machine.Uuid(), uuid)
-	}
-	return nil
+	return err
 }

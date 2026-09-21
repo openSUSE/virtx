@@ -21,7 +21,9 @@ import (
 	"net/http"
 	"suse.com/virtx/pkg/hypervisor"
 	"suse.com/virtx/pkg/logger"
+	"suse.com/virtx/pkg/machine"
 	"suse.com/virtx/pkg/model"
+	"suse.com/virtx/pkg/reg"
 	"suse.com/virtx/pkg/vmdef"
 	"suse.com/virtx/pkg/httpx"
 	"suse.com/virtx/pkg/inventory"
@@ -81,9 +83,16 @@ func vm_delete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to delete VM", http.StatusFailedDependency)
 		return
 	}
-	err = storage.Delete(&vm, nil, uuid, o.Deletestorage)
-	if (err != nil) {
-		w.Header().Set("Warning", `299 VirtX "some resources could not be deleted"`)
+	reg_err := reg.Delete(machine.Uuid(), uuid)
+	if (reg_err != nil) {
+		logger.Log("vm_delete: reg.Delete failed: %s", reg_err.Error())
+		w.Header().Set("Warning", `299 VirtX "VM deleted but deregistration failed"`)
+	}
+	storage_err := storage.Delete(&vm, nil, uuid, o.Deletestorage)
+	if (storage_err != nil) {
+		w.Header().Add("Warning", `299 VirtX "some resources could not be deleted"`)
+	}
+	if (reg_err != nil || storage_err != nil) {
 		httpx.Do_response(w, http.StatusOK, nil)
 	} else {
 		httpx.Do_response(w, http.StatusNoContent, nil)
