@@ -25,7 +25,9 @@ import (
 	"suse.com/virtx/pkg/machine"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/model"
+	"suse.com/virtx/pkg/oplog"
 	"suse.com/virtx/pkg/reg"
+	"suse.com/virtx/pkg/ts"
 	"suse.com/virtx/pkg/vmdef"
 	"suse.com/virtx/pkg/httpx"
 	"suse.com/virtx/pkg/inventory"
@@ -41,6 +43,8 @@ func vm_register(w http.ResponseWriter, r *http.Request) {
 		vr httpx.Request
 		in_libvirt bool
 		in_reg bool
+		oplog_off int64
+		oplog_err error
 	)
 	vr, err = httpx.Decode_request_body(r, &o)
 	if (err != nil) {
@@ -80,21 +84,40 @@ func vm_register(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "invalid host for this VM", http.StatusUnprocessableEntity)
 			return
 		}
+		ts_start := ts.Now()
 		err = vm_register_reg(o.Host, uuid)
 		if (err != nil) {
 			logger.Log("vm_register_reg failed: %s", err.Error())
 			http.Error(w, "failed to register uuid", http.StatusInternalServerError)
 			return
 		}
+		/* vmdir was just created by vm_register_reg; use StartEnd */
+		oplog_err = oplog.StartEnd(uuid, openapi.OpVmRegister, openapi.OPERATION_COMPLETED,
+			"libvirt -> reg", "Registered.", ts_start)
+		if (oplog_err != nil) {
+			logger.Log("vm_register: oplog: %s", oplog_err.Error())
+		}
 		httpx.Do_response(w, http.StatusOK, nil)
 	case !in_libvirt && in_reg:
 		/* orphan in reg: register from reg into libvirt */
+		oplog_off, oplog_err = oplog.Start(uuid, openapi.OpVmRegister, "reg -> libvirt")
+		defer func() {
+			if (oplog_err != nil) {
+				logger.Log("vm_register: oplog: %s", oplog_err.Error())
+			}
+		}()
 		var canonical_xml string
 		canonical_xml, err = vm_register_libvirt(o.Host, uuid)
 		if (err != nil) {
 			logger.Log("vm_register_libvirt failed: %s", err.Error())
+			if (oplog_err == nil) {
+				oplog_err = oplog.End(uuid, openapi.OpVmRegister, openapi.OPERATION_FAILED, err.Error(), oplog_off)
+			}
 			http.Error(w, "failed to register uuid", http.StatusFailedDependency)
 			return
+		}
+		if (oplog_err == nil) {
+			oplog_err = oplog.End(uuid, openapi.OpVmRegister, openapi.OPERATION_COMPLETED, "Registered.", oplog_off)
 		}
 		/*
 		 * libvirt may canonicalize the XML differently from what is stored
