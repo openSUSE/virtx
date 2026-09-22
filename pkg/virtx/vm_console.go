@@ -27,6 +27,8 @@ import (
 	"suse.com/virtx/pkg/httpx"
 	"suse.com/virtx/pkg/inventory"
 	"suse.com/virtx/pkg/logger"
+	"suse.com/virtx/pkg/model"
+	"suse.com/virtx/pkg/oplog"
 )
 
 func vm_console_vnc(w http.ResponseWriter, r *http.Request) {
@@ -36,6 +38,8 @@ func vm_console_vnc(w http.ResponseWriter, r *http.Request) {
 		vminfo inventory.VmInfo
 		port int
 		qemu_conn net.Conn
+		oplog_off int64
+		oplog_err error
 	)
 	uuid = r.PathValue("uuid")
 	if (uuid == "") {
@@ -51,19 +55,38 @@ func vm_console_vnc(w http.ResponseWriter, r *http.Request) {
 		http_proxy_console(vminfo.Host, uuid, "vnc", w, r)
 		return
 	}
+	client_addr := r.Header.Get("X-Forwarded-For")
+	if (client_addr == "") {
+		client_addr = r.RemoteAddr
+	}
+	oplog_off, oplog_err = oplog.Start(uuid, openapi.OpVmConsoleVnc, client_addr)
+	defer func() {
+		if (oplog_err != nil) {
+			logger.Log("vm_console_vnc: oplog: %s", oplog_err.Error())
+		}
+	}()
 	port, err = hypervisor.Get_vnc_port(uuid)
 	if (err != nil) {
 		logger.Log("vm_console_vnc: Get_vnc_port failed: %s", err.Error())
+		if (oplog_err == nil) {
+			oplog_err = oplog.End(uuid, openapi.OpVmConsoleVnc, openapi.OPERATION_FAILED, err.Error(), oplog_off)
+		}
 		http.Error(w, "VNC not available", http.StatusServiceUnavailable)
 		return
 	}
 	qemu_conn, err = net.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", port))
 	if (err != nil) {
 		logger.Log("vm_console_vnc: dial VNC failed: %s", err.Error())
+		if (oplog_err == nil) {
+			oplog_err = oplog.End(uuid, openapi.OpVmConsoleVnc, openapi.OPERATION_FAILED, err.Error(), oplog_off)
+		}
 		http.Error(w, "failed to connect to VNC", http.StatusServiceUnavailable)
 		return
 	}
 	httpx.Console_serve(w, r, qemu_conn)
+	if (oplog_err == nil) {
+		oplog_err = oplog.End(uuid, openapi.OpVmConsoleVnc, openapi.OPERATION_COMPLETED, "", oplog_off)
+	}
 }
 
 func vm_console_serial(w http.ResponseWriter, r *http.Request) {
@@ -72,6 +95,8 @@ func vm_console_serial(w http.ResponseWriter, r *http.Request) {
 		uuid string
 		vminfo inventory.VmInfo
 		serial io.ReadWriteCloser
+		oplog_off int64
+		oplog_err error
 	)
 	uuid = r.PathValue("uuid")
 	if (uuid == "") {
@@ -87,11 +112,27 @@ func vm_console_serial(w http.ResponseWriter, r *http.Request) {
 		http_proxy_console(vminfo.Host, uuid, "serial", w, r)
 		return
 	}
+	client_addr := r.Header.Get("X-Forwarded-For")
+	if (client_addr == "") {
+		client_addr = r.RemoteAddr
+	}
+	oplog_off, oplog_err = oplog.Start(uuid, openapi.OpVmConsoleSerial, client_addr)
+	defer func() {
+		if (oplog_err != nil) {
+			logger.Log("vm_console_serial: oplog: %s", oplog_err.Error())
+		}
+	}()
 	serial, err = hypervisor.Open_serial(uuid)
 	if (err != nil) {
 		logger.Log("vm_console_serial: Open_serial failed: %s", err.Error())
+		if (oplog_err == nil) {
+			oplog_err = oplog.End(uuid, openapi.OpVmConsoleSerial, openapi.OPERATION_FAILED, err.Error(), oplog_off)
+		}
 		http.Error(w, "serial console not available", http.StatusServiceUnavailable)
 		return
 	}
 	httpx.Console_serve(w, r, serial)
+	if (oplog_err == nil) {
+		oplog_err = oplog.End(uuid, openapi.OpVmConsoleSerial, openapi.OPERATION_COMPLETED, "", oplog_off)
+	}
 }

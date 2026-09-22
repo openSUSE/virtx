@@ -127,6 +127,8 @@ func Proxy_console(api_server string, uuid string, console_type string, w http.R
 	req.Header.Set("X-VirtX-Loop", "1")
 	req.Header.Set("Connection", "Upgrade")
 	req.Header.Set("Upgrade", "tcp")
+	client_ip, _, _ := net.SplitHostPort(r.RemoteAddr)
+	req.Header.Set("X-Forwarded-For", client_ip)
 	err = req.Write(target_conn)
 	if (err != nil) {
 		target_conn.Close()
