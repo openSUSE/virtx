@@ -398,6 +398,42 @@ func oplog_update(vm_uuid string, op openapi.Operation, status openapi.Operation
 	return nil
 }
 
+func oplog_head(vm_uuid string, op openapi.Operation, n int) ([]record, error) {
+	var (
+		err error
+		f *os.File
+		fi os.FileInfo
+		rec record
+		nrec, end, i int64
+		recs []record
+	)
+	f, err = os.Open(oplog_file(vm_uuid, op))
+	if (err != nil) {
+		if (os.IsNotExist(err)) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	defer f.Close()
+	fi, err = f.Stat()
+	if (err != nil) {
+		return nil, err
+	}
+	nrec = fi.Size() / RECORD_SIZE
+	end = int64(n)
+	if (end > nrec) {
+		end = nrec
+	}
+	for i = 0; (i < end); i++ {
+		err = oplog_read(&rec, f, i * RECORD_SIZE)
+		if (err != nil) {
+			return recs, err
+		}
+		recs = append(recs, rec)
+	}
+	return recs, nil
+}
+
 func oplog_tail(vm_uuid string, op openapi.Operation, n int) ([]record, error) {
 	var (
 		err error
