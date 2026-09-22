@@ -37,8 +37,10 @@ func vm_register(w http.ResponseWriter, r *http.Request) {
 		o openapi.VmRegisterOptions
 		uuid string
 		vminfo inventory.VmInfo
+		vminfo_err error
 		vr httpx.Request
-		status int
+		in_libvirt bool
+		in_reg bool
 	)
 	vr, err = httpx.Decode_request_body(r, &o)
 	if (err != nil) {
@@ -55,63 +57,59 @@ func vm_register(w http.ResponseWriter, r *http.Request) {
 		http_proxy_request(o.Host, w, vr)
 		return
 	}
-	vminfo, err = inventory.Get_vminfo(uuid)
-	if (err == nil) {
-		/*
-		 * the uuid is known to inventory
-		 *
-		 * in this case the domain must exist in this libvirt.
-		 * Check if it exists in reg, and if not register it from libvirt
-		 */
+	vminfo, vminfo_err = inventory.Get_vminfo(uuid)
+	in_libvirt = (vminfo_err == nil)
+
+	err = reg.Access(o.Host, uuid)
+	in_reg = (err == nil)
+	if (err != nil && !os.IsNotExist(err)) {
+		logger.Log("vm_register: reg.Access failed: %s", err.Error())
+		http.Error(w, "failed to check registration", http.StatusInternalServerError)
+		return
+	}
+
+	switch {
+	case in_libvirt && in_reg:
+		/* both consistent: nothing to repair */
+		httpx.Do_response(w, http.StatusNoContent, nil)
+	case !in_libvirt && !in_reg:
+		http.Error(w, "unknown uuid", http.StatusNotFound)
+	case in_libvirt && !in_reg:
+		/* orphan in libvirt: register from libvirt into reg */
 		if (vminfo.Host != o.Host || vminfo.Host != machine.Uuid()) {
 			http.Error(w, "invalid host for this VM", http.StatusUnprocessableEntity)
 			return
 		}
-		err = reg.Access(o.Host, uuid)
-		if (err == nil) {
-			/* both libvirt and reg have it: already consistent, nothing to repair */
-			httpx.Do_response(w, http.StatusNoContent, nil)
-			return
-		}
-		if (!os.IsNotExist(err)) {
-			logger.Log("vm_register: reg.Access failed: %s", err.Error())
-			http.Error(w, "failed to check registration", http.StatusInternalServerError)
-			return
-		}
-		/* reg entry missing: register from libvirt into reg */
 		err = vm_register_reg(o.Host, uuid)
-		if (err == nil) {
-			status = http.StatusOK
+		if (err != nil) {
+			logger.Log("vm_register_reg failed: %s", err.Error())
+			http.Error(w, "failed to register uuid", http.StatusInternalServerError)
+			return
 		}
-	} else {
-		/* the uuid is unknown to inventory
-		 *
-		 * Check if it exists in libvirt, and if not register it from reg.
-		 */
+		httpx.Do_response(w, http.StatusOK, nil)
+	case !in_libvirt && in_reg:
+		/* orphan in reg: register from reg into libvirt */
 		var canonical_xml string
 		canonical_xml, err = vm_register_libvirt(o.Host, uuid)
-		if (err == nil) {
-			status = http.StatusCreated
-			/*
-			 * libvirt may canonicalize the XML differently from what is stored
-			 * in the registry. Save it back so the registry stays consistent with
-			 * what libvirt actually has. A failure here is non-fatal: the VM is
-			 * registered in libvirt and the registry has the original XML, which
-			 * is close enough for recovery purposes.
-			 */
-			reg_err := reg.Save(o.Host, uuid, canonical_xml)
-			if (reg_err != nil) {
-				logger.Log("vm_register: reg.Save failed: %s", reg_err.Error())
-				w.Header().Set("Warning", `299 VirtX "VM registered but registration update failed"`)
-			}
+		if (err != nil) {
+			logger.Log("vm_register_libvirt failed: %s", err.Error())
+			http.Error(w, "failed to register uuid", http.StatusFailedDependency)
+			return
 		}
+		/*
+		 * libvirt may canonicalize the XML differently from what is stored
+		 * in the registry. Save it back so the registry stays consistent with
+		 * what libvirt actually has. A failure here is non-fatal: the VM is
+		 * registered in libvirt and the registry has the original XML, which
+		 * is close enough for recovery purposes.
+		 */
+		reg_err := reg.Save(o.Host, uuid, canonical_xml)
+		if (reg_err != nil) {
+			logger.Log("vm_register: reg.Save failed: %s", reg_err.Error())
+			w.Header().Set("Warning", `299 VirtX "VM registered but registration update failed"`)
+		}
+		httpx.Do_response(w, http.StatusCreated, nil)
 	}
-	if (err != nil) {
-		logger.Log("failed to register %s/%s: %s", o.Host, uuid, err.Error())
-		http.Error(w, "failed to register uuid", http.StatusFailedDependency)
-		return
-	}
-	httpx.Do_response(w, status, nil)
 }
 
 /* register from libvirt into reg */
