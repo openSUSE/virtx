@@ -233,14 +233,14 @@ func oplog_msg(vm_uuid string, op openapi.Operation, rec *record) (string, strin
 
 func oplog_read(rec *record, f *os.File, offset int64) error {
 	var (
-		buf []byte = make([]byte, RECORD_SIZE)
+		buf [RECORD_SIZE]byte
 		err error
 	)
-	_, err = f.ReadAt(buf, offset)
+	_, err = f.ReadAt(buf[:], offset)
 	if (err != nil) {
 		return err
 	}
-	_, err = sbinary.Decode(buf, binary.LittleEndian, rec)
+	_, err = sbinary.Decode(buf[:], binary.LittleEndian, rec)
 	if (err != nil) {
 		return err
 	}
@@ -249,14 +249,14 @@ func oplog_read(rec *record, f *os.File, offset int64) error {
 
 func oplog_write(rec *record, f *os.File, offset int64) error {
 	var (
-		buf []byte = make([]byte, RECORD_SIZE)
+		buf [RECORD_SIZE]byte
 		err error
 	)
-	_, err = sbinary.Encode(buf, binary.LittleEndian, rec)
+	_, err = sbinary.Encode(buf[:], binary.LittleEndian, rec)
 	if (err != nil) {
 		return err
 	}
-	_, err = f.WriteAt(buf, offset)
+	_, err = f.WriteAt(buf[:], offset)
 	if (err != nil) {
 		return err
 	}
@@ -275,14 +275,14 @@ func oplog_append(rec *record, vm_uuid string, op openapi.Operation) (int64, err
 		err error
 		f *os.File
 		fi os.FileInfo
-		buf []byte = make([]byte, RECORD_SIZE)
+		buf [RECORD_SIZE]byte
 		offset int64
 	)
 	/* set Ts under the lock so the record order matches write order */
 	if (rec.Status == openapi.OPERATION_STARTED) {
 		rec.Ts = ts.Now()
 	}
-	_, err = sbinary.Encode(buf, binary.LittleEndian, rec)
+	_, err = sbinary.Encode(buf[:], binary.LittleEndian, rec)
 	if (err != nil) {
 		return 0, err
 	}
@@ -296,7 +296,7 @@ func oplog_append(rec *record, vm_uuid string, op openapi.Operation) (int64, err
 		return 0, err
 	}
 	offset = (fi.Size() / RECORD_SIZE) * RECORD_SIZE
-	_, err = f.WriteAt(buf, offset)
+	_, err = f.WriteAt(buf[:], offset)
 	if (err != nil) {
 		return 0, err
 	}
