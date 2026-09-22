@@ -385,6 +385,7 @@ const (
 	OpVmRunstateGet
 	OpVmShutdown
 	OpVmStatsGet
+	OpVmUnregister
 	OpVmUpdate
 )
 
@@ -408,6 +409,7 @@ var OperationToString = map[Operation]string{
 	OpVmRunstateGet: "VmRunstateGet",
 	OpVmShutdown: "VmShutdown",
 	OpVmStatsGet: "VmStatsGet",
+	OpVmUnregister: "VmUnregister",
 	OpVmUpdate: "VmUpdate",
 }
 
@@ -431,6 +433,7 @@ var OperationFromString = map[string]Operation{
 	"VmRunstateGet": OpVmRunstateGet,
 	"VmShutdown": OpVmShutdown,
 	"VmStatsGet": OpVmStatsGet,
+	"VmUnregister": OpVmUnregister,
 	"VmUpdate": OpVmUpdate,
 }
 
