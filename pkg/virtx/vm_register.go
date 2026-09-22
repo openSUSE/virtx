@@ -68,9 +68,18 @@ func vm_register(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		err = reg.Access(o.Host, uuid)
-		if (err != nil && os.IsNotExist(err)) {
-			err = vm_register_reg(o.Host, uuid)
+		if (err == nil) {
+			/* both libvirt and reg have it: already consistent, nothing to repair */
+			httpx.Do_response(w, http.StatusNoContent, nil)
+			return
 		}
+		if (!os.IsNotExist(err)) {
+			logger.Log("vm_register: reg.Access failed: %s", err.Error())
+			http.Error(w, "failed to check registration", http.StatusInternalServerError)
+			return
+		}
+		/* reg entry missing: register from libvirt into reg */
+		err = vm_register_reg(o.Host, uuid)
 		if (err == nil) {
 			status = http.StatusOK
 		}
