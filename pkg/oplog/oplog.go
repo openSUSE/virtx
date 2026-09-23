@@ -87,15 +87,15 @@ const MSG_MAX = (4 * KiB) - 1
  * is a relative offset from Msg_start_off.
  */
 type record struct {
+	Op openapi.OperationCode /* the operation code, so the record self-describes */
 	State openapi.OperationState
 	Ts int64
 	Te int64
 	Msg_start_off int64 /* offset of the start message in the .msg file */
 	Msg_end_roff int32 /* offset of the end message, relative to Msg_start_off */
-	Reserved int16 /* unused, keeps the record at 32 bytes */
 }
 /* RECORD_SIZE is the sbinary encoded size of a record. */
-const RECORD_SIZE = 2 + 8 + 8 + 8 + 4 + 2
+const RECORD_SIZE = 2 + 2 + 8 + 8 + 8 + 4
 
 /*
  * oplog_m serializes the writers, which compute the offset they write at from
@@ -206,13 +206,13 @@ func oplog_read_msg(f *os.File, offset int64) (string, error) {
  * oplog_msg returns the messages of a record: the one logged when the operation
  * started, and the one logged when it ended, if there is one.
  */
-func oplog_msg(vm_uuid string, op openapi.OperationCode, rec *record) (string, string, error) {
+func oplog_msg(rec *record, vm_uuid string) (string, string, error) {
 	var (
 		err error
 		f *os.File
 		msgs, msge string
 	)
-	f, err = os.Open(oplog_msg_file(vm_uuid, op))
+	f, err = os.Open(oplog_msg_file(vm_uuid, rec.Op))
 	if (err != nil) {
 		return "", "", err
 	}
@@ -268,7 +268,7 @@ func oplog_write(rec *record, f *os.File, offset int64) error {
  * down, and returns its offset. A partial write becomes harmless, as the next
  * write will just overwrite the extra bytes.
  */
-func oplog_append(rec *record, vm_uuid string, op openapi.OperationCode) (int64, error) {
+func oplog_append(rec *record, vm_uuid string) (int64, error) {
 	oplog_m.Lock()
 	defer oplog_m.Unlock()
 	var (
@@ -286,7 +286,7 @@ func oplog_append(rec *record, vm_uuid string, op openapi.OperationCode) (int64,
 	if (err != nil) {
 		return 0, err
 	}
-	f, err = os.OpenFile(oplog_file(vm_uuid, op), os.O_WRONLY | os.O_CREATE, 0640)
+	f, err = os.OpenFile(oplog_file(vm_uuid, rec.Op), os.O_WRONLY | os.O_CREATE, 0640)
 	if (err != nil) {
 		return 0, err
 	}
@@ -486,14 +486,14 @@ func Start(vm_uuid string, op openapi.OperationCode, msg string) (int64, error) 
 		return 0, err
 	}
 	rec := record{
+		Op: op,
 		State: openapi.OPERATION_STARTED,
 		Ts: 0,
 		Te: 0,
 		Msg_start_off: msg_off,
 		Msg_end_roff: 0,
-		Reserved: 0,
 	}
-	return oplog_append(&rec, vm_uuid, op)
+	return oplog_append(&rec, vm_uuid)
 }
 
 /*
@@ -512,12 +512,12 @@ func StartEnd(vm_uuid string, op openapi.OperationCode, state openapi.OperationS
 		return err
 	}
 	rec := record{
+		Op: op,
 		State: state,
 		Ts: ts_start,
 		Te: ts.Now(),
 		Msg_start_off: msgs_off,
 		Msg_end_roff: 0,
-		Reserved: 0,
 	}
 	if (msge != "") {
 		msge_off, err = oplog_append_msg(vm_uuid, op, msge)
@@ -526,7 +526,7 @@ func StartEnd(vm_uuid string, op openapi.OperationCode, state openapi.OperationS
 		}
 		rec.Msg_end_roff = int32(msge_off - msgs_off)
 	}
-	_, err = oplog_append(&rec, vm_uuid, op)
+	_, err = oplog_append(&rec, vm_uuid)
 	return err
 }
 
@@ -579,6 +579,6 @@ func Load_last(vm_uuid string, op openapi.OperationCode, state *openapi.Operatio
 	*state = recs[0].State
 	*ts_start = recs[0].Ts
 	*ts_end = recs[0].Te
-	*msgs, *msge, err = oplog_msg(vm_uuid, op, &recs[0])
+	*msgs, *msge, err = oplog_msg(&recs[0], vm_uuid)
 	return err
 }
