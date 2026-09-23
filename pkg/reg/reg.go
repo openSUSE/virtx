@@ -32,6 +32,24 @@ import (
  * <REG_DIR>/<host_uuid>/<vm_uuid>/<vm_uuid>.xml
  */
 
+/*
+ * vmdir_leave_callbacks are invoked with vm_uuid whenever the per-VM
+ * directory leaves this host's registration tree: Delete removes it, Move
+ * moves it to another host. Registered by packages that keep their own
+ * per-VM state (e.g. oplog's lock map) needing cleanup at that point.
+ */
+var vmdir_leave_callbacks []func(vm_uuid string)
+
+func Register_vmdir_leave_callback(fn func(vm_uuid string)) {
+	vmdir_leave_callbacks = append(vmdir_leave_callbacks, fn)
+}
+
+func vmdir_left(vm_uuid string) {
+	for _, fn := range vmdir_leave_callbacks {
+		fn(vm_uuid)
+	}
+}
+
 /* get the path of the per-VM directory registered for this VM */
 func Vmdir(host_uuid string, vm_uuid string) string {
 	return fmt.Sprintf("%s/%s/%s", REG_DIR, host_uuid, vm_uuid)
@@ -197,6 +215,7 @@ func Move(new_host string, old_host string, uuid string) error {
 	if (err != nil) {
 		return err
 	}
+	vmdir_left(uuid)
 	return nil
 }
 
@@ -214,6 +233,7 @@ func Delete(host_uuid string, vm_uuid string) error {
 	if (err != nil) {
 		return err
 	}
+	vmdir_left(vm_uuid)
 	return nil
 }
 
