@@ -293,16 +293,11 @@ func oplog_append(rec *record, vm_uuid string) (int64, error) {
 		err error
 		f *os.File
 		fi os.FileInfo
-		buf [RECORD_SIZE]byte
 		offset int64
 	)
 	/* set Ts under the lock so the record order matches write order */
 	if (rec.State == openapi.OPERATION_STARTED) {
 		rec.Ts = ts.Now()
-	}
-	_, err = sbinary.Encode(buf[:], binary.LittleEndian, rec)
-	if (err != nil) {
-		return 0, err
 	}
 	f, err = os.OpenFile(oplog_file(vm_uuid, rec.Op), os.O_WRONLY | os.O_CREATE, 0640)
 	if (err != nil) {
@@ -314,7 +309,7 @@ func oplog_append(rec *record, vm_uuid string) (int64, error) {
 		return 0, err
 	}
 	offset = (fi.Size() / RECORD_SIZE) * RECORD_SIZE
-	_, err = f.WriteAt(buf[:], offset)
+	err = oplog_write(rec, f, offset)
 	if (err != nil) {
 		return 0, err
 	}
