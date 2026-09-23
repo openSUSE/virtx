@@ -63,7 +63,7 @@ import (
  */
 
 /*
- * FIND_LIMIT caps the backward scan in oplog_find_last_status.
+ * FIND_LIMIT caps the backward scan in oplog_find_last_state.
  */
 const FIND_LIMIT = 256
 
@@ -87,7 +87,7 @@ const MSG_MAX = (4 * KiB) - 1
  * is a relative offset from Msg_start_off.
  */
 type record struct {
-	Status openapi.OperationState
+	State openapi.OperationState
 	Ts int64
 	Te int64
 	Msg_start_off int64 /* offset of the start message in the .msg file */
@@ -279,7 +279,7 @@ func oplog_append(rec *record, vm_uuid string, op openapi.Operation) (int64, err
 		offset int64
 	)
 	/* set Ts under the lock so the record order matches write order */
-	if (rec.Status == openapi.OPERATION_STARTED) {
+	if (rec.State == openapi.OPERATION_STARTED) {
 		rec.Ts = ts.Now()
 	}
 	_, err = sbinary.Encode(buf[:], binary.LittleEndian, rec)
@@ -318,7 +318,7 @@ func oplog_append(rec *record, vm_uuid string, op openapi.Operation) (int64, err
 	return offset, nil
 }
 
-func oplog_find_last_status(vm_uuid string, op openapi.Operation, status openapi.OperationState) (int64, error) {
+func oplog_find_last_state(vm_uuid string, op openapi.Operation, state openapi.OperationState) (int64, error) {
 	var (
 		err error
 		f *os.File
@@ -348,7 +348,7 @@ func oplog_find_last_status(vm_uuid string, op openapi.Operation, status openapi
 		if (err != nil) {
 			return -1, err
 		}
-		if (rec.Status == status) {
+		if (rec.State == state) {
 			return i * RECORD_SIZE, nil
 		}
 	}
@@ -356,7 +356,7 @@ func oplog_find_last_status(vm_uuid string, op openapi.Operation, status openapi
 }
 
 /* oplog_update fills in the result of the operation started at offset. */
-func oplog_update(vm_uuid string, op openapi.Operation, status openapi.OperationState, msg string, offset int64, te int64) error {
+func oplog_update(vm_uuid string, op openapi.Operation, state openapi.OperationState, msg string, offset int64, te int64) error {
 	oplog_m.Lock()
 	defer oplog_m.Unlock()
 	var (
@@ -374,7 +374,7 @@ func oplog_update(vm_uuid string, op openapi.Operation, status openapi.Operation
 	if (err != nil) {
 		return err
 	}
-	rec.Status = status
+	rec.State = state
 	rec.Te = te
 	if (msg != "") {
 		msg_off, err = oplog_append_msg(vm_uuid, op, msg)
@@ -486,7 +486,7 @@ func Start(vm_uuid string, op openapi.Operation, msg string) (int64, error) {
 		return 0, err
 	}
 	rec := record{
-		Status: openapi.OPERATION_STARTED,
+		State: openapi.OPERATION_STARTED,
 		Ts: 0,
 		Te: 0,
 		Msg_start_off: msg_off,
@@ -512,7 +512,7 @@ func StartEnd(vm_uuid string, op openapi.Operation, state openapi.OperationState
 		return err
 	}
 	rec := record{
-		Status: state,
+		State: state,
 		Ts: ts_start,
 		Te: ts.Now(),
 		Msg_start_off: msgs_off,
@@ -550,7 +550,7 @@ func Complete(vm_uuid string, op openapi.Operation, msg string) error {
 		err error
 		offset int64
 	)
-	offset, err = oplog_find_last_status(vm_uuid, op, openapi.OPERATION_STARTED)
+	offset, err = oplog_find_last_state(vm_uuid, op, openapi.OPERATION_STARTED)
 	if (err != nil) {
 		return err
 	}
@@ -576,7 +576,7 @@ func Load_last(vm_uuid string, op openapi.Operation, state *openapi.OperationSta
 	if (len(recs) == 0) {
 		return errors.New("oplog.Load_last: no records found")
 	}
-	*state = recs[0].Status
+	*state = recs[0].State
 	*ts_start = recs[0].Ts
 	*ts_end = recs[0].Te
 	*msgs, *msge, err = oplog_msg(vm_uuid, op, &recs[0])
