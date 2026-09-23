@@ -409,6 +409,32 @@ func oplog_bsearch_hi(f *os.File, nrec int64, to int64) (int64, error) {
 	return lo, nil
 }
 
+/*
+ * oplog_range resolves [lo, hi), the index range of records in f
+ * whose start timestamps fall in [from, to], where 0 means unbounded.
+ */
+func oplog_range(f *os.File, nrec int64, from int64, to int64) (int64, int64, error) {
+	var (
+		err error
+		lo, hi int64
+	)
+	lo = 0
+	if (from != 0) {
+		lo, err = oplog_bsearch_lo(f, nrec, from)
+		if (err != nil) {
+			return 0, 0, err
+		}
+	}
+	hi = nrec
+	if (to != 0) {
+		hi, err = oplog_bsearch_hi(f, nrec, to)
+		if (err != nil) {
+			return 0, 0, err
+		}
+	}
+	return lo, hi, nil
+}
+
 func oplog_find_last_state(vm_uuid string, op openapi.OperationCode, state openapi.OperationState) (int64, error) {
 	m := oplog_get_lock(vm_uuid)
 	m.RLock()
