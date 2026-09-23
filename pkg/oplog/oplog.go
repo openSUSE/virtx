@@ -463,6 +463,13 @@ func oplog_range(f *os.File, nrec int64, from int64, to int64) (int64, int64, er
  * binary search). backward walks most-recent-first; otherwise oldest-first.
  *
  * This is the K == 1 case: a single operation code, nothing to merge.
+ *
+ * Possible future optimization: here (unlike the multi-file merge) we
+ * already know the exact matching range [lo, hi) up front, so we could skip
+ * walking in "backward" order at all and instead just read the right slice
+ * of records directly in whatever order the caller wants. That would let
+ * this function honor the caller's requested display order by itself,
+ * instead of relying on oplog_fetch_records's separate reversal step.
  */
 func oplog_fetch_records_op(vm_uuid string, op openapi.OperationCode, from int64, to int64, limit int, backward bool) ([]record, error) {
 	m := oplog_get_lock(vm_uuid)
