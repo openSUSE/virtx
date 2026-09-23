@@ -435,6 +435,59 @@ func oplog_range(f *os.File, nrec int64, from int64, to int64) (int64, int64, er
 	return lo, hi, nil
 }
 
+/*
+ * oplog_fetch_records_op reads up to limit records (0 means no cap) from a
+ * single operation's oplog file, restricted to Ts in [from, to] (found via
+ * binary search). backward walks most-recent-first; otherwise oldest-first.
+ *
+ * This is the K == 1 case: a single operation code, nothing to merge.
+ */
+func oplog_fetch_records_op(vm_uuid string, op openapi.OperationCode, from int64, to int64, limit int, backward bool) ([]record, error) {
+	m := oplog_get_lock(vm_uuid)
+	m.RLock()
+	defer m.RUnlock()
+	var (
+		err error
+		f *os.File
+		nrec, lo, hi, i int64
+		rec record
+		recs []record
+	)
+	f, nrec, err = oplog_open(vm_uuid, op)
+	if (err != nil) {
+		return nil, err
+	}
+	if (f == nil) {
+		return nil, nil
+	}
+	defer f.Close()
+	lo, hi, err = oplog_range(f, nrec, from, to)
+	if (err != nil) {
+		return nil, err
+	}
+	if (backward) {
+		i = hi - 1
+	} else {
+		i = lo
+	}
+	for ((backward && i >= lo) || (!backward && i < hi)) {
+		if (limit != 0 && len(recs) >= limit) {
+			break
+		}
+		err = oplog_read(&rec, f, i * RECORD_SIZE)
+		if (err != nil) {
+			return recs, err
+		}
+		recs = append(recs, rec)
+		if (backward) {
+			i--
+		} else {
+			i++
+		}
+	}
+	return recs, nil
+}
+
 func oplog_find_last_state(vm_uuid string, op openapi.OperationCode, state openapi.OperationState) (int64, error) {
 	m := oplog_get_lock(vm_uuid)
 	m.RLock()
