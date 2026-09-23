@@ -365,28 +365,28 @@ type Operation int16
 type OperationState int16
 
 const (
-    _ Operation = iota  // dummy first element to start iota at 1
-	OpHostGet
-	OpHostList
-	OpHostStatsGet
-	OpVmBoot
-	OpVmConsoleSerial
-	OpVmConsoleVnc
-	OpVmCreate
-	OpVmDelete
-	OpVmGet
-	OpVmList
-	OpVmMigrate
-	OpVmMigrateAbort
-	OpVmMigrateGet
-	OpVmPause
-	OpVmRegister
-	OpVmResume
-	OpVmRunstateGet
-	OpVmShutdown
-	OpVmStatsGet
-	OpVmUnregister
-	OpVmUpdate
+    _ Operation = iota  // reserved, never assign
+	OpHostGet Operation = 1002
+	OpHostList Operation = 1001
+	OpHostStatsGet Operation = 1003
+	OpVmBoot Operation = 8
+	OpVmConsoleSerial Operation = 18
+	OpVmConsoleVnc Operation = 17
+	OpVmCreate Operation = 1
+	OpVmDelete Operation = 5
+	OpVmGet Operation = 4
+	OpVmList Operation = 2
+	OpVmMigrate Operation = 12
+	OpVmMigrateAbort Operation = 14
+	OpVmMigrateGet Operation = 13
+	OpVmPause Operation = 10
+	OpVmRegister Operation = 15
+	OpVmResume Operation = 11
+	OpVmRunstateGet Operation = 7
+	OpVmShutdown Operation = 9
+	OpVmStatsGet Operation = 6
+	OpVmUnregister Operation = 16
+	OpVmUpdate Operation = 3
 )
 
 var OperationToString = map[Operation]string{
