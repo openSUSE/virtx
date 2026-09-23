@@ -957,3 +957,35 @@ func Load_last(vm_uuid string, op openapi.OperationCode, state *openapi.Operatio
 	*msgs, *msge, err = oplog_msg(&recs[0], vm_uuid)
 	return err
 }
+
+/*
+ * List returns the oplog entries matching the passed options.
+ */
+func List(vm_uuid string, o *openapi.VmOplogListOptions) (openapi.OplogList, error) {
+	var (
+		err error
+		recs []record
+		list openapi.OplogList
+	)
+	recs, err = oplog_fetch_records(vm_uuid, openapi.OperationCode(o.Op), o.From, o.To, int(o.Head), int(o.Tail), o.Reverse)
+	if (err != nil) {
+		return list, err
+	}
+	list.Items = make([]openapi.OplogItem, len(recs))
+	for i := range recs {
+		var msgs, msge string
+		msgs, msge, err = oplog_msg(&recs[i], vm_uuid)
+		if (err != nil) {
+			return list, err
+		}
+		list.Items[i] = openapi.OplogItem{
+			Op: int16(recs[i].Op),
+			Ts: recs[i].Ts,
+			Te: recs[i].Te,
+			State: recs[i].State,
+			Msgs: msgs,
+			Msge: msge,
+		}
+	}
+	return list, nil
+}
