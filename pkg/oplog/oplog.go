@@ -357,6 +357,58 @@ func oplog_open(vm_uuid string, op openapi.OperationCode) (*os.File, int64, erro
 	return f, fi.Size() / RECORD_SIZE, nil
 }
 
+/*
+ * oplog_bsearch_lo returns the first index in [0, nrec) whose record has
+ * Ts >= from, or nrec if there is none.
+ */
+func oplog_bsearch_lo(f *os.File, nrec int64, from int64) (int64, error) {
+	var (
+		err error
+		rec record
+		lo, hi, mid int64
+	)
+	lo, hi = 0, nrec
+	for (lo < hi) {
+		mid = (lo + hi) / 2
+		err = oplog_read(&rec, f, mid * RECORD_SIZE)
+		if (err != nil) {
+			return 0, err
+		}
+		if (rec.Ts < from) {
+			lo = mid + 1
+		} else {
+			hi = mid
+		}
+	}
+	return lo, nil
+}
+
+/*
+ * oplog_bsearch_hi returns the first index in [0, nrec) whose record has
+ * Ts > to, or nrec if there is none.
+ */
+func oplog_bsearch_hi(f *os.File, nrec int64, to int64) (int64, error) {
+	var (
+		err error
+		rec record
+		lo, hi, mid int64
+	)
+	lo, hi = 0, nrec
+	for (lo < hi) {
+		mid = (lo + hi) / 2
+		err = oplog_read(&rec, f, mid * RECORD_SIZE)
+		if (err != nil) {
+			return 0, err
+		}
+		if (rec.Ts <= to) {
+			lo = mid + 1
+		} else {
+			hi = mid
+		}
+	}
+	return lo, nil
+}
+
 func oplog_find_last_state(vm_uuid string, op openapi.OperationCode, state openapi.OperationState) (int64, error) {
 	m := oplog_get_lock(vm_uuid)
 	m.RLock()
