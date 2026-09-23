@@ -362,7 +362,6 @@ func reportError(format string, a ...interface{}) error {
 }
 
 type Operation int16
-type OperationState int16
 
 const (
     _ Operation = iota  // reserved, never assign
@@ -436,10 +435,3 @@ var OperationFromString = map[string]Operation{
 	"VmUnregister": OpVmUnregister,
 	"VmUpdate": OpVmUpdate,
 }
-
-const (
-	_ OperationState = iota
-	OPERATION_STARTED
-	OPERATION_FAILED
-	OPERATION_COMPLETED
-)

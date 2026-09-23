@@ -22,12 +22,13 @@ var _ MappedNullable = &OplogItem{}
 
 // OplogItem struct for OplogItem
 type OplogItem struct {
-	Op string `json:"op"`
+	// the operation code, see x-opcode. PERSISTED!
+	Op int16 `json:"op"`
 	// 64bit UTC Unix timestamp in milliseconds since Epoc. A 0 value is used if the timestamp is not available.
 	Ts int64 `json:"ts"`
 	// 64bit UTC Unix timestamp in milliseconds since Epoc. A 0 value is used if the timestamp is not available.
 	Te int64 `json:"te"`
-	Status string `json:"status"`
+	State OperationState `json:"state"`
 	Msgs string `json:"msgs"`
 	Msge string `json:"msge"`
 }
@@ -38,7 +39,7 @@ type _OplogItem OplogItem
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewOplogItem(op string, ts int64, te int64, status string, msgs string, msge string) *OplogItem {
+func NewOplogItem(op int16, ts int64, te int64, state OperationState, msgs string, msge string) *OplogItem {
 	this := OplogItem{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
@@ -47,7 +48,7 @@ func NewOplogItem(op string, ts int64, te int64, status string, msgs string, msg
 	this.Op = op
 	this.Ts = ts
 	this.Te = te
-	this.Status = status
+	this.State = state
 	this.Msgs = msgs
 	this.Msge = msge
 	return &this
@@ -62,9 +63,9 @@ func NewOplogItemWithDefaults() *OplogItem {
 }
 
 // GetOp returns the Op field value
-func (o *OplogItem) GetOp() string {
+func (o *OplogItem) GetOp() int16 {
 	if o == nil {
-		var ret string
+		var ret int16
 		return ret
 	}
 
@@ -73,7 +74,7 @@ func (o *OplogItem) GetOp() string {
 
 // GetOpOk returns a tuple with the Op field value
 // and a boolean to check if the value has been set.
-func (o *OplogItem) GetOpOk() (*string, bool) {
+func (o *OplogItem) GetOpOk() (*int16, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -81,7 +82,7 @@ func (o *OplogItem) GetOpOk() (*string, bool) {
 }
 
 // SetOp sets field value
-func (o *OplogItem) SetOp(v string) {
+func (o *OplogItem) SetOp(v int16) {
 	o.Op = v
 }
 
@@ -133,28 +134,28 @@ func (o *OplogItem) SetTe(v int64) {
 	o.Te = v
 }
 
-// GetStatus returns the Status field value
-func (o *OplogItem) GetStatus() string {
+// GetState returns the State field value
+func (o *OplogItem) GetState() OperationState {
 	if o == nil {
-		var ret string
+		var ret OperationState
 		return ret
 	}
 
-	return o.Status
+	return o.State
 }
 
-// GetStatusOk returns a tuple with the Status field value
+// GetStateOk returns a tuple with the State field value
 // and a boolean to check if the value has been set.
-func (o *OplogItem) GetStatusOk() (*string, bool) {
+func (o *OplogItem) GetStateOk() (*OperationState, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.Status, true
+	return &o.State, true
 }
 
-// SetStatus sets field value
-func (o *OplogItem) SetStatus(v string) {
-	o.Status = v
+// SetState sets field value
+func (o *OplogItem) SetState(v OperationState) {
+	o.State = v
 }
 
 // GetMsgs returns the Msgs field value
@@ -210,7 +211,7 @@ func (o OplogItem) ToMap() (map[string]interface{}, error) {
 	toSerialize["op"] = o.Op
 	toSerialize["ts"] = o.Ts
 	toSerialize["te"] = o.Te
-	toSerialize["status"] = o.Status
+	toSerialize["state"] = o.State
 	toSerialize["msgs"] = o.Msgs
 	toSerialize["msge"] = o.Msge
 	return toSerialize, nil
