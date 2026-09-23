@@ -99,15 +99,17 @@ type record struct {
 const RECORD_SIZE = 2 + 2 + 8 + 8 + 8 + 4
 
 /*
- * oplog_locks holds one mutex per VM, created lazily, so serializing writers
- * for one VM never blocks writers for another. Only the host owning the VM
- * writes these files, so serializing the local ones is enough.
+ * oplog_locks holds one RWMutex per VM, created lazily, so serializing
+ * access to one VM's files never blocks another VM's. Only the host owning
+ * the VM writes these files: writers (oplog_append, oplog_update) take the
+ * lock exclusively, readers that can observe a concurrent in-place update
+ * or an in-progress append take it for read.
  */
-var oplog_locks sync.Map /* vm_uuid string -> *sync.Mutex */
+var oplog_locks sync.Map /* vm_uuid string -> *sync.RWMutex */
 
-func oplog_get_lock(vm_uuid string) *sync.Mutex {
-	v, _ := oplog_locks.LoadOrStore(vm_uuid, &sync.Mutex{})
-	return v.(*sync.Mutex)
+func oplog_get_lock(vm_uuid string) *sync.RWMutex {
+	v, _ := oplog_locks.LoadOrStore(vm_uuid, &sync.RWMutex{})
+	return v.(*sync.RWMutex)
 }
 
 /* oplog_forget_vm drops the lock for a VM whose directory has left this host. */
@@ -335,6 +337,9 @@ func oplog_append(rec *record, vm_uuid string) (int64, error) {
 }
 
 func oplog_find_last_state(vm_uuid string, op openapi.OperationCode, state openapi.OperationState) (int64, error) {
+	m := oplog_get_lock(vm_uuid)
+	m.RLock()
+	defer m.RUnlock()
 	var (
 		err error
 		f *os.File
@@ -416,6 +421,9 @@ func oplog_update(vm_uuid string, op openapi.OperationCode, state openapi.Operat
 }
 
 func oplog_head(vm_uuid string, op openapi.OperationCode, n int) ([]record, error) {
+	m := oplog_get_lock(vm_uuid)
+	m.RLock()
+	defer m.RUnlock()
 	var (
 		err error
 		f *os.File
@@ -452,6 +460,9 @@ func oplog_head(vm_uuid string, op openapi.OperationCode, n int) ([]record, erro
 }
 
 func oplog_tail(vm_uuid string, op openapi.OperationCode, n int) ([]record, error) {
+	m := oplog_get_lock(vm_uuid)
+	m.RLock()
+	defer m.RUnlock()
 	var (
 		err error
 		f *os.File
