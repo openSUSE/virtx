@@ -110,6 +110,15 @@ func oplog_get_lock(vm_uuid string) *sync.Mutex {
 	return v.(*sync.Mutex)
 }
 
+/* oplog_forget_vm drops the lock for a VM whose directory has left this host. */
+func oplog_forget_vm(vm_uuid string) {
+	oplog_locks.Delete(vm_uuid)
+}
+
+func init() {
+	reg.Register_vmdir_leave_callback(oplog_forget_vm)
+}
+
 func oplog_dir(vm_uuid string) string {
 	return reg.Vmdir(machine.Uuid(), vm_uuid)
 }
