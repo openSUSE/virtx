@@ -331,6 +331,32 @@ func oplog_append(rec *record, vm_uuid string) (int64, error) {
 	return offset, nil
 }
 
+/*
+ * oplog_open opens the oplog file (the one indicated by op) and returns it along
+ * with its current record count. A missing file returns a nil File; the
+ * caller treats this as an empty log, not an error.
+ */
+func oplog_open(vm_uuid string, op openapi.OperationCode) (*os.File, int64, error) {
+	var (
+		err error
+		f *os.File
+		fi os.FileInfo
+	)
+	f, err = os.Open(oplog_file(vm_uuid, op))
+	if (err != nil) {
+		if (os.IsNotExist(err)) {
+			return nil, 0, nil
+		}
+		return nil, 0, err
+	}
+	fi, err = f.Stat()
+	if (err != nil) {
+		f.Close()
+		return nil, 0, err
+	}
+	return f, fi.Size() / RECORD_SIZE, nil
+}
+
 func oplog_find_last_state(vm_uuid string, op openapi.OperationCode, state openapi.OperationState) (int64, error) {
 	m := oplog_get_lock(vm_uuid)
 	m.RLock()
@@ -338,23 +364,17 @@ func oplog_find_last_state(vm_uuid string, op openapi.OperationCode, state opena
 	var (
 		err error
 		f *os.File
-		fi os.FileInfo
 		rec record
 		nrec, i int64
 	)
-	f, err = os.Open(oplog_file(vm_uuid, op))
+	f, nrec, err = oplog_open(vm_uuid, op)
 	if (err != nil) {
-		if (os.IsNotExist(err)) {
-			return -1, nil
-		}
 		return -1, err
+	}
+	if (f == nil) {
+		return -1, nil
 	}
 	defer f.Close()
-	fi, err = f.Stat()
-	if (err != nil) {
-		return -1, err
-	}
-	nrec = fi.Size() / RECORD_SIZE
 	limit := nrec - FIND_LIMIT
 	if (limit < 0) {
 		limit = 0
@@ -422,24 +442,18 @@ func oplog_head(vm_uuid string, op openapi.OperationCode, n int) ([]record, erro
 	var (
 		err error
 		f *os.File
-		fi os.FileInfo
 		rec record
 		nrec, end, i int64
 		recs []record
 	)
-	f, err = os.Open(oplog_file(vm_uuid, op))
+	f, nrec, err = oplog_open(vm_uuid, op)
 	if (err != nil) {
-		if (os.IsNotExist(err)) {
-			return nil, nil
-		}
 		return nil, err
+	}
+	if (f == nil) {
+		return nil, nil
 	}
 	defer f.Close()
-	fi, err = f.Stat()
-	if (err != nil) {
-		return nil, err
-	}
-	nrec = fi.Size() / RECORD_SIZE
 	end = int64(n)
 	if (end > nrec) {
 		end = nrec
@@ -461,24 +475,18 @@ func oplog_tail(vm_uuid string, op openapi.OperationCode, n int) ([]record, erro
 	var (
 		err error
 		f *os.File
-		fi os.FileInfo
 		rec record
 		nrec, start, i int64
 		recs []record
 	)
-	f, err = os.Open(oplog_file(vm_uuid, op))
+	f, nrec, err = oplog_open(vm_uuid, op)
 	if (err != nil) {
-		if (os.IsNotExist(err)) {
-			return nil, nil
-		}
 		return nil, err
+	}
+	if (f == nil) {
+		return nil, nil
 	}
 	defer f.Close() /* double close ok in Golang */
-	fi, err = f.Stat()
-	if (err != nil) {
-		return nil, err
-	}
-	nrec = fi.Size() / RECORD_SIZE
 	start = nrec - int64(n)
 	if (start < 0) {
 		start = 0
