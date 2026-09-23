@@ -378,6 +378,7 @@ const (
 	OpVmMigrate Operation = 12
 	OpVmMigrateAbort Operation = 14
 	OpVmMigrateGet Operation = 13
+	OpVmOplogList Operation = 19
 	OpVmPause Operation = 10
 	OpVmRegister Operation = 15
 	OpVmResume Operation = 11
@@ -402,6 +403,7 @@ var OperationToString = map[Operation]string{
 	OpVmMigrate: "VmMigrate",
 	OpVmMigrateAbort: "VmMigrateAbort",
 	OpVmMigrateGet: "VmMigrateGet",
+	OpVmOplogList: "VmOplogList",
 	OpVmPause: "VmPause",
 	OpVmRegister: "VmRegister",
 	OpVmResume: "VmResume",
@@ -426,6 +428,7 @@ var OperationFromString = map[string]Operation{
 	"VmMigrate": OpVmMigrate,
 	"VmMigrateAbort": OpVmMigrateAbort,
 	"VmMigrateGet": OpVmMigrateGet,
+	"VmOplogList": OpVmOplogList,
 	"VmPause": OpVmPause,
 	"VmRegister": OpVmRegister,
 	"VmResume": OpVmResume,
