@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"strings"
 	"sync"
 	"suse.com/virtx/pkg/encoding/sbinary"
@@ -645,6 +646,50 @@ func oplog_fetch_records_all(vm_uuid string, from int64, to int64, limit int, ba
 		if (err != nil) {
 			return recs, err
 		}
+	}
+	return recs, nil
+}
+
+/*
+ * oplog_fetch_records resolves the record set for a query: when op != 0 it
+ * reads that single operation's file (oplog_fetch_records_op), skipping the
+ * merge machinery entirely, since there is nothing to merge; when op == 0 it
+ * merges every known operation type (oplog_fetch_records_all).
+ *
+ * head and tail are mutually exclusive. reverse selects the display order:
+ * false is chronological (oldest first), true is reverse chronological
+ * (newest first).
+ */
+func oplog_fetch_records(vm_uuid string, op openapi.OperationCode, from int64, to int64, head int, tail int, reverse bool) ([]record, error) {
+	if (head != 0 && tail != 0) {
+		return nil, errors.New("oplog: head and tail are mutually exclusive")
+	}
+	var (
+		err error
+		recs []record
+		backward bool
+		limit int
+	)
+	switch {
+	case (tail != 0):
+		backward, limit = true, tail
+	case (head != 0):
+		backward, limit = false, head
+	default:
+		backward, limit = true, 0
+	}
+	if (op != 0) {
+		recs, err = oplog_fetch_records_op(vm_uuid, op, from, to, limit, backward)
+	} else {
+		recs, err = oplog_fetch_records_all(vm_uuid, from, to, limit, backward)
+	}
+	if (err != nil) {
+		return nil, err
+	}
+	/* backward yields most-recent-first, forward yields oldest-first; flip
+	 * only when that doesn't already match the requested display order */
+	if (backward != reverse) {
+		slices.Reverse(recs)
 	}
 	return recs, nil
 }
