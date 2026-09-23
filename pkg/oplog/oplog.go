@@ -99,6 +99,27 @@ type record struct {
 const RECORD_SIZE = 2 + 2 + 8 + 8 + 8 + 4
 
 /*
+ * oplog_ops lists every operation code that ever writes to a VM's oplog.
+ * Used by the "merge every operation type" query path, so it knows which
+ * per-type files to open without listing the directory.
+ */
+var oplog_ops = []openapi.OperationCode{
+	openapi.OpVmCreate,
+	openapi.OpVmUpdate,
+	openapi.OpVmDelete,
+	openapi.OpVmRegister,
+	openapi.OpVmUnregister,
+	openapi.OpVmBoot,
+	openapi.OpVmShutdown,
+	openapi.OpVmPause,
+	openapi.OpVmResume,
+	openapi.OpVmMigrate,
+	openapi.OpVmMigrateAbort,
+	openapi.OpVmConsoleVnc,
+	openapi.OpVmConsoleSerial,
+}
+
+/*
  * oplog_locks holds one RWMutex per VM, created lazily, so serializing
  * access to one VM's files never blocks another VM's. Only the host owning
  * the VM writes these files: writers (oplog_append, oplog_update) take the
@@ -483,6 +504,146 @@ func oplog_fetch_records_op(vm_uuid string, op openapi.OperationCode, from int64
 			i--
 		} else {
 			i++
+		}
+	}
+	return recs, nil
+}
+
+/*
+ * oplog_cursor walks one oplog file's records inside [lo, hi), advancing
+ * backward (tail-oriented, most-recent-first) or forward (head-oriented,
+ * oldest-first). peek caches the next unread record so oplog_fetch_records_all
+ * can compare cursors without re-reading; has_data reports whether peek
+ * holds a valid record or the cursor ran out of range.
+ */
+type oplog_cursor struct {
+	f *os.File
+	lo, hi, i int64
+	peek record
+	has_data bool
+}
+
+func oplog_cursor_open(vm_uuid string, op openapi.OperationCode, from int64, to int64, backward bool) (*oplog_cursor, error) {
+	var (
+		err error
+		f *os.File
+		nrec, lo, hi int64
+	)
+	f, nrec, err = oplog_open(vm_uuid, op)
+	if (err != nil) {
+		return nil, err
+	}
+	if (f == nil) {
+		return nil, nil
+	}
+	lo, hi, err = oplog_range(f, nrec, from, to)
+	if (err != nil) {
+		f.Close()
+		return nil, err
+	}
+	c := &oplog_cursor{ f: f, lo: lo, hi: hi }
+	if (backward) {
+		c.i = hi - 1
+	} else {
+		c.i = lo
+	}
+	err = c.fill(backward)
+	if (err != nil) {
+		f.Close()
+		return nil, err
+	}
+	return c, nil
+}
+
+func (c *oplog_cursor) fill(backward bool) error {
+	if (backward && c.i < c.lo) {
+		c.has_data = false
+		return nil
+	}
+	if (!backward && c.i >= c.hi) {
+		c.has_data = false
+		return nil
+	}
+	err := oplog_read(&c.peek, c.f, c.i * RECORD_SIZE)
+	if (err != nil) {
+		return err
+	}
+	c.has_data = true
+	return nil
+}
+
+func (c *oplog_cursor) advance(backward bool) error {
+	if (backward) {
+		c.i--
+	} else {
+		c.i++
+	}
+	return c.fill(backward)
+}
+
+/*
+ * oplog_fetch_records_all performs a k-way merge across the oplog files of
+ * every known operation code (oplog_ops), each individually Ts-ascending.
+ * backward walks from the most recent record of each file toward the
+ * oldest (tail-oriented); forward walks oldest toward most recent
+ * (head-oriented). Only records with Ts in [from, to] are ever visited:
+ * each file's range is found directly via binary search, never by scanning
+ * past it.
+ *
+ * limit caps how many records are returned; 0 means no cap. The result is
+ * ordered by the scan direction: backward is most-recent-first, forward is
+ * oldest-first.
+ */
+func oplog_fetch_records_all(vm_uuid string, from int64, to int64, limit int, backward bool) ([]record, error) {
+	m := oplog_get_lock(vm_uuid)
+	m.RLock()
+	defer m.RUnlock()
+	var (
+		err error
+		cursors []*oplog_cursor
+		recs []record
+	)
+	for _, op := range oplog_ops {
+		var c *oplog_cursor
+		c, err = oplog_cursor_open(vm_uuid, op, from, to, backward)
+		if (err != nil) {
+			for _, c2 := range cursors {
+				c2.f.Close()
+			}
+			return nil, err
+		}
+		if (c != nil) {
+			cursors = append(cursors, c)
+		}
+	}
+	defer func() {
+		for _, c := range cursors {
+			c.f.Close()
+		}
+	}()
+	comes_before := func(a *record, b *record) bool {
+		if (backward) {
+			return a.Ts > b.Ts
+		}
+		return a.Ts < b.Ts
+	}
+	for (limit == 0 || len(recs) < limit) {
+		var next *oplog_cursor
+		for _, c := range cursors {
+			if (!c.has_data) {
+				continue
+			}
+			if (next == nil || comes_before(&c.peek, &next.peek)) {
+				next = c
+			}
+		}
+		if (next == nil) {
+			break
+		}
+		recs = append(recs, next.peek)
+		err = next.advance(backward)
+		if (err != nil) {
+			return recs, err
 		}
 	}
 	return recs, nil
