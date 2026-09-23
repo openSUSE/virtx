@@ -51,9 +51,10 @@ import (
  * into it. A crash can therefore leave an unreferenced string behind, which is
  * harmless, but never a record pointing past the end of the strings file.
  *
- * Only the host owning the VM writes these files. Within that host oplog_m
- * serializes the oplog writers, while the msg file is written with O_APPEND,
- * which the kernel serializes on its own.
+ * Only the host owning the VM writes these files. Within that host, a
+ * per-VM mutex (see oplog_get_lock) serializes the oplog writers for that
+ * VM, while the msg file is written with O_APPEND, which the kernel
+ * serializes on its own.
  *
  * A crash or a partial write can leave a partial trailing record, so the oplog
  * file is not guaranteed to be RECORD_SIZE-aligned. Nothing here assumes it is:
@@ -98,11 +99,16 @@ type record struct {
 const RECORD_SIZE = 2 + 2 + 8 + 8 + 8 + 4
 
 /*
- * oplog_m serializes the writers, which compute the offset they write at from
- * the current file size. Only the host owning the VM writes these files, so
- * serializing the local ones is enough.
+ * oplog_locks holds one mutex per VM, created lazily, so serializing writers
+ * for one VM never blocks writers for another. Only the host owning the VM
+ * writes these files, so serializing the local ones is enough.
  */
-var oplog_m sync.Mutex
+var oplog_locks sync.Map /* vm_uuid string -> *sync.Mutex */
+
+func oplog_get_lock(vm_uuid string) *sync.Mutex {
+	v, _ := oplog_locks.LoadOrStore(vm_uuid, &sync.Mutex{})
+	return v.(*sync.Mutex)
+}
 
 func oplog_dir(vm_uuid string) string {
 	return reg.Vmdir(machine.Uuid(), vm_uuid)
@@ -269,8 +275,9 @@ func oplog_write(rec *record, f *os.File, offset int64) error {
  * write will just overwrite the extra bytes.
  */
 func oplog_append(rec *record, vm_uuid string) (int64, error) {
-	oplog_m.Lock()
-	defer oplog_m.Unlock()
+	m := oplog_get_lock(vm_uuid)
+	m.Lock()
+	defer m.Unlock()
 	var (
 		err error
 		f *os.File
@@ -357,8 +364,9 @@ func oplog_find_last_state(vm_uuid string, op openapi.OperationCode, state opena
 
 /* oplog_update fills in the result of the operation started at offset. */
 func oplog_update(vm_uuid string, op openapi.OperationCode, state openapi.OperationState, msg string, offset int64, te int64) error {
-	oplog_m.Lock()
-	defer oplog_m.Unlock()
+	m := oplog_get_lock(vm_uuid)
+	m.Lock()
+	defer m.Unlock()
 	var (
 		err error
 		f *os.File
