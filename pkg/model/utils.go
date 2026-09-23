@@ -361,35 +361,35 @@ func reportError(format string, a ...interface{}) error {
 	return fmt.Errorf(format, a...)
 }
 
-type Operation int16
+type OperationCode int16
 
 const (
-    _ Operation = iota  // reserved, never assign
-	OpHostGet Operation = 1002
-	OpHostList Operation = 1001
-	OpHostStatsGet Operation = 1003
-	OpVmBoot Operation = 8
-	OpVmConsoleSerial Operation = 18
-	OpVmConsoleVnc Operation = 17
-	OpVmCreate Operation = 1
-	OpVmDelete Operation = 5
-	OpVmGet Operation = 4
-	OpVmList Operation = 2
-	OpVmMigrate Operation = 12
-	OpVmMigrateAbort Operation = 14
-	OpVmMigrateGet Operation = 13
-	OpVmOplogList Operation = 19
-	OpVmPause Operation = 10
-	OpVmRegister Operation = 15
-	OpVmResume Operation = 11
-	OpVmRunstateGet Operation = 7
-	OpVmShutdown Operation = 9
-	OpVmStatsGet Operation = 6
-	OpVmUnregister Operation = 16
-	OpVmUpdate Operation = 3
+    _ OperationCode = iota  // reserved, never assign
+	OpHostGet OperationCode = 1002
+	OpHostList OperationCode = 1001
+	OpHostStatsGet OperationCode = 1003
+	OpVmBoot OperationCode = 8
+	OpVmConsoleSerial OperationCode = 18
+	OpVmConsoleVnc OperationCode = 17
+	OpVmCreate OperationCode = 1
+	OpVmDelete OperationCode = 5
+	OpVmGet OperationCode = 4
+	OpVmList OperationCode = 2
+	OpVmMigrate OperationCode = 12
+	OpVmMigrateAbort OperationCode = 14
+	OpVmMigrateGet OperationCode = 13
+	OpVmOplogList OperationCode = 19
+	OpVmPause OperationCode = 10
+	OpVmRegister OperationCode = 15
+	OpVmResume OperationCode = 11
+	OpVmRunstateGet OperationCode = 7
+	OpVmShutdown OperationCode = 9
+	OpVmStatsGet OperationCode = 6
+	OpVmUnregister OperationCode = 16
+	OpVmUpdate OperationCode = 3
 )
 
-var OperationToString = map[Operation]string{
+var OperationToString = map[OperationCode]string{
 	OpHostGet: "HostGet",
 	OpHostList: "HostList",
 	OpHostStatsGet: "HostStatsGet",
@@ -414,7 +414,7 @@ var OperationToString = map[Operation]string{
 	OpVmUpdate: "VmUpdate",
 }
 
-var OperationFromString = map[string]Operation{
+var OperationFromString = map[string]OperationCode{
 	"HostGet": OpHostGet,
 	"HostList": OpHostList,
 	"HostStatsGet": OpHostStatsGet,

@@ -353,11 +353,11 @@ func (state *OperationState) Parse(s string) error {
 	return errors.New("unknown operation state")
 }
 
-func (o Operation) String() string {
+func (o OperationCode) String() string {
 	return OperationToString[o]
 }
 
-func (o *Operation) Parse(s string) error {
+func (o *OperationCode) Parse(s string) error {
 	var present bool
 	*o, present = OperationFromString[s]
 	if (!present) {

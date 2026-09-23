@@ -163,7 +163,7 @@ func Get_migration_info(uuid string) (openapi.MigrationInfo, error) {
 	 * So, check instead the virtx migration operation record first.
 	 */
 	var (
-		op openapi.Operation = openapi.OpVmMigrate
+		op openapi.OperationCode = openapi.OpVmMigrate
 		state openapi.OperationState
 		msgs, msge string
 		mts, tse int64
@@ -224,7 +224,7 @@ func Abort_migration(uuid string) error {
 	 * So, check instead the virtx migration operation record first.
 	 */
 	var (
-		op openapi.Operation = openapi.OpVmMigrate
+		op openapi.OperationCode = openapi.OpVmMigrate
 		state openapi.OperationState
 		msgs, msge string
 		mts, tse int64

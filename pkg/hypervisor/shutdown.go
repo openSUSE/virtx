@@ -32,7 +32,7 @@ func Shutdown_domain(uuid string, force int16) error {
 		err error
 		conn *libvirt.Connect
 		domain *libvirt.Domain
-		op openapi.Operation = openapi.OpVmShutdown
+		op openapi.OperationCode = openapi.OpVmShutdown
 	)
 	conn, err = libvirt.NewConnect(LIBVIRT_URI)
 	if (err != nil) {

@@ -110,10 +110,10 @@ func oplog_dir(vm_uuid string) string {
 func oplog_syncdir(vm_uuid string) error {
 	return reg.Syncdir(oplog_dir(vm_uuid))
 }
-func oplog_file(vm_uuid string, op openapi.Operation) string {
+func oplog_file(vm_uuid string, op openapi.OperationCode) string {
 	return fmt.Sprintf("%s/%s.oplog", oplog_dir(vm_uuid), op.String())
 }
-func oplog_msg_file(vm_uuid string, op openapi.Operation) string {
+func oplog_msg_file(vm_uuid string, op openapi.OperationCode) string {
 	return fmt.Sprintf("%s/%s.msg", oplog_dir(vm_uuid), op.String())
 }
 
@@ -135,7 +135,7 @@ func oplog_sanitize_msg(msg string) string {
  * offset it was written at.
  * The caller must append msg before writing the oplog record to disk.
  */
-func oplog_append_msg(vm_uuid string, op openapi.Operation, msg string) (int64, error) {
+func oplog_append_msg(vm_uuid string, op openapi.OperationCode, msg string) (int64, error) {
 	var (
 		err error
 		f *os.File
@@ -206,7 +206,7 @@ func oplog_read_msg(f *os.File, offset int64) (string, error) {
  * oplog_msg returns the messages of a record: the one logged when the operation
  * started, and the one logged when it ended, if there is one.
  */
-func oplog_msg(vm_uuid string, op openapi.Operation, rec *record) (string, string, error) {
+func oplog_msg(vm_uuid string, op openapi.OperationCode, rec *record) (string, string, error) {
 	var (
 		err error
 		f *os.File
@@ -268,7 +268,7 @@ func oplog_write(rec *record, f *os.File, offset int64) error {
  * down, and returns its offset. A partial write becomes harmless, as the next
  * write will just overwrite the extra bytes.
  */
-func oplog_append(rec *record, vm_uuid string, op openapi.Operation) (int64, error) {
+func oplog_append(rec *record, vm_uuid string, op openapi.OperationCode) (int64, error) {
 	oplog_m.Lock()
 	defer oplog_m.Unlock()
 	var (
@@ -318,7 +318,7 @@ func oplog_append(rec *record, vm_uuid string, op openapi.Operation) (int64, err
 	return offset, nil
 }
 
-func oplog_find_last_state(vm_uuid string, op openapi.Operation, state openapi.OperationState) (int64, error) {
+func oplog_find_last_state(vm_uuid string, op openapi.OperationCode, state openapi.OperationState) (int64, error) {
 	var (
 		err error
 		f *os.File
@@ -356,7 +356,7 @@ func oplog_find_last_state(vm_uuid string, op openapi.Operation, state openapi.O
 }
 
 /* oplog_update fills in the result of the operation started at offset. */
-func oplog_update(vm_uuid string, op openapi.Operation, state openapi.OperationState, msg string, offset int64, te int64) error {
+func oplog_update(vm_uuid string, op openapi.OperationCode, state openapi.OperationState, msg string, offset int64, te int64) error {
 	oplog_m.Lock()
 	defer oplog_m.Unlock()
 	var (
@@ -398,7 +398,7 @@ func oplog_update(vm_uuid string, op openapi.Operation, state openapi.OperationS
 	return nil
 }
 
-func oplog_head(vm_uuid string, op openapi.Operation, n int) ([]record, error) {
+func oplog_head(vm_uuid string, op openapi.OperationCode, n int) ([]record, error) {
 	var (
 		err error
 		f *os.File
@@ -434,7 +434,7 @@ func oplog_head(vm_uuid string, op openapi.Operation, n int) ([]record, error) {
 	return recs, nil
 }
 
-func oplog_tail(vm_uuid string, op openapi.Operation, n int) ([]record, error) {
+func oplog_tail(vm_uuid string, op openapi.OperationCode, n int) ([]record, error) {
 	var (
 		err error
 		f *os.File
@@ -476,7 +476,7 @@ func oplog_tail(vm_uuid string, op openapi.Operation, n int) ([]record, error) {
  * record. The caller passes this offset to End when the operation finishes,
  * so the record can be updated in place.
  */
-func Start(vm_uuid string, op openapi.Operation, msg string) (int64, error) {
+func Start(vm_uuid string, op openapi.OperationCode, msg string) (int64, error) {
 	var (
 		err error
 		msg_off int64
@@ -502,7 +502,7 @@ func Start(vm_uuid string, op openapi.Operation, msg string) (int64, error) {
  * ts_start should be captured by the caller at the real start time, so that the
  * information is preserved and passed here.
  */
-func StartEnd(vm_uuid string, op openapi.Operation, state openapi.OperationState, msgs string, msge string, ts_start int64) error {
+func StartEnd(vm_uuid string, op openapi.OperationCode, state openapi.OperationState, msgs string, msge string, ts_start int64) error {
 	var (
 		err error
 		msgs_off, msge_off int64
@@ -535,7 +535,7 @@ func StartEnd(vm_uuid string, op openapi.Operation, state openapi.OperationState
  * state should be OPERATION_COMPLETED or OPERATION_FAILED.
  * msg is stored after the message the STARTED record already has.
  */
-func End(vm_uuid string, op openapi.Operation, state openapi.OperationState, msg string, offset int64) error {
+func End(vm_uuid string, op openapi.OperationCode, state openapi.OperationState, msg string, offset int64) error {
 	return oplog_update(vm_uuid, op, state, msg, offset, ts.Now())
 }
 
@@ -545,7 +545,7 @@ func End(vm_uuid string, op openapi.Operation, state openapi.OperationState, msg
  * the last STARTED record for this VM on the local host and updates it.
  * msg is stored after the message the STARTED record already has.
  */
-func Complete(vm_uuid string, op openapi.Operation, msg string) error {
+func Complete(vm_uuid string, op openapi.OperationCode, msg string) error {
 	var (
 		err error
 		offset int64
@@ -564,7 +564,7 @@ func Complete(vm_uuid string, op openapi.Operation, msg string) error {
  * Load_last reads the last record for the given operation type on the local
  * host. Used by Get_migration_info and Abort_migration.
  */
-func Load_last(vm_uuid string, op openapi.Operation, state *openapi.OperationState, msgs *string, msge *string, ts_start *int64, ts_end *int64) error {
+func Load_last(vm_uuid string, op openapi.OperationCode, state *openapi.OperationState, msgs *string, msge *string, ts_start *int64, ts_end *int64) error {
 	var (
 		recs []record
 		err error

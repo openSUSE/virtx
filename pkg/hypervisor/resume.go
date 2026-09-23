@@ -30,7 +30,7 @@ func Resume_domain(uuid string) error {
 		err error
 		conn *libvirt.Connect
 		domain *libvirt.Domain
-		op openapi.Operation = openapi.OpVmResume
+		op openapi.OperationCode = openapi.OpVmResume
 	)
 	conn, err = libvirt.NewConnect(LIBVIRT_URI)
 	if (err != nil) {

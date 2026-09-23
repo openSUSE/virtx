@@ -30,7 +30,7 @@ func Pause_domain(uuid string) error {
 		err error
 		conn *libvirt.Connect
 		domain *libvirt.Domain
-		op openapi.Operation = openapi.OpVmPause
+		op openapi.OperationCode = openapi.OpVmPause
 	)
 	conn, err = libvirt.NewConnect(LIBVIRT_URI)
 	if (err != nil) {

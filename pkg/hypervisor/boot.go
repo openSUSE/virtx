@@ -30,7 +30,7 @@ func Boot_domain(uuid string, o *openapi.VmBootOptions) error {
 		err error
 		conn *libvirt.Connect
 		domain *libvirt.Domain
-		op openapi.Operation = openapi.OpVmBoot
+		op openapi.OperationCode = openapi.OpVmBoot
 	)
 	conn, err = libvirt.NewConnect(LIBVIRT_URI)
 	if (err != nil) {
