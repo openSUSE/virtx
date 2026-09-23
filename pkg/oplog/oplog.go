@@ -121,6 +121,17 @@ var oplog_ops = []openapi.OperationCode{
 }
 
 /*
+ * Is_valid_op reports whether op (the raw wire value of a List filter) is
+ * usable: 0 (match every operation type) or one of oplog_ops (an operation
+ * code that actually writes oplog records). Other operation codes are
+ * "valid" in the wider API sense but never produce oplog files, so they are
+ * not valid here.
+ */
+func Is_valid_op(op int16) bool {
+	return op == 0 || slices.Contains(oplog_ops, openapi.OperationCode(op))
+}
+
+/*
  * oplog_locks holds one RWMutex per VM, created lazily, so serializing
  * access to one VM's files never blocks another VM's. Only the host owning
  * the VM writes these files: writers (oplog_append, oplog_update) take the
