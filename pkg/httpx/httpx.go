@@ -244,6 +244,23 @@ func Do_request(api_server string, method string, path string, arg any) (*http.R
 	return resp, nil
 }
 
+/*
+ * Client_ip returns the originating client's address: the X-Forwarded-For
+ * header set by Proxy_request when the request was relayed from another
+ * host, or otherwise the direct peer address (port stripped).
+ */
+func Client_ip(r *http.Request) string {
+	xff := r.Header.Get("X-Forwarded-For")
+	if (xff != "") {
+		return xff
+	}
+	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	if (err != nil) {
+		return r.RemoteAddr
+	}
+	return ip
+}
+
 func Proxy_request(api_server string, w http.ResponseWriter, vr Request) {
 	var (
 		newaddr url.URL
