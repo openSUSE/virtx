@@ -78,7 +78,7 @@ func vm_delete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid VM data", http.StatusInternalServerError)
 		return
 	}
-	oplog_off, oplog_err := oplog.Start(uuid, openapi.OpVmDelete, vm.Name)
+	oplog_off, oplog_err := oplog.Start(uuid, openapi.OpVmDelete, httpx.Client_ip(r), vm.Name)
 	defer func() {
 		if (oplog_err != nil) {
 			logger.Log("vm_delete: oplog: %s", oplog_err.Error())

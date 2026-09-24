@@ -55,11 +55,7 @@ func vm_console_vnc(w http.ResponseWriter, r *http.Request) {
 		http_proxy_console(vminfo.Host, uuid, "vnc", w, r)
 		return
 	}
-	client_addr := r.Header.Get("X-Forwarded-For")
-	if (client_addr == "") {
-		client_addr = r.RemoteAddr
-	}
-	oplog_off, oplog_err = oplog.Start(uuid, openapi.OpVmConsoleVnc, client_addr)
+	oplog_off, oplog_err = oplog.Start(uuid, openapi.OpVmConsoleVnc, httpx.Client_ip(r), "")
 	defer func() {
 		if (oplog_err != nil) {
 			logger.Log("vm_console_vnc: oplog: %s", oplog_err.Error())
@@ -112,11 +108,7 @@ func vm_console_serial(w http.ResponseWriter, r *http.Request) {
 		http_proxy_console(vminfo.Host, uuid, "serial", w, r)
 		return
 	}
-	client_addr := r.Header.Get("X-Forwarded-For")
-	if (client_addr == "") {
-		client_addr = r.RemoteAddr
-	}
-	oplog_off, oplog_err = oplog.Start(uuid, openapi.OpVmConsoleSerial, client_addr)
+	oplog_off, oplog_err = oplog.Start(uuid, openapi.OpVmConsoleSerial, httpx.Client_ip(r), "")
 	defer func() {
 		if (oplog_err != nil) {
 			logger.Log("vm_console_serial: oplog: %s", oplog_err.Error())

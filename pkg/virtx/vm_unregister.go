@@ -95,7 +95,7 @@ func vm_unregister(w http.ResponseWriter, r *http.Request) {
 		httpx.Do_response(w, http.StatusOK, nil)
 	case !in_libvirt && in_reg:
 		/* orphan in registry: remove it */
-		oplog_off, oplog_err = oplog.Start(uuid, openapi.OpVmUnregister, "remove reg")
+		oplog_off, oplog_err = oplog.Start(uuid, openapi.OpVmUnregister, httpx.Client_ip(r), "remove reg")
 		defer func() {
 			if (oplog_err != nil) {
 				logger.Log("vm_unregister: oplog: %s", oplog_err.Error())

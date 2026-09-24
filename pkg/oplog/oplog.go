@@ -862,11 +862,12 @@ func oplog_tail(vm_uuid string, op openapi.OperationCode, n int) ([]record, erro
  * record. The caller passes this offset to End when the operation finishes,
  * so the record can be updated in place.
  */
-func Start(vm_uuid string, op openapi.OperationCode, msg string) (int64, error) {
+func Start(vm_uuid string, op openapi.OperationCode, client_ip string, msg string) (int64, error) {
 	var (
 		err error
 		msg_off int64
 	)
+	msg = fmt.Sprintf("[%s] ", client_ip) + msg
 	msg_off, err = oplog_append_msg(vm_uuid, op, msg)
 	if (err != nil) {
 		return 0, err
@@ -888,11 +889,12 @@ func Start(vm_uuid string, op openapi.OperationCode, msg string) (int64, error) 
  * ts_start should be captured by the caller at the real start time, so that the
  * information is preserved and passed here.
  */
-func StartEnd(vm_uuid string, op openapi.OperationCode, state openapi.OperationState, msgs string, msge string, ts_start int64) error {
+func StartEnd(vm_uuid string, op openapi.OperationCode, state openapi.OperationState, client_ip string, msgs string, msge string, ts_start int64) error {
 	var (
 		err error
 		msgs_off, msge_off int64
 	)
+	msgs = fmt.Sprintf("[%s] ", client_ip) + msgs
 	msgs_off, err = oplog_append_msg(vm_uuid, op, msgs)
 	if (err != nil) {
 		return err

@@ -93,14 +93,14 @@ func vm_register(w http.ResponseWriter, r *http.Request) {
 		}
 		/* vmdir was just created by vm_register_reg; use StartEnd */
 		oplog_err = oplog.StartEnd(uuid, openapi.OpVmRegister, openapi.OPERATION_COMPLETED,
-			"libvirt -> reg", "Registered.", ts_start)
+			httpx.Client_ip(r), "libvirt -> reg", "Registered.", ts_start)
 		if (oplog_err != nil) {
 			logger.Log("vm_register: oplog: %s", oplog_err.Error())
 		}
 		httpx.Do_response(w, http.StatusOK, nil)
 	case !in_libvirt && in_reg:
 		/* orphan in reg: register from reg into libvirt */
-		oplog_off, oplog_err = oplog.Start(uuid, openapi.OpVmRegister, "reg -> libvirt")
+		oplog_off, oplog_err = oplog.Start(uuid, openapi.OpVmRegister, httpx.Client_ip(r), "reg -> libvirt")
 		defer func() {
 			if (oplog_err != nil) {
 				logger.Log("vm_register: oplog: %s", oplog_err.Error())

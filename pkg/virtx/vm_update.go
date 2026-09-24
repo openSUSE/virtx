@@ -91,7 +91,7 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid VM data", http.StatusInternalServerError)
 		return
 	}
-	oplog_off, oplog_err = oplog.Start(uuid, openapi.OpVmUpdate, vmdef.Diff(old, o.Vmdef))
+	oplog_off, oplog_err = oplog.Start(uuid, openapi.OpVmUpdate, httpx.Client_ip(r), vmdef.Diff(old, o.Vmdef))
 	defer func() {
 		if (oplog_err != nil) {
 			logger.Log("vm_update: oplog: %s", oplog_err.Error())

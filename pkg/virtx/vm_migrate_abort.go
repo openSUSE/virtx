@@ -56,7 +56,7 @@ func vm_migrate_abort(w http.ResponseWriter, r *http.Request) {
 		http_proxy_request(host_old, w, vr);
 		return
 	}
-	oplog_off, oplog_err := oplog.Start(uuid, openapi.OpVmMigrateAbort, "")
+	oplog_off, oplog_err := oplog.Start(uuid, openapi.OpVmMigrateAbort, httpx.Client_ip(r), "")
 	defer func() {
 		if (oplog_err != nil) {
 			logger.Log("vm_migrate_abort: oplog: %s", oplog_err.Error())

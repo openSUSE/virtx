@@ -54,7 +54,7 @@ func vm_pause(w http.ResponseWriter, r *http.Request) {
 		http_proxy_request(vminfo.Host, w, vr)
 		return
 	}
-	oplog_off, oplog_err := oplog.Start(uuid, openapi.OpVmPause, "")
+	oplog_off, oplog_err := oplog.Start(uuid, openapi.OpVmPause, httpx.Client_ip(r), "")
 	defer func() {
 		if (oplog_err != nil) {
 			logger.Log("vm_pause: oplog: %s", oplog_err.Error())

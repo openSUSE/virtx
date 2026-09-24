@@ -120,7 +120,7 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 	} else {
 		msg := fmt.Sprintf("name: %s, mem: %d MiB(hp: %t), numa: %t, osdisk: %s", o.Vmdef.Name,
 			o.Vmdef.Memory.Total, o.Vmdef.Memory.Hp, o.Vmdef.Numa.Placement, o.Vmdef.Osdisk.Path)
-		oplog_err := oplog.StartEnd(uuid, openapi.OpVmCreate, openapi.OPERATION_COMPLETED, msg, "Created.", ts_start)
+		oplog_err := oplog.StartEnd(uuid, openapi.OpVmCreate, openapi.OPERATION_COMPLETED, httpx.Client_ip(r), msg, "Created.", ts_start)
 		if (oplog_err != nil) {
 			logger.Log("vm_create: oplog: %s", oplog_err.Error())
 		}

@@ -81,7 +81,7 @@ func vm_boot(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "storage check failed", http.StatusInsufficientStorage)
 		return
 	}
-	oplog_off, oplog_err := oplog.Start(uuid, openapi.OpVmBoot, "")
+	oplog_off, oplog_err := oplog.Start(uuid, openapi.OpVmBoot, httpx.Client_ip(r), "")
 	defer func() {
 		if (oplog_err != nil) {
 			logger.Log("vm_boot: oplog: %s", oplog_err.Error())

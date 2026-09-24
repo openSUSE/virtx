@@ -54,7 +54,7 @@ func vm_resume(w http.ResponseWriter, r *http.Request) {
 		http_proxy_request(vminfo.Host, w, vr)
 		return
 	}
-	oplog_off, oplog_err := oplog.Start(uuid, openapi.OpVmResume, "")
+	oplog_off, oplog_err := oplog.Start(uuid, openapi.OpVmResume, httpx.Client_ip(r), "")
 	defer func() {
 		if (oplog_err != nil) {
 			logger.Log("vm_resume: oplog: %s", oplog_err.Error())

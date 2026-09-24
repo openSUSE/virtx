@@ -62,7 +62,7 @@ func vm_shutdown(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	msg := fmt.Sprintf("shutdown force=%d.", o.Force)
-	oplog_off, oplog_err := oplog.Start(uuid, openapi.OpVmShutdown, msg)
+	oplog_off, oplog_err := oplog.Start(uuid, openapi.OpVmShutdown, httpx.Client_ip(r), msg)
 	defer func() {
 		if (oplog_err != nil) {
 			logger.Log("vm_shutdown: oplog: %s", oplog_err.Error())
