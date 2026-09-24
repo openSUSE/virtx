@@ -287,8 +287,10 @@ For virtual disks, it means that virtxd will use qemu-img to create a new image,
 which can be a .qcow2 or a .raw image. The API allows for Thin-provisioned or Thick-provisioned virtual disks.
 
 For LUNs, it means that virtxd will wipe the contents of the LUN at VM creation time.
+The API distinction between Thin-provisioned and Thick-provisioned for LUNs is
+not implemented. Use either to provision the disk.
 
-By contrast, an "unprovisioned" disk will be assumed to be an existing resource.
+By contrast, an "unprovisioned" disk (0) will be assumed to be an existing resource.
 
 # DEBUG ISSUES
 
