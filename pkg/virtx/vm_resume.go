@@ -70,7 +70,7 @@ func vm_resume(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if (oplog_err == nil) {
-		oplog_err = oplog.End(uuid, openapi.OpVmResume, openapi.OPERATION_COMPLETED, "", oplog_off)
+		oplog_err = oplog.End(uuid, openapi.OpVmResume, openapi.OPERATION_COMPLETED, "Resumed.", oplog_off)
 	}
 	httpx.Do_response(w, http.StatusNoContent, nil)
 }

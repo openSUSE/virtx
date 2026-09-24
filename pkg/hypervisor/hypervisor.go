@@ -206,12 +206,12 @@ func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventL
 	if (e.Event == libvirt.DOMAIN_EVENT_STOPPED) {
 		switch (e.Detail) {
 		case int(libvirt.DOMAIN_EVENT_STOPPED_DESTROYED):
-			err = oplog.Complete(vi.Uuid, openapi.OpVmShutdown, "forced shutdown")
+			err = oplog.Complete(vi.Uuid, openapi.OpVmShutdown, "Shutdown (forced).")
 			if (err != nil) {
 				logger.Log("lifecycle_cb: oplog.Complete: %s", err.Error())
 			}
 		case int(libvirt.DOMAIN_EVENT_STOPPED_SHUTDOWN):
-			err = oplog.Complete(vi.Uuid, openapi.OpVmShutdown, "graceful shutdown")
+			err = oplog.Complete(vi.Uuid, openapi.OpVmShutdown, "Shutdown (graceful).")
 			if (err != nil) {
 				logger.Log("lifecycle_cb: oplog.Complete: %s", err.Error())
 			}

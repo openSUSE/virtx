@@ -121,7 +121,7 @@ func vm_migrate(w http.ResponseWriter, r *http.Request) {
 	} else {
 		msg = "offline"
 	}
-	msg += fmt.Sprintf(" migration from %s to %s.", host_old_id, o.Host)
+	msg += fmt.Sprintf(" %s -> %s", host_old_id, o.Host)
 	oplog_off, oplog_err := oplog.Start(uuid, openapi.OpVmMigrate, httpx.Client_ip(r), msg)
 	if (oplog_err != nil) {
 		logger.Log("vm_migrate: oplog: %s", oplog_err.Error())

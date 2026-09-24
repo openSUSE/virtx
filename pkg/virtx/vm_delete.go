@@ -18,6 +18,7 @@
 package virtx
 
 import (
+	"fmt"
 	"net/http"
 	"suse.com/virtx/pkg/hypervisor"
 	"suse.com/virtx/pkg/logger"
@@ -78,7 +79,8 @@ func vm_delete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid VM data", http.StatusInternalServerError)
 		return
 	}
-	oplog_off, oplog_err := oplog.Start(uuid, openapi.OpVmDelete, httpx.Client_ip(r), vm.Name)
+	msg := fmt.Sprintf("name: %s, osdisk: %s, storage: %t", vm.Name, vm.Osdisk.Path, o.Deletestorage)
+	oplog_off, oplog_err := oplog.Start(uuid, openapi.OpVmDelete, httpx.Client_ip(r), msg)
 	defer func() {
 		if (oplog_err != nil) {
 			logger.Log("vm_delete: oplog: %s", oplog_err.Error())

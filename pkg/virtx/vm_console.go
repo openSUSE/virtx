@@ -40,6 +40,8 @@ func vm_console_vnc(w http.ResponseWriter, r *http.Request) {
 		qemu_conn net.Conn
 		oplog_off int64
 		oplog_err error
+		remote_closed bool
+		msg string
 	)
 	uuid = r.PathValue("uuid")
 	if (uuid == "") {
@@ -79,9 +81,14 @@ func vm_console_vnc(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to connect to VNC", http.StatusServiceUnavailable)
 		return
 	}
-	httpx.Console_serve(w, r, qemu_conn)
+	remote_closed = httpx.Console_serve(w, r, qemu_conn)
+	if (remote_closed) {
+		msg = "Ended (closed by server)."
+	} else {
+		msg = "Ended (closed by client)."
+	}
 	if (oplog_err == nil) {
-		oplog_err = oplog.End(uuid, openapi.OpVmConsoleVnc, openapi.OPERATION_COMPLETED, "", oplog_off)
+		oplog_err = oplog.End(uuid, openapi.OpVmConsoleVnc, openapi.OPERATION_COMPLETED, msg, oplog_off)
 	}
 }
 
@@ -93,6 +100,8 @@ func vm_console_serial(w http.ResponseWriter, r *http.Request) {
 		serial io.ReadWriteCloser
 		oplog_off int64
 		oplog_err error
+		remote_closed bool
+		msg string
 	)
 	uuid = r.PathValue("uuid")
 	if (uuid == "") {
@@ -123,8 +132,13 @@ func vm_console_serial(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "serial console not available", http.StatusServiceUnavailable)
 		return
 	}
-	httpx.Console_serve(w, r, serial)
+	remote_closed = httpx.Console_serve(w, r, serial)
+	if (remote_closed) {
+		msg = "Ended (closed by server)."
+	} else {
+		msg = "Ended (closed by client)."
+	}
 	if (oplog_err == nil) {
-		oplog_err = oplog.End(uuid, openapi.OpVmConsoleSerial, openapi.OPERATION_COMPLETED, "", oplog_off)
+		oplog_err = oplog.End(uuid, openapi.OpVmConsoleSerial, openapi.OPERATION_COMPLETED, msg, oplog_off)
 	}
 }

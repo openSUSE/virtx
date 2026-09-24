@@ -70,7 +70,7 @@ func vm_pause(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if (oplog_err == nil) {
-		oplog_err = oplog.End(uuid, openapi.OpVmPause, openapi.OPERATION_COMPLETED, "", oplog_off)
+		oplog_err = oplog.End(uuid, openapi.OpVmPause, openapi.OPERATION_COMPLETED, "Paused.", oplog_off)
 	}
 	httpx.Do_response(w, http.StatusNoContent, nil)
 }
