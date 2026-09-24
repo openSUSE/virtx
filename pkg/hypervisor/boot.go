@@ -21,8 +21,6 @@ import (
 	"libvirt.org/go/libvirt"
 
 	"suse.com/virtx/pkg/model"
-	"suse.com/virtx/pkg/logger"
-	"suse.com/virtx/pkg/oplog"
 )
 
 func Boot_domain(uuid string, o *openapi.VmBootOptions) error {
@@ -30,7 +28,6 @@ func Boot_domain(uuid string, o *openapi.VmBootOptions) error {
 		err error
 		conn *libvirt.Connect
 		domain *libvirt.Domain
-		op openapi.OperationCode = openapi.OpVmBoot
 	)
 	conn, err = libvirt.NewConnect(LIBVIRT_URI)
 	if (err != nil) {
@@ -42,25 +39,10 @@ func Boot_domain(uuid string, o *openapi.VmBootOptions) error {
 		return err
 	}
 	defer domain.Free()
-	oplog_off, oplog_err := oplog.Start(uuid, op, "")
-	defer func() {
-		if (oplog_err != nil) {
-			logger.Log("Boot_domain: oplog: %s", oplog_err.Error())
-		}
-	}()
 	if (len(o.CloudInit) > 0) {
 		err = cloudinit_boot_domain(uuid, domain, o.CloudInit)
 	} else {
 		err = domain.Create()
 	}
-	if (err != nil) {
-		if (oplog_err == nil) {
-			oplog_err = oplog.End(uuid, op, openapi.OPERATION_FAILED, err.Error(), oplog_off)
-		}
-		return err
-	}
-	if (oplog_err == nil) {
-		oplog_err = oplog.End(uuid, op, openapi.OPERATION_COMPLETED, "", oplog_off)
-	}
-	return nil
+	return err
 }
