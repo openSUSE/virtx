@@ -23,6 +23,8 @@ import (
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/httpx"
 	"suse.com/virtx/pkg/inventory"
+	"suse.com/virtx/pkg/oplog"
+	"suse.com/virtx/pkg/model"
 )
 
 func vm_resume(w http.ResponseWriter, r *http.Request) {
@@ -52,11 +54,23 @@ func vm_resume(w http.ResponseWriter, r *http.Request) {
 		http_proxy_request(vminfo.Host, w, vr)
 		return
 	}
+	oplog_off, oplog_err := oplog.Start(uuid, openapi.OpVmResume, "")
+	defer func() {
+		if (oplog_err != nil) {
+			logger.Log("vm_resume: oplog: %s", oplog_err.Error())
+		}
+	}()
 	err = hypervisor.Resume_domain(uuid)
 	if (err != nil) {
 		logger.Log("hypervisor.Unpause_domain failed: %s", err.Error())
+		if (oplog_err == nil) {
+			oplog_err = oplog.End(uuid, openapi.OpVmResume, openapi.OPERATION_FAILED, err.Error(), oplog_off)
+		}
 		http.Error(w, "could not unpause VM", http.StatusFailedDependency)
 		return
+	}
+	if (oplog_err == nil) {
+		oplog_err = oplog.End(uuid, openapi.OpVmResume, openapi.OPERATION_COMPLETED, "", oplog_off)
 	}
 	httpx.Do_response(w, http.StatusNoContent, nil)
 }
