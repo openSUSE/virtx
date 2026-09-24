@@ -22,7 +22,6 @@ import (
 
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/logger"
-	"suse.com/virtx/pkg/oplog"
 	"suse.com/virtx/pkg/machine"
 	"suse.com/virtx/pkg/inventory"
 	"suse.com/virtx/pkg/metadata"
@@ -83,18 +82,6 @@ func get_domain_event(d *libvirt.Domain, ve *inventory.VmEvent) error {
 			/* XXX I started to see this in my migration tests since 16.1 XXX */
 			logger.Log("XXX DOMAIN_SHUTOFF_MIGRATED encountered, started to see since 16.1 XXX")
 			ve.Runstate = openapi.RUNSTATE_MIGRATING
-		case int(libvirt.DOMAIN_SHUTOFF_DESTROYED):
-			err = oplog.Complete(ve.Uuid, openapi.OpVmShutdown, "forced shutdown")
-			if (err != nil) {
-				logger.Log("get_domain_event: oplog.Complete: %s", err.Error())
-			}
-			ve.Runstate = openapi.RUNSTATE_POWEROFF
-		case int(libvirt.DOMAIN_SHUTOFF_SHUTDOWN):
-			err = oplog.Complete(ve.Uuid, openapi.OpVmShutdown, "graceful shutdown")
-			if (err != nil) {
-				logger.Log("get_domain_event: oplog.Complete: %s", err.Error())
-			}
-			fallthrough
 		default:
 			ve.Runstate = openapi.RUNSTATE_POWEROFF
 		}

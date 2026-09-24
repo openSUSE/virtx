@@ -35,6 +35,7 @@ import (
 
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/logger"
+	"suse.com/virtx/pkg/oplog"
 	"suse.com/virtx/pkg/reg"
 	"suse.com/virtx/pkg/machine"
 	"suse.com/virtx/pkg/inventory"
@@ -201,6 +202,20 @@ func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventL
 	} else if (vi.Runstate != openapi.RUNSTATE_NONE) {
 		logger.Debug("[VmEvent] %s: %v state: %d", vi.Uuid, e, vi.Runstate)
 		hv.vm_event_ch <- vi.VmEvent
+	}
+	if (e.Event == libvirt.DOMAIN_EVENT_STOPPED) {
+		switch (e.Detail) {
+		case int(libvirt.DOMAIN_EVENT_STOPPED_DESTROYED):
+			err = oplog.Complete(vi.Uuid, openapi.OpVmShutdown, "forced shutdown")
+			if (err != nil) {
+				logger.Log("lifecycle_cb: oplog.Complete: %s", err.Error())
+			}
+		case int(libvirt.DOMAIN_EVENT_STOPPED_SHUTDOWN):
+			err = oplog.Complete(vi.Uuid, openapi.OpVmShutdown, "graceful shutdown")
+			if (err != nil) {
+				logger.Log("lifecycle_cb: oplog.Complete: %s", err.Error())
+			}
+		}
 	}
 	/* check for the need to remove a cloudinit disk resource file */
 	if ((e.Event == libvirt.DOMAIN_EVENT_STOPPED && e.Detail != int(libvirt.DOMAIN_EVENT_STOPPED_MIGRATED)) ||
