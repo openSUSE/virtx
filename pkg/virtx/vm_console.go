@@ -57,6 +57,10 @@ func vm_console_vnc(w http.ResponseWriter, r *http.Request) {
 		http_proxy_console(vminfo.Host, uuid, "vnc", w, r)
 		return
 	}
+	if (vminfo.Runstate != openapi.RUNSTATE_RUNNING) {
+		http.Error(w, "VM is not running", http.StatusUnprocessableEntity)
+		return
+	}
 	oplog_off, oplog_err = oplog.Start(uuid, openapi.OpVmConsoleVnc, httpx.Client_ip(r), "")
 	defer func() {
 		if (oplog_err != nil) {
@@ -115,6 +119,10 @@ func vm_console_serial(w http.ResponseWriter, r *http.Request) {
 	}
 	if (http_host_is_remote(vminfo.Host)) {
 		http_proxy_console(vminfo.Host, uuid, "serial", w, r)
+		return
+	}
+	if (vminfo.Runstate != openapi.RUNSTATE_RUNNING) {
+		http.Error(w, "VM is not running", http.StatusUnprocessableEntity)
 		return
 	}
 	oplog_off, oplog_err = oplog.Start(uuid, openapi.OpVmConsoleSerial, httpx.Client_ip(r), "")
