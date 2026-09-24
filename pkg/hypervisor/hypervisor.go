@@ -163,7 +163,6 @@ func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventL
 		}
 		vi.Runstate = openapi.RUNSTATE_DELETED
 		vi.Host = machine.Uuid()
-		vi.Ts = ts.Now()
 	} else {
 		persistent, err = d.IsPersistent()
 		if (err != nil) {
@@ -174,11 +173,11 @@ func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventL
 			return /* ignore transient domains (ongoing migrations) */
 		}
 		err = get_domain_event(d, &vi.VmEvent)
-		vi.Ts = ts.Now()
+		if (err != nil) {
+			logger.Log("lifecycle_cb: event %d: %s:", e.Event, err.Error())
+		}
 	}
-	if (err != nil) {
-		logger.Log("lifecycle_cb: event %d: %s:", e.Event, err.Error())
-	}
+	vi.Ts = ts.Now()
 	if (e.Event == libvirt.DOMAIN_EVENT_DEFINED) {
 		var (
 			si SystemInfo
