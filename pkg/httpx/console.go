@@ -64,8 +64,9 @@ func Console_splice(local io.ReadWriteCloser, remote io.ReadWriteCloser) bool {
  * Console_serve hijacks the HTTP connection, splices it bidirectionally
  * with remote_end. remote_end is closed on exit.
  * Responds 101 if the client requested an upgrade, 200 otherwise.
+ * Returns true if remote_end closed first, false if the client closed first.
  */
-func Console_serve(w http.ResponseWriter, r *http.Request, remote_end io.ReadWriteCloser) {
+func Console_serve(w http.ResponseWriter, r *http.Request, remote_end io.ReadWriteCloser) bool {
 	var (
 		err error
 		client_conn net.Conn
@@ -77,13 +78,13 @@ func Console_serve(w http.ResponseWriter, r *http.Request, remote_end io.ReadWri
 	if (!ok) {
 		remote_end.Close()
 		http.Error(w, "hijacking not supported", http.StatusInternalServerError)
-		return
+		return false
 	}
 	client_conn, client_buf, err = hj.Hijack()
 	if (err != nil) {
 		remote_end.Close()
 		logger.Log("Console_serve: hijack failed: %s", err.Error())
-		return
+		return false
 	}
 	if (r.Header.Get("Upgrade") == "tcp") {
 		client_buf.WriteString("HTTP/1.1 101 Switching Protocols\r\nUpgrade: tcp\r\nConnection: Upgrade\r\n\r\n")
@@ -92,7 +93,7 @@ func Console_serve(w http.ResponseWriter, r *http.Request, remote_end io.ReadWri
 	}
 	client_buf.Flush()
 	pipe := ConsolePipe{ R: client_buf.Reader, W: client_conn, C: client_conn }
-	Console_splice(pipe, remote_end)
+	return Console_splice(pipe, remote_end)
 }
 
 /*
