@@ -391,6 +391,35 @@ func init() {
 	cmd_register_vm.Flags().StringVarP(&virtx.vm_register_options.Host, "host", "h", "", "Register VM on the specified host")
 	cmd_register_vm.MarkFlagRequired("host")
 
+	var cmd_oplog = &cobra.Command{
+		Use:   "oplog",
+		Short: "Show the operation log of a resource",
+	}
+	var cmd_oplog_vm = &cobra.Command{
+		Use:   "vm UUID",
+		Short: "Show the operation log of a VM",
+		Long:  "Show the operation log of the specified VM, identified by UUID, optionally applying filters",
+		Args:  cobra.ExactArgs(1), /* UUID */
+		Run: func(cmd *cobra.Command, args []string) {
+			if (virtx.ok) {
+				if (virtx.result != nil) {
+					vm_oplog_list(virtx.result.(*openapi.OplogList))
+				}
+			} else {
+				op, _ := cmd.Flags().GetString("op")
+				from, _ := cmd.Flags().GetString("from")
+				to, _ := cmd.Flags().GetString("to")
+				vm_oplog_list_req(args[0], op, from, to)
+			}
+		},
+	}
+	cmd_oplog_vm.Flags().StringP("op", "o", "", "Filter by operation name (e.g. VmBoot); default = all")
+	cmd_oplog_vm.Flags().StringP("from", "f", "", "Only include records at/after this time (epoch-ms, RFC3339, or \"YYYY-MM-DD HH:MM:SS\" UTC)")
+	cmd_oplog_vm.Flags().StringP("to", "t", "", "Only include records at/before this time (epoch-ms, RFC3339, or \"YYYY-MM-DD HH:MM:SS\" UTC)")
+	cmd_oplog_vm.Flags().Int32VarP(&virtx.vm_oplog_list_options.Tail, "tail", "n", 0, "Show only the last N records; 0 = no limit (mutually exclusive with --head)")
+	cmd_oplog_vm.Flags().Int32VarP(&virtx.vm_oplog_list_options.Head, "head", "H", 0, "Show only the first N records; 0 = no limit (mutually exclusive with --tail)")
+	cmd_oplog_vm.Flags().BoolVarP(&virtx.vm_oplog_list_options.Reverse, "reverse", "r", false, "Show newest first (reverse chronological)")
+
 	/* XXX ugh. Cobra forces the existence of -h, --help if not overridden explicitly.
 	 * This means that it's impossible to use -h for something else.
 	 * So as a hack we just replace -h with -?, which overrides the standard entry and
@@ -432,6 +461,8 @@ func init() {
 	cmd_abort_migrate.AddCommand(cmd_abort_migrate_vm)
 	cmd.AddCommand(cmd_register)
 	cmd_register.AddCommand(cmd_register_vm)
+	cmd.AddCommand(cmd_oplog)
+	cmd_oplog.AddCommand(cmd_oplog_vm)
 
 	var cmd_console = &cobra.Command{
 		Use:   "console",

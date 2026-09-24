@@ -69,6 +69,8 @@ type VirtxClient struct {
 	vm_migrate_options openapi.VmMigrateOptions
 	vm_register_options openapi.VmRegisterOptions
 	vm_boot_options openapi.VmBootOptions
+	vm_oplog_list_options openapi.VmOplogListOptions
+	oplog_tz int         // display offset (seconds east of UTC) for oplog timestamps
 
 	arg any                     // the argument if needed, the struct to be encoded into body of request
 	result any                  // pointer to struct to be decoded from body of the response
