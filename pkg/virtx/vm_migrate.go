@@ -18,11 +18,13 @@
 package virtx
 
 import (
+	"fmt"
 	"net/http"
 
 	"suse.com/virtx/pkg/hypervisor"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/model"
+	"suse.com/virtx/pkg/oplog"
 	"suse.com/virtx/pkg/reg"
 	"suse.com/virtx/pkg/httpx"
 	"suse.com/virtx/pkg/inventory"
@@ -40,6 +42,7 @@ func vm_migrate(w http.ResponseWriter, r *http.Request) {
 		host_new inventory.HostInfo
 		proxy_hostid string
 		migration_addr string
+		msg string
 	)
 	vr, err = httpx.Decode_request_body(r, &o)
 	if (err != nil) {
@@ -113,11 +116,37 @@ func vm_migrate(w http.ResponseWriter, r *http.Request) {
 		}
 		migration_addr = dest.Net.MigrationAddr
 	}
+	if (o.MigrationType == openapi.MIGRATION_LIVE) {
+		msg = "live"
+	} else {
+		msg = "offline"
+	}
+	msg += fmt.Sprintf(" migration from %s to %s.", host_old_id, o.Host)
+	oplog_off, oplog_err := oplog.Start(uuid, openapi.OpVmMigrate, msg)
+	if (oplog_err != nil) {
+		logger.Log("vm_migrate: oplog: %s", oplog_err.Error())
+	}
 	go func() {
 		err = hypervisor.Migrate_domain(host_new.Name, migration_addr, o.Host, host_old_id, uuid, o.MigrationType == openapi.MIGRATION_LIVE)
 		if (err != nil) {
 			logger.Log("migration of domain %s failed: %s", uuid, err.Error())
+			if (oplog_err == nil) {
+				oplog_err = oplog.End(uuid, openapi.OpVmMigrate, openapi.OPERATION_FAILED, err.Error(), oplog_off)
+				if (oplog_err != nil) {
+					logger.Log("vm_migrate: oplog: %s", oplog_err.Error())
+				}
+			}
 			return
+		}
+		/*
+		 * log COMPLETED before reg.Move so that machine.Uuid() is still the
+		 * correct host (the file moves with the VM directory in the rename).
+		 */
+		if (oplog_err == nil) {
+			oplog_err = oplog.End(uuid, openapi.OpVmMigrate, openapi.OPERATION_COMPLETED, "Migrated.", oplog_off)
+			if (oplog_err != nil) {
+				logger.Log("vm_migrate: oplog: %s", oplog_err.Error())
+			}
 		}
 		/* move the per-VM directory to the destination host path (carries the oplog with it) */
 		err = reg.Move(o.Host, host_old_id, uuid)

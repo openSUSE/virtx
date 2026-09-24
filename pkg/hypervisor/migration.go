@@ -20,7 +20,6 @@ package hypervisor
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 
 	"libvirt.org/go/libvirt"
 
@@ -36,7 +35,6 @@ func Migrate_domain(hostname string, migration_addr string, host_uuid string, ho
 		domain, domain2 *libvirt.Domain
 		params libvirt.DomainMigrateParameters
 		flags libvirt.DomainMigrateFlags
-		msg string
 	)
 	conn, err = libvirt.NewConnect(LIBVIRT_URI)
 	if (err != nil) {
@@ -89,34 +87,12 @@ func Migrate_domain(hostname string, migration_addr string, host_uuid string, ho
 		return err
 	}
 	defer conn2.Close()
-	if (live) {
-		msg = "live"
-	} else {
-		msg = "offline"
-	}
-	msg += fmt.Sprintf(" migration from %s to %s.", host_old, host_uuid)
-	oplog_off, oplog_err := oplog.Start(uuid, openapi.OpVmMigrate, msg)
-	defer func() {
-		if (oplog_err != nil) {
-			logger.Log("Migrate_domain: oplog: %s", oplog_err.Error())
-		}
-	}()
 	domain2, err = domain.Migrate3(conn2, &params, flags)
 	if (err != nil) {
 		logger.Log("Migrate_domain: failed to Migrate3: %s", err.Error())
-		if (oplog_err == nil) {
-			oplog_err = oplog.End(uuid, openapi.OpVmMigrate, openapi.OPERATION_FAILED, err.Error(), oplog_off)
-		}
 		return err
 	}
 	defer domain2.Free()
-	/*
-	 * log COMPLETED before reg.Move so that machine.Uuid() is still the
-	 * correct host (the file moves with the VM directory in the rename).
-	 */
-	if (oplog_err == nil) {
-		oplog_err = oplog.End(uuid, openapi.OpVmMigrate, openapi.OPERATION_COMPLETED, "Migrated.", oplog_off)
-	}
 	return nil
 }
 
