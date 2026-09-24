@@ -18,6 +18,7 @@
 package virtx
 
 import (
+	"fmt"
 	"net/http"
 
 	"suse.com/virtx/pkg/hypervisor"
@@ -25,6 +26,7 @@ import (
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/httpx"
 	"suse.com/virtx/pkg/inventory"
+	"suse.com/virtx/pkg/oplog"
 )
 
 func vm_shutdown(w http.ResponseWriter, r *http.Request) {
@@ -59,12 +61,23 @@ func vm_shutdown(w http.ResponseWriter, r *http.Request) {
 		http_proxy_request(vminfo.Host, w, vr)
 		return
 	}
+	msg := fmt.Sprintf("shutdown force=%d.", o.Force)
+	oplog_off, oplog_err := oplog.Start(uuid, openapi.OpVmShutdown, msg)
+	defer func() {
+		if (oplog_err != nil) {
+			logger.Log("vm_shutdown: oplog: %s", oplog_err.Error())
+		}
+	}()
 	err = hypervisor.Shutdown_domain(uuid, o.Force)
 	if (err != nil) {
 		logger.Log("hypervisor.Shutdown_domain failed: %s", err.Error())
+		if (oplog_err == nil) {
+			oplog_err = oplog.End(uuid, openapi.OpVmShutdown, openapi.OPERATION_FAILED, err.Error(), oplog_off)
+		}
 		http.Error(w, "could not shutdown VM", http.StatusFailedDependency)
 		return
 	}
+	/* on success, wait for the lifecycle event to set the operation to completed */
 	var status int
 	if (o.Force == 0) {
 		/* domain could be shutting down or not, depends on guest ACPI */
