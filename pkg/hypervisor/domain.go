@@ -52,6 +52,10 @@ func get_domain_event(d *libvirt.Domain, ve *inventory.VmEvent) error {
 		return err
 	}
 	logger.Debug("get_domain_event: state %d, reason %d", state, reason)
+	/*
+	 * We try to map states correctly, even though some will not be reachable yet,
+	 * as long as we do not have HA enabled
+	 */
 	switch (state) {
 	//case libvirt.DOMAIN_NOSTATE: /* leave ve.Runstate RUNSTATE_NONE */
 	case libvirt.DOMAIN_RUNNING:
@@ -65,10 +69,10 @@ func get_domain_event(d *libvirt.Domain, ve *inventory.VmEvent) error {
 			ve.Runstate = openapi.RUNSTATE_MIGRATING
 		case int(libvirt.DOMAIN_PAUSED_SHUTTING_DOWN):
 			ve.Runstate = openapi.RUNSTATE_TERMINATING
-		case int(libvirt.DOMAIN_PAUSED_CRASHED):
-			ve.Runstate = openapi.RUNSTATE_CRASHED
 		case int(libvirt.DOMAIN_PAUSED_STARTING_UP):
 			ve.Runstate = openapi.RUNSTATE_STARTUP
+		case int(libvirt.DOMAIN_PAUSED_WATCHDOG): fallthrough /* HA=off */
+		case int(libvirt.DOMAIN_PAUSED_CRASHED): fallthrough  /* HA=off */
 		default:
 			ve.Runstate = openapi.RUNSTATE_PAUSED
 		}
@@ -76,7 +80,11 @@ func get_domain_event(d *libvirt.Domain, ve *inventory.VmEvent) error {
 		ve.Runstate = openapi.RUNSTATE_TERMINATING
 	case libvirt.DOMAIN_SHUTOFF:
 		switch (reason) {
+		case int(libvirt.DOMAIN_SHUTOFF_UNKNOWN): fallthrough
+		case int(libvirt.DOMAIN_SHUTOFF_FAILED): fallthrough
+		case int(libvirt.DOMAIN_SHUTOFF_DAEMON): fallthrough
 		case int(libvirt.DOMAIN_SHUTOFF_CRASHED):
+			/* If HA=on (unimplemented) on HA we will want to restart */
 			ve.Runstate = openapi.RUNSTATE_CRASHED
 		case int(libvirt.DOMAIN_SHUTOFF_MIGRATED):
 			/* XXX I started to see this in my migration tests since 16.1 XXX */
@@ -86,7 +94,8 @@ func get_domain_event(d *libvirt.Domain, ve *inventory.VmEvent) error {
 			ve.Runstate = openapi.RUNSTATE_POWEROFF
 		}
 	case libvirt.DOMAIN_CRASHED:
-		ve.Runstate = openapi.RUNSTATE_CRASHED
+		/* If HA=on (unimplemented), on HA we will want to configure on_crash="restart", so we don't even see this */
+		ve.Runstate = openapi.RUNSTATE_PANIC
 	case libvirt.DOMAIN_PMSUSPENDED:
 		ve.Runstate = openapi.RUNSTATE_RUNNING
 	default:
@@ -95,7 +104,6 @@ func get_domain_event(d *libvirt.Domain, ve *inventory.VmEvent) error {
 	ve.Host = machine.Uuid()
 	return nil
 }
-
 /*
  * get_domain_details fills the inventory.VmDetails read from the domain metadata: the
  * Name and the Custom fields. A domain without virtx-vm metadata is not an error, the
