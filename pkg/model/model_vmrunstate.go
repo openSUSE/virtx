@@ -29,7 +29,7 @@ const (
 	RUNSTATE_PAUSED Vmrunstate = 5
 	RUNSTATE_MIGRATING Vmrunstate = 6
 	RUNSTATE_TERMINATING Vmrunstate = 7
-	RUNSTATE_PMSUSPENDED Vmrunstate = 8
+	RUNSTATE_PANIC Vmrunstate = 8
 	RUNSTATE_CRASHED Vmrunstate = 9
 )
 

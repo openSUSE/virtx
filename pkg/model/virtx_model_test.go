@@ -432,7 +432,7 @@ func Test_vmrunstate_string(t *testing.T) {
 		{RUNSTATE_PAUSED, "paused"},
 		{RUNSTATE_MIGRATING, "migrating"},
 		{RUNSTATE_TERMINATING, "terminating"},
-		{RUNSTATE_PMSUSPENDED, "pmsuspended"},
+		{RUNSTATE_PANIC, "panic"},
 		{RUNSTATE_CRASHED, "crashed"},
 		{Vmrunstate(99), ""},
 	}

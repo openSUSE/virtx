@@ -88,7 +88,7 @@ func get_domain_event(d *libvirt.Domain, ve *inventory.VmEvent) error {
 	case libvirt.DOMAIN_CRASHED:
 		ve.Runstate = openapi.RUNSTATE_CRASHED
 	case libvirt.DOMAIN_PMSUSPENDED:
-		ve.Runstate = openapi.RUNSTATE_PMSUSPENDED
+		ve.Runstate = openapi.RUNSTATE_RUNNING
 	default:
 		logger.Log("Unhandled state %d, reason %d", state, reason)
 	}

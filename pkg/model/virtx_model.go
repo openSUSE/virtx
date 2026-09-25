@@ -256,8 +256,8 @@ func (state Vmrunstate) String() string {
 		return "migrating"
 	case RUNSTATE_TERMINATING:
 		return "terminating"
-	case RUNSTATE_PMSUSPENDED:
-		return "pmsuspended"
+	case RUNSTATE_PANIC:
+		return "panic"
 	case RUNSTATE_CRASHED:
 		return "crashed"
 	}
