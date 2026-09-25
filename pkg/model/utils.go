@@ -373,6 +373,7 @@ const (
 	OpVmConsoleVnc OperationCode = 17
 	OpVmCreate OperationCode = 1
 	OpVmDelete OperationCode = 5
+	OpVmEventlogList OperationCode = 20
 	OpVmGet OperationCode = 4
 	OpVmList OperationCode = 2
 	OpVmMigrate OperationCode = 12
@@ -398,6 +399,7 @@ var OperationToString = map[OperationCode]string{
 	OpVmConsoleVnc: "VmConsoleVnc",
 	OpVmCreate: "VmCreate",
 	OpVmDelete: "VmDelete",
+	OpVmEventlogList: "VmEventlogList",
 	OpVmGet: "VmGet",
 	OpVmList: "VmList",
 	OpVmMigrate: "VmMigrate",
@@ -423,6 +425,7 @@ var OperationFromString = map[string]OperationCode{
 	"VmConsoleVnc": OpVmConsoleVnc,
 	"VmCreate": OpVmCreate,
 	"VmDelete": OpVmDelete,
+	"VmEventlogList": OpVmEventlogList,
 	"VmGet": OpVmGet,
 	"VmList": OpVmList,
 	"VmMigrate": OpVmMigrate,
