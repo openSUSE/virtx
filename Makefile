@@ -18,7 +18,7 @@ virtx-check-lvb: ./cmd/virtx-check-lvb
 build-tests:
 	for PKG in `go list ./...`; do \
 		NAME=`echo $$PKG | tr '/' '_'`; \
-		go test -c -o $${NAME}.test $${PKG}; \
+		go test -c -o $${NAME}.test $${PKG} || exit 1; \
 	done
 
 check: build-tests
