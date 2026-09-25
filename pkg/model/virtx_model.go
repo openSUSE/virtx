@@ -365,3 +365,57 @@ func (o *OperationCode) Parse(s string) error {
 	}
 	return nil
 }
+
+func (c EventClass) String() string {
+	switch (c) {
+	case EVENT_CLASS_ERROR:
+		return "error"
+	case EVENT_CLASS_GUEST:
+		return "guest"
+	}
+	return ""
+}
+
+func (c *EventClass) Parse(s string) error {
+	switch (s) {
+	case "error":
+		*c = EVENT_CLASS_ERROR
+		return nil
+	case "guest":
+		*c = EVENT_CLASS_GUEST
+		return nil
+	}
+	return errors.New("unknown event class")
+}
+
+func (c EventCode) String() string {
+	switch (c) {
+	case EVENT_WATCHDOG:
+		return "watchdog"
+	case EVENT_PANIC:
+		return "panic"
+	case EVENT_CRASH:
+		return "crash"
+	case EVENT_STORAGE:
+		return "storage"
+	}
+	return ""
+}
+
+func (c *EventCode) Parse(s string) error {
+	switch (s) {
+	case "watchdog":
+		*c = EVENT_WATCHDOG
+		return nil
+	case "panic":
+		*c = EVENT_PANIC
+		return nil
+	case "crash":
+		*c = EVENT_CRASH
+		return nil
+	case "storage":
+		*c = EVENT_STORAGE
+		return nil
+	}
+	return errors.New("unknown event code")
+}
