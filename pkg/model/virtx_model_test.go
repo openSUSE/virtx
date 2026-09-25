@@ -558,7 +558,7 @@ func Test_operation_state_parse(t *testing.T) {
 
 func Test_operation_string(t *testing.T) {
 	cases := []struct {
-		op Operation
+		op OperationCode
 		want string
 	}{
 		{OpHostGet, "HostGet"},
@@ -566,7 +566,7 @@ func Test_operation_string(t *testing.T) {
 		{OpVmCreate, "VmCreate"},
 		{OpVmMigrate, "VmMigrate"},
 		{OpVmShutdown, "VmShutdown"},
-		{Operation(99), ""},
+		{OperationCode(99), ""},
 	}
 	for _, tc := range cases {
 		got := tc.op.String()
@@ -579,7 +579,7 @@ func Test_operation_string(t *testing.T) {
 func Test_operation_parse(t *testing.T) {
 	cases := []struct {
 		input string
-		want Operation
+		want OperationCode
 		wantErr bool
 	}{
 		{"HostGet", OpHostGet, false},
@@ -593,7 +593,7 @@ func Test_operation_parse(t *testing.T) {
 		{"", 0, true},
 	}
 	for _, tc := range cases {
-		var op Operation
+		var op OperationCode
 		err := op.Parse(tc.input)
 		if (tc.wantErr) {
 			if (err == nil) {
@@ -635,7 +635,7 @@ func Test_migration_state_roundtrip(t *testing.T) {
 
 func Test_operation_roundtrip(t *testing.T) {
 	for op, str := range OperationToString {
-		var parsed Operation
+		var parsed OperationCode
 		err := parsed.Parse(str)
 		if (err != nil) {
 			t.Errorf("Operation round-trip failed for %d -> %q: %v", op, str, err)
