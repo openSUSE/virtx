@@ -16,7 +16,7 @@ import (
 	"fmt"
 )
 
-// DiskManMode disk management mode. Unmanaged just uses a disk as-is. Only virtual disks (NFS) can be managed, iSCSI LUNs are always unmanaged. A managed, non-existing disk will be created by vm_create, vm_update, a managed, existing disk will be claimed by vm_create, vm_update. 
+// DiskManMode disk management mode. Unmanaged does not lock the disk. A managed, non-existing disk will be created by vm_create, vm_update, a managed, existing disk will be claimed by vm_create, vm_update. 
 type DiskManMode int16
 
 // List of disk_man_mode

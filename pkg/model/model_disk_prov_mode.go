@@ -16,7 +16,7 @@ import (
 	"fmt"
 )
 
-// DiskProvMode disk provisioning mode: thick or thin virtual disks (not relevant for iSCSI LUNs, use NONE) 
+// DiskProvMode disk provisioning mode: thick or thin virtual disks (for iSCSI LUNs both thin and thick behave the same) 
 type DiskProvMode int16
 
 // List of disk_prov_mode
