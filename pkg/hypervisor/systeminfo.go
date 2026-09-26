@@ -1069,13 +1069,9 @@ func system_info_get_hoststats(si *SystemInfo) openapi.Hoststats {
 }
 
 func get_system_info_loop_done() bool {
-	hv.m.RLock()
-	defer hv.m.RUnlock()
-	return hv.system_info_loop_done
+	return hv.system_info_loop_done.Load()
 }
 
 func set_system_info_loop_done() {
-	hv.m.Lock()
-	defer hv.m.Unlock()
-	hv.system_info_loop_done = true
+	hv.system_info_loop_done.Store(true)
 }

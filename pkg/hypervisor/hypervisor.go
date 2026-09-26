@@ -61,7 +61,7 @@ type Hypervisor struct {
 	lifecycle_id int
 	vm_event_ch chan inventory.VmEvent
 	system_info_ch chan SystemInfo
-	system_info_loop_done bool
+	system_info_loop_done atomic.Bool
 
 	vcpu_load_factor float64
 	si *SystemInfo
@@ -148,7 +148,7 @@ func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventL
 	hv.m.RLock()
 	defer hv.m.RUnlock()
 
-	if (!hv.system_info_loop_done) {
+	if (!hv.system_info_loop_done.Load()) {
 		/*
 		 * too early, we cannot generate events for our host.
 		 * For one, we will not be able to set the host uuid properly.
