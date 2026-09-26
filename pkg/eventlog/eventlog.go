@@ -65,6 +65,16 @@ type record struct {
 const RECORD_SIZE = 8 + 2 + 2 + 4 + 8 + 8
 
 /*
+ * API check parameters: 0 is ok (means all)
+ */
+func Is_valid_class(class int16) bool {
+	return class == 0 || openapi.EventClass(class).IsValid()
+}
+func Is_valid_code(code int16) bool {
+	return code == 0 || openapi.EventCode(code).IsValid()
+}
+
+/*
  * eventlog_locks holds one RWMutex per VM, created lazily, mirroring oplog.
  */
 var eventlog_locks reglog.LockMap

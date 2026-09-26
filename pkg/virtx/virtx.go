@@ -65,6 +65,7 @@ func Init() {
 	servemux.HandleFunc("GET /vms/{uuid}/console/vnc", vm_console_vnc)
 	servemux.HandleFunc("GET /vms/{uuid}/console/serial", vm_console_serial)
 	servemux.HandleFunc("GET /vms/{uuid}/oplog", vm_oplog_list)
+	servemux.HandleFunc("GET /vms/{uuid}/eventlog", vm_eventlog_list)
 
 	servemux.HandleFunc("GET /hosts", host_list)
 	servemux.HandleFunc("GET /hosts/{uuid}", host_get)
