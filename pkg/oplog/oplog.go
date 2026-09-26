@@ -76,7 +76,7 @@ const FIND_LIMIT = 256
  * is a relative offset from Msg_start_off.
  */
 type record struct {
-	Ts int64 /* must stay first: reglog.range() reads it directly at byte offset 0 */
+	Ts int64 /* must stay first: reglog.Range() reads it at byte offset 0 */
 	Te int64
 	Op openapi.OperationCode /* the operation code, so the record self-describes */
 	State openapi.OperationState
