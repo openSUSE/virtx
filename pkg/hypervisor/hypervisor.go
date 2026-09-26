@@ -35,6 +35,7 @@ import (
 
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/logger"
+	"suse.com/virtx/pkg/eventlog"
 	"suse.com/virtx/pkg/oplog"
 	"suse.com/virtx/pkg/reg"
 	"suse.com/virtx/pkg/machine"
@@ -59,6 +60,8 @@ type Hypervisor struct {
 
 	conn *libvirt.Connect
 	lifecycle_id int
+	watchdog_id int
+	ioerror_id int
 	vm_event_ch chan inventory.VmEvent
 	system_info_ch chan SystemInfo
 	system_info_loop_done atomic.Bool
@@ -69,6 +72,8 @@ type Hypervisor struct {
 var hv = Hypervisor{
 	m: sync.RWMutex{},
 	lifecycle_id: -1,
+	watchdog_id: -1,
+	ioerror_id: -1,
 }
 
 /*
@@ -131,6 +136,8 @@ func Shutdown() {
 	hv.vm_event_ch = nil
 	hv.system_info_ch = nil
 	hv.lifecycle_id = -1
+	hv.watchdog_id = -1
+	hv.ioerror_id = -1
 	logger.Debug("shutdown complete.")
 }
 
@@ -217,6 +224,27 @@ func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventL
 			}
 		}
 	}
+	/* Events */
+	switch (e.Event) {
+	case libvirt.DOMAIN_EVENT_CRASHED:
+		err = eventlog.Log(vi.Uuid, openapi.EVENT_CLASS_ERROR, openapi.EVENT_PANIC, "Guest crashed.")
+		if (err != nil) {
+			logger.Log("lifecycle_cb: eventlog.Log: %s", err.Error())
+		}
+	case libvirt.DOMAIN_EVENT_STOPPED:
+		switch (e.Detail) {
+		case int(libvirt.DOMAIN_EVENT_STOPPED_CRASHED):
+			err = eventlog.Log(vi.Uuid, openapi.EVENT_CLASS_ERROR, openapi.EVENT_CRASH, "QEMU crashed.")
+			if (err != nil) {
+				logger.Log("lifecycle_cb: eventlog.Log: %s", err.Error())
+			}
+		case int(libvirt.DOMAIN_EVENT_STOPPED_FAILED):
+			err = eventlog.Log(vi.Uuid, openapi.EVENT_CLASS_ERROR, openapi.EVENT_CRASH, "QEMU failed.")
+			if (err != nil) {
+				logger.Log("lifecycle_cb: eventlog.Log: %s", err.Error())
+			}
+		}
+	}
 	/* check for the need to remove a cloudinit disk resource file */
 	if ((e.Event == libvirt.DOMAIN_EVENT_STOPPED && e.Detail != int(libvirt.DOMAIN_EVENT_STOPPED_MIGRATED)) ||
 		e.Event == libvirt.DOMAIN_EVENT_CRASHED) {
@@ -250,10 +278,95 @@ func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventL
 	}
 }
 
+func watchdog_action_string(a libvirt.DomainEventWatchdogAction) string {
+	switch (a) {
+	case libvirt.DOMAIN_EVENT_WATCHDOG_PAUSE:
+		return "pause"
+	case libvirt.DOMAIN_EVENT_WATCHDOG_RESET:
+		return "reset"
+	case libvirt.DOMAIN_EVENT_WATCHDOG_POWEROFF:
+		return "poweroff"
+	case libvirt.DOMAIN_EVENT_WATCHDOG_SHUTDOWN:
+		return "shutdown"
+	case libvirt.DOMAIN_EVENT_WATCHDOG_DEBUG:
+		return "debug"
+	case libvirt.DOMAIN_EVENT_WATCHDOG_INJECTNMI:
+		return "injectnmi"
+	default:
+		return "none"
+	}
+}
+
+func watchdog_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventWatchdog) {
+	var (
+		persistent bool
+		uuid, msg string
+		err error
+	)
+	if (!hv.system_info_loop_done.Load()) {
+		return
+	}
+	persistent, err = d.IsPersistent()
+	if (err != nil) {
+		logger.Log("watchdog_cb: IsPersistent: %s", err.Error())
+		return
+	}
+	if (!persistent) {
+		return
+	}
+	uuid, err = d.GetUUIDString()
+	if (err != nil) {
+		logger.Log("watchdog_cb: GetUUIDString: %s", err.Error())
+		return
+	}
+	msg = fmt.Sprintf("Watchdog triggered (action: %s).", watchdog_action_string(e.Action))
+	err = eventlog.Log(uuid, openapi.EVENT_CLASS_ERROR, openapi.EVENT_WATCHDOG, msg)
+	if (err != nil) {
+		logger.Log("watchdog_cb: eventlog.Log: %s", err.Error())
+	}
+}
+
+func ioerror_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventIOErrorReason) {
+	var (
+		persistent bool
+		uuid, msg string
+		err error
+	)
+	if (!hv.system_info_loop_done.Load()) {
+		return
+	}
+	persistent, err = d.IsPersistent()
+	if (err != nil) {
+		logger.Log("ioerror_cb: IsPersistent: %s", err.Error())
+		return
+	}
+	if (!persistent) {
+		return
+	}
+	uuid, err = d.GetUUIDString()
+	if (err != nil) {
+		logger.Log("ioerror_cb: GetUUIDString: %s", err.Error())
+		return
+	}
+	msg = fmt.Sprintf("Storage I/O error on %s (%s): %s", e.DevAlias, e.SrcPath, e.Reason)
+	err = eventlog.Log(uuid, openapi.EVENT_CLASS_ERROR, openapi.EVENT_STORAGE, msg)
+	if (err != nil) {
+		logger.Log("ioerror_cb: eventlog.Log: %s", err.Error())
+	}
+}
+
 func start_listening() error {
 	/* assert(hv.m.IsLocked()) */
 	var err error
 	hv.lifecycle_id, err = hv.conn.DomainEventLifecycleRegister(nil, lifecycle_cb)
+	if (err != nil) {
+		return err
+	}
+	hv.watchdog_id, err = hv.conn.DomainEventWatchdogRegister(nil, watchdog_cb)
+	if (err != nil) {
+		return err
+	}
+	hv.ioerror_id, err = hv.conn.DomainEventIOErrorReasonRegister(nil, ioerror_cb)
 	if (err != nil) {
 		return err
 	}
@@ -262,12 +375,18 @@ func start_listening() error {
 
 func stop_listening() {
 	/* assert(hv.m.IsLocked()) */
-	if (hv.lifecycle_id < 0) {
-		/* already stopped */
-		return
+	if (hv.lifecycle_id >= 0) {
+		_ = hv.conn.DomainEventDeregister(hv.lifecycle_id)
+		hv.lifecycle_id = -1
 	}
-	_ = hv.conn.DomainEventDeregister(hv.lifecycle_id)
-	hv.lifecycle_id = -1
+	if (hv.watchdog_id >= 0) {
+		_ = hv.conn.DomainEventDeregister(hv.watchdog_id)
+		hv.watchdog_id = -1
+	}
+	if (hv.ioerror_id >= 0) {
+		_ = hv.conn.DomainEventDeregister(hv.ioerror_id)
+		hv.ioerror_id = -1
+	}
 }
 
 /* Return the libvirt domain Events Channel */
