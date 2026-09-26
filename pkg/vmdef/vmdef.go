@@ -824,7 +824,7 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 				},
 			},
 		},
-		/* Panics:, */
+		Panics: []libvirtxml.DomainPanic{{}},
 		/* VSock:, */
 	}
 	domain_genid := func() *libvirtxml.DomainGenID {
