@@ -22,10 +22,10 @@ var _ MappedNullable = &EventlogItem{}
 
 // EventlogItem struct for EventlogItem
 type EventlogItem struct {
-	Class EventClass `json:"class"`
-	Code EventCode `json:"code"`
 	// 64bit UTC Unix timestamp in milliseconds since Epoc. A 0 value is used if the timestamp is not available.
 	Ts int64 `json:"ts"`
+	Class EventClass `json:"class"`
+	Code EventCode `json:"code"`
 	Msg string `json:"msg"`
 }
 
@@ -35,15 +35,15 @@ type _EventlogItem EventlogItem
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewEventlogItem(class EventClass, code EventCode, ts int64, msg string) *EventlogItem {
+func NewEventlogItem(ts int64, class EventClass, code EventCode, msg string) *EventlogItem {
 	this := EventlogItem{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
     var _ = bytes.NewBuffer
 
+	this.Ts = ts
 	this.Class = class
 	this.Code = code
-	this.Ts = ts
 	this.Msg = msg
 	return &this
 }
@@ -54,6 +54,30 @@ func NewEventlogItem(class EventClass, code EventCode, ts int64, msg string) *Ev
 func NewEventlogItemWithDefaults() *EventlogItem {
 	this := EventlogItem{}
 	return &this
+}
+
+// GetTs returns the Ts field value
+func (o *EventlogItem) GetTs() int64 {
+	if o == nil {
+		var ret int64
+		return ret
+	}
+
+	return o.Ts
+}
+
+// GetTsOk returns a tuple with the Ts field value
+// and a boolean to check if the value has been set.
+func (o *EventlogItem) GetTsOk() (*int64, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Ts, true
+}
+
+// SetTs sets field value
+func (o *EventlogItem) SetTs(v int64) {
+	o.Ts = v
 }
 
 // GetClass returns the Class field value
@@ -104,30 +128,6 @@ func (o *EventlogItem) SetCode(v EventCode) {
 	o.Code = v
 }
 
-// GetTs returns the Ts field value
-func (o *EventlogItem) GetTs() int64 {
-	if o == nil {
-		var ret int64
-		return ret
-	}
-
-	return o.Ts
-}
-
-// GetTsOk returns a tuple with the Ts field value
-// and a boolean to check if the value has been set.
-func (o *EventlogItem) GetTsOk() (*int64, bool) {
-	if o == nil {
-		return nil, false
-	}
-	return &o.Ts, true
-}
-
-// SetTs sets field value
-func (o *EventlogItem) SetTs(v int64) {
-	o.Ts = v
-}
-
 // GetMsg returns the Msg field value
 func (o *EventlogItem) GetMsg() string {
 	if o == nil {
@@ -154,9 +154,9 @@ func (o *EventlogItem) SetMsg(v string) {
 
 func (o EventlogItem) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
+	toSerialize["ts"] = o.Ts
 	toSerialize["class"] = o.Class
 	toSerialize["code"] = o.Code
-	toSerialize["ts"] = o.Ts
 	toSerialize["msg"] = o.Msg
 	return toSerialize, nil
 }
