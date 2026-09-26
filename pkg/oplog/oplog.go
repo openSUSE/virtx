@@ -659,10 +659,10 @@ func Start(vm_uuid string, op openapi.OperationCode, client_ip string, msg strin
 		return 0, err
 	}
 	rec := record{
-		Op: op,
-		State: openapi.OPERATION_STARTED,
 		Ts: 0,
 		Te: 0,
+		Op: op,
+		State: openapi.OPERATION_STARTED,
 		Msg_start_off: msg_off,
 		Msg_end_roff: 0,
 	}
@@ -686,10 +686,10 @@ func StartEnd(vm_uuid string, op openapi.OperationCode, state openapi.OperationS
 		return err
 	}
 	rec := record{
-		Op: op,
-		State: state,
 		Ts: ts_start,
 		Te: ts.Now(),
+		Op: op,
+		State: state,
 		Msg_start_off: msgs_off,
 		Msg_end_roff: 0,
 	}
@@ -778,9 +778,9 @@ func List(vm_uuid string, o *openapi.VmOplogListOptions) (openapi.OplogList, err
 			return list, err
 		}
 		list.Items[i] = openapi.OplogItem{
-			Op: int16(recs[i].Op),
 			Ts: recs[i].Ts,
 			Te: recs[i].Te,
+			Op: int16(recs[i].Op),
 			State: recs[i].State,
 			Msgs: msgs,
 			Msge: msge,
