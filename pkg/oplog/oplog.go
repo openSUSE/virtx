@@ -19,21 +19,17 @@
 package oplog
 
 import (
-	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"slices"
-	"strings"
 	"sync"
 	"suse.com/virtx/pkg/encoding/sbinary"
-	"suse.com/virtx/pkg/machine"
 	"suse.com/virtx/pkg/reg"
+	"suse.com/virtx/pkg/reglog"
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/ts"
-	. "suse.com/virtx/pkg/constants"
 )
 
 /*
@@ -70,15 +66,6 @@ import (
 const FIND_LIMIT = 256
 
 /*
- * MSG_MAX is the maximum message length in bytes.
- * libvirt has a theoretical limit of 4MiB, but realistically most messages
- * never even reach 1K. We make it 4K, should be ok for all real use cases.
- *
- * Note that it's 4K - 1 because we want to add a newline.
- */
-const MSG_MAX = (4 * KiB) - 1
-
-/*
  * The record size is 32 bytes, so no record spans two blocks.
  *
  * A record refers to two messages, the Start msg and the End msg.
@@ -89,10 +76,10 @@ const MSG_MAX = (4 * KiB) - 1
  * is a relative offset from Msg_start_off.
  */
 type record struct {
+	Ts int64 /* must stay first: reglog.range() reads it directly at byte offset 0 */
+	Te int64
 	Op openapi.OperationCode /* the operation code, so the record self-describes */
 	State openapi.OperationState
-	Ts int64
-	Te int64
 	Msg_start_off int64 /* offset of the start message in the .msg file */
 	Msg_end_roff int32 /* offset of the end message, relative to Msg_start_off */
 }
@@ -138,46 +125,22 @@ func Is_valid_op(op int16) bool {
  * lock exclusively, readers that can observe a concurrent in-place update
  * or an in-progress append take it for read.
  */
-var oplog_locks sync.Map /* vm_uuid string -> *sync.RWMutex */
+var oplog_locks reglog.LockMap
 
 func oplog_get_lock(vm_uuid string) *sync.RWMutex {
-	v, _ := oplog_locks.LoadOrStore(vm_uuid, &sync.RWMutex{})
-	return v.(*sync.RWMutex)
-}
-
-/* oplog_forget_vm drops the lock for a VM whose directory has left this host. */
-func oplog_forget_vm(vm_uuid string) {
-	oplog_locks.Delete(vm_uuid)
+	return oplog_locks.Get(vm_uuid)
 }
 
 func init() {
-	reg.Register_vmdir_leave_callback(oplog_forget_vm)
+	/* drops the lock for a VM whose directory has left this host */
+	reg.Register_vmdir_leave_callback(oplog_locks.Delete)
 }
 
-func oplog_dir(vm_uuid string) string {
-	return reg.Vmdir(machine.Uuid(), vm_uuid)
-}
-func oplog_syncdir(vm_uuid string) error {
-	return reg.Syncdir(oplog_dir(vm_uuid))
-}
 func oplog_file(vm_uuid string, op openapi.OperationCode) string {
-	return fmt.Sprintf("%s/%s.oplog", oplog_dir(vm_uuid), op.String())
+	return fmt.Sprintf("%s/%s.oplog", reglog.Dir(vm_uuid), op.String())
 }
 func oplog_msg_file(vm_uuid string, op openapi.OperationCode) string {
-	return fmt.Sprintf("%s/%s.msg", oplog_dir(vm_uuid), op.String())
-}
-
-/*
- * oplog_sanitize_msg collapses whitespace to plain spaces, so that a message
- * cannot break the one message per newline layout of the .msg file
- */
-func oplog_sanitize_msg(msg string) string {
-	return strings.Map(func(r rune) rune {
-		if (r >= '\t' && r <= '\r') {
-			return ' '
-		}
-		return r
-	}, msg)
+	return fmt.Sprintf("%s/%s.msg", reglog.Dir(vm_uuid), op.String())
 }
 
 /*
@@ -186,70 +149,7 @@ func oplog_sanitize_msg(msg string) string {
  * The caller must append msg before writing the oplog record to disk.
  */
 func oplog_append_msg(vm_uuid string, op openapi.OperationCode, msg string) (int64, error) {
-	var (
-		err error
-		f *os.File
-		buf []byte
-		offset int64
-	)
-	msg = oplog_sanitize_msg(msg)
-	if (len(msg) > MSG_MAX) {
-		msg = msg[:MSG_MAX]
-	}
-	buf = []byte(msg + "\n")
-	f, err = os.OpenFile(oplog_msg_file(vm_uuid, op), os.O_WRONLY | os.O_CREATE | os.O_APPEND, 0640)
-	if (err != nil) {
-		return 0, err
-	}
-	defer f.Close() /* note: double close is harmless in Golang */
-	/*
-	 * O_APPEND places the write at the end of the file, and leaves this fd
-	 * positioned right after it, so SEEK_CUR gives back where it landed.
-	 */
-	_, err = f.Write(buf)
-	if (err != nil) {
-		return 0, err
-	}
-	offset, err = f.Seek(0, io.SeekCurrent)
-	if (err != nil) {
-		return 0, err
-	}
-	err = f.Sync()
-	if (err != nil) {
-		return 0, err
-	}
-	offset -= int64(len(buf))
-	err = f.Close()
-	if (err != nil) {
-		return 0, err
-	}
-	/* writing at offset 0 can mean the file was just created so add a syncdir */
-	if (offset == 0) {
-		err = oplog_syncdir(vm_uuid)
-		if (err != nil) {
-			return 0, err
-		}
-	}
-	return offset, nil
-}
-
-/* oplog_read_msg returns the message stored at offset in the strings file. */
-func oplog_read_msg(f *os.File, offset int64) (string, error) {
-	var (
-		err error
-		buf []byte = make([]byte, MSG_MAX + 1)
-		n, end int
-	)
-	/* a short read is expected, especially for the last records we don't expect MSG_MAX bytes */
-	n, err = f.ReadAt(buf, offset)
-	if (err != nil && !errors.Is(err, io.EOF)) {
-		return "", err
-	}
-	end = bytes.IndexByte(buf[:n], '\n')
-	if (end < 0) {
-		return "", fmt.Errorf("unterminated message at offset %d of %s", offset, f.Name())
-	}
-	return string(buf[:end]), nil
+	return reglog.Append_msg(oplog_msg_file(vm_uuid, op), msg)
 }
 
 /*
@@ -267,14 +167,14 @@ func oplog_msg(rec *record, vm_uuid string) (string, string, error) {
 		return "", "", err
 	}
 	defer f.Close()
-	msgs, err = oplog_read_msg(f, rec.Msg_start_off)
+	msgs, err = reglog.Read_msg(f, rec.Msg_start_off)
 	if (err != nil) {
 		return "", "", err
 	}
 	if (rec.Msg_end_roff == 0) {
 		return msgs, "", nil
 	}
-	msge, err = oplog_read_msg(f, rec.Msg_start_off + int64(rec.Msg_end_roff))
+	msge, err = reglog.Read_msg(f, rec.Msg_start_off + int64(rec.Msg_end_roff))
 	if (err != nil) {
 		return "", "", err
 	}
@@ -324,44 +224,17 @@ func oplog_append(rec *record, vm_uuid string) (int64, error) {
 	defer m.Unlock()
 	var (
 		err error
-		f *os.File
-		fi os.FileInfo
-		offset int64
+		buf [RECORD_SIZE]byte
 	)
 	/* set Ts under the lock so the record order matches write order */
 	if (rec.State == openapi.OPERATION_STARTED) {
 		rec.Ts = ts.Now()
 	}
-	f, err = os.OpenFile(oplog_file(vm_uuid, rec.Op), os.O_WRONLY | os.O_CREATE, 0640)
+	_, err = sbinary.Encode(buf[:], binary.LittleEndian, rec)
 	if (err != nil) {
 		return 0, err
 	}
-	defer f.Close()
-	fi, err = f.Stat()
-	if (err != nil) {
-		return 0, err
-	}
-	offset = (fi.Size() / RECORD_SIZE) * RECORD_SIZE
-	err = oplog_write(rec, f, offset)
-	if (err != nil) {
-		return 0, err
-	}
-	err = f.Sync()
-	if (err != nil) {
-		return 0, err
-	}
-	err = f.Close()
-	if (err != nil) {
-		return 0, err
-	}
-	/* writing at offset 0 means the file was just created, or is still empty */
-	if (offset == 0) {
-		err = oplog_syncdir(vm_uuid)
-		if (err != nil) {
-			return 0, err
-		}
-	}
-	return offset, nil
+	return reglog.Append_record(oplog_file(vm_uuid, rec.Op), buf[:], RECORD_SIZE)
 }
 
 /*
@@ -370,76 +243,7 @@ func oplog_append(rec *record, vm_uuid string) (int64, error) {
  * caller treats this as an empty log, not an error.
  */
 func oplog_open(vm_uuid string, op openapi.OperationCode) (*os.File, int64, error) {
-	var (
-		err error
-		f *os.File
-		fi os.FileInfo
-	)
-	f, err = os.Open(oplog_file(vm_uuid, op))
-	if (err != nil) {
-		if (os.IsNotExist(err)) {
-			return nil, 0, nil
-		}
-		return nil, 0, err
-	}
-	fi, err = f.Stat()
-	if (err != nil) {
-		f.Close()
-		return nil, 0, err
-	}
-	return f, fi.Size() / RECORD_SIZE, nil
-}
-
-/*
- * oplog_bsearch_lo returns the first index in [0, nrec) whose record has
- * Ts >= from, or nrec if there is none.
- */
-func oplog_bsearch_lo(f *os.File, nrec int64, from int64) (int64, error) {
-	var (
-		err error
-		rec record
-		lo, hi, mid int64
-	)
-	lo, hi = 0, nrec
-	for (lo < hi) {
-		mid = (lo + hi) / 2
-		err = oplog_read(&rec, f, mid * RECORD_SIZE)
-		if (err != nil) {
-			return 0, err
-		}
-		if (rec.Ts < from) {
-			lo = mid + 1
-		} else {
-			hi = mid
-		}
-	}
-	return lo, nil
-}
-
-/*
- * oplog_bsearch_hi returns the first index in [0, nrec) whose record has
- * Ts > to, or nrec if there is none.
- */
-func oplog_bsearch_hi(f *os.File, nrec int64, to int64) (int64, error) {
-	var (
-		err error
-		rec record
-		lo, hi, mid int64
-	)
-	lo, hi = 0, nrec
-	for (lo < hi) {
-		mid = (lo + hi) / 2
-		err = oplog_read(&rec, f, mid * RECORD_SIZE)
-		if (err != nil) {
-			return 0, err
-		}
-		if (rec.Ts <= to) {
-			lo = mid + 1
-		} else {
-			hi = mid
-		}
-	}
-	return lo, nil
+	return reglog.Open_log(oplog_file(vm_uuid, op), RECORD_SIZE)
 }
 
 /*
@@ -447,25 +251,7 @@ func oplog_bsearch_hi(f *os.File, nrec int64, to int64) (int64, error) {
  * whose start timestamps fall in [from, to], where 0 means unbounded.
  */
 func oplog_range(f *os.File, nrec int64, from int64, to int64) (int64, int64, error) {
-	var (
-		err error
-		lo, hi int64
-	)
-	lo = 0
-	if (from != 0) {
-		lo, err = oplog_bsearch_lo(f, nrec, from)
-		if (err != nil) {
-			return 0, 0, err
-		}
-	}
-	hi = nrec
-	if (to != 0) {
-		hi, err = oplog_bsearch_hi(f, nrec, to)
-		if (err != nil) {
-			return 0, 0, err
-		}
-	}
-	return lo, hi, nil
+	return reglog.Range(f, RECORD_SIZE, nrec, from, to)
 }
 
 /*
