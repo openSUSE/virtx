@@ -131,13 +131,6 @@ func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventL
 		persistent bool
 		err error
 	)
-	/*
-	 * I think we need to lock here because we could be connecting, and the use of libvirt.Domain
-	 * can access the connection whose data structure may be in the process of updating.
-	 */
-	hv.m.RLock()
-	defer hv.m.RUnlock()
-
 	if (!hv.system_info_loop_done.Load()) {
 		/*
 		 * too early, we cannot generate events for our host.

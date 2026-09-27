@@ -37,7 +37,6 @@ import (
  * the VMs, if we have a large number of them.
  */
 func get_domain_event(d *libvirt.Domain, ve *inventory.VmEvent) error {
-	/* assert (hv.m.IsRLocked) */
 	var (
 		reason int
 		state libvirt.DomainState
@@ -110,7 +109,6 @@ func get_domain_event(d *libvirt.Domain, ve *inventory.VmEvent) error {
  * Custom fields will just be empty.
  */
 func get_domain_details(d *libvirt.Domain, vd *inventory.VmDetails) error {
-	/* assert (hv.m.IsRLocked) */
 	var (
 		meta metadata.Vm
 		meta_xml string
