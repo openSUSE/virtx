@@ -100,7 +100,11 @@ func main() {
 		err = virtx.Shutdown(shutdownCtx)
 		if (err != nil) {
 			logger.Log("%s", err.Error())
-			logger.Fatal("%s", virtx.Close().Error())
+			err = virtx.Close()
+			if (err != nil) {
+				logger.Log("%s", err.Error())
+			}
+			logger.Fatal("shutdown timed out, connections closed")
 		}
 	}()
 
