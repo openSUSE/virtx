@@ -19,6 +19,7 @@ package inventory
 
 import (
 	"fmt"
+	"maps"
 	"sync"
 
 	"suse.com/virtx/pkg/logger"
@@ -107,6 +108,8 @@ func Get_hostdata(uuid string) (Hostdata, error) {
 	)
 	hostdata, present = inventory.hosts[uuid]
 	if (present) {
+		/* copy the map: the caller reads it without holding inventory.m */
+		hostdata.Vms = maps.Clone(hostdata.Vms)
 		return hostdata, nil
 	}
 	return hostdata, fmt.Errorf("inventory: no such host %s", uuid)
