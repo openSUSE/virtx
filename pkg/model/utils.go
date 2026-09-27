@@ -365,9 +365,9 @@ type OperationCode int16
 
 const (
     _ OperationCode = iota  // reserved, never assign
-	OpHostGet OperationCode = 1002
-	OpHostList OperationCode = 1001
-	OpHostStatsGet OperationCode = 1003
+	OpHostGet OperationCode = 101
+	OpHostList OperationCode = 100
+	OpHostStatsGet OperationCode = 102
 	OpVmBoot OperationCode = 8
 	OpVmConsoleSerial OperationCode = 18
 	OpVmConsoleVnc OperationCode = 17
