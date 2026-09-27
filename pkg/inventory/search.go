@@ -112,9 +112,11 @@ func Search_vms(f openapi.VmListFields) openapi.VmList {
 	defer inventory.m.RUnlock()
 	var (
 		vm VmInfo
+		vmdata Vmdata
 		list openapi.VmList
 	)
-	for _, vm = range inventory.vms {
+	for _, vmdata = range inventory.vms {
+		vm = vmdata.Info
 		if (f.Name != "" && !strings.Contains(vm.Name, f.Name)) {
 			continue
 		}
