@@ -451,8 +451,6 @@ out:
  * inventory returned by libvirt, removing items unknown to libvirt.
  */
 func delete_ghosts(vms SystemInfoVms, ts int64) {
-	hv.m.Lock()
-	defer hv.m.Unlock()
 	var (
 		idata inventory.Hostdata
 		ikey string
