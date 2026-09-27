@@ -124,23 +124,6 @@ func Wait_system_info() error {
 	}
 }
 
-func Shutdown() {
-	hv.m.Lock()
-	defer hv.m.Unlock()
-	logger.Debug("shutdown started...")
-	stop_listening()
-	hv.conn.Close();
-	close(hv.vm_event_ch)
-	close(hv.system_info_ch)
-	hv.conn = nil
-	hv.vm_event_ch = nil
-	hv.system_info_ch = nil
-	hv.lifecycle_id = -1
-	hv.watchdog_id = -1
-	hv.ioerror_id = -1
-	logger.Debug("shutdown complete.")
-}
-
 func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventLifecycle) {
 	/* e.Detail: see all DomainEvent*DetailType types */
 	var (

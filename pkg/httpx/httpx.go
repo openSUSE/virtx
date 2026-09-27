@@ -348,10 +348,3 @@ func Do_response(w http.ResponseWriter, http_status int, buf *bytes.Buffer) {
 		w.Write(buf.Bytes())
 	}
 }
-
-func Shutdown() {
-	transport, ok := client.Transport.(*http.Transport)
-	if (ok) {
-		transport.CloseIdleConnections()
-	}
-}

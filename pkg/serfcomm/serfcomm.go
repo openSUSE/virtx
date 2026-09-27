@@ -132,11 +132,6 @@ func recv_serf_events() {
 
 		logger.Debug("RecvSerfEvents loop exit")
 		serf.m.Lock()
-		if (serf.c == nil) {
-			/* Shutdown() tore the connection down: do not reconnect */
-			serf.m.Unlock()
-			return
-		}
 		stop_listening()
 		serf.m.Unlock()
 
@@ -383,13 +378,4 @@ func stop_listening() {
 		logger.Log("%s", err.Error())
 	}
 	serf.c = nil
-}
-
-func Shutdown() {
-	serf.m.Lock()
-	defer serf.m.Unlock()
-
-	logger.Debug("serfcomm is shutting down...")
-	stop_listening()
-	logger.Debug("serfcomm shutdown complete.")
 }

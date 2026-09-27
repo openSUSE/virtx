@@ -62,6 +62,7 @@ var (
 	lm = Lockman{}
 )
 
+/* The lockspace is never left on exit: libvirt can still own leases. */
 func Init(host_uuid string) error {
 	lm.m.Lock()
 	defer lm.m.Unlock()
@@ -633,15 +634,6 @@ func host_id_next(host_id *uint16) {
 	if (*host_id > HOST_ID_MAX) {
 		*host_id = 1
 	}
-}
-
-func Shutdown() {
-	lm.m.Lock()
-	defer lm.m.Unlock()
-
-	logger.Debug("shutdown started...")
-	/* Do not leave the lockspace, libvirt can still own leases */
-	logger.Debug("shutdown complete.")
 }
 
 var dev_disks_prefixes = []string{ "dm-uuid-mpath-", "scsi-", "nvme-", "wwn-0x" }

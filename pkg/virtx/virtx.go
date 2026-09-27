@@ -96,11 +96,7 @@ func New_uuid() string {
 }
 
 func Shutdown(ctx context.Context) error {
-	var err error
-	err = service.server.Shutdown(ctx)
-	/* Shutdown the client too (used for proxy) */
-	httpx.Shutdown()
-	return err
+	return service.server.Shutdown(ctx)
 }
 
 func Close() error {

@@ -54,8 +54,6 @@ func main() {
 	if (err != nil) {
 		logger.Fatal("%s", err.Error())
 	}
-	defer hypervisor.Shutdown()
-
 	/*
 	 * hypervisor: wait for the system information to be filled before proceeding.
 	 * Everything below relies on this: machine.Uuid(), machine.Arch() and a non-nil
@@ -70,7 +68,6 @@ func main() {
 	if (err != nil) {
 		logger.Fatal("%s", err.Error())
 	}
-	defer lockman.Shutdown()
 
 	/* virtx service: initialize */
 	virtx.Init()
@@ -83,8 +80,6 @@ func main() {
 	if (err != nil) {
 		logger.Fatal("%s", err.Error())
 	}
-	defer serfcomm.Shutdown()
-
 	serfcomm.Start_listening(hypervisor.Get_vm_event_channel(), hypervisor.Get_system_info_channel())
 
 	/* create server subroutine to listen for API requests */
