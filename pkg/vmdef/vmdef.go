@@ -810,7 +810,11 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 			},
 		},
 		/* Hostdevs:, */
-		/* Watchdogs:, */
+		/*
+		 * no watchdog action without HA, just the event. Must be the first
+		 * watchdog: libvirt copies its action to the implicit q35 iTCO one.
+		 */
+		Watchdogs: []libvirtxml.DomainWatchdog{{ Model: "i6300esb", Action: "none" }},
 		MemBalloon: &libvirtxml.DomainMemBalloon{
 			Model: "none",
 		},
@@ -862,6 +866,8 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 		Features: domain_features,
 		CPU: &domain_cpu,
 		Clock: &domain_clock,
+		OnCrash: "preserve", /* no action without HA, the VM stays in RUNSTATE_PANIC */
+		//OnLockFailure: "pause", /* XXX libvirt-go bug: not implemented XXX */
 		PM: &domain_pm,
 		Devices: &domain_devices,
 	}
