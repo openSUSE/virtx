@@ -391,34 +391,36 @@ func init() {
 	cmd_register_vm.Flags().StringVarP(&virtx.vm_register_options.Host, "host", "h", "", "Register VM on the specified host")
 	cmd_register_vm.MarkFlagRequired("host")
 
-	var cmd_oplog = &cobra.Command{
-		Use:   "oplog",
-		Short: "Show the operation log of a resource",
+	var cmd_log = &cobra.Command{
+		Use:   "log",
+		Short: "Show the log of a resource",
 	}
-	var cmd_oplog_vm = &cobra.Command{
+	var cmd_log_vm = &cobra.Command{
 		Use:   "vm UUID",
-		Short: "Show the operation log of a VM",
-		Long:  "Show the operation log of the specified VM, identified by UUID, optionally applying filters",
+		Short: "Show the log of a VM (operations, errors and guest events)",
+		Long:  "Show the log of the specified VM, identified by UUID, optionally applying filters",
 		Args:  cobra.ExactArgs(1), /* UUID */
 		Run: func(cmd *cobra.Command, args []string) {
 			if (virtx.ok) {
 				if (virtx.result != nil) {
-					vm_oplog_list(virtx.result.(*openapi.OplogList))
+					vm_log(virtx.result.(*openapi.LogList))
 				}
 			} else {
-				op, _ := cmd.Flags().GetString("op")
+				class, _ := cmd.Flags().GetString("class")
+				code, _ := cmd.Flags().GetString("code")
 				from, _ := cmd.Flags().GetString("from")
 				to, _ := cmd.Flags().GetString("to")
-				vm_oplog_list_req(args[0], op, from, to)
+				vm_log_req(args[0], class, code, from, to)
 			}
 		},
 	}
-	cmd_oplog_vm.Flags().StringP("op", "o", "", "Filter by operation name (e.g. VmBoot); default = all")
-	cmd_oplog_vm.Flags().StringP("from", "f", "", "Only include records at/after this time (epoch-ms, RFC3339, or \"YYYY-MM-DD HH:MM:SS\" UTC)")
-	cmd_oplog_vm.Flags().StringP("to", "t", "", "Only include records at/before this time (epoch-ms, RFC3339, or \"YYYY-MM-DD HH:MM:SS\" UTC)")
-	cmd_oplog_vm.Flags().Int32VarP(&virtx.vm_oplog_list_options.Tail, "tail", "n", 0, "Show only the last N records; 0 = no limit (mutually exclusive with --head)")
-	cmd_oplog_vm.Flags().Int32VarP(&virtx.vm_oplog_list_options.Head, "head", "H", 0, "Show only the first N records; 0 = no limit (mutually exclusive with --tail)")
-	cmd_oplog_vm.Flags().BoolVarP(&virtx.vm_oplog_list_options.Reverse, "reverse", "r", false, "Show newest first (reverse chronological)")
+	cmd_log_vm.Flags().StringP("class", "c", "", "Filter by class (op, error, guest); default = all")
+	cmd_log_vm.Flags().StringP("code", "o", "", "Filter by operation or event name (e.g. VmBoot, watchdog); default = all")
+	cmd_log_vm.Flags().StringP("from", "f", "", "Only include records at/after this time (epoch-ms, RFC3339, or \"YYYY-MM-DD HH:MM:SS\" UTC)")
+	cmd_log_vm.Flags().StringP("to", "t", "", "Only include records at/before this time (epoch-ms, RFC3339, or \"YYYY-MM-DD HH:MM:SS\" UTC)")
+	cmd_log_vm.Flags().Int32VarP(&virtx.vm_log_options.Tail, "tail", "n", 0, "Show only the last N records; 0 = no limit (mutually exclusive with --head)")
+	cmd_log_vm.Flags().Int32VarP(&virtx.vm_log_options.Head, "head", "H", 0, "Show only the first N records; 0 = no limit (mutually exclusive with --tail)")
+	cmd_log_vm.Flags().BoolVarP(&virtx.vm_log_options.Reverse, "reverse", "r", false, "Show newest first (reverse chronological)")
 
 	/* XXX ugh. Cobra forces the existence of -h, --help if not overridden explicitly.
 	 * This means that it's impossible to use -h for something else.
@@ -461,8 +463,8 @@ func init() {
 	cmd_abort_migrate.AddCommand(cmd_abort_migrate_vm)
 	cmd.AddCommand(cmd_register)
 	cmd_register.AddCommand(cmd_register_vm)
-	cmd.AddCommand(cmd_oplog)
-	cmd_oplog.AddCommand(cmd_oplog_vm)
+	cmd.AddCommand(cmd_log)
+	cmd_log.AddCommand(cmd_log_vm)
 
 	var cmd_console = &cobra.Command{
 		Use:   "console",

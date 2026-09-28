@@ -28,14 +28,43 @@ import (
 	"suse.com/virtx/pkg/logger"
 )
 
-func vm_oplog_list_req(uuid string, op string, from string, to string) {
-	if (op != "") {
-		var code openapi.OperationCode
-		err := code.Parse(op)
+/* vm_log_code_parse returns the code for an operation name (ie "VmBoot") or an event name (ie "watchdog"). */
+func vm_log_code_parse(s string) int16 {
+	var (
+		op openapi.OperationCode
+		event openapi.EventCode
+	)
+	if (op.Parse(s) == nil) {
+		return int16(op)
+	}
+	if (event.Parse(s) == nil) {
+		return int16(event)
+	}
+	logger.Fatal("invalid --code %q: not an operation or event name", s)
+	return 0
+}
+
+/* vm_log_code_string returns the operation or event name of a code. */
+func vm_log_code_string(code int16) string {
+	var class openapi.LogClass
+	class.From_code(code)
+	if (class == openapi.LOG_CLASS_OP) {
+		return openapi.OperationCode(code).String()
+	}
+	return openapi.EventCode(code).String()
+}
+
+func vm_log_req(uuid string, class string, code string, from string, to string) {
+	if (class != "") {
+		var c openapi.LogClass
+		err := c.Parse(class)
 		if (err != nil) {
-			logger.Fatal("invalid --op %q: %s", op, err.Error())
+			logger.Fatal("invalid --class %q: %s", class, err.Error())
 		}
-		virtx.vm_oplog_list_options.Op = int16(code)
+		virtx.vm_log_options.Class = int16(c)
+	}
+	if (code != "") {
+		virtx.vm_log_options.Code = vm_log_code_parse(code)
 	}
 	var (
 		from_ms int64
@@ -51,26 +80,38 @@ func vm_oplog_list_req(uuid string, op string, from string, to string) {
 		logger.Fatal("--from and --to specify different timezone offsets (%s vs %s); use the same offset for both",
 			tz_label(from_off), tz_label(to_off))
 	}
-	virtx.vm_oplog_list_options.From = from_ms
-	virtx.vm_oplog_list_options.To = to_ms
+	virtx.vm_log_options.From = from_ms
+	virtx.vm_log_options.To = to_ms
 	if (from_has) {
-		virtx.oplog_tz = from_off
+		virtx.log_tz = from_off
 	} else if (to_has) {
-		virtx.oplog_tz = to_off
+		virtx.log_tz = to_off
 	}
-	virtx.path = fmt.Sprintf("/vms/%s/oplog", uuid)
+	virtx.path = fmt.Sprintf("/vms/%s/log", uuid)
 	virtx.method = "GET"
-	virtx.arg = &virtx.vm_oplog_list_options
-	virtx.result = &openapi.OplogList{}
+	virtx.arg = &virtx.vm_log_options
+	virtx.result = &openapi.LogList{}
 }
 
-func vm_oplog_list(list *openapi.OplogList) {
-	label := tz_label(virtx.oplog_tz)
-	fmt.Fprintf(virtx.w, "START (%s)\tEND (%s)\tOP\tSTATE\tMSGS\tMSGE\n", label, label)
+func vm_log(list *openapi.LogList) {
+	label := tz_label(virtx.log_tz)
+	fmt.Fprintf(virtx.w, "START (%s)\tEND (%s)\tCLASS\tCODE\tSTATE\tMESSAGES\n", label, label)
 	for _, item := range (list.Items) {
+		var (
+			class openapi.LogClass
+			end, msgs string
+		)
+		class.From_code(item.Code)
+		if (item.State != openapi.OPERATION_NONE) { /* events have no end time */
+			end = format_ts(item.Te, virtx.log_tz)
+		}
+		msgs = item.Msgs
+		if (item.Msge != "") {
+			msgs += " -> " + item.Msge
+		}
 		fmt.Fprintf(virtx.w, "%s\t%s\t%s\t%s\t%s\t%s\n",
-			format_ts(item.Ts, virtx.oplog_tz), format_ts(item.Te, virtx.oplog_tz),
-			openapi.OperationCode(item.Op).String(), item.State, item.Msgs, item.Msge)
+			format_ts(item.Ts, virtx.log_tz), end, class, vm_log_code_string(item.Code),
+			item.State, msgs)
 	}
 }
 
