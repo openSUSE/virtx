@@ -366,6 +366,38 @@ func (o *OperationCode) Parse(s string) error {
 	return nil
 }
 
+/* From_code sets the class of a log code (operation code or event code). */
+func (c *LogClass) From_code(code int16) {
+	*c = LogClass(code / 1000 + 1)
+}
+
+func (c LogClass) String() string {
+	switch (c) {
+	case LOG_CLASS_OP:
+		return "op"
+	case LOG_CLASS_ERROR:
+		return "error"
+	case LOG_CLASS_GUEST:
+		return "guest"
+	}
+	return ""
+}
+
+func (c *LogClass) Parse(s string) error {
+	switch (s) {
+	case "op":
+		*c = LOG_CLASS_OP
+		return nil
+	case "error":
+		*c = LOG_CLASS_ERROR
+		return nil
+	case "guest":
+		*c = LOG_CLASS_GUEST
+		return nil
+	}
+	return errors.New("unknown event class")
+}
+
 func (c EventClass) String() string {
 	switch (c) {
 	case EVENT_CLASS_ERROR:
