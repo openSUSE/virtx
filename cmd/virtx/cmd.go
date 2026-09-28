@@ -390,7 +390,25 @@ func init() {
 	}
 	cmd_register_vm.Flags().StringVarP(&virtx.vm_register_options.Host, "host", "h", "", "Register VM on the specified host")
 	cmd_register_vm.MarkFlagRequired("host")
-
+	var cmd_unregister = &cobra.Command{
+		Use:   "unregister",
+		Short: "Unregister a resource",
+	}
+	var cmd_unregister_vm = &cobra.Command{
+		Use:   "vm VM_UUID",
+		Short: "Unregister a VM",
+		Long:  "Unregister a VM identified by host and VM UUIDs if it desynced between virtx and libvirt",
+		Args:  cobra.ExactArgs(1), /* UUID */
+		Run: func(cmd *cobra.Command, args []string) {
+			if (virtx.ok) {
+				vm_unregister()
+			} else {
+				vm_unregister_req(args[0])
+			}
+		},
+	}
+	cmd_unregister_vm.Flags().StringVarP(&virtx.vm_register_options.Host, "host", "h", "", "Unregister VM on the specified host")
+	cmd_unregister_vm.MarkFlagRequired("host")
 	var cmd_log = &cobra.Command{
 		Use:   "log",
 		Short: "Show the log of a resource",
@@ -463,6 +481,8 @@ func init() {
 	cmd_abort_migrate.AddCommand(cmd_abort_migrate_vm)
 	cmd.AddCommand(cmd_register)
 	cmd_register.AddCommand(cmd_register_vm)
+	cmd.AddCommand(cmd_unregister)
+	cmd_unregister.AddCommand(cmd_unregister_vm)
 	cmd.AddCommand(cmd_log)
 	cmd_log.AddCommand(cmd_log_vm)
 
