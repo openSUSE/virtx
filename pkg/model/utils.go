@@ -373,14 +373,12 @@ const (
 	OpVmConsoleVnc OperationCode = 17
 	OpVmCreate OperationCode = 1
 	OpVmDelete OperationCode = 5
-	OpVmEventlogList OperationCode = 20
 	OpVmGet OperationCode = 4
 	OpVmList OperationCode = 2
-	OpVmLogList OperationCode = 21
+	OpVmLogList OperationCode = 19
 	OpVmMigrate OperationCode = 12
 	OpVmMigrateAbort OperationCode = 14
 	OpVmMigrateGet OperationCode = 13
-	OpVmOplogList OperationCode = 19
 	OpVmPause OperationCode = 10
 	OpVmRegister OperationCode = 15
 	OpVmResume OperationCode = 11
@@ -400,14 +398,12 @@ var OperationToString = map[OperationCode]string{
 	OpVmConsoleVnc: "VmConsoleVnc",
 	OpVmCreate: "VmCreate",
 	OpVmDelete: "VmDelete",
-	OpVmEventlogList: "VmEventlogList",
 	OpVmGet: "VmGet",
 	OpVmList: "VmList",
 	OpVmLogList: "VmLogList",
 	OpVmMigrate: "VmMigrate",
 	OpVmMigrateAbort: "VmMigrateAbort",
 	OpVmMigrateGet: "VmMigrateGet",
-	OpVmOplogList: "VmOplogList",
 	OpVmPause: "VmPause",
 	OpVmRegister: "VmRegister",
 	OpVmResume: "VmResume",
@@ -427,14 +423,12 @@ var OperationFromString = map[string]OperationCode{
 	"VmConsoleVnc": OpVmConsoleVnc,
 	"VmCreate": OpVmCreate,
 	"VmDelete": OpVmDelete,
-	"VmEventlogList": OpVmEventlogList,
 	"VmGet": OpVmGet,
 	"VmList": OpVmList,
 	"VmLogList": OpVmLogList,
 	"VmMigrate": OpVmMigrate,
 	"VmMigrateAbort": OpVmMigrateAbort,
 	"VmMigrateGet": OpVmMigrateGet,
-	"VmOplogList": OpVmOplogList,
 	"VmPause": OpVmPause,
 	"VmRegister": OpVmRegister,
 	"VmResume": OpVmResume,
