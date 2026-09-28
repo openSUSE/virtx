@@ -398,28 +398,6 @@ func (c *LogClass) Parse(s string) error {
 	return errors.New("unknown event class")
 }
 
-func (c EventClass) String() string {
-	switch (c) {
-	case EVENT_CLASS_ERROR:
-		return "error"
-	case EVENT_CLASS_GUEST:
-		return "guest"
-	}
-	return ""
-}
-
-func (c *EventClass) Parse(s string) error {
-	switch (s) {
-	case "error":
-		*c = EVENT_CLASS_ERROR
-		return nil
-	case "guest":
-		*c = EVENT_CLASS_GUEST
-		return nil
-	}
-	return errors.New("unknown event class")
-}
-
 func (c EventCode) String() string {
 	switch (c) {
 	case EVENT_WATCHDOG:
