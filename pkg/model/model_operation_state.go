@@ -21,6 +21,7 @@ type OperationState int16
 
 // List of operation_state
 const (
+	OPERATION_NONE OperationState = 0
 	OPERATION_STARTED OperationState = 1
 	OPERATION_FAILED OperationState = 2
 	OPERATION_COMPLETED OperationState = 3
@@ -28,6 +29,7 @@ const (
 
 // All allowed values of OperationState enum
 var AllowedOperationStateEnumValues = []OperationState{
+	0,
 	1,
 	2,
 	3,

@@ -21,18 +21,18 @@ type EventCode int16
 
 // List of event_code
 const (
-	EVENT_WATCHDOG EventCode = 1
-	EVENT_PANIC EventCode = 2
-	EVENT_CRASH EventCode = 3
-	EVENT_STORAGE EventCode = 4
+	EVENT_WATCHDOG EventCode = 1001
+	EVENT_PANIC EventCode = 1002
+	EVENT_CRASH EventCode = 1003
+	EVENT_STORAGE EventCode = 1004
 )
 
 // All allowed values of EventCode enum
 var AllowedEventCodeEnumValues = []EventCode{
-	1,
-	2,
-	3,
-	4,
+	1001,
+	1002,
+	1003,
+	1004,
 }
 
 func (v *EventCode) UnmarshalJSON(src []byte) error {

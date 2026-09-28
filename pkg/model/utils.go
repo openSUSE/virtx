@@ -376,6 +376,7 @@ const (
 	OpVmEventlogList OperationCode = 20
 	OpVmGet OperationCode = 4
 	OpVmList OperationCode = 2
+	OpVmLogList OperationCode = 21
 	OpVmMigrate OperationCode = 12
 	OpVmMigrateAbort OperationCode = 14
 	OpVmMigrateGet OperationCode = 13
@@ -402,6 +403,7 @@ var OperationToString = map[OperationCode]string{
 	OpVmEventlogList: "VmEventlogList",
 	OpVmGet: "VmGet",
 	OpVmList: "VmList",
+	OpVmLogList: "VmLogList",
 	OpVmMigrate: "VmMigrate",
 	OpVmMigrateAbort: "VmMigrateAbort",
 	OpVmMigrateGet: "VmMigrateGet",
@@ -428,6 +430,7 @@ var OperationFromString = map[string]OperationCode{
 	"VmEventlogList": OpVmEventlogList,
 	"VmGet": OpVmGet,
 	"VmList": OpVmList,
+	"VmLogList": OpVmLogList,
 	"VmMigrate": OpVmMigrate,
 	"VmMigrateAbort": OpVmMigrateAbort,
 	"VmMigrateGet": OpVmMigrateGet,
