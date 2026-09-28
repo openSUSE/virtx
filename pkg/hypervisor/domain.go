@@ -79,7 +79,6 @@ func get_domain_event(d *libvirt.Domain, ve *inventory.VmEvent) error {
 		ve.Runstate = openapi.RUNSTATE_TERMINATING
 	case libvirt.DOMAIN_SHUTOFF:
 		switch (reason) {
-		case int(libvirt.DOMAIN_SHUTOFF_UNKNOWN): fallthrough
 		case int(libvirt.DOMAIN_SHUTOFF_FAILED): fallthrough
 		case int(libvirt.DOMAIN_SHUTOFF_DAEMON): fallthrough
 		case int(libvirt.DOMAIN_SHUTOFF_CRASHED):
