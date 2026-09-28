@@ -24,6 +24,7 @@ import (
 
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/model"
+	"suse.com/virtx/pkg/ts"
 )
 
 type nothing struct {
@@ -162,6 +163,14 @@ func update_host(hostinfo *HostInfo) {
 				hostdata.Info.Name, hostdata.Info.Ts, hostinfo.Ts)
 			return
 		}
+		if (hostinfo.Ts > hostdata.Info.Ts) {
+			/*
+			 * the previous HI should be "complete" (all VIs received), so we expire vms
+			 * for which we did not receive any VI. If (unikely) serf lost the event, the
+			 * VM will be back likely in this round of HI/VI.
+			 */
+			expire_vms(hostdata, hostdata.Info.Ts)
+		}
 		hostdata.Info = *hostinfo
 	} else {
 		/* this is the first time we see this host. */
@@ -253,6 +262,25 @@ func update_vm(vminfo *VmInfo) error {
 	update_hostdata_vm(vminfo.Uuid, cur.Info.Host, vmdata.Info.Host)
 	inventory.vms[vminfo.Uuid] = vmdata
 	return nil
+}
+
+/* expire_vms removes the VMs of a host not refreshed since exp_ts. */
+func expire_vms(hostdata Hostdata, exp_ts int64) {
+	/* assert inventory.m.Lock() */
+	var (
+		uuid string
+		vmdata Vmdata
+	)
+	for uuid = range hostdata.Vms {
+		vmdata = inventory.vms[uuid]
+		/* Runstate_ts is never older than Info.Ts */
+		if (vmdata.Runstate_ts < exp_ts) {
+			logger.Log("Vm %s: expired, last update %s", uuid, ts.String(vmdata.Runstate_ts))
+			/* hostdata.Vms is inventory.hosts[host].Vms, the VM is listed only there */
+			delete(hostdata.Vms, uuid)
+			delete(inventory.vms, uuid)
+		}
+	}
 }
 
 /* update Hostdata Vms, including new entry into hostdata and update for VM migration */

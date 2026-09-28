@@ -162,7 +162,6 @@ func system_info_loop(seconds int) error {
 		system_info_init(&si)
 		/* this first info is missing vm cpu stats and host cpu stats */
 		hv.system_info_ch <- si
-		delete_ghosts(si.Vms, si.Host.Ts)
 	}
 
 	for range ticker.C {
@@ -176,7 +175,6 @@ func system_info_loop(seconds int) error {
 			continue
 		}
 		hv.system_info_ch <- si
-		delete_ghosts(si.Vms, si.Host.Ts)
 	}
 	return nil
 }
@@ -442,32 +440,6 @@ func system_info_get() (SystemInfo, error) {
 	*hv.si = si
 out:
 	return si, err
-}
-
-/*
- * we may miss the DELETE event, and then we are left with ghosts of old vms
- * in the inventory.
- * To address this, go over the local VmsInventory and compare it with the
- * inventory returned by libvirt, removing items unknown to libvirt.
- */
-func delete_ghosts(vms SystemInfoVms, ts int64) {
-	var (
-		idata inventory.Hostdata
-		ikey string
-		present bool
-		err error
-	)
-	idata, err = inventory.Get_hostdata(machine.Uuid())
-	if (err != nil) {
-		return /* host not in inventory yet, ignore */
-	}
-	for ikey = range idata.Vms {
-		_, present = vms[ikey]
-		if (!present) {
-			logger.Log("delete_ghosts: RUNSTATE_DELETED %s", ikey)
-			hv.vm_event_ch <- inventory.VmEvent{ Uuid: ikey, Host: machine.Uuid(), Runstate: openapi.RUNSTATE_DELETED, Ts: ts }
-		}
-	}
 }
 
 /*
