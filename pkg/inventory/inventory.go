@@ -78,7 +78,7 @@ type VmDetails struct {
  */
 type Vmdata struct {
 	Info VmInfo
-	Runstate_ts int64		/* from a VmEvent or VmInfo, whichever is newer */
+	Update_ts int64 /* from a VmEvent or VmInfo, whichever is newer */
 }
 
 type HostsInventory map[string]Hostdata
@@ -214,8 +214,8 @@ func update_vm_state(uuid string, state openapi.Vmrunstate, host string, ts int6
 	if (!present) {
 		return fmt.Errorf("no such VM %s", uuid)
 	}
-	if (vmdata.Runstate_ts > ts) {
-		logger.Log("Vm %s: ignoring obsolete Vm state information: ts %d > %d",	uuid, vmdata.Runstate_ts, ts)
+	if (vmdata.Update_ts > ts) {
+		logger.Log("Vm %s: ignoring obsolete Vm state information: ts %d > %d",	uuid, vmdata.Update_ts, ts)
 		return nil
 	}
 	if (state == openapi.RUNSTATE_DELETED) {
@@ -228,7 +228,7 @@ func update_vm_state(uuid string, state openapi.Vmrunstate, host string, ts int6
 	/* update the vms inventory data */
 	vmdata.Info.Host = host
 	vmdata.Info.Runstate = state
-	vmdata.Runstate_ts = ts
+	vmdata.Update_ts = ts
 	inventory.vms[uuid] = vmdata
 	return nil
 }
@@ -252,12 +252,12 @@ func update_vm(vminfo *VmInfo) error {
 		)
 		return nil
 	}
-	vmdata = Vmdata{ Info: *vminfo, Runstate_ts: vminfo.Ts }
-	if (present && cur.Runstate_ts > vminfo.Ts) {
+	vmdata = Vmdata{ Info: *vminfo, Update_ts: vminfo.Ts }
+	if (present && cur.Update_ts > vminfo.Ts) {
 		/* a newer VmEvent already set these: keep them */
 		vmdata.Info.Runstate = cur.Info.Runstate
 		vmdata.Info.Host = cur.Info.Host
-		vmdata.Runstate_ts = cur.Runstate_ts
+		vmdata.Update_ts = cur.Update_ts
 	}
 	update_hostdata_vm(vminfo.Uuid, cur.Info.Host, vmdata.Info.Host)
 	inventory.vms[vminfo.Uuid] = vmdata
@@ -273,9 +273,9 @@ func expire_vms(hostdata Hostdata, exp_ts int64) {
 	)
 	for uuid = range hostdata.Vms {
 		vmdata = inventory.vms[uuid]
-		/* Runstate_ts is never older than Info.Ts */
-		if (vmdata.Runstate_ts < exp_ts) {
-			logger.Log("Vm %s: expired, last update %s", uuid, ts.String(vmdata.Runstate_ts))
+		/* Update_ts is never older than Info.Ts */
+		if (vmdata.Update_ts < exp_ts) {
+			logger.Log("Vm %s: expired, last update %s", uuid, ts.String(vmdata.Update_ts))
 			/* hostdata.Vms is inventory.hosts[host].Vms, the VM is listed only there */
 			delete(hostdata.Vms, uuid)
 			delete(inventory.vms, uuid)
