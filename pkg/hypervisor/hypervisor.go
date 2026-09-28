@@ -35,8 +35,7 @@ import (
 
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/logger"
-	"suse.com/virtx/pkg/eventlog"
-	"suse.com/virtx/pkg/oplog"
+	"suse.com/virtx/pkg/vmlog"
 	"suse.com/virtx/pkg/reg"
 	"suse.com/virtx/pkg/machine"
 	"suse.com/virtx/pkg/inventory"
@@ -189,35 +188,35 @@ func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventL
 	if (e.Event == libvirt.DOMAIN_EVENT_STOPPED) {
 		switch (e.Detail) {
 		case int(libvirt.DOMAIN_EVENT_STOPPED_DESTROYED):
-			err = oplog.Complete(vi.Uuid, openapi.OpVmShutdown, "Shutdown (forced).")
+			err = vmlog.Complete(vi.Uuid, openapi.OpVmShutdown, "Shutdown (forced).")
 			if (err != nil) {
-				logger.Log("lifecycle_cb: oplog.Complete: %s", err.Error())
+				logger.Log("lifecycle_cb: vmlog.Complete: %s", err.Error())
 			}
 		case int(libvirt.DOMAIN_EVENT_STOPPED_SHUTDOWN):
-			err = oplog.Complete(vi.Uuid, openapi.OpVmShutdown, "Shutdown (graceful).")
+			err = vmlog.Complete(vi.Uuid, openapi.OpVmShutdown, "Shutdown (graceful).")
 			if (err != nil) {
-				logger.Log("lifecycle_cb: oplog.Complete: %s", err.Error())
+				logger.Log("lifecycle_cb: vmlog.Complete: %s", err.Error())
 			}
 		}
 	}
 	/* Events */
 	switch (e.Event) {
 	case libvirt.DOMAIN_EVENT_CRASHED:
-		err = eventlog.Log(vi.Uuid, openapi.EVENT_CLASS_ERROR, openapi.EVENT_PANIC, "Guest crashed.")
+		err = vmlog.Event(vi.Uuid, openapi.EVENT_PANIC, "Guest crashed.")
 		if (err != nil) {
-			logger.Log("lifecycle_cb: eventlog.Log: %s", err.Error())
+			logger.Log("lifecycle_cb: vmlog.Event: %s", err.Error())
 		}
 	case libvirt.DOMAIN_EVENT_STOPPED:
 		switch (e.Detail) {
 		case int(libvirt.DOMAIN_EVENT_STOPPED_CRASHED):
-			err = eventlog.Log(vi.Uuid, openapi.EVENT_CLASS_ERROR, openapi.EVENT_CRASH, "QEMU crashed.")
+			err = vmlog.Event(vi.Uuid, openapi.EVENT_CRASH, "QEMU crashed.")
 			if (err != nil) {
-				logger.Log("lifecycle_cb: eventlog.Log: %s", err.Error())
+				logger.Log("lifecycle_cb: vmlog.Event: %s", err.Error())
 			}
 		case int(libvirt.DOMAIN_EVENT_STOPPED_FAILED):
-			err = eventlog.Log(vi.Uuid, openapi.EVENT_CLASS_ERROR, openapi.EVENT_CRASH, "QEMU failed.")
+			err = vmlog.Event(vi.Uuid, openapi.EVENT_CRASH, "QEMU failed.")
 			if (err != nil) {
-				logger.Log("lifecycle_cb: eventlog.Log: %s", err.Error())
+				logger.Log("lifecycle_cb: vmlog.Event: %s", err.Error())
 			}
 		}
 	}
@@ -296,9 +295,9 @@ func watchdog_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventWa
 		return
 	}
 	msg = fmt.Sprintf("Watchdog triggered (action: %s).", watchdog_action_string(e.Action))
-	err = eventlog.Log(uuid, openapi.EVENT_CLASS_ERROR, openapi.EVENT_WATCHDOG, msg)
+	err = vmlog.Event(uuid, openapi.EVENT_WATCHDOG, msg)
 	if (err != nil) {
-		logger.Log("watchdog_cb: eventlog.Log: %s", err.Error())
+		logger.Log("watchdog_cb: vmlog.Event: %s", err.Error())
 	}
 }
 
@@ -325,9 +324,9 @@ func ioerror_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventIOE
 		return
 	}
 	msg = fmt.Sprintf("Storage I/O error on %s (%s): %s", e.DevAlias, e.SrcPath, e.Reason)
-	err = eventlog.Log(uuid, openapi.EVENT_CLASS_ERROR, openapi.EVENT_STORAGE, msg)
+	err = vmlog.Event(uuid, openapi.EVENT_STORAGE, msg)
 	if (err != nil) {
-		logger.Log("ioerror_cb: eventlog.Log: %s", err.Error())
+		logger.Log("ioerror_cb: vmlog.Event: %s", err.Error())
 	}
 }
 

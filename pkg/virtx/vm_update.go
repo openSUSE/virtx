@@ -24,7 +24,7 @@ import (
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/machine"
 	"suse.com/virtx/pkg/model"
-	"suse.com/virtx/pkg/oplog"
+	"suse.com/virtx/pkg/vmlog"
 	"suse.com/virtx/pkg/reg"
 	"suse.com/virtx/pkg/vmdef"
 	"suse.com/virtx/pkg/httpx"
@@ -91,7 +91,7 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid VM data", http.StatusInternalServerError)
 		return
 	}
-	oplog_off, oplog_err = oplog.Start(uuid, openapi.OpVmUpdate, httpx.Client_ip(r), vmdef.Diff(old, o.Vmdef))
+	oplog_off, oplog_err = vmlog.Start(uuid, openapi.OpVmUpdate, httpx.Client_ip(r), vmdef.Diff(old, o.Vmdef))
 	defer func() {
 		if (oplog_err != nil) {
 			logger.Log("vm_update: oplog: %s", oplog_err.Error())
@@ -104,7 +104,7 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 	if (err != nil) {
 		logger.Log("vm_update_storage failed: %s", err.Error())
 		if (oplog_err == nil) {
-			oplog_err = oplog.End(uuid, openapi.OpVmUpdate, openapi.OPERATION_FAILED, err.Error(), oplog_off)
+			oplog_err = vmlog.End(uuid, openapi.OpVmUpdate, openapi.OPERATION_FAILED, err.Error(), oplog_off)
 		}
 		storage.Rollback(created, uuid)
 		http.Error(w, "storage update failed", http.StatusInsufficientStorage)
@@ -114,7 +114,7 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 	if (err != nil) {
 		logger.Log("vmdef_to_xml failed: %s", err.Error())
 		if (oplog_err == nil) {
-			oplog_err = oplog.End(uuid, openapi.OpVmUpdate, openapi.OPERATION_FAILED, err.Error(), oplog_off)
+			oplog_err = vmlog.End(uuid, openapi.OpVmUpdate, openapi.OPERATION_FAILED, err.Error(), oplog_off)
 		}
 		storage.Rollback(created, uuid)
 		http.Error(w, "invalid parameters", http.StatusBadRequest)
@@ -125,14 +125,14 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 	if (err != nil) {
 		logger.Log("hypervisor.Define_domain failed: %s", err.Error())
 		if (oplog_err == nil) {
-			oplog_err = oplog.End(uuid, openapi.OpVmUpdate, openapi.OPERATION_FAILED, err.Error(), oplog_off)
+			oplog_err = vmlog.End(uuid, openapi.OpVmUpdate, openapi.OPERATION_FAILED, err.Error(), oplog_off)
 		}
 		storage.Rollback(created, uuid)
 		http.Error(w, "could not define VM", http.StatusFailedDependency)
 		return
 	}
 	if (oplog_err == nil) {
-		oplog_err = oplog.End(uuid, openapi.OpVmUpdate, openapi.OPERATION_COMPLETED, "Updated.", oplog_off)
+		oplog_err = vmlog.End(uuid, openapi.OpVmUpdate, openapi.OPERATION_COMPLETED, "Updated.", oplog_off)
 	}
 	reg_err := reg.Save(machine.Uuid(), uuid, xml)
 	if (reg_err != nil) {

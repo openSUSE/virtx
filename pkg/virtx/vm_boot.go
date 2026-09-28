@@ -23,7 +23,7 @@ import (
 	"suse.com/virtx/pkg/httpx"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/inventory"
-	"suse.com/virtx/pkg/oplog"
+	"suse.com/virtx/pkg/vmlog"
 	"suse.com/virtx/pkg/storage"
 	"suse.com/virtx/pkg/vmdef"
 	"suse.com/virtx/pkg/model"
@@ -88,7 +88,7 @@ func vm_boot(w http.ResponseWriter, r *http.Request) {
 			msg += " " + ci.Name
 		}
 	}
-	oplog_off, oplog_err := oplog.Start(uuid, openapi.OpVmBoot, httpx.Client_ip(r), msg)
+	oplog_off, oplog_err := vmlog.Start(uuid, openapi.OpVmBoot, httpx.Client_ip(r), msg)
 	defer func() {
 		if (oplog_err != nil) {
 			logger.Log("vm_boot: oplog: %s", oplog_err.Error())
@@ -98,13 +98,13 @@ func vm_boot(w http.ResponseWriter, r *http.Request) {
 	if (err != nil) {
 		logger.Log("hypervisor.Boot_domain failed: %s", err.Error())
 		if (oplog_err == nil) {
-			oplog_err = oplog.End(uuid, openapi.OpVmBoot, openapi.OPERATION_FAILED, err.Error(), oplog_off)
+			oplog_err = vmlog.End(uuid, openapi.OpVmBoot, openapi.OPERATION_FAILED, err.Error(), oplog_off)
 		}
 		http.Error(w, "could not start VM", http.StatusFailedDependency)
 		return
 	}
 	if (oplog_err == nil) {
-		oplog_err = oplog.End(uuid, openapi.OpVmBoot, openapi.OPERATION_COMPLETED, "Booted.", oplog_off)
+		oplog_err = vmlog.End(uuid, openapi.OpVmBoot, openapi.OPERATION_COMPLETED, "Booted.", oplog_off)
 	}
 	httpx.Do_response(w, http.StatusNoContent, nil)
 }

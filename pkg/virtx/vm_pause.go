@@ -23,7 +23,7 @@ import (
 	"suse.com/virtx/pkg/httpx"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/inventory"
-	"suse.com/virtx/pkg/oplog"
+	"suse.com/virtx/pkg/vmlog"
 	"suse.com/virtx/pkg/model"
 )
 
@@ -54,7 +54,7 @@ func vm_pause(w http.ResponseWriter, r *http.Request) {
 		http_proxy_request(vminfo.Host, w, vr)
 		return
 	}
-	oplog_off, oplog_err := oplog.Start(uuid, openapi.OpVmPause, httpx.Client_ip(r), "")
+	oplog_off, oplog_err := vmlog.Start(uuid, openapi.OpVmPause, httpx.Client_ip(r), "")
 	defer func() {
 		if (oplog_err != nil) {
 			logger.Log("vm_pause: oplog: %s", oplog_err.Error())
@@ -64,13 +64,13 @@ func vm_pause(w http.ResponseWriter, r *http.Request) {
 	if (err != nil) {
 		logger.Log("hypervisor.Pause_domain failed: %s", err.Error())
 		if (oplog_err == nil) {
-			oplog_err = oplog.End(uuid, openapi.OpVmPause, openapi.OPERATION_FAILED, err.Error(), oplog_off)
+			oplog_err = vmlog.End(uuid, openapi.OpVmPause, openapi.OPERATION_FAILED, err.Error(), oplog_off)
 		}
 		http.Error(w, "could not pause VM", http.StatusFailedDependency)
 		return
 	}
 	if (oplog_err == nil) {
-		oplog_err = oplog.End(uuid, openapi.OpVmPause, openapi.OPERATION_COMPLETED, "Paused.", oplog_off)
+		oplog_err = vmlog.End(uuid, openapi.OpVmPause, openapi.OPERATION_COMPLETED, "Paused.", oplog_off)
 	}
 	httpx.Do_response(w, http.StatusNoContent, nil)
 }

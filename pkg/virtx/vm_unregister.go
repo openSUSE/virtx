@@ -25,7 +25,7 @@ import (
 	"suse.com/virtx/pkg/machine"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/model"
-	"suse.com/virtx/pkg/oplog"
+	"suse.com/virtx/pkg/vmlog"
 	"suse.com/virtx/pkg/reg"
 	"suse.com/virtx/pkg/httpx"
 	"suse.com/virtx/pkg/inventory"
@@ -95,7 +95,7 @@ func vm_unregister(w http.ResponseWriter, r *http.Request) {
 		httpx.Do_response(w, http.StatusOK, nil)
 	case !in_libvirt && in_reg:
 		/* orphan in registry: remove it */
-		oplog_off, oplog_err = oplog.Start(uuid, openapi.OpVmUnregister, httpx.Client_ip(r), "reg")
+		oplog_off, oplog_err = vmlog.Start(uuid, openapi.OpVmUnregister, httpx.Client_ip(r), "reg")
 		defer func() {
 			if (oplog_err != nil) {
 				logger.Log("vm_unregister: oplog: %s", oplog_err.Error())
@@ -105,7 +105,7 @@ func vm_unregister(w http.ResponseWriter, r *http.Request) {
 		if (err != nil) {
 			logger.Log("vm_unregister: reg.Delete failed: %s", err.Error())
 			if (oplog_err == nil) {
-				oplog_err = oplog.End(uuid, openapi.OpVmUnregister, openapi.OPERATION_FAILED, err.Error(), oplog_off)
+				oplog_err = vmlog.End(uuid, openapi.OpVmUnregister, openapi.OPERATION_FAILED, err.Error(), oplog_off)
 			}
 			http.Error(w, "failed to unregister VM from registry", http.StatusInternalServerError)
 			return

@@ -25,7 +25,7 @@ import (
 
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/logger"
-	"suse.com/virtx/pkg/oplog"
+	"suse.com/virtx/pkg/vmlog"
 )
 
 func Migrate_domain(hostname string, migration_addr string, host_uuid string, host_old string, uuid string, live bool) error {
@@ -144,7 +144,7 @@ func Get_migration_info(uuid string) (openapi.MigrationInfo, error) {
 		msgs, msge string
 		mts, tse int64
 	)
-	err = oplog.Load_last(uuid, op, &state, &msgs, &msge, &mts, &tse)
+	err = vmlog.Load_last(uuid, op, &state, &msgs, &msge, &mts, &tse)
 	if (err != nil) {
 		return info, err
 	}
@@ -205,7 +205,7 @@ func Abort_migration(uuid string) error {
 		msgs, msge string
 		mts, tse int64
 	)
-	err = oplog.Load_last(uuid, op, &state, &msgs, &msge, &mts, &tse)
+	err = vmlog.Load_last(uuid, op, &state, &msgs, &msge, &mts, &tse)
 	if (err != nil) {
 		return err
 	}

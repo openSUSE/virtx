@@ -26,7 +26,7 @@ import (
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/httpx"
 	"suse.com/virtx/pkg/inventory"
-	"suse.com/virtx/pkg/oplog"
+	"suse.com/virtx/pkg/vmlog"
 )
 
 func vm_shutdown(w http.ResponseWriter, r *http.Request) {
@@ -62,7 +62,7 @@ func vm_shutdown(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	msg := fmt.Sprintf("force: %d", o.Force)
-	oplog_off, oplog_err := oplog.Start(uuid, openapi.OpVmShutdown, httpx.Client_ip(r), msg)
+	oplog_off, oplog_err := vmlog.Start(uuid, openapi.OpVmShutdown, httpx.Client_ip(r), msg)
 	defer func() {
 		if (oplog_err != nil) {
 			logger.Log("vm_shutdown: oplog: %s", oplog_err.Error())
@@ -72,7 +72,7 @@ func vm_shutdown(w http.ResponseWriter, r *http.Request) {
 	if (err != nil) {
 		logger.Log("hypervisor.Shutdown_domain failed: %s", err.Error())
 		if (oplog_err == nil) {
-			oplog_err = oplog.End(uuid, openapi.OpVmShutdown, openapi.OPERATION_FAILED, err.Error(), oplog_off)
+			oplog_err = vmlog.End(uuid, openapi.OpVmShutdown, openapi.OPERATION_FAILED, err.Error(), oplog_off)
 		}
 		http.Error(w, "could not shutdown VM", http.StatusFailedDependency)
 		return

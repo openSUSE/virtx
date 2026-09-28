@@ -24,7 +24,7 @@ import (
 	"suse.com/virtx/pkg/hypervisor"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/model"
-	"suse.com/virtx/pkg/oplog"
+	"suse.com/virtx/pkg/vmlog"
 	"suse.com/virtx/pkg/reg"
 	"suse.com/virtx/pkg/httpx"
 	"suse.com/virtx/pkg/inventory"
@@ -122,7 +122,7 @@ func vm_migrate(w http.ResponseWriter, r *http.Request) {
 		msg = "offline"
 	}
 	msg += fmt.Sprintf(" %s -> %s", host_old_id, o.Host)
-	oplog_off, oplog_err := oplog.Start(uuid, openapi.OpVmMigrate, httpx.Client_ip(r), msg)
+	oplog_off, oplog_err := vmlog.Start(uuid, openapi.OpVmMigrate, httpx.Client_ip(r), msg)
 	if (oplog_err != nil) {
 		logger.Log("vm_migrate: oplog: %s", oplog_err.Error())
 	}
@@ -131,7 +131,7 @@ func vm_migrate(w http.ResponseWriter, r *http.Request) {
 		if (err != nil) {
 			logger.Log("migration of domain %s failed: %s", uuid, err.Error())
 			if (oplog_err == nil) {
-				oplog_err = oplog.End(uuid, openapi.OpVmMigrate, openapi.OPERATION_FAILED, err.Error(), oplog_off)
+				oplog_err = vmlog.End(uuid, openapi.OpVmMigrate, openapi.OPERATION_FAILED, err.Error(), oplog_off)
 				if (oplog_err != nil) {
 					logger.Log("vm_migrate: oplog: %s", oplog_err.Error())
 				}
@@ -143,7 +143,7 @@ func vm_migrate(w http.ResponseWriter, r *http.Request) {
 		 * correct host (the file moves with the VM directory in the rename).
 		 */
 		if (oplog_err == nil) {
-			oplog_err = oplog.End(uuid, openapi.OpVmMigrate, openapi.OPERATION_COMPLETED, "Migrated.", oplog_off)
+			oplog_err = vmlog.End(uuid, openapi.OpVmMigrate, openapi.OPERATION_COMPLETED, "Migrated.", oplog_off)
 			if (oplog_err != nil) {
 				logger.Log("vm_migrate: oplog: %s", oplog_err.Error())
 			}

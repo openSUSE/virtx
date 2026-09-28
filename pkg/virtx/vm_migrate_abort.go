@@ -23,7 +23,7 @@ import (
 	"suse.com/virtx/pkg/hypervisor"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/model"
-	"suse.com/virtx/pkg/oplog"
+	"suse.com/virtx/pkg/vmlog"
 	"suse.com/virtx/pkg/httpx"
 	"suse.com/virtx/pkg/inventory"
 )
@@ -56,7 +56,7 @@ func vm_migrate_abort(w http.ResponseWriter, r *http.Request) {
 		http_proxy_request(host_old, w, vr);
 		return
 	}
-	oplog_off, oplog_err := oplog.Start(uuid, openapi.OpVmMigrateAbort, httpx.Client_ip(r), "")
+	oplog_off, oplog_err := vmlog.Start(uuid, openapi.OpVmMigrateAbort, httpx.Client_ip(r), "")
 	defer func() {
 		if (oplog_err != nil) {
 			logger.Log("vm_migrate_abort: oplog: %s", oplog_err.Error())
@@ -66,13 +66,13 @@ func vm_migrate_abort(w http.ResponseWriter, r *http.Request) {
 	if (err != nil) {
 		logger.Log("Abort_migration failed: %s", err.Error())
 		if (oplog_err == nil) {
-			oplog_err = oplog.End(uuid, openapi.OpVmMigrateAbort, openapi.OPERATION_FAILED, err.Error(), oplog_off)
+			oplog_err = vmlog.End(uuid, openapi.OpVmMigrateAbort, openapi.OPERATION_FAILED, err.Error(), oplog_off)
 		}
 		http.Error(w, "could not abort migration", http.StatusFailedDependency)
 		return
 	}
 	if (oplog_err == nil) {
-		oplog_err = oplog.End(uuid, openapi.OpVmMigrateAbort, openapi.OPERATION_COMPLETED, "Abort sent.", oplog_off)
+		oplog_err = vmlog.End(uuid, openapi.OpVmMigrateAbort, openapi.OPERATION_COMPLETED, "Abort sent.", oplog_off)
 	}
 	httpx.Do_response(w, http.StatusNoContent, nil)
 }

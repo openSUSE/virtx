@@ -28,7 +28,7 @@ import (
 	"suse.com/virtx/pkg/inventory"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/model"
-	"suse.com/virtx/pkg/oplog"
+	"suse.com/virtx/pkg/vmlog"
 )
 
 func vm_console_vnc(w http.ResponseWriter, r *http.Request) {
@@ -61,7 +61,7 @@ func vm_console_vnc(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "VM is not running", http.StatusUnprocessableEntity)
 		return
 	}
-	oplog_off, oplog_err = oplog.Start(uuid, openapi.OpVmConsoleVnc, httpx.Client_ip(r), "")
+	oplog_off, oplog_err = vmlog.Start(uuid, openapi.OpVmConsoleVnc, httpx.Client_ip(r), "")
 	defer func() {
 		if (oplog_err != nil) {
 			logger.Log("vm_console_vnc: oplog: %s", oplog_err.Error())
@@ -71,7 +71,7 @@ func vm_console_vnc(w http.ResponseWriter, r *http.Request) {
 	if (err != nil) {
 		logger.Log("vm_console_vnc: Get_vnc_port failed: %s", err.Error())
 		if (oplog_err == nil) {
-			oplog_err = oplog.End(uuid, openapi.OpVmConsoleVnc, openapi.OPERATION_FAILED, err.Error(), oplog_off)
+			oplog_err = vmlog.End(uuid, openapi.OpVmConsoleVnc, openapi.OPERATION_FAILED, err.Error(), oplog_off)
 		}
 		http.Error(w, "VNC not available", http.StatusServiceUnavailable)
 		return
@@ -80,7 +80,7 @@ func vm_console_vnc(w http.ResponseWriter, r *http.Request) {
 	if (err != nil) {
 		logger.Log("vm_console_vnc: dial VNC failed: %s", err.Error())
 		if (oplog_err == nil) {
-			oplog_err = oplog.End(uuid, openapi.OpVmConsoleVnc, openapi.OPERATION_FAILED, err.Error(), oplog_off)
+			oplog_err = vmlog.End(uuid, openapi.OpVmConsoleVnc, openapi.OPERATION_FAILED, err.Error(), oplog_off)
 		}
 		http.Error(w, "failed to connect to VNC", http.StatusServiceUnavailable)
 		return
@@ -92,7 +92,7 @@ func vm_console_vnc(w http.ResponseWriter, r *http.Request) {
 		msg = "Ended (closed by client)."
 	}
 	if (oplog_err == nil) {
-		oplog_err = oplog.End(uuid, openapi.OpVmConsoleVnc, openapi.OPERATION_COMPLETED, msg, oplog_off)
+		oplog_err = vmlog.End(uuid, openapi.OpVmConsoleVnc, openapi.OPERATION_COMPLETED, msg, oplog_off)
 	}
 }
 
@@ -125,7 +125,7 @@ func vm_console_serial(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "VM is not running", http.StatusUnprocessableEntity)
 		return
 	}
-	oplog_off, oplog_err = oplog.Start(uuid, openapi.OpVmConsoleSerial, httpx.Client_ip(r), "")
+	oplog_off, oplog_err = vmlog.Start(uuid, openapi.OpVmConsoleSerial, httpx.Client_ip(r), "")
 	defer func() {
 		if (oplog_err != nil) {
 			logger.Log("vm_console_serial: oplog: %s", oplog_err.Error())
@@ -135,7 +135,7 @@ func vm_console_serial(w http.ResponseWriter, r *http.Request) {
 	if (err != nil) {
 		logger.Log("vm_console_serial: Open_serial failed: %s", err.Error())
 		if (oplog_err == nil) {
-			oplog_err = oplog.End(uuid, openapi.OpVmConsoleSerial, openapi.OPERATION_FAILED, err.Error(), oplog_off)
+			oplog_err = vmlog.End(uuid, openapi.OpVmConsoleSerial, openapi.OPERATION_FAILED, err.Error(), oplog_off)
 		}
 		http.Error(w, "serial console not available", http.StatusServiceUnavailable)
 		return
@@ -147,6 +147,6 @@ func vm_console_serial(w http.ResponseWriter, r *http.Request) {
 		msg = "Ended (closed by client)."
 	}
 	if (oplog_err == nil) {
-		oplog_err = oplog.End(uuid, openapi.OpVmConsoleSerial, openapi.OPERATION_COMPLETED, msg, oplog_off)
+		oplog_err = vmlog.End(uuid, openapi.OpVmConsoleSerial, openapi.OPERATION_COMPLETED, msg, oplog_off)
 	}
 }
