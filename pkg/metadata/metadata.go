@@ -26,16 +26,18 @@ import (
 type Vm struct {
 	XMLName xml.Name `xml:""`
 
+	Source string `xml:"source,omitempty"` /* osdisk golden image it was cloned from */
 	Fields []Field `xml:"field"`
 }
 
-func (vm *Vm) To_xml(fields []openapi.CustomField) (string, error) {
+func (vm *Vm) To_xml(source string, fields []openapi.CustomField) (string, error) {
 	var (
 		err error
 		xmlstr []byte
 	)
 	*vm = Vm{
 		XMLName: xml.Name{ Space: "virtx-vm", Local: "data-vm" },
+		Source: source,
 		Fields: []Field{},
 	}
 	for _, custom := range fields {
@@ -51,12 +53,13 @@ func (vm *Vm) To_xml(fields []openapi.CustomField) (string, error) {
 	return string(xmlstr), nil
 }
 
-func (vm *Vm) From_xml(xmlstr string, fields *[]openapi.CustomField) error {
+func (vm *Vm) From_xml(xmlstr string, source *string, fields *[]openapi.CustomField) error {
 	var err error
 	err = xml.Unmarshal([]byte(xmlstr), vm)
 	if (err != nil) {
 		return err
 	}
+	*source = vm.Source
 	for _, field := range vm.Fields {
 		*fields = append(*fields, openapi.CustomField{
 			Name: field.Name,

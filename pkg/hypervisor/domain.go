@@ -110,7 +110,7 @@ func get_domain_event(d *libvirt.Domain, ve *inventory.VmEvent) error {
 func get_domain_details(d *libvirt.Domain, vd *inventory.VmDetails) error {
 	var (
 		meta metadata.Vm
-		meta_xml string
+		meta_xml, source string
 		err error
 	)
 	vd.Name, err = d.GetMetadata(libvirt.DOMAIN_METADATA_TITLE, "", libvirt.DOMAIN_AFFECT_CONFIG)
@@ -121,7 +121,7 @@ func get_domain_details(d *libvirt.Domain, vd *inventory.VmDetails) error {
 	if (err != nil) {
 		return nil
 	}
-	return meta.From_xml(meta_xml, &vd.Custom)
+	return meta.From_xml(meta_xml, &source, &vd.Custom)
 }
 
 func Dumpxml(uuid string) (string, error) {

@@ -845,7 +845,7 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 			Value: vmdef.Genid,
 		}
 	}()
-	meta_xml, err = meta.To_xml(vmdef.Custom)
+	meta_xml, err = meta.To_xml(vmdef.Osdisk.Source, vmdef.Custom)
 	if (err != nil) {
 		return "", err
 	}
@@ -998,7 +998,7 @@ func From_xml(vmdef *openapi.Vmdef, xmlstr string) error {
 	if (domain.Metadata == nil) {
 		return errors.New("missing Metadata")
 	}
-	err = meta.From_xml(domain.Metadata.XML, &vmdef.Custom)
+	err = meta.From_xml(domain.Metadata.XML, &vmdef.Osdisk.Source, &vmdef.Custom)
 	if (err != nil) {
 		return err
 	}
