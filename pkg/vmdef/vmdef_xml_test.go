@@ -53,7 +53,7 @@ func xml_to_domain(t *testing.T, vm *openapi.Vmdef, uuid string) libvirtxml.Doma
 func empty_meta_xml(t *testing.T) string {
 	t.Helper()
 	var m metadata.Vm
-	xml, err := m.To_xml(nil)
+	xml, err := m.To_xml("", nil)
 	if (err != nil) {
 		t.Fatalf("metadata.Vm.To_xml: %v", err)
 	}
@@ -442,6 +442,28 @@ func Test_to_xml_custom_fields(t *testing.T) {
 	}
 }
 
+func Test_to_xml_osdisk_source(t *testing.T) {
+	vm := xml_base_vmdef()
+	vm.Osdisk.Source = "/vms/gold/sles15.qcow2"
+	xmlstr, err := To_xml(&vm, "test-uuid-14")
+	if (err != nil) {
+		t.Fatalf("To_xml: %v", err)
+	}
+	var vm2 openapi.Vmdef
+	err = From_xml(&vm2, xmlstr)
+	if (err != nil) {
+		t.Fatalf("From_xml: %v", err)
+	}
+	if (vm2.Osdisk.Source != "/vms/gold/sles15.qcow2") {
+		t.Errorf("Osdisk.Source: got %q", vm2.Osdisk.Source)
+	}
+	for _, disk := range vm2.Disks {
+		if (disk.Source != "") {
+			t.Errorf("Disks[].Source: got %q, want empty", disk.Source)
+		}
+	}
+}
+
 func Test_to_xml_invalid_arch(t *testing.T) {
 	vm := xml_base_vmdef()
 	vm.Cpudef.Arch = "unsupported-arch"
@@ -727,7 +749,7 @@ func Test_from_xml_numa(t *testing.T) {
 
 func Test_from_xml_custom_fields(t *testing.T) {
 	var m metadata.Vm
-	meta_xml, err := m.To_xml([]openapi.CustomField{
+	meta_xml, err := m.To_xml("", []openapi.CustomField{
 		{Name: "CID", Value: "1217"},
 		{Name: "ENV", Value: "prod"},
 	})

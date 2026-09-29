@@ -55,7 +55,7 @@ func Test_vm_to_xml_from_xml_roundtrip(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			var vm Vm
-			xmlstr, err := vm.To_xml(tc.fields)
+			xmlstr, err := vm.To_xml("/vms/gold/sles15.qcow2", tc.fields)
 			if (err != nil) {
 				t.Fatalf("To_xml: %v", err)
 			}
@@ -64,10 +64,14 @@ func Test_vm_to_xml_from_xml_roundtrip(t *testing.T) {
 			}
 
 			var vm2 Vm
+			var source string
 			var parsed []openapi.CustomField
-			err = vm2.From_xml(xmlstr, &parsed)
+			err = vm2.From_xml(xmlstr, &source, &parsed)
 			if (err != nil) {
 				t.Fatalf("From_xml: %v", err)
+			}
+			if (source != "/vms/gold/sles15.qcow2") {
+				t.Fatalf("From_xml: source: got %q", source)
 			}
 			if (len(parsed) != tc.expect) {
 				t.Fatalf("From_xml: expected %d fields, got %d", tc.expect, len(parsed))
@@ -88,16 +92,20 @@ func Test_vm_to_xml_skips_empty_name(t *testing.T) {
 		{Name: "", Value: "ignored"},
 		{Name: "CID", Value: "1217"},
 	}
-	xmlstr, err := vm.To_xml(fields)
+	xmlstr, err := vm.To_xml("", fields)
 	if (err != nil) {
 		t.Fatalf("To_xml: %v", err)
 	}
 
 	var vm2 Vm
+	var source string
 	var parsed []openapi.CustomField
-	err = vm2.From_xml(xmlstr, &parsed)
+	err = vm2.From_xml(xmlstr, &source, &parsed)
 	if (err != nil) {
 		t.Fatalf("From_xml: %v", err)
+	}
+	if (source != "") {
+		t.Fatalf("expected empty source, got %q", source)
 	}
 	if (len(parsed) != 1) {
 		t.Fatalf("expected 1 field (empty name skipped), got %d", len(parsed))
@@ -129,10 +137,14 @@ func Test_vm_from_xml_namespaces(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			var vm Vm
+			var source string
 			var parsed []openapi.CustomField
-			err := vm.From_xml(tc.xmlstr, &parsed)
+			err := vm.From_xml(tc.xmlstr, &source, &parsed)
 			if (err != nil) {
 				t.Fatalf("From_xml: %v", err)
+			}
+			if (source != "") {
+				t.Errorf("expected empty source, got %q", source)
 			}
 			if (len(parsed) != 1) {
 				t.Fatalf("expected 1 field, got %d", len(parsed))
