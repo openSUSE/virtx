@@ -73,6 +73,14 @@ func diff_leaf(old_val, new_val reflect.Value, prefix string, changes *[]string)
 		new_field := new_val.Field(i)
 		switch old_field.Kind() {
 		case reflect.Struct:
+			if (old_field.Type() == reflect.TypeOf(openapi.Disk{})) {
+				/* like disks in slices, only the path: the rest is provisioning input */
+				if (old_field.FieldByName("Path").String() != new_field.FieldByName("Path").String()) {
+					*changes = append(*changes, fmt.Sprintf("%s.path:%s->%s", name,
+						old_field.FieldByName("Path").String(), new_field.FieldByName("Path").String()))
+				}
+				continue
+			}
 			diff_leaf(old_field, new_field, name, changes)
 		case reflect.Slice:
 			old_keys := make(map[string]bool)
