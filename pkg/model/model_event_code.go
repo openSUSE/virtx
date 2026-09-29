@@ -26,6 +26,7 @@ const (
 	EVENT_CRASH EventCode = 1003
 	EVENT_STORAGE EventCode = 1004
 	EVENT_SHUTDOWN EventCode = 2001
+	EVENT_REBOOT EventCode = 2002
 )
 
 // All allowed values of EventCode enum
@@ -35,6 +36,7 @@ var AllowedEventCodeEnumValues = []EventCode{
 	1003,
 	1004,
 	2001,
+	2002,
 }
 
 func (v *EventCode) UnmarshalJSON(src []byte) error {

@@ -410,6 +410,8 @@ func (c EventCode) String() string {
 		return "storage"
 	case EVENT_SHUTDOWN:
 		return "shutdown"
+	case EVENT_REBOOT:
+		return "reboot"
 	}
 	return ""
 }
@@ -430,6 +432,9 @@ func (c *EventCode) Parse(s string) error {
 		return nil
 	case "shutdown":
 		*c = EVENT_SHUTDOWN
+		return nil
+	case "reboot":
+		*c = EVENT_REBOOT
 		return nil
 	}
 	return errors.New("unknown event code")
