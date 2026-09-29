@@ -61,6 +61,7 @@ type Hypervisor struct {
 	lifecycle_id int
 	watchdog_id int
 	ioerror_id int
+	reboot_id int
 	vm_event_ch chan inventory.VmEvent
 	system_info_ch chan SystemInfo
 	system_info_loop_done atomic.Bool
@@ -73,6 +74,7 @@ var hv = Hypervisor{
 	lifecycle_id: -1,
 	watchdog_id: -1,
 	ioerror_id: -1,
+	reboot_id: -1,
 }
 
 /*
@@ -341,6 +343,38 @@ func ioerror_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventIOE
 	}
 }
 
+/*
+ * reboot_cb has no detail: libvirt drops the reason of the QEMU reset. VirtX
+ * has no reboot operation, so any reboot is a guest event.
+ */
+func reboot_cb(_ *libvirt.Connect, d *libvirt.Domain) {
+	var (
+		persistent bool
+		uuid string
+		err error
+	)
+	if (!hv.system_info_loop_done.Load()) {
+		return
+	}
+	persistent, err = d.IsPersistent()
+	if (err != nil) {
+		logger.Log("reboot_cb: IsPersistent: %s", err.Error())
+		return
+	}
+	if (!persistent) {
+		return
+	}
+	uuid, err = d.GetUUIDString()
+	if (err != nil) {
+		logger.Log("reboot_cb: GetUUIDString: %s", err.Error())
+		return
+	}
+	err = vmlog.Event(uuid, openapi.EVENT_REBOOT, "Reset.")
+	if (err != nil) {
+		logger.Log("reboot_cb: vmlog.Event: %s", err.Error())
+	}
+}
+
 func start_listening() error {
 	/* assert(hv.m.IsLocked()) */
 	var err error
@@ -353,6 +387,10 @@ func start_listening() error {
 		return err
 	}
 	hv.ioerror_id, err = hv.conn.DomainEventIOErrorReasonRegister(nil, ioerror_cb)
+	if (err != nil) {
+		return err
+	}
+	hv.reboot_id, err = hv.conn.DomainEventRebootRegister(nil, reboot_cb)
 	if (err != nil) {
 		return err
 	}
@@ -372,6 +410,10 @@ func stop_listening() {
 	if (hv.ioerror_id >= 0) {
 		_ = hv.conn.DomainEventDeregister(hv.ioerror_id)
 		hv.ioerror_id = -1
+	}
+	if (hv.reboot_id >= 0) {
+		_ = hv.conn.DomainEventDeregister(hv.reboot_id)
+		hv.reboot_id = -1
 	}
 }
 
