@@ -134,7 +134,7 @@ func Validate_disk_path(path string) string {
 	return Disk_driver(path)
 }
 
-func vmdef_validate_disk(disk *openapi.Disk) error {
+func vmdef_validate_disk(disk *openapi.Disk, i int) error {
 	var (
 		disk_driver string
 	)
@@ -158,6 +158,9 @@ func vmdef_validate_disk(disk *openapi.Disk) error {
 		return errors.New("invalid Disk Management mode")
 	}
 	if (disk.Source != "") {
+		if (i != 0) {
+			return errors.New("Source only allowed for Osdisk")
+		}
 		if (Validate_disk_source(disk.Source) == "") {
 			return errors.New("invalid Disk Source")
 		}
@@ -253,8 +256,8 @@ func Validate(vmdef *openapi.Vmdef) error {
 		return errors.New("invalid Nets")
 	}
 	/* *** DISKS *** */
-	for _, disk := range Disks(vmdef) {
-		err = vmdef_validate_disk(disk)
+	for i, disk := range Disks(vmdef) {
+		err = vmdef_validate_disk(disk, i)
 		if (err != nil) {
 			return err
 		}

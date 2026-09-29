@@ -200,7 +200,7 @@ func Test_vmdef_validate_disk_valid(t *testing.T) {
 		Man:    openapi.DISK_MAN_MANAGED,
 		Size:   16384,
 	}
-	err := vmdef_validate_disk(&disk)
+	err := vmdef_validate_disk(&disk, 0)
 	if (err != nil) {
 		t.Fatalf("valid disk rejected: %v", err)
 	}
@@ -212,7 +212,7 @@ func Test_vmdef_validate_disk_negative_size(t *testing.T) {
 		Bus: openapi.BUS_VIRTIO_BLK, Prov: openapi.DISK_PROV_THIN, Man: openapi.DISK_MAN_MANAGED,
 		Size: -1,
 	}
-	err := vmdef_validate_disk(&disk)
+	err := vmdef_validate_disk(&disk, 0)
 	if (err == nil) {
 		t.Fatal("negative size: expected error")
 	}
@@ -224,7 +224,7 @@ func Test_vmdef_validate_disk_bad_path(t *testing.T) {
 		Bus: openapi.BUS_VIRTIO_BLK, Prov: openapi.DISK_PROV_THIN, Man: openapi.DISK_MAN_MANAGED,
 		Size: 1024,
 	}
-	err := vmdef_validate_disk(&disk)
+	err := vmdef_validate_disk(&disk, 0)
 	if (err == nil) {
 		t.Fatal("bad path: expected error")
 	}
@@ -240,7 +240,7 @@ func Test_vmdef_validate_disk_source_valid(t *testing.T) {
 		Size:   16384,
 		Source: "/vms/gold/sles15.qcow2",
 	}
-	err := vmdef_validate_disk(&disk)
+	err := vmdef_validate_disk(&disk, 0)
 	if (err != nil) {
 		t.Fatalf("valid source disk rejected: %v", err)
 	}
@@ -256,7 +256,7 @@ func Test_vmdef_validate_disk_source_requires_managed(t *testing.T) {
 		Size:   0,
 		Source: "/vms/gold/sles15.qcow2",
 	}
-	err := vmdef_validate_disk(&disk)
+	err := vmdef_validate_disk(&disk, 0)
 	if (err == nil) {
 		t.Fatal("Source on unmanaged disk: expected error")
 	}
@@ -272,7 +272,7 @@ func Test_vmdef_validate_disk_source_requires_non_none_prov(t *testing.T) {
 		Size:   0,
 		Source: "/vms/gold/sles15.qcow2",
 	}
-	err := vmdef_validate_disk(&disk)
+	err := vmdef_validate_disk(&disk, 0)
 	if (err == nil) {
 		t.Fatal("Source with DISK_PROV_NONE: expected error")
 	}
@@ -288,7 +288,7 @@ func Test_vmdef_validate_disk_source_invalid_path(t *testing.T) {
 		Size:   16384,
 		Source: "/tmp/notallowed.qcow2",
 	}
-	err := vmdef_validate_disk(&disk)
+	err := vmdef_validate_disk(&disk, 0)
 	if (err == nil) {
 		t.Fatal("Source outside GOLD_DIR: expected error")
 	}
@@ -300,7 +300,7 @@ func Test_vmdef_validate_disk_lun_nonzero_size(t *testing.T) {
 		Bus: openapi.BUS_VIRTIO_SCSI, Prov: openapi.DISK_PROV_NONE, Man: openapi.DISK_MAN_UNMANAGED,
 		Size: 1024,
 	}
-	err := vmdef_validate_disk(&disk)
+	err := vmdef_validate_disk(&disk, 0)
 	if (err == nil) {
 		t.Fatal("LUN with non-zero Size: expected error")
 	}
@@ -312,13 +312,13 @@ func Test_vmdef_validate_disk_lun_requires_virtio_scsi(t *testing.T) {
 		Bus: openapi.BUS_SATA, Prov: openapi.DISK_PROV_NONE, Man: openapi.DISK_MAN_UNMANAGED,
 		Size: 0,
 	}
-	err := vmdef_validate_disk(&disk)
+	err := vmdef_validate_disk(&disk, 0)
 	if (err == nil) {
 		t.Fatal("LUN on SATA bus: expected error")
 	}
 
 	disk.Bus = openapi.BUS_VIRTIO_SCSI
-	err = vmdef_validate_disk(&disk)
+	err = vmdef_validate_disk(&disk, 0)
 	if (err != nil) {
 		t.Fatalf("LUN on VIRTIO_SCSI: unexpected error: %v", err)
 	}
@@ -334,7 +334,7 @@ func Test_vmdef_validate_disk_cdrom_bus_restrictions(t *testing.T) {
 	for _, bus := range allowed {
 		disk := base
 		disk.Bus = bus
-		err := vmdef_validate_disk(&disk)
+		err := vmdef_validate_disk(&disk, 0)
 		if (err != nil) {
 			t.Errorf("CDROM on bus %d: unexpected error: %v", bus, err)
 		}
@@ -342,7 +342,7 @@ func Test_vmdef_validate_disk_cdrom_bus_restrictions(t *testing.T) {
 
 	disk := base
 	disk.Bus = openapi.BUS_VIRTIO_BLK
-	err := vmdef_validate_disk(&disk)
+	err := vmdef_validate_disk(&disk, 0)
 	if (err == nil) {
 		t.Error("CDROM on VIRTIO_BLK: expected error")
 	}
