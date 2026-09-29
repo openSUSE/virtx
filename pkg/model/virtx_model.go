@@ -408,6 +408,10 @@ func (c EventCode) String() string {
 		return "crash"
 	case EVENT_STORAGE:
 		return "storage"
+	case EVENT_MONITOR:
+		return "monitor"
+	case EVENT_MEMORY:
+		return "memory"
 	case EVENT_SHUTDOWN:
 		return "shutdown"
 	case EVENT_REBOOT:
@@ -429,6 +433,12 @@ func (c *EventCode) Parse(s string) error {
 		return nil
 	case "storage":
 		*c = EVENT_STORAGE
+		return nil
+	case "monitor":
+		*c = EVENT_MONITOR
+		return nil
+	case "memory":
+		*c = EVENT_MEMORY
 		return nil
 	case "shutdown":
 		*c = EVENT_SHUTDOWN

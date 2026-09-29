@@ -25,6 +25,8 @@ const (
 	EVENT_PANIC EventCode = 1002
 	EVENT_CRASH EventCode = 1003
 	EVENT_STORAGE EventCode = 1004
+	EVENT_MONITOR EventCode = 1005
+	EVENT_MEMORY EventCode = 1006
 	EVENT_SHUTDOWN EventCode = 2001
 	EVENT_REBOOT EventCode = 2002
 )
@@ -35,6 +37,8 @@ var AllowedEventCodeEnumValues = []EventCode{
 	1002,
 	1003,
 	1004,
+	1005,
+	1006,
 	2001,
 	2002,
 }
