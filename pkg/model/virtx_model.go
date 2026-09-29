@@ -408,6 +408,8 @@ func (c EventCode) String() string {
 		return "crash"
 	case EVENT_STORAGE:
 		return "storage"
+	case EVENT_SHUTDOWN:
+		return "shutdown"
 	}
 	return ""
 }
@@ -425,6 +427,9 @@ func (c *EventCode) Parse(s string) error {
 		return nil
 	case "storage":
 		*c = EVENT_STORAGE
+		return nil
+	case "shutdown":
+		*c = EVENT_SHUTDOWN
 		return nil
 	}
 	return errors.New("unknown event code")
