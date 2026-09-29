@@ -95,23 +95,17 @@ func vm_log_req(uuid string, class string, code string, from string, to string) 
 
 func vm_log(list *openapi.LogList) {
 	label := tz_label(virtx.log_tz)
-	fmt.Fprintf(virtx.w, "START (%s)\tEND (%s)\tCLASS\tCODE\tSTATE\tMESSAGES\n", label, label)
+	fmt.Fprintf(virtx.w, "START (%s)\tEND (%s)\tCLASS\tCODE\tSTATE\tMESSAGES\t \n", label, label)
 	for _, item := range (list.Items) {
 		var (
 			class openapi.LogClass
-			end, msgs string
+			start, end string
 		)
 		class.From_code(item.Code)
-		if (item.State != openapi.OPERATION_NONE) { /* events have no end time */
-			end = format_ts(item.Te, virtx.log_tz)
-		}
-		msgs = item.Msgs
-		if (item.Msge != "") {
-			msgs += " -> " + item.Msge
-		}
-		fmt.Fprintf(virtx.w, "%s\t%s\t%s\t%s\t%s\t%s\n",
-			format_ts(item.Ts, virtx.log_tz), end, class, vm_log_code_string(item.Code),
-			item.State, msgs)
+		start = format_ts(item.Ts, virtx.log_tz)
+		end = format_ts(item.Te, virtx.log_tz)
+		fmt.Fprintf(virtx.w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", start, end, class,
+			vm_log_code_string(item.Code), item.State, item.Msgs, item.Msge)
 	}
 }
 
