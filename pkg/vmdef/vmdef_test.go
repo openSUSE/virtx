@@ -246,6 +246,51 @@ func Test_vmdef_validate_disk_source_valid(t *testing.T) {
 	}
 }
 
+func Test_vmdef_validate_disk_source_only_osdisk(t *testing.T) {
+	disk := openapi.Disk{
+		Path:   "/vms/ds/testvm/data.qcow2",
+		Device: openapi.DEVICE_DISK,
+		Bus:    openapi.BUS_VIRTIO_BLK,
+		Prov:   openapi.DISK_PROV_THIN,
+		Man:    openapi.DISK_MAN_MANAGED,
+		Size:   16384,
+		Source: "/vms/gold/sles15.qcow2",
+	}
+	err := vmdef_validate_disk(&disk, 1)
+	if (err == nil) {
+		t.Fatal("Source on non-osdisk: expected error")
+	}
+	err = vmdef_validate_disk(&disk, 0)
+	if (err != nil) {
+		t.Fatalf("Source on osdisk rejected: %v", err)
+	}
+}
+
+func Test_validate_source_only_osdisk(t *testing.T) {
+	vm := valid_vmdef()
+	vm.Osdisk.Source = "/vms/gold/sles15.qcow2"
+	err := Validate(&vm)
+	if (err != nil) {
+		t.Fatalf("Source on osdisk rejected: %v", err)
+	}
+	vm = valid_vmdef()
+	vm.Disks = []openapi.Disk{
+		{
+			Path:   "/vms/ds/testvm/data.qcow2",
+			Device: openapi.DEVICE_DISK,
+			Bus:    openapi.BUS_VIRTIO_BLK,
+			Prov:   openapi.DISK_PROV_THIN,
+			Man:    openapi.DISK_MAN_MANAGED,
+			Size:   1024,
+			Source: "/vms/gold/sles15.qcow2",
+		},
+	}
+	err = Validate(&vm)
+	if (err == nil) {
+		t.Fatal("Source on additional disk: expected error")
+	}
+}
+
 func Test_vmdef_validate_disk_source_requires_managed(t *testing.T) {
 	disk := openapi.Disk{
 		Path:   "/vms/ds/testvm/testvm.qcow2",
