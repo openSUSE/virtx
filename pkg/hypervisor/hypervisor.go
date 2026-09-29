@@ -219,6 +219,17 @@ func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventL
 				logger.Log("lifecycle_cb: vmlog.Event: %s", err.Error())
 			}
 		}
+	case libvirt.DOMAIN_EVENT_SHUTDOWN:
+		/*
+		 * GUEST also covers a vm_shutdown via ACPI, since the guest then
+		 * shuts down by itself: log it as a guest event anyway.
+		 */
+		if (e.Detail == int(libvirt.DOMAIN_EVENT_SHUTDOWN_GUEST)) {
+			err = vmlog.Event(vi.Uuid, openapi.EVENT_SHUTDOWN, "Graceful.")
+			if (err != nil) {
+				logger.Log("lifecycle_cb: vmlog.Event: %s", err.Error())
+			}
+		}
 	}
 	/* check for the need to remove a cloudinit disk resource file */
 	if ((e.Event == libvirt.DOMAIN_EVENT_STOPPED && e.Detail != int(libvirt.DOMAIN_EVENT_STOPPED_MIGRATED)) ||
