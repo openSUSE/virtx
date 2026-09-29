@@ -62,6 +62,9 @@ type Hypervisor struct {
 	watchdog_id int
 	ioerror_id int
 	reboot_id int
+	control_id int
+	memory_id int
+
 	vm_event_ch chan inventory.VmEvent
 	system_info_ch chan SystemInfo
 	system_info_loop_done atomic.Bool
@@ -375,6 +378,91 @@ func reboot_cb(_ *libvirt.Connect, d *libvirt.Domain) {
 	}
 }
 
+/* control_cb: libvirt lost control of the domain, ie the QEMU monitor failed */
+func control_cb(_ *libvirt.Connect, d *libvirt.Domain) {
+	var (
+		persistent bool
+		uuid string
+		err error
+	)
+	if (!hv.system_info_loop_done.Load()) {
+		return
+	}
+	persistent, err = d.IsPersistent()
+	if (err != nil) {
+		logger.Log("control_cb: IsPersistent: %s", err.Error())
+		return
+	}
+	if (!persistent) {
+		return
+	}
+	uuid, err = d.GetUUIDString()
+	if (err != nil) {
+		logger.Log("control_cb: GetUUIDString: %s", err.Error())
+		return
+	}
+	err = vmlog.Event(uuid, openapi.EVENT_MONITOR, "QEMU Monitor error.")
+	if (err != nil) {
+		logger.Log("control_cb: vmlog.Event: %s", err.Error())
+	}
+}
+
+func memory_failure_string(e *libvirt.DomainEventMemoryFailure) string {
+	var recipient, action, flags string
+	switch (e.Recipient) {
+	case libvirt.DOMAIN_EVENT_MEMORY_FAILURE_RECIPIENT_HYPERVISOR:
+		recipient = "hypervisor"
+	case libvirt.DOMAIN_EVENT_MEMORY_FAILURE_RECIPIENT_GUEST:
+		recipient = "guest"
+	}
+	switch (e.Action) {
+	case libvirt.DOMAIN_EVENT_MEMORY_FAILURE_ACTION_IGNORE:
+		action = "ignore"
+	case libvirt.DOMAIN_EVENT_MEMORY_FAILURE_ACTION_INJECT:
+		action = "inject"
+	case libvirt.DOMAIN_EVENT_MEMORY_FAILURE_ACTION_FATAL:
+		action = "fatal"
+	case libvirt.DOMAIN_EVENT_MEMORY_FAILURE_ACTION_RESET:
+		action = "reset"
+	}
+	if (e.Flags & libvirt.DOMAIN_MEMORY_FAILURE_ACTION_REQUIRED != 0) {
+		flags += ", action required"
+	}
+	if (e.Flags & libvirt.DOMAIN_MEMORY_FAILURE_RECURSIVE != 0) {
+		flags += ", recursive"
+	}
+	return fmt.Sprintf("Memory failure (recipient: %s, action: %s%s).", recipient, action, flags)
+}
+
+/* memory_cb: a hardware memory error (machine check) affected the VM */
+func memory_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventMemoryFailure) {
+	var (
+		persistent bool
+		uuid string
+		err error
+	)
+	if (!hv.system_info_loop_done.Load()) {
+		return
+	}
+	persistent, err = d.IsPersistent()
+	if (err != nil) {
+		logger.Log("memory_cb: IsPersistent: %s", err.Error())
+		return
+	}
+	if (!persistent) {
+		return
+	}
+	uuid, err = d.GetUUIDString()
+	if (err != nil) {
+		logger.Log("memory_cb: GetUUIDString: %s", err.Error())
+		return
+	}
+	err = vmlog.Event(uuid, openapi.EVENT_MEMORY, memory_failure_string(e))
+	if (err != nil) {
+		logger.Log("memory_cb: vmlog.Event: %s", err.Error())
+	}
+}
+
 func start_listening() error {
 	/* assert(hv.m.IsLocked()) */
 	var err error
@@ -391,6 +479,14 @@ func start_listening() error {
 		return err
 	}
 	hv.reboot_id, err = hv.conn.DomainEventRebootRegister(nil, reboot_cb)
+	if (err != nil) {
+		return err
+	}
+	hv.control_id, err = hv.conn.DomainEventControlErrorRegister(nil, control_cb)
+	if (err != nil) {
+		return err
+	}
+	hv.memory_id, err = hv.conn.DomainEventMemoryFailureRegister(nil, memory_cb)
 	if (err != nil) {
 		return err
 	}
@@ -414,6 +510,14 @@ func stop_listening() {
 	if (hv.reboot_id >= 0) {
 		_ = hv.conn.DomainEventDeregister(hv.reboot_id)
 		hv.reboot_id = -1
+	}
+	if (hv.control_id >= 0) {
+		_ = hv.conn.DomainEventDeregister(hv.control_id)
+		hv.control_id = -1
+	}
+	if (hv.memory_id >= 0) {
+		_ = hv.conn.DomainEventDeregister(hv.memory_id)
+		hv.memory_id = -1
 	}
 }
 
