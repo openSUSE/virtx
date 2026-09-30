@@ -33,6 +33,7 @@ type storage_ops struct {
 	delete func(disk *openapi.Disk, resource_name string, uuid string) error
 	detect func(disk *openapi.Disk) error
 	detect_size func(disk *openapi.Disk) error
+	resize func(disk *openapi.Disk, old *openapi.Disk, resource_name string, uuid string) error /* grow to disk.Size */
 }
 
 type created_resource struct {
@@ -187,6 +188,32 @@ func Detect_size(disk *openapi.Disk) error {
 		return errors.New("Detect_size: invalid disk device")
 	}
 	return ops.detect_size(disk)
+}
+
+/*
+ * grow an existing disk to disk.Size. old is the disk as it is in the current definition.
+ * A Size of 0 means keep the current size.
+ */
+func storage_resize(disk *openapi.Disk, old *openapi.Disk, uuid string) error {
+	var err error
+	if (disk.Size == 0) {
+		return nil
+	}
+	err = Detect_size(old)
+	if (err != nil) {
+		return err
+	}
+	if (disk.Size == old.Size) {
+		return nil
+	}
+	if (!storage_is_managed_disk(old)) {
+		return errors.New("cannot resize an unmanaged disk")
+	}
+	ops, ok := storage_ops_map[disk.Device]
+	if (!ok || ops.resize == nil) {
+		return errors.New("storage_resize: resize not supported for this disk device")
+	}
+	return ops.resize(disk, old, lockman.Get_resource_name(disk.Device, disk.Path), uuid)
 }
 
 func storage_delete_disk(disk *openapi.Disk, resource_name string, uuid string) error {
