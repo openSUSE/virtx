@@ -136,6 +136,25 @@ func vdisk_detect(disk *openapi.Disk) error {
 	return err
 }
 
+/* detect only size */
+func vdisk_detect_size(disk *openapi.Disk) error {
+	var (
+		err error
+		disk_driver string
+		size int64
+	)
+	disk_driver = vmdef.Validate_disk_path(disk.Path)
+	if (disk_driver == "") {
+		return errors.New("invalid Disk Path")
+	}
+	size, err = vdisk_detect_vsize(disk.Path, disk_driver)
+	if (err != nil) {
+		return err
+	}
+	disk.Size = int32(size / MiB)
+	return nil
+}
+
 func vdisk_detect_raw_prov(path string) (openapi.DiskProvMode, int32, error) {
 	var (
 		err error
@@ -255,10 +274,12 @@ func init() {
 		create: vdisk_create,
 		delete: vdisk_delete,
 		detect: vdisk_detect,
+		detect_size: vdisk_detect_size,
 	}
 	storage_ops_map[openapi.DEVICE_CDROM] = storage_ops{
 		create: nil,
 		delete: nil,
 		detect: vdisk_detect,
+		detect_size: vdisk_detect_size,
 	}
 }
