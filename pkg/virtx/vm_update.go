@@ -91,6 +91,19 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid VM data", http.StatusInternalServerError)
 		return
 	}
+	/* inherit Source and detect the current disk sizes, so that the oplog shows the actual changes */
+	err = storage.Prepare_update(&o.Vmdef, &old)
+	if (err != nil) {
+		logger.Log("storage.Prepare_update failed: %s", err.Error())
+		http.Error(w, "could not detect storage", http.StatusInsufficientStorage)
+		return
+	}
+	err = storage.Validate_update(&o.Vmdef, &old)
+	if (err != nil) {
+		logger.Log("storage.Validate_update failed: %s", err.Error())
+		http.Error(w, "invalid parameters", http.StatusBadRequest)
+		return
+	}
 	oplog_off, oplog_err = vmlog.Start(uuid, openapi.OpVmUpdate, httpx.Client_ip(r), vmdef.Diff(old, o.Vmdef))
 	defer func() {
 		if (oplog_err != nil) {

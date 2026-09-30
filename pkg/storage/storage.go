@@ -62,9 +62,91 @@ func Rollback(created CreatedResources, uuid string) {
 }
 
 /*
+ * Prepare a vm update: for the disks already present in the old definition, inherit Source,
+ * and detect the current size of those requesting a Size, so that old describes the actual storage.
+ * Must be called before vmdef.Diff and Create. Does not modify any storage.
+ */
+func Prepare_update(vm *openapi.Vmdef, old *openapi.Vmdef) error {
+	var (
+		err error
+		old_disk *openapi.Disk
+	)
+	for _, disk := range vmdef.Disks(vm) {
+		old_disk = vmdef.Find_disk(old, disk.Path)
+		if (old_disk == nil) {
+			continue
+		}
+		if (disk.Source == "") {
+			disk.Source = old_disk.Source
+		}
+		if (disk.Size != 0) { /* 0 means keep the current size */
+			err = Detect_size(old_disk)
+			if (err != nil) {
+				return fmt.Errorf("disk %s: %w", disk.Path, err)
+			}
+		}
+	}
+	return nil
+}
+
+/*
+ * Validate a vm update: check that the changes to the disks already present in the old definition
+ * are supported. Must be called after Prepare_update. Does not modify any storage.
+ */
+func Validate_update(vm *openapi.Vmdef, old *openapi.Vmdef) error {
+	var (
+		err error
+		old_disk *openapi.Disk
+	)
+	for _, disk := range vmdef.Disks(vm) {
+		old_disk = vmdef.Find_disk(old, disk.Path)
+		if (old_disk == nil) {
+			continue
+		}
+		err = storage_validate_update(disk, old_disk)
+		if (err != nil) {
+			return fmt.Errorf("disk %s: %w", disk.Path, err)
+		}
+	}
+	return nil
+}
+
+/* check that the update of a disk already present in the old definition is supported */
+func storage_validate_update(disk *openapi.Disk, old *openapi.Disk) error {
+	/* Bus can change freely, it only affects the domain XML and not the storage */
+	if (disk.Device != old.Device) {
+		return errors.New("changing the device type is not supported")
+	}
+	if (disk.Man != old.Man) {
+		return errors.New("changing the management mode is not supported")
+	}
+	if (disk.Prov != old.Prov) {
+		return errors.New("changing the provisioning mode is not supported")
+	}
+	if (disk.Source != old.Source) {
+		return errors.New("changing the source is not supported")
+	}
+	if (disk.Size == 0 || disk.Size == old.Size) {
+		return nil
+	}
+	if (disk.Size < old.Size) {
+		return errors.New("shrinking a disk is not supported")
+	}
+	if (!storage_is_managed_disk(old)) {
+		return errors.New("cannot resize an unmanaged disk")
+	}
+	ops, ok := storage_ops_map[disk.Device]
+	if (!ok || ops.resize == nil) {
+		return errors.New("resize not supported for this disk device")
+	}
+	return nil
+}
+
+/*
  * Create the managed storage that is in the vm definition.
- * If the operation is an update, do not create a disk that was already present in the old definition,
- * but grow it if a bigger size is requested.
+ * If the operation is an update (old passed through Prepare_update and Validate_update),
+ * do not create the disks already present in the old definition, but grow them if a bigger size
+ * is requested. Resizing comes last, since unlike creation it cannot be rolled back.
  */
 func Create(vm *openapi.Vmdef, old *openapi.Vmdef, uuid string) (CreatedResources, error) {
 	var (
@@ -74,30 +156,8 @@ func Create(vm *openapi.Vmdef, old *openapi.Vmdef, uuid string) (CreatedResource
 		old_disk *openapi.Disk
 	)
 	for _, disk := range vmdef.Disks(vm) {
-		if (old != nil) {
-			old_disk = vmdef.Find_disk(old, disk.Path)
-			if (old_disk != nil) {
-				/* Bus can change freely, it only affects the domain XML and not the storage */
-				if (disk.Device != old_disk.Device) {
-					return created, fmt.Errorf("disk %s: changing the device type is not supported", disk.Path)
-				}
-				if (disk.Man != old_disk.Man) {
-					return created, fmt.Errorf("disk %s: changing the management mode is not supported", disk.Path)
-				}
-				if (disk.Prov != old_disk.Prov) {
-					return created, fmt.Errorf("disk %s: changing the provisioning mode is not supported", disk.Path)
-				}
-				if (disk.Source == "") {
-					disk.Source = old_disk.Source
-				} else if (disk.Source != old_disk.Source) {
-					return created, fmt.Errorf("disk %s: changing the source is not supported", disk.Path)
-				}
-				err = storage_resize(disk, old_disk, uuid)
-				if (err != nil) {
-					return created, fmt.Errorf("disk %s: %w", disk.Path, err)
-				}
-				continue
-			}
+		if (old != nil && vmdef.Find_disk(old, disk.Path) != nil) {
+			continue
 		}
 		if (storage_is_managed_disk(disk)) {
 			resource_name = lockman.Get_resource_name(disk.Device, disk.Path)
@@ -114,6 +174,18 @@ func Create(vm *openapi.Vmdef, old *openapi.Vmdef, uuid string) (CreatedResource
 		}
 		if (err != nil) {
 			return created, fmt.Errorf("disk %s: %w", disk.Path, err)
+		}
+	}
+	if (old != nil) {
+		for _, disk := range vmdef.Disks(vm) {
+			old_disk = vmdef.Find_disk(old, disk.Path)
+			if (old_disk == nil || disk.Size <= old_disk.Size) {
+				continue
+			}
+			err = storage_resize(disk, old_disk, uuid)
+			if (err != nil) {
+				return created, fmt.Errorf("disk %s: %w", disk.Path, err)
+			}
 		}
 	}
 	return created, nil
@@ -215,24 +287,10 @@ func Detect_size(disk *openapi.Disk) error {
 }
 
 /*
- * grow an existing disk to disk.Size. old is the disk as it is in the current definition.
- * A Size of 0 means keep the current size.
+ * grow an existing disk to disk.Size. old is the disk as it is in the current definition,
+ * with the size detected by Prepare_update. The change must be checked by Validate_update.
  */
 func storage_resize(disk *openapi.Disk, old *openapi.Disk, uuid string) error {
-	var err error
-	if (disk.Size == 0) {
-		return nil
-	}
-	err = Detect_size(old)
-	if (err != nil) {
-		return err
-	}
-	if (disk.Size == old.Size) {
-		return nil
-	}
-	if (!storage_is_managed_disk(old)) {
-		return errors.New("cannot resize an unmanaged disk")
-	}
 	ops, ok := storage_ops_map[disk.Device]
 	if (!ok || ops.resize == nil) {
 		return errors.New("storage_resize: resize not supported for this disk device")
