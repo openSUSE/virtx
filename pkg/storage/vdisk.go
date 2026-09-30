@@ -36,6 +36,21 @@ import (
 	. "suse.com/virtx/pkg/constants"
 )
 
+/* qemu-img preallocation mode for a disk driver and provisioning mode */
+func vdisk_prealloc(disk_driver string, prov openapi.DiskProvMode) string {
+	if (disk_driver == "qcow2") {
+		if (prov == openapi.DISK_PROV_THIN) {
+			return "metadata"
+		} else {
+			return "falloc"
+		}
+	} else if (prov == openapi.DISK_PROV_THIN) {
+		return "off"
+	} else {
+		return "falloc"
+	}
+}
+
 func vdisk_create(disk *openapi.Disk, resource_name string, uuid string) error {
 	var (
 		err error
@@ -65,19 +80,7 @@ func vdisk_create(disk *openapi.Disk, resource_name string, uuid string) error {
 	if (err != nil) {
 		return fmt.Errorf("could not create path %s: %w", filepath.Dir(disk.Path), err)
 	}
-	prealloc = func () string {
-		if (disk_driver == "qcow2") {
-			if (disk.Prov == openapi.DISK_PROV_THIN) {
-				return "metadata"
-			} else {
-				return "falloc"
-			}
-		} else if (disk.Prov == openapi.DISK_PROV_THIN) {
-			return "off"
-		} else {
-			return "falloc"
-		}
-	}()
+	prealloc = vdisk_prealloc(disk_driver, disk.Prov)
 	args := [][]string{
 		{ paths.Get("QEMU_IMG"), "create", "-f", disk_driver, "-o", "preallocation=" + prealloc },
 	}
@@ -94,6 +97,25 @@ func vdisk_create(disk *openapi.Disk, resource_name string, uuid string) error {
 		)
 	}
 	/* run provisioning under lease lock */
+	return lockman.Run(resource_name, uuid, args, false)
+}
+
+/* grow the disk to disk.Size, under lease lock. old.Size is the current size */
+func vdisk_resize(disk *openapi.Disk, old *openapi.Disk, resource_name string, uuid string) error {
+	disk_driver := vmdef.Validate_disk_path(disk.Path)
+	if (disk_driver == "") {
+		return errors.New("invalid Disk Path")
+	}
+	if (disk.Size < old.Size) {
+		return errors.New("shrinking a disk is not supported")
+	}
+	args := [][]string{
+		{
+			paths.Get("QEMU_IMG"), "resize", "-f", disk_driver,
+			"--preallocation=" + vdisk_prealloc(disk_driver, disk.Prov),
+			disk.Path, fmt.Sprintf("%dM", disk.Size),
+		},
+	}
 	return lockman.Run(resource_name, uuid, args, false)
 }
 
@@ -275,6 +297,7 @@ func init() {
 		delete: vdisk_delete,
 		detect: vdisk_detect,
 		detect_size: vdisk_detect_size,
+		resize: vdisk_resize,
 	}
 	storage_ops_map[openapi.DEVICE_CDROM] = storage_ops{
 		create: nil,
