@@ -62,7 +62,7 @@ func Rollback(created CreatedResources, uuid string) {
 }
 
 /*
- * Prepare a vm update: for the disks already present in the old definition, inherit Source,
+ * Prepare a vm update: for the disks already present in the old definition, inherit the osdisk Source,
  * and detect the current size of those requesting a Size, so that old describes the actual storage.
  * Must be called before vmdef.Diff and Create. Does not modify any storage.
  */
@@ -76,7 +76,8 @@ func Prepare_update(vm *openapi.Vmdef, old *openapi.Vmdef) error {
 		if (old_disk == nil) {
 			continue
 		}
-		if (disk.Source == "") {
+		/* Source describes the osdisk only: a disk demoted to data disk loses it */
+		if (disk == &vm.Osdisk && disk.Source == "") {
 			disk.Source = old_disk.Source
 		}
 		if (disk.Size != 0) { /* 0 means keep the current size */
@@ -103,7 +104,7 @@ func Validate_update(vm *openapi.Vmdef, old *openapi.Vmdef) error {
 		if (old_disk == nil) {
 			continue
 		}
-		err = storage_validate_update(disk, old_disk)
+		err = storage_validate_update(disk, old_disk, disk == &vm.Osdisk)
 		if (err != nil) {
 			return fmt.Errorf("disk %s: %w", disk.Path, err)
 		}
@@ -111,8 +112,11 @@ func Validate_update(vm *openapi.Vmdef, old *openapi.Vmdef) error {
 	return nil
 }
 
-/* check that the update of a disk already present in the old definition is supported */
-func storage_validate_update(disk *openapi.Disk, old *openapi.Disk) error {
+/*
+ * check that the update of a disk already present in the old definition is supported.
+ * osdisk tells if disk is the osdisk in the new definition.
+ */
+func storage_validate_update(disk *openapi.Disk, old *openapi.Disk, osdisk bool) error {
 	/* Bus can change freely, it only affects the domain XML and not the storage */
 	if (disk.Device != old.Device) {
 		return errors.New("changing the device type is not supported")
@@ -123,7 +127,8 @@ func storage_validate_update(disk *openapi.Disk, old *openapi.Disk) error {
 	if (disk.Prov != old.Prov) {
 		return errors.New("changing the provisioning mode is not supported")
 	}
-	if (disk.Source != old.Source) {
+	/* Source describes the osdisk only, a data disk has none (see Validate) */
+	if (osdisk && disk.Source != old.Source) {
 		return errors.New("changing the source is not supported")
 	}
 	if (disk.Size == 0 || disk.Size == old.Size) {
