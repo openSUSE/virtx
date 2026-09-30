@@ -32,6 +32,7 @@ type storage_ops struct {
 	create func(disk *openapi.Disk, resource_name string, uuid string) error
 	delete func(disk *openapi.Disk, resource_name string, uuid string) error
 	detect func(disk *openapi.Disk) error
+	detect_size func(disk *openapi.Disk) error
 }
 
 type created_resource struct {
@@ -170,19 +171,28 @@ func storage_create_disk(disk *openapi.Disk, resource_name string, uuid string) 
 	return ops.create(disk, resource_name, uuid)
 }
 
-/* detect and set disk provisioning method */
+/* detect and set disk provisioning method and size */
 func Detect(disk *openapi.Disk) error {
 	ops, ok := storage_ops_map[disk.Device]
 	if (!ok || ops.detect == nil) {
-		return errors.New("storage_detect: invalid disk device")
+		return errors.New("Detect: invalid disk device")
 	}
 	return ops.detect(disk)
+}
+
+/* detect size only */
+func Detect_size(disk *openapi.Disk) error {
+	ops, ok := storage_ops_map[disk.Device]
+	if (!ok || ops.detect_size == nil) {
+		return errors.New("Detect_size: invalid disk device")
+	}
+	return ops.detect_size(disk)
 }
 
 func storage_delete_disk(disk *openapi.Disk, resource_name string, uuid string) error {
 	ops, ok := storage_ops_map[disk.Device]
 	if (!ok || ops.delete == nil) {
-		return errors.New("storage_delete: invalid disk device")
+		return errors.New("storage_delete_disk: invalid disk device")
 	}
 	return ops.delete(disk, resource_name, uuid)
 }
