@@ -636,6 +636,38 @@ func Test_validate_net_mac(t *testing.T) {
 	}
 }
 
+func Test_validate_net_name(t *testing.T) {
+	vm := valid_vmdef()
+	vm.Nets = []openapi.Net{
+		{
+			Name: "br0", Nettype: openapi.NET_BRIDGE, Model: openapi.NET_MODEL_VIRTIO, Vlanid: 10,
+		},
+		{
+			Name: "br0", Nettype: openapi.NET_BRIDGE, Model: openapi.NET_MODEL_VIRTIO, Vlanid: 20,
+		},
+	}
+	err := Validate(&vm)
+	if (err != nil) {
+		t.Fatalf("same net name, different vlanid: unexpected error: %v", err)
+	}
+	vm.Nets[1].Vlanid = 10
+	err = Validate(&vm)
+	if (err == nil) {
+		t.Error("duplicate net name and vlanid: expected error")
+	}
+	vm.Nets[1].Name = "default"
+	vm.Nets[1].Nettype = openapi.NET_LIBVIRT
+	err = Validate(&vm)
+	if (err != nil) {
+		t.Errorf("different net name, same vlanid: unexpected error: %v", err)
+	}
+	vm.Nets[1].Name = ""
+	err = Validate(&vm)
+	if (err == nil) {
+		t.Error("empty net name: expected error")
+	}
+}
+
 func Test_validate_custom_field(t *testing.T) {
 	vm := valid_vmdef()
 	vm.Custom = []openapi.CustomField{

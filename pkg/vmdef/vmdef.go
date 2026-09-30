@@ -263,7 +263,21 @@ func Validate(vmdef *openapi.Vmdef) error {
 		}
 	}
 	/* *** NETWORKS *** */
+	type NetKey struct {
+		name string
+		vlanid int16
+	}
+	net_keys := make(map[NetKey]bool, len(vmdef.Nets))
 	for _, net := range vmdef.Nets {
+		if (net.Name == "") {
+			return errors.New("invalid Net Name")
+		}
+		/* the name (bridge or libvirt network) and vlanid identify the net, see Diff */
+		key := NetKey{ net.Name, net.Vlanid }
+		if (net_keys[key]) {
+			return errors.New("duplicate Net Name and Vlanid")
+		}
+		net_keys[key] = true
 		if (net.Mac != "" && len(net.Mac) != MAC_LEN) {
 			return errors.New("invalid Mac")
 		}
