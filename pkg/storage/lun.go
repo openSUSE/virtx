@@ -51,7 +51,7 @@ func lun_create(disk *openapi.Disk, resource_name string, uuid string) error {
 		return errors.New("invalid Disk Path")
 	}
 	if (disk.Source != "") {
-		size, err = lun_detect_size(disk.Path)
+		size, err = lun_detect_raw_size(disk.Path)
 		if (err != nil) {
 			return err
 		}
@@ -146,23 +146,35 @@ func lun_discard_args(path string) ([][]string, error) {
 	return args, nil
 }
 
-/* detect and set disk provisioning method and virtual size */
+/* detect and set disk provisioning method and size */
 func lun_detect(disk *openapi.Disk) error {
 	var (
 		err error
-		size int64
 	)
-	size, err = lun_detect_size(disk.Path)
+	err = lun_detect_size(disk)
 	if (err != nil) {
 		return err
 	}
-	disk.Size = int32(size / MiB)
-	/* XXX we cannot know THIN vs THICK, depends on that the storage product is doing XXX */
+	/* XXX we cannot know THIN vs THICK, depends on what the storage product is doing XXX */
 	disk.Prov = openapi.DISK_PROV_THIN
 	return nil
 }
 
-func lun_detect_size(path string) (int64, error) {
+/* detect and set disk size only */
+func lun_detect_size(disk *openapi.Disk) error {
+	var (
+		err error
+		size int64
+	)
+	size, err = lun_detect_raw_size(disk.Path)
+	if (err != nil) {
+		return err
+	}
+	disk.Size = int32(size / MiB)
+	return nil
+}
+
+func lun_detect_raw_size(path string) (int64, error) {
 	var (
 		err error
 		size uint64
@@ -194,5 +206,6 @@ func init() {
 		create: lun_create,
 		delete: lun_delete,
 		detect: lun_detect,
+		detect_size: lun_detect_size,
 	}
 }
