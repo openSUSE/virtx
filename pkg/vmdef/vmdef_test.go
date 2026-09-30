@@ -89,21 +89,21 @@ func Test_disks_with_additional(t *testing.T) {
 	}
 }
 
-/* *** Has_path *** */
+/* *** Find_disk *** */
 
-func Test_has_path(t *testing.T) {
+func Test_find_disk(t *testing.T) {
 	vm := valid_vmdef()
 	vm.Disks = []openapi.Disk{
 		{Path: "/vms/ds/testvm/data.qcow2", Device: openapi.DEVICE_DISK, Bus: openapi.BUS_VIRTIO_BLK,
 			Prov: openapi.DISK_PROV_THIN, Man: openapi.DISK_MAN_MANAGED},
 	}
-	if (!Has_path(&vm, "/vms/ds/testvm/testvm.qcow2")) {
+	if (Find_disk(&vm, "/vms/ds/testvm/testvm.qcow2") != &vm.Osdisk) {
 		t.Error("should find osdisk path")
 	}
-	if (!Has_path(&vm, "/vms/ds/testvm/data.qcow2")) {
+	if (Find_disk(&vm, "/vms/ds/testvm/data.qcow2") != &vm.Disks[0]) {
 		t.Error("should find additional disk path")
 	}
-	if (Has_path(&vm, "/vms/ds/testvm/nonexistent.qcow2")) {
+	if (Find_disk(&vm, "/vms/ds/testvm/nonexistent.qcow2") != nil) {
 		t.Error("should not find nonexistent path")
 	}
 }

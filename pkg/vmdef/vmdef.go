@@ -48,16 +48,16 @@ func Disks(vm *openapi.Vmdef) []*openapi.Disk {
 }
 
 /*
- * check if the vmdef contains a certain path.
+ * get the disk with a certain path in the vmdef, or nil if there is none.
  * Initially implemented for the vm_update procedure for storage.
  */
-func Has_path(vmdef *openapi.Vmdef, path string) bool {
+func Find_disk(vmdef *openapi.Vmdef, path string) *openapi.Disk {
 	for _, disk := range Disks(vmdef) {
 		if (path == disk.Path) {
-			return true
+			return disk
 		}
 	}
-	return false
+	return nil
 }
 
 /*

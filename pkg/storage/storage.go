@@ -63,17 +63,32 @@ func Rollback(created CreatedResources, uuid string) {
 
 /*
  * Create the managed storage that is in the vm definition.
- * If the operation is an update, do not create a disk that was already present in the old definition
+ * If the operation is an update, do not create a disk that was already present in the old definition,
+ * but grow it if a bigger size is requested.
  */
 func Create(vm *openapi.Vmdef, old *openapi.Vmdef, uuid string) (CreatedResources, error) {
 	var (
 		err error
 		resource_name string
 		created CreatedResources
+		old_disk *openapi.Disk
 	)
 	for _, disk := range vmdef.Disks(vm) {
-		if (old != nil && vmdef.Has_path(old, disk.Path)) {
-			continue
+		if (old != nil) {
+			old_disk = vmdef.Find_disk(old, disk.Path)
+			if (old_disk != nil) {
+				if (disk.Man != old_disk.Man) {
+					return created, fmt.Errorf("disk %s: changing the management mode is not supported", disk.Path)
+				}
+				if (disk.Prov != old_disk.Prov) {
+					return created, fmt.Errorf("disk %s: changing the provisioning mode is not supported", disk.Path)
+				}
+				err = storage_resize(disk, old_disk, uuid)
+				if (err != nil) {
+					return created, fmt.Errorf("disk %s: %w", disk.Path, err)
+				}
+				continue
+			}
 		}
 		if (storage_is_managed_disk(disk)) {
 			resource_name = lockman.Get_resource_name(disk.Device, disk.Path)
@@ -138,7 +153,7 @@ func Delete(vm *openapi.Vmdef, new *openapi.Vmdef, uuid string, delete bool) err
 		resource_name string
 	)
 	for _, disk := range vmdef.Disks(vm) {
-		if (new != nil && vmdef.Has_path(new, disk.Path)) {
+		if (new != nil && vmdef.Find_disk(new, disk.Path) != nil) {
 			continue
 		}
 		if (!storage_is_managed_disk(disk)) {
