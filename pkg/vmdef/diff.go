@@ -19,123 +19,237 @@ package vmdef
 
 import (
 	"fmt"
-	"reflect"
+	"path/filepath"
+	"strconv"
 	"strings"
 
-	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/model"
+	. "suse.com/virtx/pkg/constants"
 )
 
-/*
- * diff_slice_key returns the value of the first field with json tag "name" or
- * "path" in the struct element, used as the key for set-based slice diff.
- * Returns "" if no such field is found.
- */
-func diff_slice_key(elem reflect.Value) string {
-	t := elem.Type()
-	for _, want := range [...]string{"name", "path"} {
-		for i := 0; i < t.NumField(); i++ {
-			tag := t.Field(i).Tag.Get("json")
-			idx := strings.Index(tag, ",")
-			if (idx >= 0) {
-				tag = tag[:idx]
-			}
-			if (tag == want) {
-				return elem.Field(i).String()
+type vmdef_diff []string
+
+func (d *vmdef_diff) add(format string, args ...any) {
+	*d = append(*d, fmt.Sprintf(format, args...))
+}
+
+func (d *vmdef_diff) str(key string, o string, n string) {
+	if (o != n) {
+		d.add("%s:%s->%s", key, o, n)
+	}
+}
+
+/* add a changed element as kind:id(changes), if there are any changes */
+func (d *vmdef_diff) elem(kind string, id string, changes vmdef_diff) {
+	if (len(changes) > 0) {
+		d.add("%s:%s(%s)", kind, id, strings.Join(changes, ","))
+	}
+}
+
+func vmdef_diff_mib(mib int32) string {
+	if (mib != 0 && mib % 1024 == 0) {
+		return fmt.Sprintf("%dG", mib / 1024)
+	}
+	return fmt.Sprintf("%dM", mib)
+}
+
+func vmdef_diff_bool(b bool) string {
+	if (b) {
+		return "y"
+	}
+	return "n"
+}
+
+func vmdef_diff_mem(mem *openapi.VmdefMemory) string {
+	if (mem.Hp) {
+		return vmdef_diff_mib(mem.Total) + "+hp"
+	}
+	return vmdef_diff_mib(mem.Total)
+}
+
+func vmdef_diff_topo(cpu *openapi.Cpudef) string {
+	return fmt.Sprintf("%dx%dx%d", cpu.Sockets, cpu.Cores, cpu.Threads)
+}
+
+/* genids are uuids, the first 8 chars are enough to show a change */
+func vmdef_diff_genid(genid string) string {
+	if (len(genid) > 8) {
+		return genid[:8]
+	}
+	return genid
+}
+
+func vmdef_diff_source(source string) string {
+	return strings.TrimPrefix(source, GOLD_DIR)
+}
+
+/* short disk ids: the base name of the path, or the full path if the base name is ambiguous */
+func vmdef_diff_disk_ids(old *openapi.Vmdef, new *openapi.Vmdef) map[string]string {
+	var (
+		count map[string]int = make(map[string]int)
+		ids map[string]string = make(map[string]string)
+	)
+	for _, vm := range [...]*openapi.Vmdef{ old, new } {
+		for _, disk := range Disks(vm) {
+			_, ok := ids[disk.Path]
+			if (!ok) {
+				ids[disk.Path] = filepath.Base(disk.Path)
+				count[ids[disk.Path]] += 1
 			}
 		}
 	}
-	return ""
+	for path, id := range ids {
+		if (count[id] > 1) {
+			ids[path] = path
+		}
+	}
+	return ids
 }
 
-/*
- * diff_leaf recursively walks two struct values, comparing primitive (leaf)
- * fields using reflection. Slice fields are diffed by element key ("name" or
- * "path"); elements present in one side but not the other are noted as +/-.
- */
-func diff_leaf(old_val, new_val reflect.Value, prefix string, changes *[]string) {
-	t := old_val.Type()
-	for i := 0; i < t.NumField(); i++ {
-		field := t.Field(i)
-		tag := field.Tag.Get("json")
-		idx := strings.Index(tag, ",")
-		if (idx >= 0) {
-			tag = tag[:idx]
-		}
-		if (tag == "" || tag == "-") {
+func vmdef_diff_disk_attrs(disk *openapi.Disk) string {
+	s := fmt.Sprintf("%s,%s,%s%s", disk.Device, disk.Bus, disk.Man, disk.Prov)
+	if (disk.Source != "") {
+		s += "," + vmdef_diff_source(disk.Source)
+	}
+	if (disk.Size != 0) {
+		s += "," + vmdef_diff_mib(disk.Size)
+	}
+	return s
+}
+
+/* disks are keyed by path, so a disk moving between Osdisk and Disks is not an add/remove */
+func vmdef_diff_disks(d *vmdef_diff, old *openapi.Vmdef, new *openapi.Vmdef) {
+	var (
+		old_disk *openapi.Disk
+		c vmdef_diff
+	)
+	ids := vmdef_diff_disk_ids(old, new)
+	d.str("os", ids[old.Osdisk.Path], ids[new.Osdisk.Path])
+	for _, disk := range Disks(new) {
+		old_disk = Find_disk(old, disk.Path)
+		if (old_disk == nil) {
+			d.add("+d:%s(%s)", ids[disk.Path], vmdef_diff_disk_attrs(disk))
 			continue
 		}
-		name := tag
-		if (prefix != "") {
-			name = prefix + "." + tag
+		c = nil
+		c.str("dev", old_disk.Device.String(), disk.Device.String())
+		c.str("bus", old_disk.Bus.String(), disk.Bus.String())
+		c.str("man", old_disk.Man.String(), disk.Man.String())
+		c.str("prov", old_disk.Prov.String(), disk.Prov.String())
+		c.str("src", vmdef_diff_source(old_disk.Source), vmdef_diff_source(disk.Source))
+		if (disk.Size != 0) { /* 0 means keep the current size */
+			c.str("size", vmdef_diff_mib(old_disk.Size), vmdef_diff_mib(disk.Size))
 		}
-		old_field := old_val.Field(i)
-		new_field := new_val.Field(i)
-		switch old_field.Kind() {
-		case reflect.Struct:
-			if (old_field.Type() == reflect.TypeOf(openapi.Disk{})) {
-				/* like disks in slices, only the path: the rest is provisioning input */
-				if (old_field.FieldByName("Path").String() != new_field.FieldByName("Path").String()) {
-					*changes = append(*changes, fmt.Sprintf("%s.path:%s->%s", name,
-						old_field.FieldByName("Path").String(), new_field.FieldByName("Path").String()))
-				}
-				continue
-			}
-			diff_leaf(old_field, new_field, name, changes)
-		case reflect.Slice:
-			old_keys := make(map[string]bool)
-			for j := 0; j < old_field.Len(); j++ {
-				k := diff_slice_key(old_field.Index(j))
-				if (k != "") {
-					old_keys[k] = true
-				}
-			}
-			new_keys := make(map[string]bool)
-			for j := 0; j < new_field.Len(); j++ {
-				k := diff_slice_key(new_field.Index(j))
-				if (k != "") {
-					new_keys[k] = true
-				}
-			}
-			for j := 0; j < new_field.Len(); j++ {
-				k := diff_slice_key(new_field.Index(j))
-				if (k != "" && !old_keys[k]) {
-					*changes = append(*changes, fmt.Sprintf("+%s:%s", tag, k))
-				}
-			}
-			for j := 0; j < old_field.Len(); j++ {
-				k := diff_slice_key(old_field.Index(j))
-				if (k != "" && !new_keys[k]) {
-					*changes = append(*changes, fmt.Sprintf("-%s:%s", tag, k))
-				}
-			}
-		case reflect.String:
-			if (old_field.String() != new_field.String()) {
-				*changes = append(*changes, fmt.Sprintf("%s:%s->%s", name, old_field.String(), new_field.String()))
-			}
-		case reflect.Bool:
-			if (old_field.Bool() != new_field.Bool()) {
-				*changes = append(*changes, fmt.Sprintf("%s:%t->%t", name, old_field.Bool(), new_field.Bool()))
-			}
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			if (old_field.Int() != new_field.Int()) {
-				*changes = append(*changes, fmt.Sprintf("%s:%d->%d", name, old_field.Int(), new_field.Int()))
-			}
-		default:
-			logger.Log("diff_leaf: unhandled kind %s for field %s", old_field.Kind(), name)
+		d.elem("d", ids[disk.Path], c)
+	}
+	for _, disk := range Disks(old) {
+		if (Find_disk(new, disk.Path) == nil) {
+			d.add("-d:%s", ids[disk.Path])
+		}
+	}
+}
+
+/* the net id: the name (bridge or libvirt network), and the vlanid if tagged. No '/' in names */
+func vmdef_diff_net_id(net *openapi.Net) string {
+	if (net.Vlanid == 0) {
+		return net.Name
+	}
+	return net.Name + "/" + strconv.Itoa(int(net.Vlanid))
+}
+
+func vmdef_diff_find_net(nets []openapi.Net, net *openapi.Net) *openapi.Net {
+	for i := range nets {
+		if (nets[i].Name == net.Name && nets[i].Vlanid == net.Vlanid) {
+			return &nets[i]
+		}
+	}
+	return nil
+}
+
+/* an empty mac is generated by libvirt */
+func vmdef_diff_mac(mac string) string {
+	if (mac == "") {
+		return "auto"
+	}
+	return mac
+}
+
+/* nets are keyed by name and vlanid, which are unique in a vmdef (see Validate) */
+func vmdef_diff_nets(d *vmdef_diff, old *openapi.Vmdef, new *openapi.Vmdef) {
+	var (
+		old_net *openapi.Net
+		c vmdef_diff
+	)
+	for i := range new.Nets {
+		net := &new.Nets[i]
+		old_net = vmdef_diff_find_net(old.Nets, net)
+		if (old_net == nil) {
+			d.add("+n:%s(%s,%s)", vmdef_diff_net_id(net), net.Nettype, net.Model)
+			continue
+		}
+		c = nil
+		c.str("type", old_net.Nettype.String(), net.Nettype.String())
+		c.str("model", old_net.Model.String(), net.Model.String())
+		c.str("mac", old_net.Mac, vmdef_diff_mac(net.Mac))
+		d.elem("n", vmdef_diff_net_id(net), c)
+	}
+	for i := range old.Nets {
+		if (vmdef_diff_find_net(new.Nets, &old.Nets[i]) == nil) {
+			d.add("-n:%s", vmdef_diff_net_id(&old.Nets[i]))
+		}
+	}
+}
+
+func vmdef_diff_custom(d *vmdef_diff, old []openapi.CustomField, new []openapi.CustomField) {
+	old_map := make(map[string]string, len(old))
+	new_map := make(map[string]string, len(new))
+	for _, f := range old {
+		old_map[f.Name] = f.Value
+	}
+	for _, f := range new {
+		new_map[f.Name] = f.Value
+		v, ok := old_map[f.Name]
+		if (!ok) {
+			d.add("+c:%s=%s", f.Name, f.Value)
+		} else if (v != f.Value) {
+			d.add("c:%s:%s->%s", f.Name, v, f.Value)
+		}
+	}
+	for _, f := range old {
+		_, ok := new_map[f.Name]
+		if (!ok) {
+			d.add("-c:%s", f.Name)
 		}
 	}
 }
 
 /*
- * Diff returns a one-line space-separated summary of changes from old to
- * new_def, suitable for use as an oplog start message.
+ * Diff returns a compact one-line summary of the changes from old to new,
+ * for the vm_update oplog start message. Tokens are space-separated:
+ *
+ *   key:old->new               field changed      mem:4G->8G
+ *   +kind:id(attrs)            element added      +d:data.qcow2(disk,virtio,Mt,100G)
+ *   -kind:id                   element removed    -n:br0/10
+ *   kind:id(key:old->new,...)  element changed    d:os.qcow2(size:16G->32G)
+ *
+ * kinds: d = disk (by path), n = net (by name and vlanid), c = custom field (by name).
+ * old must describe the actual storage (see storage.Prepare_update).
  */
-func Diff(old, new_def openapi.Vmdef) string {
-	var changes []string
-	diff_leaf(reflect.ValueOf(old), reflect.ValueOf(new_def), "", &changes)
-	if (len(changes) == 0) {
+func Diff(old *openapi.Vmdef, new *openapi.Vmdef) string {
+	var d vmdef_diff
+	d.str("name", old.Name, new.Name)
+	d.str("arch", old.Cpudef.Arch, new.Cpudef.Arch)
+	d.str("model", old.Cpudef.Model, new.Cpudef.Model)
+	d.str("cpu", vmdef_diff_topo(&old.Cpudef), vmdef_diff_topo(&new.Cpudef))
+	d.str("mem", vmdef_diff_mem(&old.Memory), vmdef_diff_mem(&new.Memory))
+	d.str("numa", vmdef_diff_bool(old.Numa.Placement), vmdef_diff_bool(new.Numa.Placement))
+	d.str("fw", old.Firmware.String(), new.Firmware.String())
+	d.str("genid", vmdef_diff_genid(old.Genid), vmdef_diff_genid(new.Genid))
+	vmdef_diff_disks(&d, old, new)
+	vmdef_diff_nets(&d, old, new)
+	vmdef_diff_custom(&d, old.Custom, new.Custom)
+	if (len(d) == 0) {
 		return "no changes"
 	}
-	return strings.Join(changes, " ")
+	return strings.Join(d, " ")
 }
