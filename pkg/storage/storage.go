@@ -77,6 +77,10 @@ func Create(vm *openapi.Vmdef, old *openapi.Vmdef, uuid string) (CreatedResource
 		if (old != nil) {
 			old_disk = vmdef.Find_disk(old, disk.Path)
 			if (old_disk != nil) {
+				/* Bus can change freely, it only affects the domain XML and not the storage */
+				if (disk.Device != old_disk.Device) {
+					return created, fmt.Errorf("disk %s: changing the device type is not supported", disk.Path)
+				}
 				if (disk.Man != old_disk.Man) {
 					return created, fmt.Errorf("disk %s: changing the management mode is not supported", disk.Path)
 				}
