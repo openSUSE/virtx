@@ -83,6 +83,11 @@ func Create(vm *openapi.Vmdef, old *openapi.Vmdef, uuid string) (CreatedResource
 				if (disk.Prov != old_disk.Prov) {
 					return created, fmt.Errorf("disk %s: changing the provisioning mode is not supported", disk.Path)
 				}
+				if (disk.Source == "") {
+					disk.Source = old_disk.Source
+				} else if (disk.Source != old_disk.Source) {
+					return created, fmt.Errorf("disk %s: changing the source is not supported", disk.Path)
+				}
 				err = storage_resize(disk, old_disk, uuid)
 				if (err != nil) {
 					return created, fmt.Errorf("disk %s: %w", disk.Path, err)
