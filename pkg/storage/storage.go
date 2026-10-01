@@ -19,7 +19,6 @@ package storage
 
 import (
 	"errors"
-	"os"
 	"fmt"
 
 	"suse.com/virtx/pkg/model"
@@ -197,9 +196,9 @@ func Create(vm *openapi.Vmdef, old *openapi.Vmdef, uuid string) (CreatedResource
 }
 
 /*
- * Check all the storage that is in the vm definition, to ensure paths are accessible and resources exist
- * If resources do not exist (for example, removed by sysadmin), create new resource files.
- * We do not do any Rollback() on resources created via Check().
+ * Check all the storage that is in the vm definition, to ensure paths are accessible,
+ * and resources exist and are owned by the vm. Does not modify any storage:
+ * a missing resource is an error, its repair requires deciding the owner of the disk.
  */
 func Check(vm *openapi.Vmdef, uuid string) error {
 	var (
@@ -211,19 +210,12 @@ func Check(vm *openapi.Vmdef, uuid string) error {
 			resource_name = lockman.Get_resource_name(disk.Device, disk.Path)
 			err = lockman.Check_resource(resource_name, uuid)
 			if (err != nil) {
-				if (errors.Is(err, os.ErrNotExist)) {
-					err = lockman.Create_resource(resource_name, uuid)
-					if (err != nil) {
-						return err
-					}
-				} else {
-					return err
-				}
+				return fmt.Errorf("disk %s: %w", disk.Path, err)
 			}
 		}
 		err = Detect(disk)
 		if (err != nil) {
-			return err
+			return fmt.Errorf("disk %s: %w", disk.Path, err)
 		}
 	}
 	return nil
