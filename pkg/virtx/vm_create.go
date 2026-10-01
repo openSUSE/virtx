@@ -88,6 +88,11 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed", http.StatusInternalServerError)
 		return
 	}
+	/* the VM is visible in the inventory once defined, before reg.Save */
+	if (!def_lock_acquire(w, uuid, openapi.OpVmCreate)) {
+		return
+	}
+	defer def_lock_release(uuid)
 	ts_start := ts.Now()
 	/* create storage if needed, can change o.Vmdef in some cases */
 	stop_progress := httpx.Start_progress(r)

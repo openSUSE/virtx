@@ -59,11 +59,10 @@ func vm_boot(w http.ResponseWriter, r *http.Request) {
 		http_proxy_request(vminfo.Host, w, vr)
 		return
 	}
-	state := vminfo.Runstate
-	if (state != openapi.RUNSTATE_POWEROFF && state != openapi.RUNSTATE_CRASHED) {
-		http.Error(w, "VM is not powered off", http.StatusUnprocessableEntity)
+	if (!def_lock_acquire(w, uuid, openapi.OpVmBoot, openapi.RUNSTATE_POWEROFF, openapi.RUNSTATE_CRASHED)) {
 		return
 	}
+	defer def_lock_release(uuid)
 	xml, err = hypervisor.Dumpxml(uuid)
 	if (err != nil) {
 		logger.Log("hypervisor.Dumpxml failed: %s", err.Error())

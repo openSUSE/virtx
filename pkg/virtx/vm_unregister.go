@@ -59,6 +59,10 @@ func vm_unregister(w http.ResponseWriter, r *http.Request) {
 		http_proxy_request(o.Host, w, vr)
 		return
 	}
+	if (!def_lock_acquire(w, uuid, openapi.OpVmUnregister)) {
+		return
+	}
+	defer def_lock_release(uuid)
 	vminfo, vminfo_err = inventory.Get_vminfo(uuid)
 	in_libvirt = (vminfo_err == nil)
 

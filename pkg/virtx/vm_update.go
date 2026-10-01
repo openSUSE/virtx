@@ -41,7 +41,6 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		xml, uuid string
 		vminfo inventory.VmInfo
 		vr httpx.Request
-		state openapi.Vmrunstate
 		created storage.CreatedResources
 		oplog_off int64
 		oplog_err error
@@ -67,17 +66,16 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		http_proxy_request(host, w, vr)
 		return
 	}
-	state = vminfo.Runstate
-	if (state != openapi.RUNSTATE_POWEROFF && state != openapi.RUNSTATE_CRASHED) {
-		http.Error(w, "VM is not powered off", http.StatusUnprocessableEntity)
-		return
-	}
 	err = vmdef.Validate(&o.Vmdef)
 	if (err != nil) {
 		logger.Log("vmdef_validate failed: %s", err.Error())
 		http.Error(w, "invalid parameters", http.StatusBadRequest)
 		return
 	}
+	if (!def_lock_acquire(w, uuid, openapi.OpVmUpdate, openapi.RUNSTATE_POWEROFF, openapi.RUNSTATE_CRASHED)) {
+		return
+	}
+	defer def_lock_release(uuid)
 	/* read the configuration of the VM from the registry on disk */
 	xml, err = reg.Load(host, uuid)
 	if (err != nil) {

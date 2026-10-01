@@ -37,7 +37,7 @@ func vm_migrate(w http.ResponseWriter, r *http.Request) {
 		uuid string
 		vminfo inventory.VmInfo
 		vr httpx.Request
-		state openapi.Vmrunstate
+		states []openapi.Vmrunstate
 		host_old_id string
 		host_new inventory.HostInfo
 		proxy_hostid string
@@ -60,7 +60,6 @@ func vm_migrate(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unknown uuid", http.StatusNotFound)
 		return
 	}
-	state = vminfo.Runstate
 	if (o.Host == "") {
 		/* Auto migration is not implemented yet */
 		http.Error(w, "Not implemented", http.StatusNotImplemented)
@@ -78,15 +77,9 @@ func vm_migrate(w http.ResponseWriter, r *http.Request) {
 	}
 	switch (o.MigrationType) {
 	case openapi.MIGRATION_COLD:
-		if (state != openapi.RUNSTATE_POWEROFF && state != openapi.RUNSTATE_CRASHED) {
-			http.Error(w, "VM is not powered off", http.StatusUnprocessableEntity)
-			return
-		}
+		states = []openapi.Vmrunstate{ openapi.RUNSTATE_POWEROFF, openapi.RUNSTATE_CRASHED }
 	case openapi.MIGRATION_LIVE:
-		if (state != openapi.RUNSTATE_RUNNING && state != openapi.RUNSTATE_PAUSED) {
-			http.Error(w, "VM is not running or paused", http.StatusUnprocessableEntity)
-			return
-		}
+		states = []openapi.Vmrunstate{ openapi.RUNSTATE_RUNNING, openapi.RUNSTATE_PAUSED }
 	default:
 		http.Error(w, "invalid migration type", http.StatusBadRequest)
 		return
@@ -116,6 +109,10 @@ func vm_migrate(w http.ResponseWriter, r *http.Request) {
 		}
 		migration_addr = dest.Net.MigrationAddr
 	}
+	/* the def lock is released by the migration goroutine, after reg.Move */
+	if (!def_lock_acquire(w, uuid, openapi.OpVmMigrate, states...)) {
+		return
+	}
 	if (o.MigrationType == openapi.MIGRATION_LIVE) {
 		msg = "live"
 	} else {
@@ -127,6 +124,7 @@ func vm_migrate(w http.ResponseWriter, r *http.Request) {
 		logger.Log("vm_migrate: oplog: %s", oplog_err.Error())
 	}
 	go func() {
+		defer def_lock_release(uuid)
 		err = hypervisor.Migrate_domain(host_new.Name, migration_addr, o.Host, host_old_id, uuid, o.MigrationType == openapi.MIGRATION_LIVE)
 		if (err != nil) {
 			logger.Log("migration of domain %s failed: %s", uuid, err.Error())
