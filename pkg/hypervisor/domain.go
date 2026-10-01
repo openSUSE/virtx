@@ -148,6 +148,36 @@ func Dumpxml(uuid string) (string, error) {
 	return xml, nil
 }
 
+/*
+ * check with libvirt, unlike the inventory which can be stale, whether the domain is
+ * defined on this host. A transient domain (f.e. the destination of a migration in progress)
+ * is not defined. Any error other than no such domain is returned.
+ */
+func Is_defined(uuid string) (bool, error) {
+	var (
+		err error
+		conn *libvirt.Connect
+		domain *libvirt.Domain
+		libvirt_err libvirt.Error
+		ok bool
+	)
+	conn, err = libvirt.NewConnect(LIBVIRT_URI)
+	if (err != nil) {
+		return false, err
+	}
+	defer conn.Close()
+	domain, err = conn.LookupDomainByUUIDString(uuid)
+	if (err != nil) {
+		libvirt_err, ok = err.(libvirt.Error)
+		if (ok && libvirt_err.Code == libvirt.ERR_NO_DOMAIN) {
+			return false, nil
+		}
+		return false, err
+	}
+	defer domain.Free()
+	return domain.IsPersistent()
+}
+
 /* get the current runstate of a domain from libvirt, unlike the inventory which can be stale */
 func Get_runstate(uuid string) (openapi.Vmrunstate, error) {
 	var (
