@@ -22,7 +22,6 @@ import (
 	"os"
 
 	"suse.com/virtx/pkg/hypervisor"
-	"suse.com/virtx/pkg/machine"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/vmlog"
@@ -30,7 +29,6 @@ import (
 	"suse.com/virtx/pkg/ts"
 	"suse.com/virtx/pkg/vmdef"
 	"suse.com/virtx/pkg/httpx"
-	"suse.com/virtx/pkg/inventory"
 )
 
 func vm_register(w http.ResponseWriter, r *http.Request) {
@@ -38,8 +36,6 @@ func vm_register(w http.ResponseWriter, r *http.Request) {
 		err error
 		o openapi.VmRegisterOptions
 		uuid string
-		vminfo inventory.VmInfo
-		vminfo_err error
 		vr httpx.Request
 		in_libvirt bool
 		in_reg bool
@@ -57,6 +53,11 @@ func vm_register(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not get uuid", http.StatusBadRequest)
 		return
 	}
+	if (o.Host == "") {
+		/* an empty host would be local, but reg.Access would check the wrong dir */
+		http.Error(w, "missing host", http.StatusBadRequest)
+		return
+	}
 	if (http_host_is_remote(o.Host)) { /* need to proxy */
 		http_proxy_request(o.Host, w, vr)
 		return
@@ -65,9 +66,13 @@ func vm_register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer def_lock_release(uuid)
-	vminfo, vminfo_err = inventory.Get_vminfo(uuid)
-	in_libvirt = (vminfo_err == nil)
-
+	/* check the local libvirt, the inventory can be stale or miss the VM */
+	in_libvirt, err = hypervisor.Is_defined(uuid)
+	if (err != nil) {
+		logger.Log("vm_register: hypervisor.Is_defined failed: %s", err.Error())
+		http.Error(w, "failed to check libvirt", http.StatusFailedDependency)
+		return
+	}
 	err = reg.Access(o.Host, uuid)
 	in_reg = (err == nil)
 	if (err != nil && !os.IsNotExist(err)) {
@@ -84,10 +89,6 @@ func vm_register(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unknown uuid", http.StatusNotFound)
 	case in_libvirt && !in_reg:
 		/* orphan in libvirt: register from libvirt into reg */
-		if (vminfo.Host != o.Host || vminfo.Host != machine.Uuid()) {
-			http.Error(w, "invalid host for this VM", http.StatusUnprocessableEntity)
-			return
-		}
 		ts_start := ts.Now()
 		err = vm_register_reg(o.Host, uuid)
 		if (err != nil) {
