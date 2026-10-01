@@ -76,11 +76,15 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer def_lock_release(uuid)
-	/* read the configuration of the VM from the registry on disk */
-	xml, err = reg.Load(host, uuid)
+	/*
+	 * read the current configuration of the VM from libvirt, not from reg:
+	 * reg can be stale after a failed reg.Save, and would be a wrong base for the storage changes.
+	 * The domain is not running, so its XML is the persistent configuration.
+	 */
+	xml, err = hypervisor.Dumpxml(uuid)
 	if (err != nil) {
-		logger.Log("reg.Load(%s, %s) failed: %s", host, uuid, err.Error())
-		http.Error(w, "could not Load VM", http.StatusInternalServerError)
+		logger.Log("hypervisor.Dumpxml(%s) failed: %s", uuid, err.Error())
+		http.Error(w, "could not get VM definition", http.StatusFailedDependency)
 		return
 	}
 	err = vmdef.From_xml(&old, xml)
