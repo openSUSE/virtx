@@ -88,7 +88,7 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed", http.StatusInternalServerError)
 		return
 	}
-	/* the VM is visible in the inventory once defined, before reg.Save */
+	/* the VM is visible in the inventory once defined, before reg.Create */
 	if (!def_lock_acquire(w, uuid, openapi.OpVmCreate)) {
 		return
 	}
@@ -118,9 +118,9 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not define VM", http.StatusFailedDependency)
 		return
 	}
-	reg_err := reg.Save(machine.Uuid(), uuid, xml)
+	reg_err := reg.Create(machine.Uuid(), uuid, xml)
 	if (reg_err != nil) {
-		logger.Log("vm_create: reg.Save failed: %s", reg_err.Error())
+		logger.Log("vm_create: reg.Create failed: %s", reg_err.Error())
 		w.Header().Set("Warning", `299 VirtX "VM created but registration failed"`)
 	} else {
 		msg := fmt.Sprintf("name: %s, mem: %d MiB(hp: %t), numa: %t, osdisk: %s", o.Vmdef.Name,
