@@ -25,7 +25,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"slices"
 	"strings"
 	"sync"
@@ -265,12 +264,7 @@ func vmlog_append_msg(vm_uuid string, code int16, msg string) (int64, error) {
 	if (err != nil) {
 		return 0, err
 	}
-	if (offset == 0) {
-		err = reg.Syncdir(filepath.Dir(path))
-		if (err != nil) {
-			return 0, err
-		}
-	}
+	/* no dir sync needed for a new file, NFS commits CREATE before replying */
 	return offset, nil
 }
 
@@ -400,12 +394,7 @@ func vmlog_append(rec *record, vm_uuid string) (int64, error) {
 	if (err != nil) {
 		return 0, err
 	}
-	if (offset == 0) {
-		err = reg.Syncdir(filepath.Dir(path))
-		if (err != nil) {
-			return 0, err
-		}
-	}
+	/* no dir sync needed for a new file, NFS commits CREATE before replying */
 	return offset, nil
 }
 
