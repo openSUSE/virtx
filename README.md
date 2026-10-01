@@ -36,11 +36,12 @@ A separate storage product or server is providing shared storage for the cluster
 In the current implementation, NFS and iSCSI have been considered and tested.
 In theory any block device that maps to /dev/ should work, but specific IDs for SCSI and NVMe are recognized.
 
-virtxd expects an NFSv4 directory
+virtxd expects an NFSv4.1+ directory
 
 /vms
 
 to be created and mounted on all the hosts of the cluster. It should be owned by qemu:qemu.
+The export must be "sync" (the default): virtxd relies on NFSv4.1+ features for CREATE and RENAME.
 
 In the simplest configuration, this is sufficient for virtxd to then create all the subdirectories needed there:
 
