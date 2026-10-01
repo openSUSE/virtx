@@ -147,3 +147,28 @@ func Dumpxml(uuid string) (string, error) {
 	}
 	return xml, nil
 }
+
+/* get the current runstate of a domain from libvirt, unlike the inventory which can be stale */
+func Get_runstate(uuid string) (openapi.Vmrunstate, error) {
+	var (
+		err error
+		conn *libvirt.Connect
+		domain *libvirt.Domain
+		ve inventory.VmEvent
+	)
+	conn, err = libvirt.NewConnect(LIBVIRT_URI)
+	if (err != nil) {
+		return openapi.RUNSTATE_NONE, err
+	}
+	defer conn.Close()
+	domain, err = conn.LookupDomainByUUIDString(uuid)
+	if (err != nil) {
+		return openapi.RUNSTATE_NONE, err
+	}
+	defer domain.Free()
+	err = get_domain_event(domain, &ve)
+	if (err != nil) {
+		return openapi.RUNSTATE_NONE, err
+	}
+	return ve.Runstate, nil
+}
