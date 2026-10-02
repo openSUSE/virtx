@@ -73,9 +73,6 @@ import (
 /* MSG_MAX is the maximum message length in bytes (room for a trailing newline). */
 const MSG_MAX = (4 * KiB) - 1
 
-/* FIND_LIMIT caps the backward scan in vmlog_find_last_state. */
-const FIND_LIMIT = 256
-
 /*
  * The record size is 32 bytes, so no record spans two blocks.
  *
@@ -743,15 +740,19 @@ func vmlog_fetch_records(vm_uuid string, class int16, code int16, from int64, to
 	return recs, nil
 }
 
-func vmlog_find_last_state(vm_uuid string, code int16, state uint8) (int64, error) {
+/*
+ * vmlog_last reads the last record of code into rec and returns its offset, or -1 if there
+ * is none. Older records are never considered: a newer operation supersedes a STARTED record
+ * which was never ended (ie a vm_shutdown via ACPI ignored by the guest).
+ */
+func vmlog_last(vm_uuid string, code int16, rec *record) (int64, error) {
 	m := vmlog_get_lock(vm_uuid)
 	m.RLock()
 	defer m.RUnlock()
 	var (
 		err error
 		f *os.File
-		rec record
-		nrec, i int64
+		nrec int64
 	)
 	f, nrec, err = vmlog_open(vm_uuid, code)
 	if (err != nil) {
@@ -761,20 +762,14 @@ func vmlog_find_last_state(vm_uuid string, code int16, state uint8) (int64, erro
 		return -1, nil
 	}
 	defer f.Close()
-	limit := nrec - FIND_LIMIT
-	if (limit < 0) {
-		limit = 0
+	if (nrec == 0) {
+		return -1, nil
 	}
-	for i = nrec - 1; (i >= limit); i-- {
-		err = vmlog_read(&rec, f, i * RECORD_SIZE)
-		if (err != nil) {
-			return -1, err
-		}
-		if (rec.State == state) {
-			return i * RECORD_SIZE, nil
-		}
+	err = vmlog_read(rec, f, (nrec - 1) * RECORD_SIZE)
+	if (err != nil) {
+		return -1, err
 	}
-	return -1, nil
+	return (nrec - 1) * RECORD_SIZE, nil
 }
 
 /* vmlog_update fills in the result of the operation started at offset. */
@@ -819,39 +814,6 @@ func vmlog_update(vm_uuid string, code int16, state uint8, msg string, offset in
 		return err
 	}
 	return nil
-}
-
-func vmlog_tail(vm_uuid string, code int16, n int) ([]record, error) {
-	m := vmlog_get_lock(vm_uuid)
-	m.RLock()
-	defer m.RUnlock()
-	var (
-		err error
-		f *os.File
-		rec record
-		nrec, start, i int64
-		recs []record
-	)
-	f, nrec, err = vmlog_open(vm_uuid, code)
-	if (err != nil) {
-		return nil, err
-	}
-	if (f == nil) {
-		return nil, nil
-	}
-	defer f.Close() /* double close ok in Golang */
-	start = nrec - int64(n)
-	if (start < 0) {
-		start = 0
-	}
-	for i = nrec - 1; (i >= start); i-- {
-		err = vmlog_read(&rec, f, i * RECORD_SIZE)
-		if (err != nil) {
-			return recs, err
-		}
-		recs = append(recs, rec)
-	}
-	return recs, nil
 }
 
 /*
@@ -923,23 +885,42 @@ func End(vm_uuid string, op openapi.OperationCode, state openapi.OperationState,
 
 /*
  * Complete is used by the libvirt lifecycle event handler, which knows only
- * the operation type and a completion message, not the record offset. It finds
- * the last STARTED record for this VM on the local host and updates it.
+ * the operation type and a completion message, not the record offset. It updates
+ * the last record of op for this VM on the local host, which must be STARTED.
  * msg is stored after the message the STARTED record already has.
  */
 func Complete(vm_uuid string, op openapi.OperationCode, msg string) error {
 	var (
 		err error
 		offset int64
+		rec record
 	)
-	offset, err = vmlog_find_last_state(vm_uuid, int16(op), uint8(openapi.OPERATION_STARTED))
+	offset, err = vmlog_last(vm_uuid, int16(op), &rec)
 	if (err != nil) {
 		return err
 	}
-	if (offset < 0) {
+	if (offset < 0 || rec.State != uint8(openapi.OPERATION_STARTED)) {
 		return errors.New("vmlog.Complete: no pending started record found")
 	}
 	return vmlog_update(vm_uuid, int16(op), uint8(openapi.OPERATION_COMPLETED), msg, offset, ts.Now())
+}
+
+/*
+ * Pending returns whether the last record of op for this VM on the local host is STARTED.
+ * Used by the libvirt event handlers to tell the outcome of an operation from an event
+ * not requested via the VirtX API (ie a guest-initiated shutdown).
+ */
+func Pending(vm_uuid string, op openapi.OperationCode) (bool, error) {
+	var (
+		err error
+		offset int64
+		rec record
+	)
+	offset, err = vmlog_last(vm_uuid, int16(op), &rec)
+	if (err != nil) {
+		return false, err
+	}
+	return (offset >= 0 && rec.State == uint8(openapi.OPERATION_STARTED)), nil
 }
 
 /*
@@ -948,20 +929,21 @@ func Complete(vm_uuid string, op openapi.OperationCode, msg string) error {
  */
 func Load_last(vm_uuid string, op openapi.OperationCode, state *openapi.OperationState, msgs *string, msge *string, ts_start *int64, ts_end *int64) error {
 	var (
-		recs []record
 		err error
+		offset int64
+		rec record
 	)
-	recs, err = vmlog_tail(vm_uuid, int16(op), 1)
+	offset, err = vmlog_last(vm_uuid, int16(op), &rec)
 	if (err != nil) {
 		return err
 	}
-	if (len(recs) == 0) {
+	if (offset < 0) {
 		return errors.New("vmlog.Load_last: no records found")
 	}
-	*state = openapi.OperationState(recs[0].State)
-	*ts_start = recs[0].Ts
-	*ts_end = recs[0].Te
-	*msgs, *msge, err = vmlog_msg(&recs[0], vm_uuid)
+	*state = openapi.OperationState(rec.State)
+	*ts_start = rec.Ts
+	*ts_end = rec.Te
+	*msgs, *msge, err = vmlog_msg(&rec, vm_uuid)
 	return err
 }
 

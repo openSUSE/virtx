@@ -132,7 +132,7 @@ func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventL
 	/* e.Detail: see all DomainEvent*DetailType types */
 	var (
 		vi inventory.VmInfo
-		persistent bool
+		persistent, pending bool
 		err error
 	)
 	if (!hv.system_info_loop_done.Load()) {
@@ -191,16 +191,23 @@ func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventL
 		hv.vm_event_ch <- vi.VmEvent
 	}
 	if (e.Event == libvirt.DOMAIN_EVENT_STOPPED) {
+		var msg string
 		switch (e.Detail) {
 		case int(libvirt.DOMAIN_EVENT_STOPPED_DESTROYED):
-			err = vmlog.Complete(vi.Uuid, openapi.OpVmShutdown, "Shutdown (forced).")
-			if (err != nil) {
-				logger.Log("lifecycle_cb: vmlog.Complete: %s", err.Error())
-			}
+			msg = "Shutdown (forced)."
 		case int(libvirt.DOMAIN_EVENT_STOPPED_SHUTDOWN):
-			err = vmlog.Complete(vi.Uuid, openapi.OpVmShutdown, "Shutdown (graceful).")
+			msg = "Shutdown (graceful)."
+		}
+		/* complete the pending vm_shutdown, if any: a guest-initiated shutdown has none */
+		if (msg != "") {
+			pending, err = vmlog.Pending(vi.Uuid, openapi.OpVmShutdown)
 			if (err != nil) {
-				logger.Log("lifecycle_cb: vmlog.Complete: %s", err.Error())
+				logger.Log("lifecycle_cb: vmlog.Pending: %s", err.Error())
+			} else if (pending) {
+				err = vmlog.Complete(vi.Uuid, openapi.OpVmShutdown, msg)
+				if (err != nil) {
+					logger.Log("lifecycle_cb: vmlog.Complete: %s", err.Error())
+				}
 			}
 		}
 	}
@@ -227,12 +234,17 @@ func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventL
 	case libvirt.DOMAIN_EVENT_SHUTDOWN:
 		/*
 		 * GUEST also covers a vm_shutdown via ACPI, since the guest then
-		 * shuts down by itself: log it as a guest event anyway.
+		 * shuts down by itself: it is a guest event only if no vm_shutdown is pending.
 		 */
 		if (e.Detail == int(libvirt.DOMAIN_EVENT_SHUTDOWN_GUEST)) {
-			err = vmlog.Event(vi.Uuid, openapi.EVENT_SHUTDOWN, "Graceful.")
+			pending, err = vmlog.Pending(vi.Uuid, openapi.OpVmShutdown)
 			if (err != nil) {
-				logger.Log("lifecycle_cb: vmlog.Event: %s", err.Error())
+				logger.Log("lifecycle_cb: vmlog.Pending: %s", err.Error())
+			} else if (!pending) {
+				err = vmlog.Event(vi.Uuid, openapi.EVENT_SHUTDOWN, "Graceful.")
+				if (err != nil) {
+					logger.Log("lifecycle_cb: vmlog.Event: %s", err.Error())
+				}
 			}
 		}
 	}
