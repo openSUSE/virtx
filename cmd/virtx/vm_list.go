@@ -52,7 +52,7 @@ func vm_list(list *openapi.VmList) {
 		}
 		return strings.Compare(a.Uuid, b.Uuid)
 	})
-	fmt.Fprintf(virtx.w, "UUID\tNAME\tHOST\t[HOSTNAME]\tCUSTOM\tSTATE\tAGE\n")
+	fmt.Fprintf(virtx.w, "UUID\tNAME\tHOST\t[HOSTNAME]\tCUSTOM\tSTATE\tUPDATED\n")
 	for _, item := range (list.Items) {
 		fmt.Fprintf(virtx.w, "%s\t%s\t%s\t%s\t%v\t%s\t%s\n", item.Uuid, item.Fields.Name, item.Fields.Host,
 			host_name(item.Fields.Host), item.Fields.Custom, item.Fields.Runstate, ts.Since(item.Fields.Ts))
