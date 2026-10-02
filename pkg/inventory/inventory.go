@@ -44,6 +44,7 @@ type HostInfo struct {
  * Hostdata: contains the hostinfo and also the UUIDs of VMS running on this host
  */
 type Hostdata struct {
+	VI_applied_update_ts int64
 	Info HostInfo
 	Vms map[string]nothing		/* VM Uuid presence */
 }
@@ -263,6 +264,51 @@ func update_vm(vminfo *VmInfo) error {
 	}
 	update_hostdata_vm(vminfo.Uuid, cur.Info.Host, vmdata.Info.Host)
 	inventory.vms[vminfo.Uuid] = vmdata
+	return nil
+}
+
+/* Update_host_vms replaces the VMs of a host with the ones read from reg vminfo */
+func Update_host_vms(host_uuid string, vi_update_ts int64, vms []VmInfo) error {
+	inventory.m.Lock()
+	defer inventory.m.Unlock()
+
+	return update_host_vms(host_uuid, vi_update_ts, vms)
+}
+
+func update_host_vms(host_uuid string, vi_update_ts int64, vms []VmInfo) error {
+	var (
+		hostdata Hostdata
+		vmdata Vmdata
+		listed map[string]bool = make(map[string]bool, len(vms))
+		uuid string
+		present bool
+		i int
+	)
+	hostdata, present = inventory.hosts[host_uuid]
+	if (!present) {
+		return fmt.Errorf("no such host %s", host_uuid)
+	}
+	/* VI_update_ts is only compared for equality, see system_info_get */
+	if (hostdata.VI_applied_update_ts == vi_update_ts) {
+		return nil
+	}
+	for i = range vms {
+		listed[vms[i].Uuid] = true
+		update_vm(&vms[i])
+	}
+	/* remove the VMs not listed, unless updated later or now on another host */
+	for uuid = range hostdata.Vms {
+		if (listed[uuid]) {
+			continue
+		}
+		vmdata = inventory.vms[uuid]
+		if (vmdata.Info.Host == host_uuid && vmdata.update_ts <= vi_update_ts) {
+			delete(hostdata.Vms, uuid)
+			delete(inventory.vms, uuid)
+		}
+	}
+	hostdata.VI_applied_update_ts = vi_update_ts
+	inventory.hosts[host_uuid] = hostdata
 	return nil
 }
 
