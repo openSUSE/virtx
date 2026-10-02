@@ -101,6 +101,7 @@ type SystemInfo struct {
 	imm SystemInfoImm
 	Host SystemInfoHost /* HostInfo to transmit plus internal data not for transmission */
 	Vms SystemInfoVms /* set of VmInfo to transmit plus internal data not for transmission */
+	vms_changed bool  /* the VmInfo of any VM changed since the previous system_info_get */
 
 	/* overall internal counters for host stats */
 	cpu_kernel_ns uint64
@@ -135,6 +136,24 @@ func system_info_init(si *SystemInfo) {
 	set_system_info_loop_done()
 }
 
+/* save the VmInfo of all VMs to reg, if any changed in this system_info_get */
+func system_info_save_vminfo(si *SystemInfo) {
+	var (
+		vms []inventory.VmInfo
+		err error
+	)
+	if (!si.vms_changed) {
+		return
+	}
+	for _, vm := range si.Vms {
+		vms = append(vms, vm.VmInfo)
+	}
+	err = reg.Save_vminfo(si.Host.Uuid, si.Host.VI_update_ts, vms)
+	if (err != nil) {
+		logger.Log("system_info_save_vminfo: %s", err.Error())
+	}
+}
+
 /*
  * Regularly fetch all system information (host info and vms info), and send it via system_info_ch.
  */
@@ -161,6 +180,7 @@ func system_info_loop(seconds int) error {
 			logger.Fatal("system_info_loop: initial system_info_get failed: %s", err.Error())
 		}
 		system_info_init(&si)
+		system_info_save_vminfo(&si)
 		/* this first info is missing vm cpu stats and host cpu stats */
 		hv.system_info_ch <- si
 	}
@@ -175,6 +195,7 @@ func system_info_loop(seconds int) error {
 			}
 			continue
 		}
+		system_info_save_vminfo(&si)
 		hv.system_info_ch <- si
 	}
 	return nil
@@ -435,8 +456,13 @@ func system_info_get() (SystemInfo, error) {
 		}
 	}
 	si.Vms = vms
-	if (hv.si == nil || system_info_vms_changed(hv.si.Vms, si.Vms)) {
+	si.vms_changed = (hv.si == nil || system_info_vms_changed(hv.si.Vms, si.Vms))
+	if (si.vms_changed) {
 		si.Host.VI_update_ts = si.Host.Ts
+		/* peers compare VI_update_ts for equality: never reuse the previous one */
+		if (hv.si != nil && si.Host.VI_update_ts == hv.si.Host.VI_update_ts) {
+			si.Host.VI_update_ts += 1
+		}
 	} else {
 		si.Host.VI_update_ts = hv.si.Host.VI_update_ts
 	}
