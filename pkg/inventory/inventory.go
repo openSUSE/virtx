@@ -61,7 +61,8 @@ type VmEvent struct {
 
 /*
  * VmInfo: simplified VM Data to keep in the inventory on all hosts in the cluster,
- * for quick access and search without having to contact the responsible libvirt
+ * for quick access and search without having to contact the responsible libvirt.
+ * Field names (including embedded) are the JSON keys of reg vminfo: do not rename.
  */
 type VmInfo struct {
 	VmEvent                     /* embedded basic information */
