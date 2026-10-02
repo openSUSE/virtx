@@ -147,14 +147,15 @@ func Get_vminfo(uuid string) (VmInfo, error) {
 	return vmdata.Info, fmt.Errorf("inventory: no such vm %s", uuid)
 }
 
-func Update_host(hostinfo *HostInfo) {
+func Update_host(hostinfo *HostInfo) bool {
 	inventory.m.Lock()
 	defer inventory.m.Unlock()
 
-	update_host(hostinfo)
+	return update_host(hostinfo)
 }
 
-func update_host(hostinfo *HostInfo) {
+/* returns true if the reg vminfo of the host needs to be applied */
+func update_host(hostinfo *HostInfo) bool {
 	var (
 		present bool
 		hostdata Hostdata
@@ -164,7 +165,7 @@ func update_host(hostinfo *HostInfo) {
 		if (hostdata.Info.Ts > hostinfo.Ts) {
 			logger.Log("Host %s: ignoring obsolete Host information: ts %d > %d",
 				hostdata.Info.Name, hostdata.Info.Ts, hostinfo.Ts)
-			return
+			return false
 		}
 		if (hostinfo.Ts > hostdata.Info.Ts) {
 			/*
@@ -183,6 +184,8 @@ func update_host(hostinfo *HostInfo) {
 		}
 	}
 	inventory.hosts[hostinfo.Uuid] = hostdata
+	/* VI_update_ts is only compared for equality, see system_info_get */
+	return (hostdata.VI_applied_update_ts != hostinfo.VI_update_ts)
 }
 
 func Set_host_state(uuid string, newstate openapi.Cstate) error {

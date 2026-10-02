@@ -32,6 +32,7 @@ import (
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/encoding/sbinary"
 	"suse.com/virtx/pkg/machine"
+	"suse.com/virtx/pkg/reg"
 )
 
 const (
@@ -41,7 +42,11 @@ const (
 	MAX_MESSAGE_SIZE uint = 1024
 	RECONNECT_SECONDS = 5
 	RPC_ADDR = "127.0.0.1:7373"
+	VMINFO_QUEUE_LEN = 256
 )
+
+/* hosts whose reg vminfo needs to be applied, consumed by load_vminfo */
+var vminfo_ch chan string = make(chan string, VMINFO_QUEUE_LEN)
 
 var serf = struct {
 	m sync.RWMutex
@@ -183,7 +188,18 @@ func handle_user_event(e map[string]any) {
 			logger.Log("Decode %s: ERR '%s' at offset %d", name, err.Error(), size)
 		} else {
 			logger.Debug("Decode %s: OK  %d %s %s", name, hi.Ts, hi.Uuid, hi.Name)
-			inventory.Update_host(&hi)
+			if (inventory.Update_host(&hi)) {
+				/*
+				 * queue the host for load_vminfo without blocking the serf events loop:
+				 * if vminfo_ch is full, select takes the default case and the vminfo of
+				 * this host is not read now. It will be at its next HI, as the
+				 * VI_update_ts still differs from the applied one.
+				 */
+				select {
+				case vminfo_ch <- hi.Uuid:
+				default:
+				}
+			}
 		}
 	case LABEL_VM_EVENT:
 		var (
@@ -260,6 +276,27 @@ func send_vm_events(eventCh <-chan inventory.VmEvent) {
 		}
 	}
 	logger.Debug("SendVmEvents loop exit")
+}
+
+/* load and apply the reg vminfo of the queued hosts, one at a time to preserve the order */
+func load_vminfo() {
+	var (
+		host_uuid string
+		vi_update_ts int64
+		vms []inventory.VmInfo
+		err error
+	)
+	for host_uuid = range vminfo_ch {
+		vi_update_ts, vms, err = reg.Load_vminfo(host_uuid)
+		if (err != nil) {
+			logger.Log("load_vminfo: %s", err.Error())
+			continue
+		}
+		err = inventory.Update_host_vms(host_uuid, vi_update_ts, vms)
+		if (err != nil) {
+			logger.Log("load_vminfo: %s", err.Error())
+		}
+	}
 }
 
 func discover_management_addr(uuid string) (string, error) {
@@ -360,6 +397,7 @@ func Start_listening(
 	/* create subroutines to send and process events */
 	go send_vm_events(vm_event_ch)
 	go send_system_info(system_info_ch)
+	go load_vminfo()
 	go recv_serf_events()
 }
 
