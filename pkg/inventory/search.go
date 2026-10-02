@@ -135,11 +135,11 @@ func Search_vms(f openapi.VmListFields) openapi.VmList {
 		var item openapi.VmListItem = openapi.VmListItem{
 			Uuid: vm.Uuid,
 			Fields: openapi.VmListFields{
-				Name: vm.Name,
-				Host: vm.Host,
-				Runstate: vm.Runstate,
-				Custom: vm.Custom,
 				Ts: vm.Ts,
+				Name: vm.Name,
+				Runstate: vm.Runstate,
+				Host: vm.Host,
+				Custom: vm.Custom,
 			},
 		}
 		list.Items = append(list.Items, item)
