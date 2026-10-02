@@ -28,6 +28,7 @@ import (
 	"bufio"
 	"strings"
 	"strconv"
+	"reflect"
 
 	"libvirt.org/go/libvirt"
 	"libvirt.org/go/libvirtxml"
@@ -434,12 +435,42 @@ func system_info_get() (SystemInfo, error) {
 		}
 	}
 	si.Vms = vms
+	if (hv.si == nil || system_info_vms_changed(hv.si.Vms, si.Vms)) {
+		si.Host.VI_update_ts = si.Host.Ts
+	} else {
+		si.Host.VI_update_ts = hv.si.Host.VI_update_ts
+	}
 	if (hv.si == nil) {
 		hv.si = new(SystemInfo)
 	}
 	*hv.si = si
 out:
 	return si, err
+}
+
+/*
+ * report whether the VmInfo of any VM changed between two sets of vms,
+ * including VMs added or removed. The Ts is ignored, as it is set on every tick.
+ */
+func system_info_vms_changed(old SystemInfoVms, vms SystemInfoVms) bool {
+	var (
+		vm, oldvm SystemInfoVm
+		present bool
+	)
+	if (len(old) != len(vms)) {
+		return true
+	}
+	for _, vm = range vms {
+		oldvm, present = old[vm.Uuid]
+		if (!present) {
+			return true
+		}
+		oldvm.VmInfo.Ts = vm.VmInfo.Ts /* oldvm is a copy: ignore the Ts in the comparison */
+		if (!reflect.DeepEqual(vm.VmInfo, oldvm.VmInfo)) {
+			return true
+		}
+	}
+	return false
 }
 
 /*
