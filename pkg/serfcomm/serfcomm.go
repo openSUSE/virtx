@@ -253,11 +253,13 @@ func send_system_info(ch <-chan hypervisor.SystemInfo) {
 			if (err != nil) {
 				logger.Log("send_host_info: %s", err.Error())
 			}
-		}
-		for _, vm := range si.Vms {
-			err = send_vm_info(&vm.VmInfo)
-			if (err != nil) {
-				logger.Log("send_vm_info: %s", err.Error())
+		} else {
+			/* this is a one-shot VI event, currently only for DEFINED */
+			for _, vm := range si.Vms {
+				err = send_vm_info(&vm.VmInfo)
+				if (err != nil) {
+					logger.Log("send_vm_info: %s", err.Error())
+				}
 			}
 		}
 	}
