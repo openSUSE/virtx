@@ -541,13 +541,16 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 	case "aarch64":
 		domain_features = &libvirtxml.DomainFeatureList{
 			ACPI: &libvirtxml.DomainFeature{},
+			VMCoreInfo: &libvirtxml.DomainFeatureState{ State: "on" },
 		}
 	case "x86_64":
 		domain_features = &libvirtxml.DomainFeatureList{
 			ACPI: &libvirtxml.DomainFeature{},
 			APIC: &libvirtxml.DomainFeatureAPIC{ EOI: "on" },
 			VMPort: &libvirtxml.DomainFeatureState{ State: "off" },
-			IOAPIC: &libvirtxml.DomainFeatureIOAPIC{},
+			IOAPIC: &libvirtxml.DomainFeatureIOAPIC{ Driver: "kvm" },
+			SMM: &libvirtxml.DomainFeatureSMM{ State: "off" },
+			VMCoreInfo: &libvirtxml.DomainFeatureState{ State: "on" },
 		}
 	default:
 		return "", errors.New("invalid architecture")
