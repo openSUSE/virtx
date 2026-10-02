@@ -22,14 +22,14 @@ var _ MappedNullable = &VmListFields{}
 
 // VmListFields struct for VmListFields
 type VmListFields struct {
-	Name string `json:"name"`
-	// Unique Identifier for VMs, Hosts, Networks; RFC 4122
-	Host string `json:"host"`
-	Runstate Vmrunstate `json:"runstate"`
-	// Custom Fields
-	Custom []CustomField `json:"custom"`
 	// 64bit UTC Unix timestamp in milliseconds since Epoc. A 0 value is used if the timestamp is not available.
 	Ts int64 `json:"ts"`
+	Name string `json:"name"`
+	Runstate Vmrunstate `json:"runstate"`
+	// Unique Identifier for VMs, Hosts, Networks; RFC 4122
+	Host string `json:"host"`
+	// Custom Fields
+	Custom []CustomField `json:"custom"`
 }
 
 type _VmListFields VmListFields
@@ -38,17 +38,17 @@ type _VmListFields VmListFields
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVmListFields(name string, host string, runstate Vmrunstate, custom []CustomField, ts int64) *VmListFields {
+func NewVmListFields(ts int64, name string, runstate Vmrunstate, host string, custom []CustomField) *VmListFields {
 	this := VmListFields{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
     var _ = bytes.NewBuffer
 
-	this.Name = name
-	this.Host = host
-	this.Runstate = runstate
-	this.Custom = custom
 	this.Ts = ts
+	this.Name = name
+	this.Runstate = runstate
+	this.Host = host
+	this.Custom = custom
 	return &this
 }
 
@@ -58,102 +58,6 @@ func NewVmListFields(name string, host string, runstate Vmrunstate, custom []Cus
 func NewVmListFieldsWithDefaults() *VmListFields {
 	this := VmListFields{}
 	return &this
-}
-
-// GetName returns the Name field value
-func (o *VmListFields) GetName() string {
-	if o == nil {
-		var ret string
-		return ret
-	}
-
-	return o.Name
-}
-
-// GetNameOk returns a tuple with the Name field value
-// and a boolean to check if the value has been set.
-func (o *VmListFields) GetNameOk() (*string, bool) {
-	if o == nil {
-		return nil, false
-	}
-	return &o.Name, true
-}
-
-// SetName sets field value
-func (o *VmListFields) SetName(v string) {
-	o.Name = v
-}
-
-// GetHost returns the Host field value
-func (o *VmListFields) GetHost() string {
-	if o == nil {
-		var ret string
-		return ret
-	}
-
-	return o.Host
-}
-
-// GetHostOk returns a tuple with the Host field value
-// and a boolean to check if the value has been set.
-func (o *VmListFields) GetHostOk() (*string, bool) {
-	if o == nil {
-		return nil, false
-	}
-	return &o.Host, true
-}
-
-// SetHost sets field value
-func (o *VmListFields) SetHost(v string) {
-	o.Host = v
-}
-
-// GetRunstate returns the Runstate field value
-func (o *VmListFields) GetRunstate() Vmrunstate {
-	if o == nil {
-		var ret Vmrunstate
-		return ret
-	}
-
-	return o.Runstate
-}
-
-// GetRunstateOk returns a tuple with the Runstate field value
-// and a boolean to check if the value has been set.
-func (o *VmListFields) GetRunstateOk() (*Vmrunstate, bool) {
-	if o == nil {
-		return nil, false
-	}
-	return &o.Runstate, true
-}
-
-// SetRunstate sets field value
-func (o *VmListFields) SetRunstate(v Vmrunstate) {
-	o.Runstate = v
-}
-
-// GetCustom returns the Custom field value
-func (o *VmListFields) GetCustom() []CustomField {
-	if o == nil {
-		var ret []CustomField
-		return ret
-	}
-
-	return o.Custom
-}
-
-// GetCustomOk returns a tuple with the Custom field value
-// and a boolean to check if the value has been set.
-func (o *VmListFields) GetCustomOk() ([]CustomField, bool) {
-	if o == nil {
-		return nil, false
-	}
-	return o.Custom, true
-}
-
-// SetCustom sets field value
-func (o *VmListFields) SetCustom(v []CustomField) {
-	o.Custom = v
 }
 
 // GetTs returns the Ts field value
@@ -180,13 +84,109 @@ func (o *VmListFields) SetTs(v int64) {
 	o.Ts = v
 }
 
+// GetName returns the Name field value
+func (o *VmListFields) GetName() string {
+	if o == nil {
+		var ret string
+		return ret
+	}
+
+	return o.Name
+}
+
+// GetNameOk returns a tuple with the Name field value
+// and a boolean to check if the value has been set.
+func (o *VmListFields) GetNameOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Name, true
+}
+
+// SetName sets field value
+func (o *VmListFields) SetName(v string) {
+	o.Name = v
+}
+
+// GetRunstate returns the Runstate field value
+func (o *VmListFields) GetRunstate() Vmrunstate {
+	if o == nil {
+		var ret Vmrunstate
+		return ret
+	}
+
+	return o.Runstate
+}
+
+// GetRunstateOk returns a tuple with the Runstate field value
+// and a boolean to check if the value has been set.
+func (o *VmListFields) GetRunstateOk() (*Vmrunstate, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Runstate, true
+}
+
+// SetRunstate sets field value
+func (o *VmListFields) SetRunstate(v Vmrunstate) {
+	o.Runstate = v
+}
+
+// GetHost returns the Host field value
+func (o *VmListFields) GetHost() string {
+	if o == nil {
+		var ret string
+		return ret
+	}
+
+	return o.Host
+}
+
+// GetHostOk returns a tuple with the Host field value
+// and a boolean to check if the value has been set.
+func (o *VmListFields) GetHostOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Host, true
+}
+
+// SetHost sets field value
+func (o *VmListFields) SetHost(v string) {
+	o.Host = v
+}
+
+// GetCustom returns the Custom field value
+func (o *VmListFields) GetCustom() []CustomField {
+	if o == nil {
+		var ret []CustomField
+		return ret
+	}
+
+	return o.Custom
+}
+
+// GetCustomOk returns a tuple with the Custom field value
+// and a boolean to check if the value has been set.
+func (o *VmListFields) GetCustomOk() ([]CustomField, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return o.Custom, true
+}
+
+// SetCustom sets field value
+func (o *VmListFields) SetCustom(v []CustomField) {
+	o.Custom = v
+}
+
 func (o VmListFields) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
-	toSerialize["name"] = o.Name
-	toSerialize["host"] = o.Host
-	toSerialize["runstate"] = o.Runstate
-	toSerialize["custom"] = o.Custom
 	toSerialize["ts"] = o.Ts
+	toSerialize["name"] = o.Name
+	toSerialize["runstate"] = o.Runstate
+	toSerialize["host"] = o.Host
+	toSerialize["custom"] = o.Custom
 	return toSerialize, nil
 }
 

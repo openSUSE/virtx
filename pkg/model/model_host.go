@@ -22,6 +22,8 @@ var _ MappedNullable = &Host{}
 
 // Host struct for Host
 type Host struct {
+	// 64bit UTC Unix timestamp in milliseconds since Epoc. A 0 value is used if the timestamp is not available.
+	Ts int64 `json:"ts"`
 	// Unique Identifier for VMs, Hosts, Networks; RFC 4122
 	Uuid string `json:"uuid"`
 	Def Hostdef `json:"def"`
@@ -29,8 +31,6 @@ type Host struct {
 	// Unique ID in the cluster used to register the lockspace.
 	Lockid int16 `json:"lockid"`
 	Net HostNet `json:"net"`
-	// 64bit UTC Unix timestamp in milliseconds since Epoc. A 0 value is used if the timestamp is not available.
-	Ts int64 `json:"ts"`
 }
 
 type _Host Host
@@ -39,18 +39,18 @@ type _Host Host
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewHost(uuid string, def Hostdef, cstate Cstate, lockid int16, net HostNet, ts int64) *Host {
+func NewHost(ts int64, uuid string, def Hostdef, cstate Cstate, lockid int16, net HostNet) *Host {
 	this := Host{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
     var _ = bytes.NewBuffer
 
+	this.Ts = ts
 	this.Uuid = uuid
 	this.Def = def
 	this.Cstate = cstate
 	this.Lockid = lockid
 	this.Net = net
-	this.Ts = ts
 	return &this
 }
 
@@ -60,6 +60,30 @@ func NewHost(uuid string, def Hostdef, cstate Cstate, lockid int16, net HostNet,
 func NewHostWithDefaults() *Host {
 	this := Host{}
 	return &this
+}
+
+// GetTs returns the Ts field value
+func (o *Host) GetTs() int64 {
+	if o == nil {
+		var ret int64
+		return ret
+	}
+
+	return o.Ts
+}
+
+// GetTsOk returns a tuple with the Ts field value
+// and a boolean to check if the value has been set.
+func (o *Host) GetTsOk() (*int64, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Ts, true
+}
+
+// SetTs sets field value
+func (o *Host) SetTs(v int64) {
+	o.Ts = v
 }
 
 // GetUuid returns the Uuid field value
@@ -182,38 +206,14 @@ func (o *Host) SetNet(v HostNet) {
 	o.Net = v
 }
 
-// GetTs returns the Ts field value
-func (o *Host) GetTs() int64 {
-	if o == nil {
-		var ret int64
-		return ret
-	}
-
-	return o.Ts
-}
-
-// GetTsOk returns a tuple with the Ts field value
-// and a boolean to check if the value has been set.
-func (o *Host) GetTsOk() (*int64, bool) {
-	if o == nil {
-		return nil, false
-	}
-	return &o.Ts, true
-}
-
-// SetTs sets field value
-func (o *Host) SetTs(v int64) {
-	o.Ts = v
-}
-
 func (o Host) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
+	toSerialize["ts"] = o.Ts
 	toSerialize["uuid"] = o.Uuid
 	toSerialize["def"] = o.Def
 	toSerialize["cstate"] = o.Cstate
 	toSerialize["lockid"] = o.Lockid
 	toSerialize["net"] = o.Net
-	toSerialize["ts"] = o.Ts
 	return toSerialize, nil
 }
 

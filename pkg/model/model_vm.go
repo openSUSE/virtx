@@ -22,12 +22,12 @@ var _ MappedNullable = &Vm{}
 
 // Vm struct for Vm
 type Vm struct {
+	// 64bit UTC Unix timestamp in milliseconds since Epoc. A 0 value is used if the timestamp is not available.
+	Ts int64 `json:"ts"`
 	// Unique Identifier for VMs, Hosts, Networks; RFC 4122
 	Uuid string `json:"uuid"`
 	Def Vmdef `json:"def"`
 	Runinfo Vmruninfo `json:"runinfo"`
-	// 64bit UTC Unix timestamp in milliseconds since Epoc. A 0 value is used if the timestamp is not available.
-	Ts int64 `json:"ts"`
 }
 
 type _Vm Vm
@@ -36,16 +36,16 @@ type _Vm Vm
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVm(uuid string, def Vmdef, runinfo Vmruninfo, ts int64) *Vm {
+func NewVm(ts int64, uuid string, def Vmdef, runinfo Vmruninfo) *Vm {
 	this := Vm{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
     var _ = bytes.NewBuffer
 
+	this.Ts = ts
 	this.Uuid = uuid
 	this.Def = def
 	this.Runinfo = runinfo
-	this.Ts = ts
 	return &this
 }
 
@@ -55,6 +55,30 @@ func NewVm(uuid string, def Vmdef, runinfo Vmruninfo, ts int64) *Vm {
 func NewVmWithDefaults() *Vm {
 	this := Vm{}
 	return &this
+}
+
+// GetTs returns the Ts field value
+func (o *Vm) GetTs() int64 {
+	if o == nil {
+		var ret int64
+		return ret
+	}
+
+	return o.Ts
+}
+
+// GetTsOk returns a tuple with the Ts field value
+// and a boolean to check if the value has been set.
+func (o *Vm) GetTsOk() (*int64, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Ts, true
+}
+
+// SetTs sets field value
+func (o *Vm) SetTs(v int64) {
+	o.Ts = v
 }
 
 // GetUuid returns the Uuid field value
@@ -129,36 +153,12 @@ func (o *Vm) SetRuninfo(v Vmruninfo) {
 	o.Runinfo = v
 }
 
-// GetTs returns the Ts field value
-func (o *Vm) GetTs() int64 {
-	if o == nil {
-		var ret int64
-		return ret
-	}
-
-	return o.Ts
-}
-
-// GetTsOk returns a tuple with the Ts field value
-// and a boolean to check if the value has been set.
-func (o *Vm) GetTsOk() (*int64, bool) {
-	if o == nil {
-		return nil, false
-	}
-	return &o.Ts, true
-}
-
-// SetTs sets field value
-func (o *Vm) SetTs(v int64) {
-	o.Ts = v
-}
-
 func (o Vm) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
+	toSerialize["ts"] = o.Ts
 	toSerialize["uuid"] = o.Uuid
 	toSerialize["def"] = o.Def
 	toSerialize["runinfo"] = o.Runinfo
-	toSerialize["ts"] = o.Ts
 	return toSerialize, nil
 }
 
