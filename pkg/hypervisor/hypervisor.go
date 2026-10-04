@@ -719,13 +719,6 @@ func Get_host() openapi.Host {
 }
 
 /* assert hv.si != nil, guaranteed by system_info_init() before serfcomm connects */
-func Set_management_net(addr string, iface string) {
-	hv.m.Lock()
-	defer hv.m.Unlock()
-	hv.si.imm.management_addr = addr
-	hv.si.imm.management_iface = iface
-}
-
 /* assert hv.si != nil, guaranteed by system_info_init() before HTTP starts */
 func Get_hoststats() (openapi.Hoststats) {
 	hv.m.RLock()

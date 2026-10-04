@@ -19,8 +19,6 @@ package serfcomm
 
 import (
 	"errors"
-	"fmt"
-	"net"
 	"sync"
 	"encoding/binary"
 	"time"
@@ -32,7 +30,6 @@ import (
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/encoding/sbinary"
 	"suse.com/virtx/pkg/encoding/serftags"
-	"suse.com/virtx/pkg/machine"
 	"suse.com/virtx/pkg/reg"
 )
 
@@ -171,19 +168,27 @@ func recv_serf_events() {
 func handle_member_change(e map[string]any, newstate openapi.Cstate) {
 	var (
 		err error
-		uuid string
+		hi inventory.HostInfo
+		tags map[string]string
 		name string = e["Event"].(string)
 	)
 	for _, m := range e["Members"].([]any) {
-		tags := m.(map[any]any)["Tags"].(map[any]any)
-		tag, ok := tags["uuid"]
-		if (!ok) {
-			logger.Log("handle_member_change: %s: uuid tag missing", name)
+		tags = make(map[string]string)
+		for k, v := range m.(map[any]any)["Tags"].(map[any]any) {
+			tags[k.(string)] = v.(string)
+		}
+		hi = inventory.HostInfo{}
+		err = serftags.Decode(tags, &hi)
+		if (err != nil) {
+			logger.Log("handle_member_change: %s: %s", name, err.Error())
 			continue
 		}
-		uuid = tag.(string)
-		logger.Debug("%s %s", name, uuid)
-		err = inventory.Set_host_state(uuid, newstate)
+		if (hi.Uuid == "") {
+			logger.Log("handle_member_change: %s: Uuid tag missing", name)
+			continue
+		}
+		logger.Debug("%s %s", name, hi.Uuid)
+		err = inventory.Set_host_state(hi.Uuid, newstate)
 		if (err != nil) {
 			logger.Log("%s", err.Error())
 		}
@@ -324,68 +329,11 @@ func load_vminfo() {
 	}
 }
 
-func discover_management_addr(uuid string) (string, error) {
-	/* assert serf.m.Lock() */
-	var (
-		members []client.Member
-		err error
-	)
-	members, err = serf.c.Members()
-	if (err != nil) {
-		return "", err
-	}
-	for _, m := range members {
-		if (m.Tags["uuid"] == uuid) {
-			return m.Addr.String(), nil
-		}
-	}
-	return "", fmt.Errorf("could not find our UUID '%s' in serf", uuid)
-}
-
-func discover_management_iface(addr string) string {
-	var (
-		err error
-		ifaces []net.Interface
-		addrs []net.Addr
-	)
-	ifaces, err = net.Interfaces()
-	if (err != nil) {
-		logger.Log("discover_management_iface: %s", err.Error())
-		return ""
-	}
-	for _, iface := range ifaces {
-		addrs, err = iface.Addrs()
-		if (err != nil) {
-			logger.Log("discover_management_iface: %s: %s", iface.Name, err.Error())
-			continue
-		}
-		for _, a := range addrs {
-			var ip net.IP
-			switch v := a.(type) {
-			case *net.IPNet:
-				ip = v.IP
-			case *net.IPAddr:
-				ip = v.IP
-			}
-			if (ip != nil && ip.String() == addr) {
-				return iface.Name
-			}
-		}
-	}
-	logger.Log("discover_management_iface: no interface found with addr %s", addr)
-	return ""
-}
-
 func Connect() error {
 	serf.m.Lock()
 	defer serf.m.Unlock()
 
-	var (
-		err error
-		uuid string = machine.Uuid()
-		addr string
-		iface string
-	)
+	var err error
 	serf.c, err = client.NewRPCClient(RPC_ADDR)
 	if (err != nil) {
 		serf.c = nil
@@ -398,22 +346,6 @@ func Connect() error {
 		serf.c = nil
 		return err
 	}
-	err = serf.c.UpdateTags(map[string]string{"uuid": uuid}, []string{})
-	if (err != nil) {
-		serf.c.Stop(serf.stream)
-		serf.c.Close()
-		serf.c = nil
-		return err
-	}
-	addr, err = discover_management_addr(uuid)
-	if (err != nil) {
-		serf.c.Stop(serf.stream)
-		serf.c.Close()
-		serf.c = nil
-		return err
-	}
-	iface = discover_management_iface(addr)
-	hypervisor.Set_management_net(addr, iface)
 	return nil
 }
 

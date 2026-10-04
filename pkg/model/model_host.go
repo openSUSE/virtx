@@ -30,7 +30,6 @@ type Host struct {
 	Cstate Cstate `json:"cstate"`
 	// Unique ID in the cluster used to register the lockspace.
 	Lockid int16 `json:"lockid"`
-	Net HostNet `json:"net"`
 }
 
 type _Host Host
@@ -39,7 +38,7 @@ type _Host Host
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewHost(ts int64, uuid string, def Hostdef, cstate Cstate, lockid int16, net HostNet) *Host {
+func NewHost(ts int64, uuid string, def Hostdef, cstate Cstate, lockid int16) *Host {
 	this := Host{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
@@ -50,7 +49,6 @@ func NewHost(ts int64, uuid string, def Hostdef, cstate Cstate, lockid int16, ne
 	this.Def = def
 	this.Cstate = cstate
 	this.Lockid = lockid
-	this.Net = net
 	return &this
 }
 
@@ -182,30 +180,6 @@ func (o *Host) SetLockid(v int16) {
 	o.Lockid = v
 }
 
-// GetNet returns the Net field value
-func (o *Host) GetNet() HostNet {
-	if o == nil {
-		var ret HostNet
-		return ret
-	}
-
-	return o.Net
-}
-
-// GetNetOk returns a tuple with the Net field value
-// and a boolean to check if the value has been set.
-func (o *Host) GetNetOk() (*HostNet, bool) {
-	if o == nil {
-		return nil, false
-	}
-	return &o.Net, true
-}
-
-// SetNet sets field value
-func (o *Host) SetNet(v HostNet) {
-	o.Net = v
-}
-
 func (o Host) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["ts"] = o.Ts
@@ -213,7 +187,6 @@ func (o Host) ToMap() (map[string]interface{}, error) {
 	toSerialize["def"] = o.Def
 	toSerialize["cstate"] = o.Cstate
 	toSerialize["lockid"] = o.Lockid
-	toSerialize["net"] = o.Net
 	return toSerialize, nil
 }
 

@@ -38,12 +38,6 @@ func host_get(host *openapi.Host) {
 			host.Def.Cpudef.Nodes, host.Def.Cpudef.Sockets, host.Def.Cpudef.Cores, host.Def.Cpudef.Threads,
 			host.Def.Tscfreq,
 		)
-	} else if (virtx.net) {
-		fmt.Fprintf(virtx.w, "MGMT_IFACE\tMGMT_ADDR\tMIG_IFACE\tMIG_ADDR\n")
-		fmt.Fprintf(virtx.w, "%s\t%s\t%s\t%s\n",
-			host.Net.ManagementIface, host.Net.ManagementAddr,
-			host.Net.MigrationIface, host.Net.MigrationAddr,
-		)
 	} else if (virtx.sys) {
 		fmt.Fprintf(virtx.w, "OS\tVERSION\tFWVER\tFWDATE\n")
 		fmt.Fprintf(virtx.w, "%s\t%s\t%s\t%s\n",
