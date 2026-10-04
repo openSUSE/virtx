@@ -28,9 +28,9 @@ type HostListFields struct {
 	Cpudef Cpudef `json:"cpudef"`
 	Cstate Cstate `json:"cstate"`
 	// normal memory available for running new VMs in MiB
-	Memoryavailable int32 `json:"memoryavailable"`
+	Memavail int32 `json:"memavail"`
 	// hugepages memory available for running new VMs in MiB
-	Hpavailable int32 `json:"hpavailable"`
+	Hpavail int32 `json:"hpavail"`
 	Osid string `json:"osid"`
 	Osv string `json:"osv"`
 }
@@ -41,7 +41,7 @@ type _HostListFields HostListFields
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewHostListFields(ts int64, name string, cpudef Cpudef, cstate Cstate, memoryavailable int32, hpavailable int32, osid string, osv string) *HostListFields {
+func NewHostListFields(ts int64, name string, cpudef Cpudef, cstate Cstate, memavail int32, hpavail int32, osid string, osv string) *HostListFields {
 	this := HostListFields{}
     // XXX these two lines are here to silence errors about unused imports
     var _ = fmt.Println
@@ -51,8 +51,8 @@ func NewHostListFields(ts int64, name string, cpudef Cpudef, cstate Cstate, memo
 	this.Name = name
 	this.Cpudef = cpudef
 	this.Cstate = cstate
-	this.Memoryavailable = memoryavailable
-	this.Hpavailable = hpavailable
+	this.Memavail = memavail
+	this.Hpavail = hpavail
 	this.Osid = osid
 	this.Osv = osv
 	return &this
@@ -162,52 +162,52 @@ func (o *HostListFields) SetCstate(v Cstate) {
 	o.Cstate = v
 }
 
-// GetMemoryavailable returns the Memoryavailable field value
-func (o *HostListFields) GetMemoryavailable() int32 {
+// GetMemavail returns the Memavail field value
+func (o *HostListFields) GetMemavail() int32 {
 	if o == nil {
 		var ret int32
 		return ret
 	}
 
-	return o.Memoryavailable
+	return o.Memavail
 }
 
-// GetMemoryavailableOk returns a tuple with the Memoryavailable field value
+// GetMemavailOk returns a tuple with the Memavail field value
 // and a boolean to check if the value has been set.
-func (o *HostListFields) GetMemoryavailableOk() (*int32, bool) {
+func (o *HostListFields) GetMemavailOk() (*int32, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.Memoryavailable, true
+	return &o.Memavail, true
 }
 
-// SetMemoryavailable sets field value
-func (o *HostListFields) SetMemoryavailable(v int32) {
-	o.Memoryavailable = v
+// SetMemavail sets field value
+func (o *HostListFields) SetMemavail(v int32) {
+	o.Memavail = v
 }
 
-// GetHpavailable returns the Hpavailable field value
-func (o *HostListFields) GetHpavailable() int32 {
+// GetHpavail returns the Hpavail field value
+func (o *HostListFields) GetHpavail() int32 {
 	if o == nil {
 		var ret int32
 		return ret
 	}
 
-	return o.Hpavailable
+	return o.Hpavail
 }
 
-// GetHpavailableOk returns a tuple with the Hpavailable field value
+// GetHpavailOk returns a tuple with the Hpavail field value
 // and a boolean to check if the value has been set.
-func (o *HostListFields) GetHpavailableOk() (*int32, bool) {
+func (o *HostListFields) GetHpavailOk() (*int32, bool) {
 	if o == nil {
 		return nil, false
 	}
-	return &o.Hpavailable, true
+	return &o.Hpavail, true
 }
 
-// SetHpavailable sets field value
-func (o *HostListFields) SetHpavailable(v int32) {
-	o.Hpavailable = v
+// SetHpavail sets field value
+func (o *HostListFields) SetHpavail(v int32) {
+	o.Hpavail = v
 }
 
 // GetOsid returns the Osid field value
@@ -264,8 +264,8 @@ func (o HostListFields) ToMap() (map[string]interface{}, error) {
 	toSerialize["name"] = o.Name
 	toSerialize["cpudef"] = o.Cpudef
 	toSerialize["cstate"] = o.Cstate
-	toSerialize["memoryavailable"] = o.Memoryavailable
-	toSerialize["hpavailable"] = o.Hpavailable
+	toSerialize["memavail"] = o.Memavail
+	toSerialize["hpavail"] = o.Hpavail
 	toSerialize["osid"] = o.Osid
 	toSerialize["osv"] = o.Osv
 	return toSerialize, nil

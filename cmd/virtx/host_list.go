@@ -47,7 +47,7 @@ func host_list(list *openapi.HostList) {
 			item.Uuid, item.Fields.Name, item.Fields.Osid, item.Fields.Osv,
 			item.Fields.Cpudef.Arch, item.Fields.Cpudef.Vendor, item.Fields.Cpudef.Model,
 			item.Fields.Cpudef.Nodes * item.Fields.Cpudef.Sockets * item.Fields.Cpudef.Cores * item.Fields.Cpudef.Threads,
-			item.Fields.Memoryavailable, item.Fields.Hpavailable,
+			item.Fields.Memavail, item.Fields.Hpavail,
 			item.Fields.Cstate, ts.Since(item.Fields.Ts))
 	}
 }

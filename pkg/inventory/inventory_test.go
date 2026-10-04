@@ -43,7 +43,7 @@ func add_host(uuid, name string, cstate openapi.Cstate, mem int32, ts int64) {
 		HostListFields: openapi.HostListFields{
 			Name:            name,
 			Cstate:          cstate,
-			Memoryavailable: mem,
+			Memavail: mem,
 			Ts:              ts,
 		},
 	})
@@ -94,8 +94,8 @@ func assert_host_mem(t *testing.T, uuid string, want int32) {
 	if (err != nil) {
 		t.Fatalf("Get_hostinfo(%q): %v", uuid, err)
 	}
-	if (info.Memoryavailable != want) {
-		t.Errorf("host %q: Memoryavailable = %d, want %d", uuid, info.Memoryavailable, want)
+	if (info.Memavail != want) {
+		t.Errorf("host %q: Memavail = %d, want %d", uuid, info.Memavail, want)
 	}
 }
 
@@ -231,8 +231,8 @@ func Test_host_add_and_get(t *testing.T) {
 	if (info.Cstate != openapi.CSTATE_ACTIVE) {
 		t.Errorf("Cstate: got %d", info.Cstate)
 	}
-	if (info.Memoryavailable != 8192) {
-		t.Errorf("Memoryavailable: got %d", info.Memoryavailable)
+	if (info.Memavail != 8192) {
+		t.Errorf("Memavail: got %d", info.Memavail)
 	}
 
 	data, err := Get_hostdata("h1")
@@ -423,7 +423,7 @@ func Test_search_hosts_by_memory(t *testing.T) {
 	add_host("h1", "big",   openapi.CSTATE_ACTIVE, 8192, 100)
 	add_host("h2", "small", openapi.CSTATE_ACTIVE, 256,  100)
 
-	list := Search_hosts(openapi.HostListFields{Memoryavailable: 4096})
+	list := Search_hosts(openapi.HostListFields{Memavail: 4096})
 	assert_search_hosts_contains(t, list, "h1")
 	assert_search_hosts_lacks(t, list, "h2")
 }

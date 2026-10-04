@@ -60,10 +60,10 @@ func Search_hosts(f openapi.HostListFields) openapi.HostList {
 		if (f.Cstate != openapi.CSTATE_INVALID && (hostinfo.Cstate != f.Cstate)) {
 			continue
 		}
-		if (f.Memoryavailable > 0 && (hostinfo.Memoryavailable < f.Memoryavailable)) {
+		if (f.Memavail > 0 && (hostinfo.Memavail < f.Memavail)) {
 			continue
 		}
-		if (f.Hpavailable > 0 && (hostinfo.Hpavailable < f.Hpavailable)) {
+		if (f.Hpavail > 0 && (hostinfo.Hpavail < f.Hpavail)) {
 			continue
 		}
 		if (f.Osid != "" && (hostinfo.Osid != f.Osid)) {

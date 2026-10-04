@@ -261,7 +261,7 @@ func system_info_get() (SystemInfo, error) {
 	si.Host.Cpudef.Cores = int16(info.Cores)
 	si.Host.Cpudef.Threads = int16(info.Threads)
 	si.Host.Cstate = openapi.CSTATE_ACTIVE
-	/* Memoryavailable, Hpavailable are set below once calculated */
+	/* Memavail, Hpavail are set below once calculated */
 	si.Host.Osid = si.imm.os_id
 	si.Host.Osv = si.imm.os_version
 	si.Host.Ts = ts.Now()
@@ -376,7 +376,7 @@ func system_info_get() (SystemInfo, error) {
 	stats.Hp.Usedother = stats.Hp.Used - stats.Hp.Usedvms
 	stats.Hp.Availablevms = stats.Hp.Total - stats.Hp.Reservedvms - stats.Hp.Usedother
 	/* Set the HostInfo HP available field */
-	si.Host.Hpavailable = stats.Hp.Availablevms
+	si.Host.Hpavail = stats.Hp.Availablevms
 
 	/* Normal Memory derived calculations */
 	stats.Memory.Used = stats.Memory.Total - stats.Memory.Free
@@ -385,7 +385,7 @@ func system_info_get() (SystemInfo, error) {
 	stats.Memory.Usedother = stats.Memory.Used - stats.Memory.Usedvms
 	stats.Memory.Availablevms = stats.Memory.Total - stats.Memory.Reservedvms - stats.Memory.Usedother
 	/* Set the HostInfo Memory available field */
-	si.Host.Memoryavailable = stats.Memory.Availablevms
+	si.Host.Memavail = stats.Memory.Availablevms
 
 	/* CPU */
 	stats.Cpu.Total = int32(uint(info.Nodes * info.Sockets * info.Cores * info.Threads) * info.MHz)

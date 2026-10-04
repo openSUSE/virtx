@@ -34,7 +34,7 @@ import (
  * Filtering (all criteria must pass):
  *  1. Cstate == CSTATE_ACTIVE
  *  2. Cpudef.Arch matches vmdef
- *  3. Sufficient memory (Memoryavailable or Hpavailable per vmdef.Memory.Hp)
+ *  3. Sufficient memory (Memavail or Hpavail per vmdef.Memory.Hp)
  *  4. CPU model compatibility (host-passthrough skips this check)
  *
  * Scoring: for now host with the most available memory (normal or Hp) wins.
@@ -51,9 +51,9 @@ func Schedule_vmdef(vmdef *openapi.Vmdef) string {
 	filter.Cstate = openapi.CSTATE_ACTIVE
 	filter.Cpudef.Arch = vmdef.Cpudef.Arch
 	if (vmdef.Memory.Hp) {
-		filter.Hpavailable = vmdef.Memory.Total
+		filter.Hpavail = vmdef.Memory.Total
 	} else {
-		filter.Memoryavailable = vmdef.Memory.Total
+		filter.Memavail = vmdef.Memory.Total
 	}
 	list = inventory.Search_hosts(filter)
 	if (len(list.Items) == 0) {
@@ -74,9 +74,9 @@ func Schedule_vmdef(vmdef *openapi.Vmdef) string {
 		/* score by available memory of the relevant kind */
 		var mem int32
 		if (vmdef.Memory.Hp) {
-			mem = item.Fields.Hpavailable
+			mem = item.Fields.Hpavail
 		} else {
-			mem = item.Fields.Memoryavailable
+			mem = item.Fields.Memavail
 		}
 		if (mem > best_mem) {
 			best_mem = mem
