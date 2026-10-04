@@ -252,6 +252,7 @@ func system_info_get() (SystemInfo, error) {
 
 	/* 1. set the general host information */
 	si.Host.Uuid = caps.Host.UUID
+	si.Host.Mig_ip = si.imm.migration_addr
 	si.Host.Name, err = hv.conn.GetHostname()
 	if (err != nil) {
 		goto out

@@ -36,6 +36,7 @@ type nothing struct {
 type HostInfo struct {
 	VI_update_ts int64          /* Ts of the last change to the VmInfo of any VM on this host */
 	Uuid string
+	Mig_ip string               /* IP in the migration network, "" if not configured */
 	openapi.HostListFields
 }
 

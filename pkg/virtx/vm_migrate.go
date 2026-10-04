@@ -91,23 +91,7 @@ func vm_migrate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if (o.MigrationType == openapi.MIGRATION_LIVE) {
-		var (
-			dest openapi.Host
-			resp *http.Response
-		)
-		resp, err = httpx.Do_request(host_new.Name, "GET", "/hosts/" + o.Host, nil)
-		if (err != nil) {
-			logger.Log("failed to request migration address: %s", err.Error())
-			http.Error(w, "failed to request migration address", http.StatusInternalServerError)
-			return
-		}
-		_, err = httpx.Decode_response_body(resp, &dest)
-		if (err != nil) {
-			logger.Log("failed to decode migration address: %s", err.Error())
-			http.Error(w, "failed to decode migration address", http.StatusInternalServerError)
-			return
-		}
-		migration_addr = dest.Net.MigrationAddr
+		migration_addr = host_new.Mig_ip
 	}
 	/* the def lock is released by the migration goroutine, after reg.Move */
 	if (!def_lock_acquire(w, uuid, openapi.OpVmMigrate, states...)) {
