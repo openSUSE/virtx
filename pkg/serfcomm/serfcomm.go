@@ -31,6 +31,7 @@ import (
 	"suse.com/virtx/pkg/model"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/encoding/sbinary"
+	"suse.com/virtx/pkg/encoding/serftags"
 	"suse.com/virtx/pkg/machine"
 	"suse.com/virtx/pkg/reg"
 )
@@ -98,6 +99,24 @@ func send_vm_info(vminfo *inventory.VmInfo) error {
 	}
 	logger.Debug("send_vm_data payload len=%d\n", eventsize)
 	return send_user_event(LABEL_VM_INFO, serf.enc_buffer[:eventsize])
+}
+
+/* publish the HostInfo as serf tags */
+func update_host_tags(host_info *inventory.HostInfo) error {
+	serf.m.Lock()
+	defer serf.m.Unlock()
+	var (
+		tags map[string]string
+		err error
+	)
+	if (serf.c == nil) {
+		return errors.New("RPC client closed")
+	}
+	tags, err = serftags.Encode(host_info)
+	if (err != nil) {
+		return err
+	}
+	return serf.c.UpdateTags(tags, []string{})
 }
 
 func send_vm_event(e *inventory.VmEvent) error {
@@ -252,6 +271,10 @@ func send_system_info(ch <-chan hypervisor.SystemInfo) {
 			err = send_host_info(&si.Host.HostInfo)
 			if (err != nil) {
 				logger.Log("send_host_info: %s", err.Error())
+			}
+			err = update_host_tags(&si.Host.HostInfo)
+			if (err != nil) {
+				logger.Log("update_host_tags: %s", err.Error())
 			}
 		} else {
 			/* this is a one-shot VI event, currently only for DEFINED */
