@@ -34,7 +34,7 @@ type nothing struct {
  * for quick access and search without having to contact the host
  */
 type HostInfo struct {
-	VI_update_ts int64          /* Ts of the last change to the VmInfo of any VM on this host */
+	VI_ts int64                 /* Ts of the last change to the VmInfo of any VM on this host */
 	Uuid string
 	Mig_ip string               /* IP in the migration network, "" if not configured */
 	openapi.HostListFields
@@ -44,7 +44,7 @@ type HostInfo struct {
  * Hostdata: contains the hostinfo and also the UUIDs of VMS running on this host
  */
 type Hostdata struct {
-	VI_applied_update_ts int64
+	VI_applied_ts int64
 	Info HostInfo
 	Vms map[string]nothing		/* VM Uuid presence */
 }
@@ -176,8 +176,8 @@ func update_host(hostinfo *HostInfo) bool {
 		}
 	}
 	inventory.hosts[hostinfo.Uuid] = hostdata
-	/* VI_update_ts is only compared for equality, see system_info_get */
-	return (hostdata.VI_applied_update_ts != hostinfo.VI_update_ts)
+	/* VI_ts is only compared for equality, see system_info_get */
+	return (hostdata.VI_applied_ts != hostinfo.VI_ts)
 }
 
 func Set_host_state(uuid string, newstate openapi.Cstate) error {
@@ -263,14 +263,14 @@ func update_vm(vminfo *VmInfo) error {
 }
 
 /* Update_host_vms replaces the VMs of a host with the ones read from reg vminfo */
-func Update_host_vms(host_uuid string, vi_update_ts int64, vms []VmInfo) error {
+func Update_host_vms(host_uuid string, vi_ts int64, vms []VmInfo) error {
 	inventory.m.Lock()
 	defer inventory.m.Unlock()
 
-	return update_host_vms(host_uuid, vi_update_ts, vms)
+	return update_host_vms(host_uuid, vi_ts, vms)
 }
 
-func update_host_vms(host_uuid string, vi_update_ts int64, vms []VmInfo) error {
+func update_host_vms(host_uuid string, vi_ts int64, vms []VmInfo) error {
 	var (
 		hostdata Hostdata
 		vmdata Vmdata
@@ -283,8 +283,8 @@ func update_host_vms(host_uuid string, vi_update_ts int64, vms []VmInfo) error {
 	if (!present) {
 		return fmt.Errorf("no such host %s", host_uuid)
 	}
-	/* VI_update_ts is only compared for equality, see system_info_get */
-	if (hostdata.VI_applied_update_ts == vi_update_ts) {
+	/* VI_ts is only compared for equality, see system_info_get */
+	if (hostdata.VI_applied_ts == vi_ts) {
 		return nil
 	}
 	for i = range vms {
@@ -297,12 +297,12 @@ func update_host_vms(host_uuid string, vi_update_ts int64, vms []VmInfo) error {
 			continue
 		}
 		vmdata = inventory.vms[uuid]
-		if (vmdata.Info.Host == host_uuid && vmdata.update_ts <= vi_update_ts) {
+		if (vmdata.Info.Host == host_uuid && vmdata.update_ts <= vi_ts) {
 			delete(hostdata.Vms, uuid)
 			delete(inventory.vms, uuid)
 		}
 	}
-	hostdata.VI_applied_update_ts = vi_update_ts
+	hostdata.VI_applied_ts = vi_ts
 	inventory.hosts[host_uuid] = hostdata
 	return nil
 }

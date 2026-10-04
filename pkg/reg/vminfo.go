@@ -25,7 +25,7 @@ import (
 	. "suse.com/virtx/pkg/constants"
 )
 
-/* VmInfo of all VMs of a host. Ts is the host VI_update_ts when written. */
+/* VmInfo of all VMs of a host. Ts is the host VI_ts when written. */
 type reg_vminfo_file struct {
 	Ts int64 `json:"ts"`
 	Vms []inventory.VmInfo `json:"vms"`

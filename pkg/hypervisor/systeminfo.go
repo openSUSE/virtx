@@ -144,7 +144,7 @@ func system_info_save_vminfo(si *SystemInfo) {
 	for _, vm := range si.Vms {
 		vms = append(vms, vm.VmInfo)
 	}
-	err = reg.Save_vminfo(si.Host.Uuid, si.Host.VI_update_ts, vms)
+	err = reg.Save_vminfo(si.Host.Uuid, si.Host.VI_ts, vms)
 	if (err != nil) {
 		logger.Log("system_info_save_vminfo: %s", err.Error())
 	}
@@ -455,13 +455,13 @@ func system_info_get() (SystemInfo, error) {
 	si.Vms = vms
 	si.vms_changed = (hv.si == nil || system_info_vms_changed(hv.si.Vms, si.Vms))
 	if (si.vms_changed) {
-		si.Host.VI_update_ts = si.Host.Ts
-		/* peers compare VI_update_ts for equality: never reuse the previous one */
-		if (hv.si != nil && si.Host.VI_update_ts == hv.si.Host.VI_update_ts) {
-			si.Host.VI_update_ts += 1
+		si.Host.VI_ts = si.Host.Ts
+		/* peers compare VI_ts for equality: never reuse the previous one */
+		if (hv.si != nil && si.Host.VI_ts == hv.si.Host.VI_ts) {
+			si.Host.VI_ts += 1
 		}
 	} else {
-		si.Host.VI_update_ts = hv.si.Host.VI_update_ts
+		si.Host.VI_ts = hv.si.Host.VI_ts
 	}
 	if (hv.si == nil) {
 		hv.si = new(SystemInfo)

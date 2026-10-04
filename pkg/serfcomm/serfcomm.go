@@ -217,7 +217,7 @@ func handle_user_event(e map[string]any) {
 				 * queue the host for load_vminfo without blocking the serf events loop:
 				 * if vminfo_ch is full, select takes the default case and the vminfo of
 				 * this host is not read now. It will be at its next HI, as the
-				 * VI_update_ts still differs from the applied one.
+				 * VI_ts still differs from the applied one.
 				 */
 				select {
 				case vminfo_ch <- hi.Uuid:
@@ -312,17 +312,17 @@ func send_vm_events(eventCh <-chan inventory.VmEvent) {
 func load_vminfo() {
 	var (
 		host_uuid string
-		vi_update_ts int64
+		vi_ts int64
 		vms []inventory.VmInfo
 		err error
 	)
 	for host_uuid = range vminfo_ch {
-		vi_update_ts, vms, err = reg.Load_vminfo(host_uuid)
+		vi_ts, vms, err = reg.Load_vminfo(host_uuid)
 		if (err != nil) {
 			logger.Log("load_vminfo: %s", err.Error())
 			continue
 		}
-		err = inventory.Update_host_vms(host_uuid, vi_update_ts, vms)
+		err = inventory.Update_host_vms(host_uuid, vi_ts, vms)
 		if (err != nil) {
 			logger.Log("load_vminfo: %s", err.Error())
 		}
