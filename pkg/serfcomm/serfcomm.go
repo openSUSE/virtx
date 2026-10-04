@@ -19,6 +19,7 @@ package serfcomm
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 	"encoding/binary"
 	"time"
@@ -329,6 +330,49 @@ func load_vminfo() {
 	}
 }
 
+/* remove the tags of our own serf member that are not HostInfo fields */
+func remove_stale_tags() error {
+	/* assert serf.m.Lock() */
+	var (
+		keys map[string]string
+		stats map[string]map[string]string
+		members []client.Member
+		stale []string
+		name, key string
+		present bool
+		err error
+	)
+	keys, err = serftags.Encode(&inventory.HostInfo{})
+	if (err != nil) {
+		return err
+	}
+	stats, err = serf.c.Stats()
+	if (err != nil) {
+		return err
+	}
+	name = stats["agent"]["name"]
+	members, err = serf.c.Members()
+	if (err != nil) {
+		return err
+	}
+	for _, m := range members {
+		if (m.Name != name) {
+			continue
+		}
+		for key = range m.Tags {
+			_, present = keys[key]
+			if (!present) {
+				stale = append(stale, key)
+			}
+		}
+		if (len(stale) == 0) {
+			return nil
+		}
+		return serf.c.UpdateTags(map[string]string{}, stale)
+	}
+	return fmt.Errorf("could not find our node name '%s' in serf", name)
+}
+
 func Connect() error {
 	serf.m.Lock()
 	defer serf.m.Unlock()
@@ -342,6 +386,13 @@ func Connect() error {
 	serf.channel = make(chan map[string]any, 64)
 	serf.stream, err = serf.c.Stream("*", serf.channel)
 	if (err != nil) {
+		serf.c.Close()
+		serf.c = nil
+		return err
+	}
+	err = remove_stale_tags()
+	if (err != nil) {
+		serf.c.Stop(serf.stream)
 		serf.c.Close()
 		serf.c = nil
 		return err
