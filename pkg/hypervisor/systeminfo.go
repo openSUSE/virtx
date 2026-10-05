@@ -117,10 +117,13 @@ func system_info_init(si *SystemInfo) {
 		arch string = si.imm.caps.Host.CPU.Arch
 		models []string
 		err error
+		start time.Time
 	)
 	machine.Set_uuid(uuid)
 	machine.Set_arch(arch)
+	start = time.Now()
 	check_reg(uuid, si)
+	logger.Debug("system_info_init: check_reg: %d vms in %s", len(si.Vms), time.Since(start))
 	models, err = Get_cpumodels(arch)
 	if (err != nil) {
 		logger.Fatal("system_info_init: failed to Get_cpumodels: %s", err.Error())
@@ -160,6 +163,7 @@ func system_info_loop(seconds int) error {
 		ticker *time.Ticker
 		libvirt_err libvirt.Error
 		ok bool
+		start time.Time
 	)
 	logger.Debug("system_info_loop starting...")
 	defer logger.Debug("system_info_loop exit")
@@ -171,10 +175,12 @@ func system_info_loop(seconds int) error {
 	 * libvirt reconnect, and we just resume ticking.
 	 */
 	if (!get_system_info_loop_done()) {
+		start = time.Now()
 		si, err = system_info_get()
 		if (err != nil) {
 			logger.Fatal("system_info_loop: initial system_info_get failed: %s", err.Error())
 		}
+		logger.Debug("system_info_loop: initial system_info_get: %d vms in %s", len(si.Vms), time.Since(start))
 		system_info_init(&si)
 		system_info_save_vminfo(&si)
 		/* this first info is missing vm cpu stats and host cpu stats */
