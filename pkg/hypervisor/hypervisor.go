@@ -643,7 +643,7 @@ func check_reg(host_uuid string, si *SystemInfo) {
 		hosts []string
 		uuid string
 		uuids []string
-		conn *libvirt.Connect
+		present bool
 	)
 	err = os.MkdirAll(fmt.Sprintf("%s/%s", REG_DIR, host_uuid), 0750)
 	if (err != nil) {
@@ -683,24 +683,15 @@ func check_reg(host_uuid string, si *SystemInfo) {
 			}
 		}
 	}
-	/* now check that all vms in reg are registered in libvirt */
+	/* now check that all vms in reg are registered in libvirt, as just listed in si.Vms */
 	uuids, err = reg.Uuids(host_uuid)
 	if (err != nil) {
 		logger.Fatal("could not get the list of VM uuids for host %s", host_uuid)
 	}
-	conn, err = libvirt.NewConnect(LIBVIRT_URI)
-	if (err != nil) {
-		logger.Fatal("could not connect to libvirt: %s", err.Error())
-	}
-	defer conn.Close()
-
 	for _, uuid = range(uuids) {
-		var domain *libvirt.Domain
-		domain, err = conn.LookupDomainByUUIDString(uuid)
-		if (err != nil) {
+		_, present = si.Vms[uuid]
+		if (!present) {
 			logger.Log("WARNING: reg VM %s/%s is not registered in libvirt", host_uuid, uuid)
-		} else {
-			domain.Free()
 		}
 	}
 }
