@@ -35,7 +35,6 @@ import (
 )
 
 const (
-	LABEL_HOST_INFO string = "HI"
 	LABEL_VM_INFO string = "VI"
 	LABEL_VM_EVENT string = "VE"
 	MAX_MESSAGE_SIZE uint = 1024
@@ -67,21 +66,6 @@ func send_user_event(label string, payload []byte) error {
 		return errors.New("RPC client closed")
 	}
 	return serf.c.UserEvent(label, payload, false)
-}
-
-func send_host_info(host_info *inventory.HostInfo) error {
-	serf.m.Lock()
-	defer serf.m.Unlock()
-	var (
-		eventsize int
-		err error
-	)
-	eventsize, err = sbinary.Encode(serf.enc_buffer[:], binary.LittleEndian, host_info)
-	if (err != nil) {
-		return err
-	}
-	logger.Debug("send_host_info payload len=%d\n", eventsize)
-	return send_user_event(LABEL_HOST_INFO, serf.enc_buffer[:eventsize])
 }
 
 func send_vm_info(vminfo *inventory.VmInfo) error {
@@ -223,18 +207,6 @@ func handle_user_event(e map[string]any) {
 		err error
 	)
 	switch (name) {
-	case LABEL_HOST_INFO:
-		var (
-			hi inventory.HostInfo
-			size int
-		)
-		size, err = sbinary.Decode(payload, binary.LittleEndian, &hi)
-		if (err != nil) {
-			logger.Log("Decode %s: ERR '%s' at offset %d", name, err.Error(), size)
-		} else {
-			logger.Debug("Decode %s: OK  %d %s %s", name, hi.Ts, hi.Uuid, hi.Name)
-			handle_hostinfo(&hi)
-		}
 	case LABEL_VM_EVENT:
 		var (
 			ve inventory.VmEvent
@@ -283,10 +255,6 @@ func send_system_info(ch <-chan hypervisor.SystemInfo) {
 		}
 		if (si.Host.Uuid != "") {
 			/* we have a full System Info with Host Information and all VMs */
-			err = send_host_info(&si.Host.HostInfo)
-			if (err != nil) {
-				logger.Log("send_host_info: %s", err.Error())
-			}
 			err = update_host_tags(&si.Host.HostInfo)
 			if (err != nil) {
 				logger.Log("update_host_tags: %s", err.Error())
