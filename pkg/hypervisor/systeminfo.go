@@ -345,7 +345,8 @@ func system_info_get() (SystemInfo, error) {
 		vms[vm.Uuid] = vm
 	}
 	/* now calculate host resources */
-	memory_free, err = hv.conn.GetFreeMemory()
+	/* MemAvailable counts reclaimable page cache and slab as free, MemFree does not */
+	memory_free, err = get_meminfo("MemAvailable")
 	if (err != nil) {
 		goto out
 	}
@@ -366,7 +367,7 @@ func system_info_get() (SystemInfo, error) {
 
 	/* Normal Memory (4k pages). Info is in KiB, so convert to MiB and subtract the memory stolen by Hp */
 	stats.Memory.Total = int32(info.Memory / KiB) - stats.Hp.Total
-	stats.Memory.Free = int32(memory_free / MiB) /* this returns in bytes, translate to MiB */
+	stats.Memory.Free = int32(memory_free / KiB) /* /proc/meminfo is in KiB, translate to MiB */
 
 	/* HP derived calculations */
 	stats.Hp.Used = stats.Hp.Total - stats.Hp.Free
