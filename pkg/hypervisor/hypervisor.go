@@ -640,6 +640,7 @@ func check_reg(host_uuid string, si *SystemInfo) {
 	var (
 		err error
 		host string
+		hosts []string
 		uuid string
 		uuids []string
 		conn *libvirt.Connect
@@ -648,13 +649,13 @@ func check_reg(host_uuid string, si *SystemInfo) {
 	if (err != nil) {
 		logger.Fatal("could not create %s/%s: %s", REG_DIR, host_uuid, err.Error())
 	}
+	hosts, err = reg.Hosts()
+	if (err != nil) {
+		logger.Fatal("could not get list of hosts: %s", err.Error())
+	}
 	/* check that all vms in libvirt are registered in reg, and in the correct host only */
 	for uuid, _ = range(si.Vms) {
-		uuids, err = reg.Hosts()
-		if (err != nil) {
-			logger.Fatal("could not get list of hosts: %s", err.Error())
-		}
-		for _, host = range(uuids) {
+		for _, host = range(hosts) {
 			err = reg.Access(host, uuid)
 			if (host == host_uuid) {
 				/* this is our own host directory. The vm should be registered here. */
