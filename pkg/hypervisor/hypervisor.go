@@ -643,6 +643,7 @@ func check_reg(host_uuid string, si *SystemInfo) {
 		hosts []string
 		uuid string
 		uuids []string
+		registered map[string]bool = make(map[string]bool)
 		present bool
 	)
 	err = os.MkdirAll(fmt.Sprintf("%s/%s", REG_DIR, host_uuid), 0750)
@@ -653,45 +654,30 @@ func check_reg(host_uuid string, si *SystemInfo) {
 	if (err != nil) {
 		logger.Fatal("could not get list of hosts: %s", err.Error())
 	}
-	/* check that all vms in libvirt are registered in reg, and in the correct host only */
-	for uuid, _ = range(si.Vms) {
-		for _, host = range(hosts) {
-			err = reg.Access(host, uuid)
+	/* read each host directory once, and compare its vms with the vms in libvirt */
+	for _, host = range(hosts) {
+		uuids, err = reg.Uuids(host)
+		if (err != nil) {
+			logger.Fatal("could not get the list of VM uuids for host %s: %s", host, err.Error())
+		}
+		for _, uuid = range(uuids) {
+			_, present = si.Vms[uuid]
 			if (host == host_uuid) {
-				/* this is our own host directory. The vm should be registered here. */
-				if (err == nil) {
-					/* yes, ok: it is registered here */
-					continue
+				/* our own host directory: the vm should be in libvirt */
+				registered[uuid] = true
+				if (!present) {
+					logger.Log("WARNING: reg VM %s/%s is not registered in libvirt", host_uuid, uuid)
 				}
-				if (!os.IsNotExist(err)) {
-					/* it's here but it is not accessible (perm issues?) */
-					logger.Fatal("could not access file in %s/%s: %s", REG_DIR, host_uuid, err.Error())
-				}
-				/* os.IsNotExist */
-				logger.Log("WARNING: local libvirt domain %s/%s is not registered in reg", host_uuid, uuid)
-			} else {
-				/* this is not our own host directory. We should NOT find the VM here. */
-				if (err != nil && os.IsNotExist(err)) {
-					/* all ok, our vm is not in this host */
-					continue
-				}
-				if (err == nil) {
-					logger.Fatal("local libvirt domain %s is registered in remote host %s", uuid, host)
-				} else {
-					logger.Fatal("local libvirt domain %s may be registered in remote host %s and is not accessible", uuid, host)
-				}
+			} else if (present) {
+				/* another host directory: our libvirt vm must not be registered here */
+				logger.Fatal("local libvirt domain %s is registered in remote host %s", uuid, host)
 			}
 		}
 	}
-	/* now check that all vms in reg are registered in libvirt, as just listed in si.Vms */
-	uuids, err = reg.Uuids(host_uuid)
-	if (err != nil) {
-		logger.Fatal("could not get the list of VM uuids for host %s", host_uuid)
-	}
-	for _, uuid = range(uuids) {
-		_, present = si.Vms[uuid]
-		if (!present) {
-			logger.Log("WARNING: reg VM %s/%s is not registered in libvirt", host_uuid, uuid)
+	/* all vms in libvirt should be registered in our own host directory */
+	for uuid = range(si.Vms) {
+		if (!registered[uuid]) {
+			logger.Log("WARNING: local libvirt domain %s/%s is not registered in reg", host_uuid, uuid)
 		}
 	}
 }
