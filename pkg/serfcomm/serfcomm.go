@@ -143,12 +143,10 @@ func recv_serf_events() {
 				handle_user_event(e)
 			case "member-leave":
 				handle_member_change(e, openapi.CSTATE_LEFT)
-			case "member-reap":
-				fallthrough
-			case "member-failed":
+			case "member-reap", "member-failed":
 				handle_member_change(e, openapi.CSTATE_FAILED)
-			case "member-join":
-				/* do nothing. We will wait for the next HI from this host */
+			case "member-join", "member-update":
+				handle_member_change(e, openapi.CSTATE_ACTIVE)
 			}
 		}
 
@@ -189,9 +187,31 @@ func handle_member_change(e map[string]any, newstate openapi.Cstate) {
 			continue
 		}
 		logger.Debug("%s %s", name, hi.Uuid)
+		if (newstate == openapi.CSTATE_ACTIVE) {
+			/* join or update: the tags carry the current HostInfo */
+			hi.Cstate = newstate
+			handle_hostinfo(&hi)
+			continue
+		}
 		err = inventory.Set_host_state(hi.Uuid, newstate)
 		if (err != nil) {
 			logger.Log("%s", err.Error())
+		}
+	}
+}
+
+/* update the inventory with the HostInfo of a host, and queue its vminfo if needed */
+func handle_hostinfo(hi *inventory.HostInfo) {
+	if (inventory.Update_host(hi)) {
+		/*
+		 * queue the host for load_vminfo without blocking the serf events loop:
+		 * if vminfo_ch is full, select takes the default case and the vminfo of
+		 * this host is not read now. It will be at its next update, as the
+		 * VI_ts still differs from the applied one.
+		 */
+		select {
+		case vminfo_ch <- hi.Uuid:
+		default:
 		}
 	}
 }
@@ -213,18 +233,7 @@ func handle_user_event(e map[string]any) {
 			logger.Log("Decode %s: ERR '%s' at offset %d", name, err.Error(), size)
 		} else {
 			logger.Debug("Decode %s: OK  %d %s %s", name, hi.Ts, hi.Uuid, hi.Name)
-			if (inventory.Update_host(&hi)) {
-				/*
-				 * queue the host for load_vminfo without blocking the serf events loop:
-				 * if vminfo_ch is full, select takes the default case and the vminfo of
-				 * this host is not read now. It will be at its next HI, as the
-				 * VI_ts still differs from the applied one.
-				 */
-				select {
-				case vminfo_ch <- hi.Uuid:
-				default:
-				}
-			}
+			handle_hostinfo(&hi)
 		}
 	case LABEL_VM_EVENT:
 		var (
@@ -373,6 +382,46 @@ func remove_stale_tags() error {
 	return fmt.Errorf("could not find our node name '%s' in serf", name)
 }
 
+/* add all current serf members to the inventory */
+func read_all_hostinfo() error {
+	/* assert serf.m.Lock() */
+	var (
+		members []client.Member
+		hi inventory.HostInfo
+		err error
+	)
+	members, err = serf.c.Members()
+	if (err != nil) {
+		return err
+	}
+	for _, m := range members {
+		hi = inventory.HostInfo{}
+		err = serftags.Decode(m.Tags, &hi)
+		if (err != nil) {
+			logger.Log("read_all_hostinfo: %s: %s", m.Name, err.Error())
+			continue
+		}
+		if (hi.Uuid == "") {
+			continue
+		}
+		switch (m.Status) {
+		case "alive":
+			hi.Cstate = openapi.CSTATE_ACTIVE
+		case "leaving", "left":
+			hi.Cstate = openapi.CSTATE_LEFT
+		case "failed":
+			hi.Cstate = openapi.CSTATE_FAILED
+		case "none":
+			hi.Cstate = openapi.CSTATE_INVALID
+		default:
+			logger.Log("read_all_hostinfo: %s: unknown serf status '%s'", m.Name, m.Status)
+			continue
+		}
+		handle_hostinfo(&hi)
+	}
+	return nil
+}
+
 func Connect() error {
 	serf.m.Lock()
 	defer serf.m.Unlock()
@@ -391,6 +440,13 @@ func Connect() error {
 		return err
 	}
 	err = remove_stale_tags()
+	if (err != nil) {
+		serf.c.Stop(serf.stream)
+		serf.c.Close()
+		serf.c = nil
+		return err
+	}
+	err = read_all_hostinfo()
 	if (err != nil) {
 		serf.c.Stop(serf.stream)
 		serf.c.Close()
