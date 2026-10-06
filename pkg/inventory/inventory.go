@@ -45,6 +45,7 @@ type HostInfo struct {
  */
 type Hostdata struct {
 	VI_applied_ts int64
+	Man_ip string               /* management IP, from the serf member address */
 	Info HostInfo
 	Vms map[string]nothing		/* VM Uuid presence */
 }
@@ -147,15 +148,15 @@ func Get_vminfo(uuid string) (VmInfo, error) {
 	return vmdata.Info, fmt.Errorf("inventory: no such vm %s", uuid)
 }
 
-func Update_host(hostinfo *HostInfo) bool {
+func Update_host(hostinfo *HostInfo, man_ip string) bool {
 	inventory.m.Lock()
 	defer inventory.m.Unlock()
 
-	return update_host(hostinfo)
+	return update_host(hostinfo, man_ip)
 }
 
 /* returns true if the reg vminfo of the host needs to be applied */
-func update_host(hostinfo *HostInfo) bool {
+func update_host(hostinfo *HostInfo, man_ip string) bool {
 	var (
 		present bool
 		hostdata Hostdata
@@ -175,6 +176,7 @@ func update_host(hostinfo *HostInfo) bool {
 			Vms: make(map[string]nothing),
 		}
 	}
+	hostdata.Man_ip = man_ip
 	inventory.hosts[hostinfo.Uuid] = hostdata
 	/* VI_ts is only compared for equality, see system_info_get */
 	return (hostdata.VI_applied_ts != hostinfo.VI_ts)

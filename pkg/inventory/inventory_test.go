@@ -46,7 +46,7 @@ func add_host(uuid, name string, cstate openapi.Cstate, mem int32, ts int64) {
 			Memavail: mem,
 			Ts:              ts,
 		},
-	})
+	}, "")
 }
 
 func add_vm(t *testing.T, uuid, host, name string, state openapi.Vmrunstate, ts int64) {

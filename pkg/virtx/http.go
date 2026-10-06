@@ -32,34 +32,34 @@ func http_host_is_remote(uuid string) bool {
 
 func http_proxy_request(uuid string, w http.ResponseWriter, vr httpx.Request) {
 	var (
-		hostinfo inventory.HostInfo
+		hostdata inventory.Hostdata
 		err error
 	)
-	hostinfo, err = inventory.Get_hostinfo(uuid)
+	hostdata, err = inventory.Get_hostdata(uuid)
 	if (err != nil) {
 		http.Error(w, "unknown host", http.StatusServiceUnavailable)
 		return
 	}
-	if (hostinfo.Cstate != openapi.CSTATE_ACTIVE) {
+	if (hostdata.Info.Cstate != openapi.CSTATE_ACTIVE) {
 		http.Error(w, "inactive host", http.StatusServiceUnavailable)
 		return
 	}
-	httpx.Proxy_request(hostinfo.Name, w, vr)
+	httpx.Proxy_request(hostdata.Man_ip, w, vr)
 }
 
 func http_proxy_console(host_uuid string, vm_uuid string, console_type string, w http.ResponseWriter, r *http.Request) {
 	var (
-		hostinfo inventory.HostInfo
+		hostdata inventory.Hostdata
 		err error
 	)
-	hostinfo, err = inventory.Get_hostinfo(host_uuid)
+	hostdata, err = inventory.Get_hostdata(host_uuid)
 	if (err != nil) {
 		http.Error(w, "unknown host", http.StatusServiceUnavailable)
 		return
 	}
-	if (hostinfo.Cstate != openapi.CSTATE_ACTIVE) {
+	if (hostdata.Info.Cstate != openapi.CSTATE_ACTIVE) {
 		http.Error(w, "inactive host", http.StatusServiceUnavailable)
 		return
 	}
-	httpx.Proxy_console(hostinfo.Name, vm_uuid, console_type, w, r)
+	httpx.Proxy_console(hostdata.Man_ip, vm_uuid, console_type, w, r)
 }

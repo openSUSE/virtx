@@ -28,7 +28,7 @@ import (
 	"suse.com/virtx/pkg/vmlog"
 )
 
-func Migrate_domain(hostname string, migration_addr string, host_uuid string, host_old string, uuid string, live bool) error {
+func Migrate_domain(man_ip string, migration_addr string, host_uuid string, host_old string, uuid string, live bool) error {
 	var (
 		err error
 		conn, conn2 *libvirt.Connect
@@ -49,7 +49,7 @@ func Migrate_domain(hostname string, migration_addr string, host_uuid string, ho
 	if (migration_addr != "") {
 		params.URI = "tcp://" + migration_addr
 	} else {
-		params.URI = "tcp://" + hostname
+		params.URI = "tcp://" + man_ip
 	}
 	params.URISet = true
 	if (live) {
@@ -82,7 +82,7 @@ func Migrate_domain(hostname string, migration_addr string, host_uuid string, ho
 			libvirt.MIGRATE_UNSAFE
 	}
 	logger.Debug("Migrate_domain: params=%+v flags=%+v", params, flags)
-	conn2, err = libvirt.NewConnect("qemu+tcp://" + hostname + "/system")
+	conn2, err = libvirt.NewConnect("qemu+tcp://" + man_ip + "/system")
 	if (err != nil) {
 		return err
 	}

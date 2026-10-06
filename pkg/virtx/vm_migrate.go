@@ -39,7 +39,7 @@ func vm_migrate(w http.ResponseWriter, r *http.Request) {
 		vr httpx.Request
 		states []openapi.Vmrunstate
 		host_old_id string
-		host_new inventory.HostInfo
+		host_new inventory.Hostdata
 		proxy_hostid string
 		migration_addr string
 		msg string
@@ -84,14 +84,14 @@ func vm_migrate(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid migration type", http.StatusBadRequest)
 		return
 	}
-	host_new, err = inventory.Get_hostinfo(o.Host)
+	host_new, err = inventory.Get_hostdata(o.Host)
 	if (err != nil) {
-		logger.Log("inventory.Get_host(%s) failed: %s", o.Host, err.Error())
+		logger.Log("inventory.Get_hostdata(%s) failed: %s", o.Host, err.Error())
 		http.Error(w, "failed to get host", http.StatusInternalServerError)
 		return
 	}
 	if (o.MigrationType == openapi.MIGRATION_LIVE) {
-		migration_addr = host_new.Mig_ip
+		migration_addr = host_new.Info.Mig_ip
 	}
 	/* the def lock is released by the migration goroutine, after reg.Move */
 	if (!def_lock_acquire(w, uuid, openapi.OpVmMigrate, states...)) {
@@ -109,7 +109,7 @@ func vm_migrate(w http.ResponseWriter, r *http.Request) {
 	}
 	go func() {
 		defer def_lock_release(uuid)
-		err = hypervisor.Migrate_domain(host_new.Name, migration_addr, o.Host, host_old_id, uuid, o.MigrationType == openapi.MIGRATION_LIVE)
+		err = hypervisor.Migrate_domain(host_new.Man_ip, migration_addr, o.Host, host_old_id, uuid, o.MigrationType == openapi.MIGRATION_LIVE)
 		if (err != nil) {
 			logger.Log("migration of domain %s failed: %s", uuid, err.Error())
 			if (oplog_err == nil) {

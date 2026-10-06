@@ -20,6 +20,7 @@ package serfcomm
 import (
 	"errors"
 	"fmt"
+	"net"
 	"sync"
 	"encoding/binary"
 	"time"
@@ -154,6 +155,8 @@ func handle_member_change(e map[string]any, newstate openapi.Cstate) {
 		hi inventory.HostInfo
 		tags map[string]string
 		name string = e["Event"].(string)
+		addr []byte
+		ok bool
 	)
 	for _, m := range e["Members"].([]any) {
 		tags = make(map[string]string)
@@ -174,7 +177,12 @@ func handle_member_change(e map[string]any, newstate openapi.Cstate) {
 		if (newstate == openapi.CSTATE_ACTIVE) {
 			/* join or update: the tags carry the current HostInfo */
 			hi.Cstate = newstate
-			handle_hostinfo(&hi)
+			addr, ok = m.(map[any]any)["Addr"].([]byte)
+			if (!ok) {
+				logger.Log("handle_member_change: %s: %s: Addr missing", name, hi.Uuid)
+				continue
+			}
+			handle_hostinfo(&hi, net.IP(addr).String())
 			continue
 		}
 		err = inventory.Set_host_state(hi.Uuid, newstate)
@@ -185,8 +193,8 @@ func handle_member_change(e map[string]any, newstate openapi.Cstate) {
 }
 
 /* update the inventory with the HostInfo of a host, and queue its vminfo if needed */
-func handle_hostinfo(hi *inventory.HostInfo) {
-	if (inventory.Update_host(hi)) {
+func handle_hostinfo(hi *inventory.HostInfo, man_ip string) {
+	if (inventory.Update_host(hi, man_ip)) {
 		/*
 		 * queue the host for load_vminfo without blocking the serf events loop:
 		 * if vminfo_ch is full, select takes the default case and the vminfo of
@@ -387,7 +395,7 @@ func read_all_hostinfo() error {
 			logger.Log("read_all_hostinfo: %s: unknown serf status '%s'", m.Name, m.Status)
 			continue
 		}
-		handle_hostinfo(&hi)
+		handle_hostinfo(&hi, m.Addr.String())
 	}
 	return nil
 }
