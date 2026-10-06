@@ -211,7 +211,7 @@ func Do_request(api_server string, method string, path string, arg any) (*http.R
 		err error
 	)
 	addr.Path = path
-	addr.Host = api_server + ":8080"
+	addr.Host = net.JoinHostPort(api_server, "8080")
 	addr.Scheme = "http"
 	err = json.NewEncoder(&buf).Encode(arg)
 	if (err != nil) {
@@ -272,7 +272,7 @@ func Proxy_request(api_server string, w http.ResponseWriter, vr Request) {
 		return
 	}
 	newaddr = *vr.r.URL
-	newaddr.Host = api_server + ":8080"
+	newaddr.Host = net.JoinHostPort(api_server, "8080")
 	if (vr.r.TLS != nil) {
 		newaddr.Scheme = "https"
 	} else {

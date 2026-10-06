@@ -113,13 +113,13 @@ func Proxy_console(api_server string, uuid string, console_type string, w http.R
 		http.Error(w, "loop detected", http.StatusLoopDetected)
 		return
 	}
-	target_conn, err = net.Dial("tcp", api_server + ":8080")
+	target_conn, err = net.Dial("tcp", net.JoinHostPort(api_server, "8080"))
 	if (err != nil) {
 		logger.Log("Proxy_console: dial %s failed: %s", api_server, err.Error())
 		http.Error(w, "failed to reach target host", http.StatusBadGateway)
 		return
 	}
-	req, err = http.NewRequest("GET", "http://" + api_server + ":8080/vms/" + uuid + "/console/" + console_type, nil)
+	req, err = http.NewRequest("GET", "http://" + net.JoinHostPort(api_server, "8080") + "/vms/" + uuid + "/console/" + console_type, nil)
 	if (err != nil) {
 		target_conn.Close()
 		http.Error(w, "failed to build request", http.StatusInternalServerError)

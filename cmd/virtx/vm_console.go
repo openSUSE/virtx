@@ -183,7 +183,7 @@ func console_dial_tunnel(api_server string, uuid string, console_type string) (h
 		reader *bufio.Reader
 		pipe httpx.ConsolePipe
 	)
-	conn, err = net.Dial("tcp", api_server + ":8080")
+	conn, err = net.Dial("tcp", net.JoinHostPort(api_server, "8080"))
 	if (err != nil) {
 		return pipe, err
 	}
@@ -192,7 +192,7 @@ func console_dial_tunnel(api_server string, uuid string, console_type string) (h
 			conn.Close()
 		}
 	}()
-	url := "http://" + api_server + ":8080/vms/" + uuid + "/console/" + console_type
+	url := "http://" + net.JoinHostPort(api_server, "8080") + "/vms/" + uuid + "/console/" + console_type
 	req, err = http.NewRequest("GET", url, nil)
 	if (err != nil) {
 		return pipe, err

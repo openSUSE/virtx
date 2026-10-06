@@ -20,6 +20,7 @@ package hypervisor
 import (
 	"encoding/json"
 	"errors"
+	"strings"
 
 	"libvirt.org/go/libvirt"
 
@@ -27,6 +28,14 @@ import (
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/vmlog"
 )
+
+/* brackets IPv6 addresses for use as a URI host without port */
+func host_uri(addr string) string {
+	if (strings.Contains(addr, ":")) {
+		return "[" + addr + "]"
+	}
+	return addr
+}
 
 func Migrate_domain(man_ip string, migration_addr string, host_uuid string, host_old string, uuid string, live bool) error {
 	var (
@@ -47,9 +56,9 @@ func Migrate_domain(man_ip string, migration_addr string, host_uuid string, host
 	}
 	defer domain.Free()
 	if (migration_addr != "") {
-		params.URI = "tcp://" + migration_addr
+		params.URI = "tcp://" + host_uri(migration_addr)
 	} else {
-		params.URI = "tcp://" + man_ip
+		params.URI = "tcp://" + host_uri(man_ip)
 	}
 	params.URISet = true
 	if (live) {
@@ -82,7 +91,7 @@ func Migrate_domain(man_ip string, migration_addr string, host_uuid string, host
 			libvirt.MIGRATE_UNSAFE
 	}
 	logger.Debug("Migrate_domain: params=%+v flags=%+v", params, flags)
-	conn2, err = libvirt.NewConnect("qemu+tcp://" + man_ip + "/system")
+	conn2, err = libvirt.NewConnect("qemu+tcp://" + host_uri(man_ip) + "/system")
 	if (err != nil) {
 		return err
 	}
