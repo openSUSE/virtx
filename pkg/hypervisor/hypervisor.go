@@ -178,13 +178,8 @@ func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventL
 			logger.Log("lifecycle_cb: failed to get_domain_details for uuid %s", vi.Uuid)
 		} else {
 			vm.VmInfo = vi
-			err = get_domain_stats(d, &vm, nil, &si.imm)
-			if (err != nil) {
-				logger.Log("lifecycle_cb: failed to get_domain_stats for uuid %s", vi.Uuid)
-			} else {
-				si.Vms[vm.Uuid] = vm
-				hv.system_info_ch <- si
-			}
+			si.Vms[vm.Uuid] = vm
+			hv.system_info_ch <- si
 		}
 	} else if (vi.Runstate != openapi.RUNSTATE_NONE) {
 		logger.Debug("[VmEvent] %s: %v state: %d", vi.Uuid, e, vi.Runstate)
