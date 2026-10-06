@@ -34,7 +34,7 @@ import (
 /* Call To_xml and parse the result; fail fast on any error. */
 func xml_to_domain(t *testing.T, vm *openapi.Vmdef, uuid string) libvirtxml.Domain {
 	t.Helper()
-	xmlstr, err := To_xml(vm, uuid)
+	xmlstr, err := To_xml(vm, uuid, "")
 	if (err != nil) {
 		t.Fatalf("To_xml: %v", err)
 	}
@@ -79,7 +79,7 @@ func wrap_domain(t *testing.T, inner string) string {
 func xml_to_vmdef(t *testing.T, xmlstr string) openapi.Vmdef {
 	t.Helper()
 	var vm openapi.Vmdef
-	err := From_xml(&vm, xmlstr)
+	err := From_xml(&vm, xmlstr, nil)
 	if (err != nil) {
 		t.Fatalf("From_xml: %v", err)
 	}
@@ -417,13 +417,13 @@ func Test_to_xml_custom_fields(t *testing.T) {
 		{Name: "CID", Value: "1217"},
 		{Name: "ENV", Value: "prod"},
 	}
-	xmlstr, err := To_xml(&vm, "test-uuid-13")
+	xmlstr, err := To_xml(&vm, "test-uuid-13", "")
 	if (err != nil) {
 		t.Fatalf("To_xml: %v", err)
 	}
 	/* parse metadata back out via From_xml to confirm the round-trip */
 	var vm2 openapi.Vmdef
-	err = From_xml(&vm2, xmlstr)
+	err = From_xml(&vm2, xmlstr, nil)
 	if (err != nil) {
 		t.Fatalf("From_xml: %v", err)
 	}
@@ -445,12 +445,12 @@ func Test_to_xml_custom_fields(t *testing.T) {
 func Test_to_xml_osdisk_source(t *testing.T) {
 	vm := xml_base_vmdef()
 	vm.Osdisk.Source = "/vms/gold/sles15.qcow2"
-	xmlstr, err := To_xml(&vm, "test-uuid-14")
+	xmlstr, err := To_xml(&vm, "test-uuid-14", "")
 	if (err != nil) {
 		t.Fatalf("To_xml: %v", err)
 	}
 	var vm2 openapi.Vmdef
-	err = From_xml(&vm2, xmlstr)
+	err = From_xml(&vm2, xmlstr, nil)
 	if (err != nil) {
 		t.Fatalf("From_xml: %v", err)
 	}
@@ -467,7 +467,7 @@ func Test_to_xml_osdisk_source(t *testing.T) {
 func Test_to_xml_invalid_arch(t *testing.T) {
 	vm := xml_base_vmdef()
 	vm.Cpudef.Arch = "unsupported-arch"
-	_, err := To_xml(&vm, "test-uuid-14")
+	_, err := To_xml(&vm, "test-uuid-14", "")
 	if (err == nil) {
 		t.Error("expected error for unsupported arch")
 	}
@@ -787,7 +787,7 @@ func Test_from_xml_missing_cpu_topology(t *testing.T) {
     </disk>
   </devices>`
 	var vm openapi.Vmdef
-	err := From_xml(&vm, wrap_domain(t, inner))
+	err := From_xml(&vm, wrap_domain(t, inner), nil)
 	if (err == nil) {
 		t.Error("expected error for missing CPU topology")
 	}
@@ -807,7 +807,7 @@ func Test_from_xml_missing_memory(t *testing.T) {
     </disk>
   </devices>`
 	var vm openapi.Vmdef
-	err := From_xml(&vm, wrap_domain(t, inner))
+	err := From_xml(&vm, wrap_domain(t, inner), nil)
 	if (err == nil) {
 		t.Error("expected error for missing memory element")
 	}
@@ -820,7 +820,7 @@ func Test_from_xml_missing_devices(t *testing.T) {
   <cpu mode='host-passthrough'><topology sockets='1' cores='1' threads='1'/></cpu>
   <os><type machine='q35'>hvm</type><firmware>efi</firmware></os>`
 	var vm openapi.Vmdef
-	err := From_xml(&vm, wrap_domain(t, inner))
+	err := From_xml(&vm, wrap_domain(t, inner), nil)
 	if (err == nil) {
 		t.Error("expected error for missing devices element")
 	}
@@ -840,7 +840,7 @@ func Test_from_xml_missing_disk_alias(t *testing.T) {
     </disk>
   </devices>`
 	var vm openapi.Vmdef
-	err := From_xml(&vm, wrap_domain(t, inner))
+	err := From_xml(&vm, wrap_domain(t, inner), nil)
 	if (err == nil) {
 		t.Error("expected error for disk without alias")
 	}
@@ -861,7 +861,7 @@ func Test_from_xml_invalid_disk_alias(t *testing.T) {
     </disk>
   </devices>`
 	var vm openapi.Vmdef
-	err := From_xml(&vm, wrap_domain(t, inner))
+	err := From_xml(&vm, wrap_domain(t, inner), nil)
 	if (err == nil) {
 		t.Error("expected error for alias with too few underscore-separated fields")
 	}
@@ -1126,7 +1126,7 @@ func Test_from_xml_missing_os(t *testing.T) {
     </disk>
   </devices>`
 	var vm openapi.Vmdef
-	err := From_xml(&vm, wrap_domain(t, inner))
+	err := From_xml(&vm, wrap_domain(t, inner), nil)
 	if (err == nil) {
 		t.Error("expected error for missing OS element")
 	}
@@ -1141,7 +1141,7 @@ func Test_from_xml_missing_metadata(t *testing.T) {
 	 */
 	xmlstr := fmt.Sprintf(`<domain type='kvm'>%s</domain>`, base_inner_xml)
 	var vm openapi.Vmdef
-	err := From_xml(&vm, xmlstr)
+	err := From_xml(&vm, xmlstr, nil)
 	if (err == nil) {
 		t.Error("expected error for missing metadata element")
 	}

@@ -109,12 +109,19 @@ func (firmware *FirmwareType) Parse(s string) error {
 	return errors.New("could not parse firmware type")
 }
 
-func (firmware FirmwareType) Machine() string {
+/* machine type for the firmware: the alias if version is "", else the versioned type */
+func (firmware FirmwareType) Machine(version string) string {
 	switch (firmware) {
 	case FIRMWARE_BIOS:
-		return "pc"
+		if (version == "") {
+			return "pc"
+		}
+		return "pc-i440fx-" + version
 	case FIRMWARE_UEFI:
-		return "q35"
+		if (version == "") {
+			return "q35"
+		}
+		return "pc-q35-" + version
 	}
 	return ""
 }

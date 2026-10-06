@@ -524,8 +524,9 @@ func vmdef_lease(disk *openapi.Disk) libvirtxml.DomainLease {
 }
 /*
  * vmdef_validate needs to be called before this!
+ * machine_version is the machine type version (e.g. "8.2"), "" to use the alias.
  */
-func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
+func To_xml(vmdef *openapi.Vmdef, uuid string, machine_version string) (string, error) {
 	var (
 		xmlstring string
 		err error
@@ -629,7 +630,7 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 	domain_os := libvirtxml.DomainOS{
 		Type: &libvirtxml.DomainOSType{
 			Arch: vmdef.Cpudef.Arch,
-			Machine: vmdef.Firmware.Machine(), /* always use machine "pc" for BIOS and "q35" for UEFI */
+			Machine: vmdef.Firmware.Machine(machine_version), /* "pc" family for BIOS and "q35" for UEFI */
 			Type: "hvm",
 		},
 		Firmware: vmdef.Firmware.String(),
@@ -895,7 +896,8 @@ func To_xml(vmdef *openapi.Vmdef, uuid string) (string, error) {
 	return xmlstring, err
 }
 
-func From_xml(vmdef *openapi.Vmdef, xmlstr string) error {
+/* machine_version, if not nil, gets the machine type version (e.g. "8.2", "" if unversioned) */
+func From_xml(vmdef *openapi.Vmdef, xmlstr string, machine_version *string) error {
 	var (
 		err error
 		domain libvirtxml.Domain
@@ -905,6 +907,15 @@ func From_xml(vmdef *openapi.Vmdef, xmlstr string) error {
 	err = domain.Unmarshal(xmlstr)
 	if (err != nil) {
 		return err
+	}
+	if (machine_version != nil && domain.OS != nil && domain.OS.Type != nil) {
+		for _, prefix := range []string{ "pc-i440fx-", "pc-q35-" } {
+			version, found := strings.CutPrefix(domain.OS.Type.Machine, prefix)
+			if (found) {
+				*machine_version = version
+				break
+			}
+		}
 	}
 	vmdef.Name = domain.Title
 	if (domain.CPU == nil || domain.CPU.Topology == nil) {

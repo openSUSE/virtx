@@ -64,7 +64,7 @@ func vm_get(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not get VM", http.StatusFailedDependency)
 		return
 	}
-	err = vmdef.From_xml(&vm.Def, xml)
+	err = vmdef.From_xml(&vm.Def, xml, nil)
 	if (err != nil) {
 		logger.Log("vmdef.From_xml failed: %s", err.Error())
 		http.Error(w, "invalid VM data", http.StatusInternalServerError)

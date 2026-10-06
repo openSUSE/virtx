@@ -71,7 +71,7 @@ func vm_delete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not Get VM XML", http.StatusFailedDependency)
 		return
 	}
-	err = vmdef.From_xml(&vm, xml)
+	err = vmdef.From_xml(&vm, xml, nil)
 	if (err != nil) {
 		logger.Log("vmdef.From_xml failed: %s", err.Error())
 		http.Error(w, "invalid VM data", http.StatusInternalServerError)

@@ -104,7 +104,7 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "storage creation failed", http.StatusInsufficientStorage)
 		return
 	}
-	xml, err = vmdef.To_xml(&o.Vmdef, uuid)
+	xml, err = vmdef.To_xml(&o.Vmdef, uuid, "")
 	if (err != nil) {
 		logger.Log("vmdef.To_xml failed: %s", err.Error())
 		storage.Rollback(created, uuid)

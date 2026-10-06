@@ -39,6 +39,7 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		o openapi.VmUpdateOptions
 		old openapi.Vmdef
 		xml, uuid string
+		machine_version string
 		vminfo inventory.VmInfo
 		vr httpx.Request
 		created storage.CreatedResources
@@ -87,7 +88,7 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not get VM definition", http.StatusFailedDependency)
 		return
 	}
-	err = vmdef.From_xml(&old, xml)
+	err = vmdef.From_xml(&old, xml, &machine_version)
 	if (err != nil) {
 		logger.Log("vmdef_from_xml failed: %s", err.Error())
 		http.Error(w, "invalid VM data", http.StatusInternalServerError)
@@ -125,7 +126,7 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "storage update failed", http.StatusInsufficientStorage)
 		return
 	}
-	xml, err = vmdef.To_xml(&o.Vmdef, uuid)
+	xml, err = vmdef.To_xml(&o.Vmdef, uuid, machine_version)
 	if (err != nil) {
 		logger.Log("vmdef_to_xml failed: %s", err.Error())
 		if (oplog_err == nil) {

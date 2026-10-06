@@ -151,7 +151,7 @@ func vm_register_reg(host_uuid string, uuid string) error {
 	if (err != nil) {
 		return err
 	}
-	err = vmdef.From_xml(&vm, xml)
+	err = vmdef.From_xml(&vm, xml, nil)
 	if (err != nil) {
 		return err
 	}
@@ -178,7 +178,7 @@ func vm_register_libvirt(host_uuid string, uuid string) (string, error) {
 	if (err != nil) {
 		return "", err
 	}
-	err = vmdef.From_xml(&vm, xml)
+	err = vmdef.From_xml(&vm, xml, nil)
 	if (err != nil) {
 		return "", err
 	}
