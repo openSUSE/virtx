@@ -68,7 +68,7 @@ func send_user_event(label string, payload []byte) error {
 	return serf.c.UserEvent(label, payload, false)
 }
 
-func send_vm_info(vminfo *inventory.VmInfo) error {
+func send_VI(vminfo *inventory.VmInfo) error {
 	serf.m.Lock()
 	defer serf.m.Unlock()
 	var (
@@ -79,8 +79,23 @@ func send_vm_info(vminfo *inventory.VmInfo) error {
 	if (err != nil) {
 		return err
 	}
-	logger.Debug("send_vm_info payload len=%d\n", eventsize)
+	logger.Debug("send_VI payload len=%d\n", eventsize)
 	return send_user_event(LABEL_VM_INFO, serf.enc_buffer[:eventsize])
+}
+
+func send_VE(e *inventory.VmEvent) error {
+	serf.m.Lock()
+	defer serf.m.Unlock()
+	var (
+		eventsize int
+		err error
+	)
+	eventsize, err = sbinary.Encode(serf.enc_buffer[:], binary.LittleEndian, e)
+	if (err != nil) {
+		return err
+	}
+	logger.Debug("send_VE payload len=%d\n", eventsize)
+	return send_user_event(LABEL_VM_EVENT, serf.enc_buffer[:eventsize])
 }
 
 /* publish the HostInfo as serf tags */
@@ -99,21 +114,6 @@ func update_host_tags(host_info *inventory.HostInfo) error {
 		return err
 	}
 	return serf.c.UpdateTags(tags, []string{})
-}
-
-func send_vm_event(e *inventory.VmEvent) error {
-	serf.m.Lock()
-	defer serf.m.Unlock()
-	var (
-		eventsize int
-		err error
-	)
-	eventsize, err = sbinary.Encode(serf.enc_buffer[:], binary.LittleEndian, e)
-	if (err != nil) {
-		return err
-	}
-	logger.Debug("send_vm_event payload len=%d\n", eventsize)
-	return send_user_event(LABEL_VM_EVENT, serf.enc_buffer[:eventsize])
 }
 
 func recv_serf_events() {
@@ -262,9 +262,9 @@ func send_system_info(ch <-chan hypervisor.SystemInfo) {
 		} else {
 			/* this is a one-shot VI event, currently only for DEFINED */
 			for _, vm := range si.Vms {
-				err = send_vm_info(&vm.VmInfo)
+				err = send_VI(&vm.VmInfo)
 				if (err != nil) {
-					logger.Log("send_vm_info: %s", err.Error())
+					logger.Log("send_VI: %s", err.Error())
 				}
 			}
 		}
@@ -279,7 +279,9 @@ func send_vm_events(eventCh <-chan inventory.VmEvent) {
 			/* do nothing with the vm events if we are not connected */
 			continue
 		}
-		if err := send_vm_event(&e); err != nil {
+		var err error
+		err = send_VE(&e)
+		if (err != nil) {
 			logger.Log("%s", err.Error())
 		}
 	}
