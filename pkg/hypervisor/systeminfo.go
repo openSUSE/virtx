@@ -255,10 +255,11 @@ func system_info_get() (SystemInfo, error) {
 	/* 1. set the general host information */
 	si.Host.Uuid = caps.Host.UUID
 	si.Host.Mig_ip = si.imm.migration_addr
-	si.Host.Name, err = hv.conn.GetHostname()
+	si.Host.Name, err = os.Hostname()
 	if (err != nil) {
 		goto out
 	}
+	si.Host.Name, _, _ = strings.Cut(si.Host.Name, ".")
 	si.Host.Cpudef.Arch = caps.Host.CPU.Arch
 	si.Host.Cpudef.Vendor = caps.Host.CPU.Vendor
 	si.Host.Cpudef.Model = caps.Host.CPU.Model
