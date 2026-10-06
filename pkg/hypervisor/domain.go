@@ -51,56 +51,61 @@ func get_domain_event(d *libvirt.Domain, ve *inventory.VmEvent) error {
 		return err
 	}
 	logger.Debug("get_domain_event: state %d, reason %d", state, reason)
+	ve.Runstate = domain_runstate(state, reason)
+	ve.Host = machine.Uuid()
+	return nil
+}
+
+/* map the libvirt state and reason of a domain to a runstate */
+func domain_runstate(state libvirt.DomainState, reason int) openapi.Vmrunstate {
 	/*
 	 * We try to map states correctly, even though some will not be reachable yet,
 	 * as long as we do not have HA enabled
 	 */
 	switch (state) {
-	//case libvirt.DOMAIN_NOSTATE: /* leave ve.Runstate RUNSTATE_NONE */
+	//case libvirt.DOMAIN_NOSTATE: /* RUNSTATE_NONE */
 	case libvirt.DOMAIN_RUNNING:
-		ve.Runstate = openapi.RUNSTATE_RUNNING
+		return openapi.RUNSTATE_RUNNING
 	case libvirt.DOMAIN_BLOCKED: /* should be Xen only IIUC */
 		logger.Log("XXX DOMAIN_BLOCKED encountered XXX")
-		ve.Runstate = openapi.RUNSTATE_PAUSED
+		return openapi.RUNSTATE_PAUSED
 	case libvirt.DOMAIN_PAUSED:
 		switch (reason) {
 		case int(libvirt.DOMAIN_PAUSED_MIGRATION): /* paused for offline migration */
-			ve.Runstate = openapi.RUNSTATE_MIGRATING
+			return openapi.RUNSTATE_MIGRATING
 		case int(libvirt.DOMAIN_PAUSED_SHUTTING_DOWN):
-			ve.Runstate = openapi.RUNSTATE_TERMINATING
+			return openapi.RUNSTATE_TERMINATING
 		case int(libvirt.DOMAIN_PAUSED_STARTING_UP):
-			ve.Runstate = openapi.RUNSTATE_STARTUP
+			return openapi.RUNSTATE_STARTUP
 		case int(libvirt.DOMAIN_PAUSED_WATCHDOG): fallthrough /* HA=off */
 		case int(libvirt.DOMAIN_PAUSED_CRASHED): fallthrough  /* HA=off */
 		default:
-			ve.Runstate = openapi.RUNSTATE_PAUSED
+			return openapi.RUNSTATE_PAUSED
 		}
 	case libvirt.DOMAIN_SHUTDOWN:
-		ve.Runstate = openapi.RUNSTATE_TERMINATING
+		return openapi.RUNSTATE_TERMINATING
 	case libvirt.DOMAIN_SHUTOFF:
 		switch (reason) {
 		case int(libvirt.DOMAIN_SHUTOFF_FAILED): fallthrough
 		case int(libvirt.DOMAIN_SHUTOFF_DAEMON): fallthrough
 		case int(libvirt.DOMAIN_SHUTOFF_CRASHED):
 			/* If HA=on (unimplemented) on HA we will want to restart */
-			ve.Runstate = openapi.RUNSTATE_CRASHED
+			return openapi.RUNSTATE_CRASHED
 		case int(libvirt.DOMAIN_SHUTOFF_MIGRATED):
 			/* XXX I started to see this in my migration tests since 16.1 XXX */
 			logger.Log("XXX DOMAIN_SHUTOFF_MIGRATED encountered, started to see since 16.1 XXX")
-			ve.Runstate = openapi.RUNSTATE_MIGRATING
+			return openapi.RUNSTATE_MIGRATING
 		default:
-			ve.Runstate = openapi.RUNSTATE_POWEROFF
+			return openapi.RUNSTATE_POWEROFF
 		}
 	case libvirt.DOMAIN_CRASHED:
 		/* If HA=on (unimplemented), on HA we will want to configure on_crash="restart", so we don't even see this */
-		ve.Runstate = openapi.RUNSTATE_PANIC
+		return openapi.RUNSTATE_PANIC
 	case libvirt.DOMAIN_PMSUSPENDED:
-		ve.Runstate = openapi.RUNSTATE_RUNNING
-	default:
-		logger.Log("Unhandled state %d, reason %d", state, reason)
+		return openapi.RUNSTATE_RUNNING
 	}
-	ve.Host = machine.Uuid()
-	return nil
+	logger.Log("Unhandled state %d, reason %d", state, reason)
+	return openapi.RUNSTATE_NONE
 }
 /*
  * get_domain_details fills the inventory.VmDetails read from the domain metadata: the
