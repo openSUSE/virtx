@@ -79,7 +79,7 @@ func send_vm_info(vminfo *inventory.VmInfo) error {
 	if (err != nil) {
 		return err
 	}
-	logger.Debug("send_vm_data payload len=%d\n", eventsize)
+	logger.Debug("send_vm_info payload len=%d\n", eventsize)
 	return send_user_event(LABEL_VM_INFO, serf.enc_buffer[:eventsize])
 }
 
