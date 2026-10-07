@@ -184,23 +184,6 @@ func Test_firmware_type_parse(t *testing.T) {
 	}
 }
 
-func Test_firmware_type_machine(t *testing.T) {
-	cases := []struct {
-		fw FirmwareType
-		want string
-	}{
-		{FIRMWARE_BIOS, "pc"},
-		{FIRMWARE_UEFI, "q35"},
-		{FirmwareType(99), ""},
-	}
-	for _, tc := range cases {
-		got := tc.fw.Machine("")
-		if (got != tc.want) {
-			t.Errorf("FirmwareType(%d).Machine(\"\") = %q, want %q", tc.fw, got, tc.want)
-		}
-	}
-}
-
 /* *** DiskBus *** */
 
 func Test_disk_bus_string(t *testing.T) {

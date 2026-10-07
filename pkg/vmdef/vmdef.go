@@ -522,6 +522,41 @@ func vmdef_lease(disk *openapi.Disk) libvirtxml.DomainLease {
 		},
 	}
 }
+
+/* machine type for arch and firmware: the alias if version is "", else the versioned type */
+func vmdef_machine(arch string, firmware openapi.FirmwareType, version string) string {
+	switch (arch) {
+	case "x86_64":
+		return vmdef_machine_x86(firmware, version)
+	case "aarch64":
+		return vmdef_machine_arm(version)
+	}
+	return ""
+}
+
+func vmdef_machine_x86(firmware openapi.FirmwareType, version string) string {
+	switch (firmware) {
+	case openapi.FIRMWARE_BIOS:
+		if (version == "") {
+			return "pc"
+		}
+		return "pc-i440fx-" + version
+	case openapi.FIRMWARE_UEFI:
+		if (version == "") {
+			return "q35"
+		}
+		return "pc-q35-" + version
+	}
+	return ""
+}
+
+func vmdef_machine_arm(version string) string {
+	if (version == "") {
+		return "virt"
+	}
+	return "virt-" + version
+}
+
 /*
  * vmdef_validate needs to be called before this!
  * machine_version is the machine type version (e.g. "8.2"), "" to use the alias.
@@ -630,7 +665,7 @@ func To_xml(vmdef *openapi.Vmdef, uuid string, machine_version string) (string, 
 	domain_os := libvirtxml.DomainOS{
 		Type: &libvirtxml.DomainOSType{
 			Arch: vmdef.Cpudef.Arch,
-			Machine: vmdef.Firmware.Machine(machine_version), /* "pc" family for BIOS and "q35" for UEFI */
+			Machine: vmdef_machine(vmdef.Cpudef.Arch, vmdef.Firmware, machine_version),
 			Type: "hvm",
 		},
 		Firmware: vmdef.Firmware.String(),
@@ -917,7 +952,7 @@ func From_xml(vmdef *openapi.Vmdef, xmlstr string, machine_version *string) erro
 		return err
 	}
 	if (machine_version != nil && domain.OS != nil && domain.OS.Type != nil) {
-		for _, prefix := range []string{ "pc-i440fx-", "pc-q35-" } {
+		for _, prefix := range []string{ "pc-i440fx-", "pc-q35-", "virt-" } {
 			version, found := strings.CutPrefix(domain.OS.Type.Machine, prefix)
 			if (found) {
 				*machine_version = version

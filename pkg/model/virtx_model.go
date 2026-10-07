@@ -109,23 +109,6 @@ func (firmware *FirmwareType) Parse(s string) error {
 	return errors.New("could not parse firmware type")
 }
 
-/* machine type for the firmware: the alias if version is "", else the versioned type */
-func (firmware FirmwareType) Machine(version string) string {
-	switch (firmware) {
-	case FIRMWARE_BIOS:
-		if (version == "") {
-			return "pc"
-		}
-		return "pc-i440fx-" + version
-	case FIRMWARE_UEFI:
-		if (version == "") {
-			return "q35"
-		}
-		return "pc-q35-" + version
-	}
-	return ""
-}
-
 func (bus *DiskBus) Parse(ctrl_type string, ctrl_model string) error {
 	switch (ctrl_type) {
 	case "virtio":
