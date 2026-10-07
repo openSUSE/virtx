@@ -83,6 +83,12 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 		http_proxy_request(o.Host, w, vr)
 		return
 	}
+	machine_version, err := reg.Load_machine_version()
+	if (err != nil) {
+		logger.Log("vm_create: reg.Load_machine_version failed: %s", err.Error())
+		http.Error(w, "Failed to load machine version", http.StatusInternalServerError)
+		return
+	}
 	uuid = New_uuid()
 	if (uuid == "") {
 		http.Error(w, "failed", http.StatusInternalServerError)
@@ -104,7 +110,7 @@ func vm_create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "storage creation failed", http.StatusInsufficientStorage)
 		return
 	}
-	xml, err = vmdef.To_xml(&o.Vmdef, uuid, "")
+	xml, err = vmdef.To_xml(&o.Vmdef, uuid, machine_version)
 	if (err != nil) {
 		logger.Log("vmdef.To_xml failed: %s", err.Error())
 		storage.Rollback(created, uuid)
