@@ -634,6 +634,14 @@ func To_xml(vmdef *openapi.Vmdef, uuid string, machine_version string) (string, 
 			Type: "hvm",
 		},
 		Firmware: vmdef.Firmware.String(),
+		Loader: func() *libvirtxml.DomainLoader {
+			if (vmdef.Firmware == openapi.FIRMWARE_UEFI) {
+				return &libvirtxml.DomainLoader{
+					Stateless: "yes", /* no NVRAM file to worry about */
+				}
+			}
+			return nil
+		}(),
 		BIOS: func() *libvirtxml.DomainBIOS {
 			if (vmdef.Firmware == openapi.FIRMWARE_BIOS) {
 				var t int = -1
