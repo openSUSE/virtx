@@ -218,7 +218,7 @@ func vmdef_validate_cpu(cpu *openapi.Cpudef) error {
 		return errors.New("no cpu arch provided")
 	case "aarch64":
 		if (cpu.Model != "host-passthrough") {
-			return errors.New("aarch64 only allows cpu host-passthrough")
+			return errors.New("cpu model not supported on this arch")
 		}
 	case "x86_64":
 		if (cpu.Model != "host-passthrough" && !cpumodel_suffix.MatchString(cpu.Model)) {
@@ -280,6 +280,9 @@ func Validate(vmdef *openapi.Vmdef) error {
 		if (err != nil) {
 			return err
 		}
+		if (vmdef.Cpudef.Arch == "aarch64" && disk.Bus != openapi.BUS_VIRTIO_BLK && disk.Bus != openapi.BUS_VIRTIO_SCSI) {
+			return errors.New("bus not supported for this arch")
+		}
 	}
 	/* *** NETWORKS *** */
 	type NetKey struct {
@@ -302,6 +305,9 @@ func Validate(vmdef *openapi.Vmdef) error {
 		}
 		if (!net.Model.IsValid()) {
 			return errors.New("invalid Net model")
+		}
+		if (vmdef.Cpudef.Arch == "aarch64" && net.Model != openapi.NET_MODEL_VIRTIO) {
+			return errors.New("net model not supported for this arch")
 		}
 		if (net.Vlanid < 0 || net.Vlanid == 1 || net.Vlanid > 4094) {
 			return errors.New("invalid Vlanid")
