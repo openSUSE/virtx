@@ -40,6 +40,7 @@ import (
 	"suse.com/virtx/pkg/reg"
 	"suse.com/virtx/pkg/ts"
 	"suse.com/virtx/pkg/machine"
+	"suse.com/virtx/pkg/vmdef"
 
 	. "suse.com/virtx/pkg/constants"
 )
@@ -115,6 +116,8 @@ func system_info_init(si *SystemInfo) {
 	var (
 		uuid string = si.imm.caps.Host.UUID
 		arch string = si.imm.caps.Host.CPU.Arch
+		version string
+		machine_types []string
 		domcaps libvirtxml.DomainCaps
 		models []string
 		err error
@@ -125,13 +128,33 @@ func system_info_init(si *SystemInfo) {
 	start = time.Now()
 	check_reg(uuid, si)
 	logger.Debug("system_info_init: check_reg: %d vms in %s", len(si.Vms), time.Since(start))
-	domcaps, err = get_domcaps(arch, "")
+	version, err = reg.Load_machine_version()
 	if (err != nil) {
-		logger.Fatal("system_info_init: failed to get_domcaps: %s", err.Error())
+		logger.Fatal("system_info_init: failed to Load_machine_version: %s", err.Error())
 	}
-	models, err = get_cpumodels(&domcaps)
-	if (err != nil) {
-		logger.Fatal("system_info_init: failed to get cpu models: %s", err.Error())
+	if (version == "") {
+		logger.Log("system_info_init: no %s configured", REG_DIR + "machine_version")
+		machine_types = []string{ "" } /* the default machine */
+	} else {
+		for _, firmware := range openapi.AllowedFirmwareTypeEnumValues {
+			machine_type := vmdef.Machine(arch, firmware, version)
+			if (machine_type != "") { /* firmware is invalid for the arch */
+				machine_types = append(machine_types, machine_type)
+			}
+		}
+	}
+	for i, machine_type := range machine_types {
+		domcaps, err = get_domcaps(arch, machine_type)
+		if (err != nil) {
+			logger.Fatal("system_info_init: machine '%s' not supported by kvm: %s", machine_type, err.Error())
+		}
+		if (i > 0) {
+			continue /* usable cpu models do not depend on firmware, so we can get_cpumodels once */
+		}
+		models, err = get_cpumodels(&domcaps)
+		if (err != nil) {
+			logger.Fatal("system_info_init: failed to get cpu models: %s", err.Error())
+		}
 	}
 	err = reg.Save_cpumodels(uuid, models)
 	if (err != nil) {
