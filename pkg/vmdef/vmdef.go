@@ -707,14 +707,20 @@ func To_xml(vmdef *openapi.Vmdef, uuid string, machine_version string) (string, 
 			},
 		},
 	}
-	domain_pm := libvirtxml.DomainPM{
-		SuspendToMem: &libvirtxml.DomainPMPolicy{
-			Enabled: "no",
-		},
-		SuspendToDisk: &libvirtxml.DomainPMPolicy{
-			Enabled: "no",
-		},
-	}
+	domain_pm := func() *libvirtxml.DomainPM {
+		if (vmdef.Cpudef.Arch == "x86_64") {
+			return &libvirtxml.DomainPM{
+				SuspendToMem: &libvirtxml.DomainPMPolicy{
+					Enabled: "no",
+				},
+				SuspendToDisk: &libvirtxml.DomainPMPolicy{
+					Enabled: "no",
+				},
+			}
+		} else {
+			return nil
+		}
+	}()
 
 	/* *** DISKS, CONTROLLERS AND INTERFACES *** */
 
@@ -936,7 +942,7 @@ func To_xml(vmdef *openapi.Vmdef, uuid string, machine_version string) (string, 
 		Clock: &domain_clock,
 		OnCrash: "preserve", /* no action without HA, the VM stays in RUNSTATE_PANIC */
 		//OnLockFailure: "pause", /* XXX libvirt-go bug: not implemented XXX */
-		PM: &domain_pm,
+		PM: domain_pm,
 		Devices: &domain_devices,
 	}
 	xmlstring, err = domain.Marshal()
