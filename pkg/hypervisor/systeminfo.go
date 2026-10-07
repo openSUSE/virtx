@@ -115,6 +115,7 @@ func system_info_init(si *SystemInfo) {
 	var (
 		uuid string = si.imm.caps.Host.UUID
 		arch string = si.imm.caps.Host.CPU.Arch
+		domcaps libvirtxml.DomainCaps
 		models []string
 		err error
 		start time.Time
@@ -124,9 +125,13 @@ func system_info_init(si *SystemInfo) {
 	start = time.Now()
 	check_reg(uuid, si)
 	logger.Debug("system_info_init: check_reg: %d vms in %s", len(si.Vms), time.Since(start))
-	models, err = Get_cpumodels(arch)
+	domcaps, err = get_domcaps(arch, "")
 	if (err != nil) {
-		logger.Fatal("system_info_init: failed to Get_cpumodels: %s", err.Error())
+		logger.Fatal("system_info_init: failed to get_domcaps: %s", err.Error())
+	}
+	models, err = get_cpumodels(&domcaps)
+	if (err != nil) {
+		logger.Fatal("system_info_init: failed to get cpu models: %s", err.Error())
 	}
 	err = reg.Save_cpumodels(uuid, models)
 	if (err != nil) {

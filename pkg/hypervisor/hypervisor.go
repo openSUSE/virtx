@@ -702,23 +702,26 @@ func Get_hoststats() (openapi.Hoststats) {
 
 var cpumodel_suffix *regexp.Regexp = regexp.MustCompile(CPUMODEL_VER)
 
-func Get_cpumodels(arch string) ([]string, error) {
+/* kvm domain capabilities for arch and machine_type ("" for the default machine) */
+func get_domcaps(arch string, machine_type string) (libvirtxml.DomainCaps, error) {
 	hv.m.RLock()
 	defer hv.m.RUnlock()
 	var (
 		xml_data string
 		caps libvirtxml.DomainCaps
-		models []string
 		err error
 	)
-	xml_data, err = hv.conn.GetDomainCapabilities("", arch, "", "kvm", 0)
+	xml_data, err = hv.conn.GetDomainCapabilities("", arch, machine_type, "kvm", 0)
 	if (err != nil) {
-		return models, err
+		return caps, err
 	}
 	err = caps.Unmarshal(xml_data)
-	if (err != nil) {
-		return models, err
-	}
+	return caps, err
+}
+
+/* usable versioned custom cpu models in the domain capabilities */
+func get_cpumodels(caps *libvirtxml.DomainCaps) ([]string, error) {
+	var models []string
 	if (caps.CPU == nil) {
 		return models, errors.New("no CPU section in domain capabilities")
 	}
