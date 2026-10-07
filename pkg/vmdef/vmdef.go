@@ -230,6 +230,21 @@ func vmdef_validate_cpu(cpu *openapi.Cpudef) error {
 	return nil
 }
 
+func vmdef_validate_firmware(arch string, firmware openapi.FirmwareType) error {
+	switch (arch) {
+	case "x86_64":
+		if (!firmware.IsValid()) {
+			return errors.New("invalid firmware type")
+		}
+		return nil
+	default:
+		if (firmware != openapi.FIRMWARE_UEFI) {
+			return errors.New("invalid firmware for this arch")
+		}
+		return nil
+	}
+}
+
 /* validate before generating the xml */
 func Validate(vmdef *openapi.Vmdef) error {
 	var err error
@@ -240,6 +255,10 @@ func Validate(vmdef *openapi.Vmdef) error {
 		return errors.New("invalid memory size")
 	}
 	err = vmdef_validate_cpu(&vmdef.Cpudef)
+	if (err != nil) {
+		return err
+	}
+	err = vmdef_validate_firmware(vmdef.Cpudef.Arch, vmdef.Firmware)
 	if (err != nil) {
 		return err
 	}
