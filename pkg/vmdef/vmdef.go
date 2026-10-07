@@ -699,14 +699,20 @@ func To_xml(vmdef *openapi.Vmdef, uuid string, machine_version string) (string, 
 		},
 		*/
 	}
-	domain_clock := libvirtxml.DomainClock{
-		Timer: []libvirtxml.DomainTimer{
-			{
-				Name: "kvmclock",
-				Present: "yes",
-			},
-		},
-	}
+	domain_clock := func() *libvirtxml.DomainClock {
+		if (vmdef.Cpudef.Arch == "x86_64") {
+			return &libvirtxml.DomainClock{
+				Timer: []libvirtxml.DomainTimer{
+					{
+						Name: "kvmclock",
+						Present: "yes",
+					},
+				},
+			}
+		} else {
+			return nil
+		}
+	}()
 	domain_pm := func() *libvirtxml.DomainPM {
 		if (vmdef.Cpudef.Arch == "x86_64") {
 			return &libvirtxml.DomainPM{
@@ -939,7 +945,7 @@ func To_xml(vmdef *openapi.Vmdef, uuid string, machine_version string) (string, 
 		OS: &domain_os,
 		Features: domain_features,
 		CPU: &domain_cpu,
-		Clock: &domain_clock,
+		Clock: domain_clock,
 		OnCrash: "preserve", /* no action without HA, the VM stays in RUNSTATE_PANIC */
 		//OnLockFailure: "pause", /* XXX libvirt-go bug: not implemented XXX */
 		PM: domain_pm,
