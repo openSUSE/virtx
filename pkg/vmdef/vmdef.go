@@ -549,7 +549,7 @@ func vmdef_lease(disk *openapi.Disk) libvirtxml.DomainLease {
 }
 
 /* machine type for arch and firmware: the alias if version is "", else the versioned type */
-func vmdef_machine(arch string, firmware openapi.FirmwareType, version string) string {
+func Machine(arch string, firmware openapi.FirmwareType, version string) string {
 	switch (arch) {
 	case "x86_64":
 		return vmdef_machine_x86(firmware, version)
@@ -694,7 +694,7 @@ func To_xml(vmdef *openapi.Vmdef, uuid string, machine_version string) (string, 
 	domain_os := libvirtxml.DomainOS{
 		Type: &libvirtxml.DomainOSType{
 			Arch: vmdef.Cpudef.Arch,
-			Machine: vmdef_machine(vmdef.Cpudef.Arch, vmdef.Firmware, machine_version),
+			Machine: Machine(vmdef.Cpudef.Arch, vmdef.Firmware, machine_version),
 			Type: "hvm",
 		},
 		Firmware: vmdef.Firmware.String(),
