@@ -554,7 +554,7 @@ func Machine(arch string, firmware openapi.FirmwareType, version string) string 
 	case "x86_64":
 		return vmdef_machine_x86(firmware, version)
 	case "aarch64":
-		return vmdef_machine_arm(version)
+		return vmdef_machine_arm(firmware, version)
 	}
 	return ""
 }
@@ -575,7 +575,10 @@ func vmdef_machine_x86(firmware openapi.FirmwareType, version string) string {
 	return ""
 }
 
-func vmdef_machine_arm(version string) string {
+func vmdef_machine_arm(firmware openapi.FirmwareType, version string) string {
+	if (firmware != openapi.FIRMWARE_UEFI) {
+		return ""
+	}
 	if (version == "") {
 		return "virt"
 	}
