@@ -365,6 +365,7 @@ It is built alongside virtxd from the same source tree (cmd/virtx-check-lvb/).
 
 - HA features are not implemented yet
 - Minimal host selection algorithm (for HA)
+- cloud-init seed ISOs (/vms/ds/ci/<uuid>/) are never removed: remove them under lease.
 
 # CODE STYLE
 
