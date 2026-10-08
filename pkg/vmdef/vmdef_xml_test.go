@@ -867,6 +867,27 @@ func Test_from_xml_invalid_disk_alias(t *testing.T) {
 	}
 }
 
+func Test_from_xml_disk_alias_empty_fields(t *testing.T) {
+	inner := `
+  <title>badvm</title>
+  <memory unit='KiB'>4194304</memory>
+  <cpu mode='host-passthrough'><topology sockets='1' cores='1' threads='1'/></cpu>
+  <os><type machine='q35'>hvm</type><firmware>efi</firmware></os>
+  <devices>
+    <disk type='file' device='disk'>
+      <source file='/vms/ds/bad/disk.qcow2'/>
+      <target dev='vda' bus='virtio'/>
+      <boot order='1'/>
+      <alias name='ua-_a_b_c_d'/>
+    </disk>
+  </devices>`
+	var vm openapi.Vmdef
+	err := From_xml(&vm, wrap_domain(t, inner), nil)
+	if (err == nil) {
+		t.Error("expected error for alias with an empty man/prov field")
+	}
+}
+
 /* =================== Gap-coverage tests =================== */
 
 /* --- Validate gap --- */
