@@ -148,6 +148,7 @@ func main() {
 	} else {
 		status := strings.Replace(response.Status, "Insufficient Storage", "Storage Error", 1)
 		fmt.Printf("%s: %s\n", status, strings.TrimSpace(string(vr.Body)))
+		os.Exit(1)
 	}
 }
 
