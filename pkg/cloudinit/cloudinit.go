@@ -223,6 +223,27 @@ func Delete_disk(uuid string) error {
 	return nil
 }
 
+/*
+ * Delete the seed ISO of a VM, together with the per-VM cloudinit directory
+ * /vms/ds/ci/<uuid>/ that contains it.
+ * We do this when the VM itself is deleted and its storage is being removed as
+ * well: the seed ISO is regenerated at every boot, so the ISO of a VM that no
+ * longer exists is of no use, and the directory would otherwise be left behind
+ * forever.
+ */
+func Delete_seed_iso(uuid string) error {
+	var (
+		dir string
+		err error
+	)
+	dir = fmt.Sprintf("%s%s/", CI_DIR, uuid)
+	err = os.RemoveAll(dir)
+	if (err != nil) {
+		return fmt.Errorf("could not remove %s: %w", dir, err)
+	}
+	return nil
+}
+
 func init_disk(disk *openapi.Disk, uuid string) {
 	*disk = openapi.Disk{
 		Path: fmt.Sprintf(CI_DIR + "%s/seed.iso", uuid),

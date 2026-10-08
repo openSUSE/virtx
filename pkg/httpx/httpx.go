@@ -140,18 +140,26 @@ func Decode_request_body(r *http.Request, arg any) (Request, error) {
 	if (arg == nil) {
 		return vr, nil
 	}
-	if (r.ContentLength <= 0) {
-		return vr, errors.New("Body expected but not found")
-	}
-	if (r.ContentLength >= HTTP_MAX_BODY_LEN) {
+	if (r.ContentLength > HTTP_MAX_BODY_LEN) {
 		return vr, errors.New("content-length exceeded")
 	}
-	vr.body, err = io.ReadAll(io.LimitReader(r.Body, HTTP_MAX_BODY_LEN))
+	if (r.ContentLength == 0) {
+		/* a request without a body: the caller gets the zero value of its argument */
+		return vr, nil
+	}
+	/*
+	 * ContentLength is -1 for a chunked body, in which case the limit has
+	 * to be enforced here: read one byte more than allowed and compare.
+	 */
+	vr.body, err = io.ReadAll(io.LimitReader(r.Body, HTTP_MAX_BODY_LEN + 1))
 	if (err != nil) {
 		return vr, errors.New("failed to read body")
 	}
-	if (int64(len(vr.body)) > r.ContentLength) {
-		return vr, errors.New("body len exceeds content-length")
+	if (int64(len(vr.body)) > HTTP_MAX_BODY_LEN) {
+		return vr, errors.New("body exceeds the maximum length")
+	}
+	if (r.ContentLength > 0 && int64(len(vr.body)) != r.ContentLength) {
+		return vr, errors.New("body len differs from content-length")
 	}
 	err = json.NewDecoder(bytes.NewReader(vr.body)).Decode(arg)
 	if (err != nil) {
@@ -170,18 +178,30 @@ func Decode_response_body(r *http.Response, result any) (Response, error) {
 	if (result == nil && r.StatusCode >= 200 && r.StatusCode <= 299) {
 		return vr, nil
 	}
-	if (r.ContentLength <= 0) {
-		return vr, errors.New("Body expected but not found")
-	}
-	if (r.ContentLength >= HTTP_MAX_BODY_LEN) {
+	if (r.ContentLength > HTTP_MAX_BODY_LEN) {
 		return vr, errors.New("content-length exceeded")
 	}
-	vr.Body, err = io.ReadAll(io.LimitReader(r.Body, HTTP_MAX_BODY_LEN))
+	if (r.ContentLength == 0) {
+		/*
+		 * a response without a body: for a successful status that is only
+		 * an error when the caller expects data to decode, otherwise the
+		 * empty body is what carries the error message.
+		 */
+		if (result != nil && r.StatusCode >= 200 && r.StatusCode <= 299) {
+			return vr, errors.New("Body expected but not found")
+		}
+		return vr, nil
+	}
+	/* ContentLength is -1 for a chunked body: enforce the limit here */
+	vr.Body, err = io.ReadAll(io.LimitReader(r.Body, HTTP_MAX_BODY_LEN + 1))
 	if (err != nil) {
 		return vr, errors.New("failed to read body")
 	}
-	if (int64(len(vr.Body)) > r.ContentLength) {
-		return vr, errors.New("body len exceeds content-length")
+	if (int64(len(vr.Body)) > HTTP_MAX_BODY_LEN) {
+		return vr, errors.New("body exceeds the maximum length")
+	}
+	if (r.ContentLength > 0 && int64(len(vr.Body)) != r.ContentLength) {
+		return vr, errors.New("body len differs from content-length")
 	}
 	if (r.StatusCode >= 200 && r.StatusCode <= 299) {
 		err = json.NewDecoder(bytes.NewReader(vr.Body)).Decode(result)

@@ -27,6 +27,7 @@ import (
 	"strconv"
 	"sync"
 	"time"
+	"context"
 	"crypto/md5"
 	"encoding/binary"
 	"encoding/hex"
@@ -269,7 +270,6 @@ func lm_search_join_lockspace(host_uuid string) (uint16, error) {
 		err error
 		args []string
 		sanlock_path string
-		cmd *exec.Cmd
 		output []byte
 		h [16]byte
 		host_id uint16
@@ -281,9 +281,7 @@ func lm_search_join_lockspace(host_uuid string) (uint16, error) {
 	/* get the status of busy IDs from the daemon perspective */
 	sanlock_path = fmt.Sprintf("%s:%d:%s:%d", LOCK_SPACE, 0, LOCK_SPACE_FILE, 0)
 	args = []string{ "client", "host_status", "-s", sanlock_path }
-	logger.Debug("sanlock %v", args)
-	cmd = exec.Command(paths.Get("SANLOCK"), args...)
-	output, err = cmd.CombinedOutput()
+	output, err = lm_probe(args...)
 	if (err != nil && len(output) != 0) { /* sanlock exits with error if there are no hosts in the list */
 		return 0, err
 	}
@@ -325,15 +323,12 @@ func lm_inq_lockspace() (uint16, error) {
 	var (
 		err error
 		args []string
-		cmd *exec.Cmd
 		output []byte
 		host_id uint16
 		fmts string = fmt.Sprintf("s %s:%%d:%s:%d", LOCK_SPACE, LOCK_SPACE_FILE, 0)
 	)
 	args = []string{ "client", "gets" }
-	logger.Debug("sanlock %v", args)
-	cmd = exec.Command(paths.Get("SANLOCK"), args...)
-	output, err = cmd.CombinedOutput()
+	output, err = lm_probe(args...)
 	if (err != nil) {
 		logger.Log("%s\n", string(output))
 		return 0, err
@@ -452,21 +447,42 @@ func Check_resource(resource_name string, uuid string) error {
 }
 
 /*
- * Delete the resource lock file and directory while holding the lease.
+ * Delete the resource lock file and its directory.
+ *
+ * The resource file is the on-disk record of the lease: while it exists,
+ * every host sees the disk as taken by this VM, so the file is removed
+ * last, after the storage that it protects is gone. The ownership of the
+ * resource is verified first, like the check-lvb command does for the
+ * operations that run under the lease.
  */
 func Delete_resource(resource_name string, uuid string) error {
 	var (
 		err error
+		resource_path, lvb string
 	)
-	resource_path := Get_resource_path(resource_name)
-
-	args := [][]string{
-		{ "/usr/bin/rm", "--", resource_path },
-		{ "/usr/bin/rmdir", "--", filepath.Dir(resource_path) },
-	}
-	err = Run(resource_name, uuid, args, true)
+	resource_path = Get_resource_path(resource_name)
+	_, err = os.Stat(resource_path)
 	if (err != nil) {
-		return err
+		if (errors.Is(err, os.ErrNotExist)) {
+			/* the resource is already gone: nothing to delete */
+			return nil
+		}
+		return fmt.Errorf("could not Stat %s: %s", resource_path, err.Error())
+	}
+	lvb, err = Read_lvb(resource_path)
+	if (err != nil) {
+		return fmt.Errorf("failed to Read LVB: %s", err.Error())
+	}
+	if (lvb != uuid) {
+		return fmt.Errorf("LVB %s does not match vm %s", lvb, uuid)
+	}
+	err = os.Remove(resource_path)
+	if (err != nil) {
+		return fmt.Errorf("could not remove %s: %s", resource_path, err.Error())
+	}
+	err = os.Remove(filepath.Dir(resource_path))
+	if (err != nil && !errors.Is(err, os.ErrNotExist)) {
+		return fmt.Errorf("could not remove %s: %s", filepath.Dir(resource_path), err.Error())
 	}
 	return nil
 }
@@ -593,8 +609,35 @@ func lm_init_resource_file(resource_path string, resource_name string, uuid stri
 	return lm_set_lvb(fd, uuid)
 }
 
+/*
+ * Run a read-only sanlock client command.
+ *
+ * Unlike the commands that change the state of the lockspace or of a
+ * resource, a probe must not be able to block its caller for good: sanlock
+ * waits on the shared storage, and the callers here are HTTP handlers and
+ * the system information loop.
+ */
+func lm_probe(args ...string) ([]byte, error) {
+	var (
+		output []byte
+		ctx context.Context
+		cancel context.CancelFunc
+		cmd *exec.Cmd
+		err error
+	)
+	logger.Debug("sanlock %v", args)
+	ctx, cancel = context.WithTimeout(context.Background(), PROBE_TIMEOUT_SECONDS * time.Second)
+	defer cancel()
+	cmd = exec.CommandContext(ctx, paths.Get("SANLOCK"), args...)
+	output, err = cmd.CombinedOutput()
+	if (errors.Is(ctx.Err(), context.DeadlineExceeded)) {
+		return output, fmt.Errorf("sanlock probe timed out after %d seconds", PROBE_TIMEOUT_SECONDS)
+	}
+	return output, err
+}
+
 /* run a set of commands under resource lock, the first failure stops the chain */
-func Run(resource_name string, uuid string, args [][]string, no_disk bool) error {
+func Run(resource_name string, uuid string, args [][]string) error {
 	var (
 		err error
 		sanlock_args []string
@@ -614,9 +657,6 @@ func Run(resource_name string, uuid string, args [][]string, no_disk bool) error
 	for _, cmd := range args {
 		sanlock_args = append(sanlock_args, "-c", strconv.Itoa(len(cmd)))
 		sanlock_args = append(sanlock_args, cmd...)
-	}
-	if (no_disk) {
-		sanlock_args = append(sanlock_args, "-d", "1")
 	}
 	logger.Debug("sanlock %v", sanlock_args)
 

@@ -122,7 +122,11 @@ func recv_serf_events() {
 		logger.Debug("RecvSerfEvents loop start...")
 
 		for e := range serf.channel {
-			var name string = e["Event"].(string)
+			name, ok := e["Event"].(string)
+			if (!ok) {
+				logger.Log("recv_serf_events: event without a name")
+				continue
+			}
 			switch (name) {
 			case "user":
 				handle_user_event(e)
@@ -154,14 +158,47 @@ func handle_member_change(e map[string]any, newstate openapi.Cstate) {
 		err error
 		hi inventory.HostInfo
 		tags map[string]string
-		name string = e["Event"].(string)
+		name string
 		addr []byte
 		ok bool
 	)
-	for _, m := range e["Members"].([]any) {
+	/*
+	 * recv_serf_events() dispatches on this field, but the handlers are
+	 * self contained: only the name in the messages depends on it.
+	 */
+	name, ok = e["Event"].(string)
+	if (!ok) {
+		name = "<unknown>"
+	}
+	members, ok := e["Members"].([]any)
+	if (!ok) {
+		logger.Log("handle_member_change: %s: no Members in the event", name)
+		return
+	}
+	for _, m := range members {
+		member, ok := m.(map[any]any)
+		if (!ok) {
+			logger.Log("handle_member_change: %s: malformed member", name)
+			continue
+		}
+		member_tags, ok := member["Tags"].(map[any]any)
+		if (!ok) {
+			logger.Log("handle_member_change: %s: member without Tags", name)
+			continue
+		}
 		tags = make(map[string]string)
-		for k, v := range m.(map[any]any)["Tags"].(map[any]any) {
-			tags[k.(string)] = v.(string)
+		for k, v := range member_tags {
+			key, ok := k.(string)
+			if (!ok) {
+				logger.Log("handle_member_change: %s: tag key is not a string", name)
+				continue
+			}
+			value, ok := v.(string)
+			if (!ok) {
+				logger.Log("handle_member_change: %s: tag %s: value is not a string", name, key)
+				continue
+			}
+			tags[key] = value
 		}
 		hi = inventory.HostInfo{}
 		err = serftags.Decode(tags, &hi)
@@ -177,7 +214,7 @@ func handle_member_change(e map[string]any, newstate openapi.Cstate) {
 		if (newstate == openapi.CSTATE_ACTIVE) {
 			/* join or update: the tags carry the current HostInfo */
 			hi.Cstate = newstate
-			addr, ok = m.(map[any]any)["Addr"].([]byte)
+			addr, ok = member["Addr"].([]byte)
 			if (!ok) {
 				logger.Log("handle_member_change: %s: %s: Addr missing", name, hi.Uuid)
 				continue
@@ -210,10 +247,26 @@ func handle_hostinfo(hi *inventory.HostInfo, man_ip string) {
 
 func handle_user_event(e map[string]any) {
 	var (
-		name string = e["Name"].(string)
-		payload []byte = e["Payload"].([]byte)
+		name string
+		payload []byte
 		err error
+		ok bool
 	)
+	name, ok = e["Name"].(string)
+	if (!ok) {
+		logger.Log("handle_user_event: user event without a Name")
+		return
+	}
+	/*
+	 * a user event can be sent without a payload, in which case it
+	 * arrives with a nil Payload: it cannot be decoded, but it must not
+	 * take the daemon down either.
+	 */
+	payload, ok = e["Payload"].([]byte)
+	if (!ok) {
+		logger.Log("handle_user_event: %s: no payload", name)
+		return
+	}
 	switch (name) {
 	case LABEL_VM_EVENT:
 		var (

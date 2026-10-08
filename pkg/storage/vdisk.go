@@ -21,8 +21,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"context"
 	"errors"
 	"fmt"
+	"time"
 	"encoding/json"
 	"bytes"
 	"golang.org/x/sys/unix"
@@ -97,7 +99,7 @@ func vdisk_create(disk *openapi.Disk, resource_name string, uuid string) error {
 		)
 	}
 	/* run provisioning under lease lock */
-	return lockman.Run(resource_name, uuid, args, false)
+	return lockman.Run(resource_name, uuid, args)
 }
 
 /* grow the disk to disk.Size, under lease lock. old.Size is the current size */
@@ -116,7 +118,7 @@ func vdisk_resize(disk *openapi.Disk, old *openapi.Disk, resource_name string, u
 			disk.Path, fmt.Sprintf("%dM", disk.Size),
 		},
 	}
-	return lockman.Run(resource_name, uuid, args, false)
+	return lockman.Run(resource_name, uuid, args)
 }
 
 func vdisk_delete(disk *openapi.Disk, resource_name string, uuid string) error {
@@ -126,15 +128,21 @@ func vdisk_delete(disk *openapi.Disk, resource_name string, uuid string) error {
 	}
 	logger.Debug("deleting %s", disk.Path)
 	/*
-	 * delete the disk and the resource file, while holding the resource lease.
+	 * Delete the image first and the resource file last: the resource
+	 * file is the on-disk record of the lease, and every host sees the
+	 * disk as taken by this VM while it exists. Verify that it is ours
+	 * before removing anything, like the commands that run under the
+	 * lease do.
 	 */
-	resource_path := lockman.Get_resource_path(resource_name)
-	args := [][]string{
-		{ "/usr/bin/rm", "-f", "--", disk.Path },
-		{ "/usr/bin/rm", "--", resource_path },
-		{ "/usr/bin/rmdir", "--", filepath.Dir(resource_path) },
+	err := lockman.Check_resource(resource_name, uuid)
+	if (err != nil && !errors.Is(err, os.ErrNotExist)) {
+		return err
 	}
-	return lockman.Run(resource_name, uuid, args, true)
+	err = os.Remove(disk.Path)
+	if (err != nil && !errors.Is(err, os.ErrNotExist)) {
+		return fmt.Errorf("could not remove %s: %w", disk.Path, err)
+	}
+	return lockman.Delete_resource(resource_name, uuid)
 }
 
 /* detect and set disk provisioning method and virtual size */
@@ -206,6 +214,32 @@ type qmap struct {
 	//Offset     uint64 `json:"offset"`
 }
 
+/*
+ * Run a read-only qemu-img command, like a probe of an image.
+ *
+ * Unlike the commands that create and convert images, a probe must not be
+ * able to block its caller for good: qemu-img waits on the shared storage,
+ * and the callers here are HTTP handlers.
+ */
+func qemu_img_probe(args ...string) ([]byte, error) {
+	var (
+		ctx context.Context
+		cancel context.CancelFunc
+		cmd *exec.Cmd
+		output []byte
+		err error
+	)
+	logger.Debug("qemu-img %v", args)
+	ctx, cancel = context.WithTimeout(context.Background(), PROBE_TIMEOUT_SECONDS * time.Second)
+	defer cancel()
+	cmd = exec.CommandContext(ctx, paths.Get("QEMU_IMG"), args...)
+	output, err = cmd.CombinedOutput()
+	if (errors.Is(ctx.Err(), context.DeadlineExceeded)) {
+		return output, fmt.Errorf("qemu-img probe timed out after %d seconds", PROBE_TIMEOUT_SECONDS)
+	}
+	return output, err
+}
+
 func vdisk_detect_qcow2_prov(path string) (openapi.DiskProvMode, int32, error) {
 	var (
 		err error
@@ -214,10 +248,7 @@ func vdisk_detect_qcow2_prov(path string) (openapi.DiskProvMode, int32, error) {
 		qmaps []qmap
 	)
 	args := []string { "map", "--output=json", "-f", "qcow2", path }
-	logger.Debug("qemu-img %v", args)
-	var cmd *exec.Cmd = exec.Command(paths.Get("QEMU_IMG"), args...)
-	var output []byte
-	output, err = cmd.CombinedOutput()
+	output, err := qemu_img_probe(args...)
 	if (err != nil) {
 		logger.Log("%s\n", string(output))
 		return openapi.DISK_PROV_NONE, 0, err
@@ -262,9 +293,7 @@ type qinfo struct {
 func vdisk_detect_qcow2_vsize(path string) (int64, error) {
 	var info qinfo
 	args := []string{ "info", "--output=json", "-f", "qcow2", path }
-	logger.Debug("qemu-img %v", args)
-	cmd := exec.Command(paths.Get("QEMU_IMG"), args...)
-	output, err := cmd.CombinedOutput()
+	output, err := qemu_img_probe(args...)
 	if (err != nil) {
 		logger.Log("%s\n", string(output))
 		return 0, fmt.Errorf("qemu-img info failed: %w", err)

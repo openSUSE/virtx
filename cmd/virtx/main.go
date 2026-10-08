@@ -145,10 +145,31 @@ func main() {
 		virtx.w = writer.NewWriter(os.Stdout, 0, 4, 1, ' ', writer.StripEscape | writer.Debug)
 		err = cmd_exec()
 		virtx.w.Flush()
+		if (report_warnings(response) > 0) {
+			/* the operation is a partial success: tell the caller */
+			os.Exit(1)
+		}
 	} else {
 		status := strings.Replace(response.Status, "Insufficient Storage", "Storage Error", 1)
 		fmt.Printf("%s: %s\n", status, strings.TrimSpace(string(vr.Body)))
 	}
+}
+
+/*
+ * report_warnings prints to stderr the Warning headers of the response,
+ * if there are any, and returns how many of them were found.
+ *
+ * A 2xx response with a Warning is a partial success: the operation went
+ * through, but something that was part of it did not, for example the
+ * storage of a deleted VM could not be removed. The caller has to tell
+ * the user, and exit with a non-zero status.
+ */
+func report_warnings(response *http.Response) int {
+	var warnings []string = response.Header.Values("Warning")
+	for _, warning := range warnings {
+		fmt.Fprintf(os.Stderr, "Warning: %s\n", warning)
+	}
+	return len(warnings)
 }
 
 func read_json(filename string, data any) {

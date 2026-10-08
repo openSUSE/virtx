@@ -33,6 +33,7 @@ var prog_paths = map[string]string{
 	"SANLOCK":         "/usr/sbin/sanlock",
 	"WIPEFS":          "/usr/sbin/wipefs",
 	"BLKDISCARD":      "/usr/sbin/blkdiscard",
+	"DD":              "/usr/bin/dd",
 	"QEMU_IMG":        "/usr/bin/qemu-img",
 	"XORRISOFS":       "/usr/bin/xorrisofs",
 	"VIRTX_CHECK_LVB": "/usr/sbin/virtx-check-lvb",

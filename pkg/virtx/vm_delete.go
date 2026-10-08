@@ -20,6 +20,7 @@ package virtx
 import (
 	"fmt"
 	"net/http"
+	"suse.com/virtx/pkg/cloudinit"
 	"suse.com/virtx/pkg/hypervisor"
 	"suse.com/virtx/pkg/logger"
 	"suse.com/virtx/pkg/machine"
@@ -37,6 +38,7 @@ func vm_delete(w http.ResponseWriter, r *http.Request) {
 		err error
 		o openapi.VmDeleteOptions
 		uuid, xml string
+		ci_err error
 		vminfo inventory.VmInfo
 		vm openapi.Vmdef
 		vr httpx.Request
@@ -108,9 +110,21 @@ func vm_delete(w http.ResponseWriter, r *http.Request) {
 	}
 	storage_err := storage.Delete(&vm, nil, uuid, o.Deletestorage)
 	if (storage_err != nil) {
+		logger.Log("vm_delete: storage.Delete failed: %s", storage_err.Error())
 		w.Header().Add("Warning", `299 VirtX "some resources could not be deleted"`)
 	}
-	if (reg_err != nil || storage_err != nil) {
+	if (o.Deletestorage) {
+		/*
+		 * the seed ISO is not part of the VM definition (it is attached when
+		 * the VM boots), so remove its per-VM directory here.
+		 */
+		ci_err = cloudinit.Delete_seed_iso(uuid)
+		if (ci_err != nil) {
+			logger.Log("vm_delete: cloudinit: %s", ci_err.Error())
+			w.Header().Add("Warning", `299 VirtX "some resources could not be deleted"`)
+		}
+	}
+	if (reg_err != nil || storage_err != nil || ci_err != nil) {
 		httpx.Do_response(w, http.StatusOK, nil)
 	} else {
 		httpx.Do_response(w, http.StatusNoContent, nil)

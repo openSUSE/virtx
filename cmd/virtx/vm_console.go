@@ -86,7 +86,13 @@ func vnc_find_viewer() (string, vnc_viewer_entry) {
 	return "", vnc_viewer_entry{}
 }
 
-func vnc_launch_viewer(addr net.Addr) {
+/*
+ * vnc_launch_viewer starts the VNC viewer for the console that listens on
+ * addr, in the background. It reports whether a viewer was started: when
+ * none is found, the caller is left waiting for a connection that nobody
+ * is going to make, and the user has to be told where to connect.
+ */
+func vnc_launch_viewer(addr net.Addr) bool {
 	var (
 		path string
 		viewer vnc_viewer_entry
@@ -97,12 +103,13 @@ func vnc_launch_viewer(addr net.Addr) {
 	)
 	path, viewer = vnc_find_viewer()
 	if (path == "") {
-		return
+		logger.Log("no VNC viewer found in PATH: connect your viewer to %s, or name one with --viewer", addr)
+		return false
 	}
 	host, port, err = net.SplitHostPort(addr.String())
 	if (err != nil) {
 		logger.Log("vnc_launch_viewer: could not parse address: %s", err.Error())
-		return
+		return false
 	}
 	args = append(args, viewer.prefix...)
 	args = append(args, fmt.Sprintf(viewer.addr_fmt, host, port))
@@ -113,7 +120,9 @@ func vnc_launch_viewer(addr net.Addr) {
 	err = cmd.Start()
 	if (err != nil) {
 		logger.Log("vnc_launch_viewer: failed to launch %s: %s", path, err.Error())
+		return false
 	}
+	return true
 }
 
 /*
@@ -235,6 +244,12 @@ func vm_console_vnc_req(uuid string, port int) {
 		logger.Fatal("failed to establish VNC tunnel: %s", err.Error())
 	}
 	logger.Debug("VNC console ready: %s", listener.Addr())
+	/*
+	 * tell the user where the console is: without a viewer to launch, this
+	 * address is the only way to reach it, and the debug line above is not
+	 * printed by default.
+	 */
+	logger.Log("VNC console listening on %s", listener.Addr())
 	for {
 		vnc_launch_viewer(listener.Addr())
 		vnc_conn, err = listener.Accept()
