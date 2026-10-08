@@ -107,8 +107,8 @@ func lun_delete(disk *openapi.Disk, resource_name string, uuid string) error {
 	}
 	resource_path := lockman.Get_resource_path(resource_name)
 	args = append(args,
-		[]string{ "/usr/bin/rm", "--", resource_path },
-		[]string{ "/usr/bin/rmdir", "--", filepath.Dir(resource_path) },
+		[]string{ paths.Get("RM"), "--", resource_path },
+		[]string{ paths.Get("RMDIR"), "--", filepath.Dir(resource_path) },
 	)
 	return lockman.Run(resource_name, uuid, args, true)
 }
@@ -141,7 +141,7 @@ func lun_discard_args(path string) ([][]string, error) {
 	if (i > 0) {
 		args = append(args, []string{ paths.Get("BLKDISCARD"), path })
 	} else {
-		args = append(args, []string{ "/usr/bin/dd", "if=/dev/zero", "of=" + path, "bs=1M", "count=1" })
+		args = append(args, []string{ paths.Get("DD"), "if=/dev/zero", "of=" + path, "bs=1M", "count=1" })
 	}
 	return args, nil
 }

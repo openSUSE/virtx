@@ -461,8 +461,8 @@ func Delete_resource(resource_name string, uuid string) error {
 	resource_path := Get_resource_path(resource_name)
 
 	args := [][]string{
-		{ "/usr/bin/rm", "--", resource_path },
-		{ "/usr/bin/rmdir", "--", filepath.Dir(resource_path) },
+		{ paths.Get("RM"), "--", resource_path },
+		{ paths.Get("RMDIR"), "--", filepath.Dir(resource_path) },
 	}
 	err = Run(resource_name, uuid, args, true)
 	if (err != nil) {
