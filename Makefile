@@ -35,7 +35,7 @@ check: build-tests
 	exit $${exitcode}
 
 clean:
-	rm -f virtxd virtx virtx-check-lvb
+	rm -f virtxd virtx virtx-check-lvb *.test
 
 vet:
 	go vet ./... && go vet -vettool=${GOPATH}/bin/shadow ./...
