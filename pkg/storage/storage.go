@@ -61,7 +61,8 @@ func Rollback(created CreatedResources, uuid string) {
 }
 
 /*
- * Prepare a vm update: for the disks already present in the old definition, inherit the osdisk Source,
+ * Prepare a vm update: for the disks already present in the old definition,
+ * inherit the osdisk Source, inherit Prov when it is set as NONE,
  * and detect the current size of those requesting a Size, so that old describes the actual storage.
  * Must be called before vmdef.Diff and Create. Does not modify any storage.
  */
@@ -78,6 +79,9 @@ func Prepare_update(vm *openapi.Vmdef, old *openapi.Vmdef) error {
 		/* Source describes the osdisk only: a disk demoted to data disk loses it */
 		if (disk == &vm.Osdisk && disk.Source == "") {
 			disk.Source = old_disk.Source
+		}
+		if (disk.Prov == openapi.DISK_PROV_NONE) { /* NONE means keep the current provisioning mode */
+			disk.Prov = old_disk.Prov
 		}
 		if (disk.Size != 0) { /* 0 means keep the current size */
 			err = Detect_size(old_disk)

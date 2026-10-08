@@ -94,7 +94,7 @@ func vm_update(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid VM data", http.StatusInternalServerError)
 		return
 	}
-	/* inherit Source and detect the current disk sizes, so that the oplog shows the actual changes */
+	/* inherit some fields from old and detect the current sizes */
 	err = storage.Prepare_update(&o.Vmdef, &old)
 	if (err != nil) {
 		logger.Log("storage.Prepare_update failed: %s", err.Error())
