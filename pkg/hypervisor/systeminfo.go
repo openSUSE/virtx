@@ -82,6 +82,7 @@ type SystemInfoVm struct {
 
 	/* overall internal counters for Vm Stats */
 	vcpus uint                   /* number of vcpus active (for active domains), 0 for inactive. */
+	dom_id uint                  /* runtime domain id, changes on every domain start, 0 for inactive domains. */
 	hp bool                      /* hugepages used */
 	cpu_time uint64              /* Total cpu time consumed in nanoseconds from libvirt.DomainCPUStats.CpuTime */
 	disk_rd, disk_wr int64       /* Disk Read/Written bytes */
@@ -906,6 +907,7 @@ type xmlInterface struct {
 }
 
 type xmlDomain struct {
+	Id uint `xml:"id,attr"` /* runtime domain id, absent for inactive domains */
 	MemoryBacking *libvirtxml.DomainMemoryBacking `xml:"memoryBacking"`
 	Devices struct {
 		Disks []xmlDisk `xml:"disk"`
@@ -929,6 +931,12 @@ func get_domain_stats(d *libvirt.Domain, vm *SystemInfoVm, old *SystemInfoVm, im
 		if (err != nil) {
 			return err
 		}
+		/*
+		 * the runtime domain id is assigned by the hypervisor on every domain
+		 * start, so it identifies the instance the counters belong to.
+		 * Inactive domains have no id attribute, and we store 0 for them.
+		 */
+		vm.dom_id = xd.Id
 		if (xd.MemoryBacking != nil) {
 			vm.hp = true
 		}
@@ -1012,6 +1020,20 @@ func get_domain_stats(d *libvirt.Domain, vm *SystemInfoVm, old *SystemInfoVm, im
 				break
 			}
 		}
+	}
+	if (old != nil && old.dom_id != vm.dom_id) {
+		/*
+		 * The VM was stopped and started again (or just stopped) between the
+		 * two samples: a stopped domain is replaced by a new instance whose
+		 * counters start again from zero, so the smaller values were not
+		 * overflowing counters, and the deltas must not be calculated against
+		 * the counters of the previous instance. Otherwise the cpu time delta
+		 * comes out as a huge value, for example the "gds: udelta =
+		 * 18446744035669551616" seen after a forced shutdown, which also
+		 * poisons the host cpu statistics for the interval.
+		 */
+		logger.Debug("gds: domain id changed %d -> %d, dropping the previous sample", old.dom_id, vm.dom_id)
+		old = nil
 	}
 	if (old != nil) {
 		/* finally, calculate deltas from previous Vm cpu and net stats */
