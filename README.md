@@ -211,6 +211,15 @@ See the command line help with
 virtx --help
 ```
 
+EXIT CODES: The command line client exits to the OS with:
+
+```
+0  success
+1  failure (invalid command or arguments, connection error, non-2xx response)
+2  internal error (Go runtime panic)
+3  success with warnings (2xx response with Warning headers, printed to stderr)
+```
+
 # TESTS
 
 I would suggest a few tests to ensure the installation is ok:
