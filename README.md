@@ -365,24 +365,6 @@ It is built alongside virtxd from the same source tree (cmd/virtx-check-lvb/).
 
 - HA features are not implemented yet
 - Minimal host selection algorithm (for HA)
-- Golden images?
-
-# BUGS
-
-For some reason for me version go1.23.8 the old pre-1.22 net/http behavior is triggered,
-and no 1.22+ API handler works. Arg.
-
-To work around this, I have added in go.mod:
-
-godebug (
-    default=go1.23
-)
-
-if this does not work, an alternative is to use:
-
-export GODEBUG="httpmuxgo121=0"
-
-but for now the go.mod trick seems to work.
 
 # CODE STYLE
 
