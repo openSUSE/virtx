@@ -211,9 +211,15 @@ func handle_hostinfo(hi *inventory.HostInfo, man_ip string) {
 func handle_user_event(e map[string]any) {
 	var (
 		name string = e["Name"].(string)
-		payload []byte = e["Payload"].([]byte)
+		payload []byte
 		err error
+		ok bool
 	)
+	payload, ok = e["Payload"].([]byte) /* nil for a user event sent without payload */
+	if (!ok) {
+		logger.Log("handle_user_event: %s: no payload", name)
+		return
+	}
 	switch (name) {
 	case LABEL_VM_EVENT:
 		var (
