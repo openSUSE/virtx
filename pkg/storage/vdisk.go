@@ -97,7 +97,7 @@ func vdisk_create(disk *openapi.Disk, resource_name string, uuid string) error {
 		)
 	}
 	/* run provisioning under lease lock */
-	return lockman.Run(resource_name, uuid, args, false)
+	return lockman.Run(resource_name, uuid, args)
 }
 
 /* grow the disk to disk.Size, under lease lock. old.Size is the current size */
@@ -116,7 +116,7 @@ func vdisk_resize(disk *openapi.Disk, old *openapi.Disk, resource_name string, u
 			disk.Path, fmt.Sprintf("%dM", disk.Size),
 		},
 	}
-	return lockman.Run(resource_name, uuid, args, false)
+	return lockman.Run(resource_name, uuid, args)
 }
 
 func vdisk_delete(disk *openapi.Disk, resource_name string, uuid string) error {
@@ -126,15 +126,21 @@ func vdisk_delete(disk *openapi.Disk, resource_name string, uuid string) error {
 	}
 	logger.Debug("deleting %s", disk.Path)
 	/*
-	 * delete the disk and the resource file, while holding the resource lease.
+	 * Delete the image first and the resource file last: the resource
+	 * file is the on-disk record of the lease, and every host sees the
+	 * disk as taken by this VM while it exists. Verify that it is ours
+	 * before removing anything, like the commands that run under the
+	 * lease do.
 	 */
-	resource_path := lockman.Get_resource_path(resource_name)
-	args := [][]string{
-		{ "/usr/bin/rm", "-f", "--", disk.Path },
-		{ "/usr/bin/rm", "--", resource_path },
-		{ "/usr/bin/rmdir", "--", filepath.Dir(resource_path) },
+	err := lockman.Check_resource(resource_name, uuid)
+	if (err != nil && !errors.Is(err, os.ErrNotExist)) {
+		return err
 	}
-	return lockman.Run(resource_name, uuid, args, true)
+	err = os.Remove(disk.Path)
+	if (err != nil && !errors.Is(err, os.ErrNotExist)) {
+		return fmt.Errorf("could not remove %s: %w", disk.Path, err)
+	}
+	return lockman.Delete_resource(resource_name, uuid)
 }
 
 /* detect and set disk provisioning method and virtual size */

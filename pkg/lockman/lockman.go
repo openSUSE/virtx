@@ -452,21 +452,42 @@ func Check_resource(resource_name string, uuid string) error {
 }
 
 /*
- * Delete the resource lock file and directory while holding the lease.
+ * Delete the resource lock file and its directory.
+ *
+ * The resource file is the on-disk record of the lease: while it exists,
+ * every host sees the disk as taken by this VM, so the file is removed
+ * last, after the storage that it protects is gone. The ownership of the
+ * resource is verified first, like the check-lvb command does for the
+ * operations that run under the lease.
  */
 func Delete_resource(resource_name string, uuid string) error {
 	var (
 		err error
+		resource_path, lvb string
 	)
-	resource_path := Get_resource_path(resource_name)
-
-	args := [][]string{
-		{ "/usr/bin/rm", "--", resource_path },
-		{ "/usr/bin/rmdir", "--", filepath.Dir(resource_path) },
-	}
-	err = Run(resource_name, uuid, args, true)
+	resource_path = Get_resource_path(resource_name)
+	_, err = os.Stat(resource_path)
 	if (err != nil) {
-		return err
+		if (errors.Is(err, os.ErrNotExist)) {
+			/* the resource is already gone: nothing to delete */
+			return nil
+		}
+		return fmt.Errorf("could not Stat %s: %s", resource_path, err.Error())
+	}
+	lvb, err = Read_lvb(resource_path)
+	if (err != nil) {
+		return fmt.Errorf("failed to Read LVB: %s", err.Error())
+	}
+	if (lvb != uuid) {
+		return fmt.Errorf("LVB %s does not match vm %s", lvb, uuid)
+	}
+	err = os.Remove(resource_path)
+	if (err != nil) {
+		return fmt.Errorf("could not remove %s: %s", resource_path, err.Error())
+	}
+	err = os.Remove(filepath.Dir(resource_path))
+	if (err != nil && !errors.Is(err, os.ErrNotExist)) {
+		return fmt.Errorf("could not remove %s: %s", filepath.Dir(resource_path), err.Error())
 	}
 	return nil
 }
@@ -594,7 +615,7 @@ func lm_init_resource_file(resource_path string, resource_name string, uuid stri
 }
 
 /* run a set of commands under resource lock, the first failure stops the chain */
-func Run(resource_name string, uuid string, args [][]string, no_disk bool) error {
+func Run(resource_name string, uuid string, args [][]string) error {
 	var (
 		err error
 		sanlock_args []string
@@ -614,9 +635,6 @@ func Run(resource_name string, uuid string, args [][]string, no_disk bool) error
 	for _, cmd := range args {
 		sanlock_args = append(sanlock_args, "-c", strconv.Itoa(len(cmd)))
 		sanlock_args = append(sanlock_args, cmd...)
-	}
-	if (no_disk) {
-		sanlock_args = append(sanlock_args, "-d", "1")
 	}
 	logger.Debug("sanlock %v", sanlock_args)
 

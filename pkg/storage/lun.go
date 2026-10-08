@@ -65,7 +65,7 @@ func lun_create(disk *openapi.Disk, resource_name string, uuid string) error {
 		return err
 	}
 	args = append(args, clone_args...)
-	return lockman.Run(resource_name, uuid, args, false)
+	return lockman.Run(resource_name, uuid, args)
 }
 
 func lun_clone_args(disk *openapi.Disk, size int64) ([][]string, error) {
@@ -105,12 +105,12 @@ func lun_delete(disk *openapi.Disk, resource_name string, uuid string) error {
 	if (err != nil) {
 		return err
 	}
-	resource_path := lockman.Get_resource_path(resource_name)
-	args = append(args,
-		[]string{ "/usr/bin/rm", "--", resource_path },
-		[]string{ "/usr/bin/rmdir", "--", filepath.Dir(resource_path) },
-	)
-	return lockman.Run(resource_name, uuid, args, true)
+	/* wipe the LUN under the lease, then drop the resource file */
+	err = lockman.Run(resource_name, uuid, args)
+	if (err != nil) {
+		return err
+	}
+	return lockman.Delete_resource(resource_name, uuid)
 }
 
 /* return the blkdiscard or dd command appropriate for this device */
@@ -141,7 +141,7 @@ func lun_discard_args(path string) ([][]string, error) {
 	if (i > 0) {
 		args = append(args, []string{ paths.Get("BLKDISCARD"), path })
 	} else {
-		args = append(args, []string{ "/usr/bin/dd", "if=/dev/zero", "of=" + path, "bs=1M", "count=1" })
+		args = append(args, []string{ paths.Get("DD"), "if=/dev/zero", "of=" + path, "bs=1M", "count=1" })
 	}
 	return args, nil
 }
