@@ -97,6 +97,7 @@ func vnc_launch_viewer(addr net.Addr) {
 	)
 	path, viewer = vnc_find_viewer()
 	if (path == "") {
+		logger.Log("no VNC viewer found: launch it manually, or retry using --viewer or VNCVIEWER")
 		return
 	}
 	host, port, err = net.SplitHostPort(addr.String())
@@ -234,7 +235,7 @@ func vm_console_vnc_req(uuid string, port int) {
 	if (err != nil) {
 		logger.Fatal("failed to establish VNC tunnel: %s", err.Error())
 	}
-	logger.Debug("VNC console ready: %s", listener.Addr())
+	logger.Log("VNC console listening on %s", listener.Addr())
 	for {
 		vnc_launch_viewer(listener.Addr())
 		vnc_conn, err = listener.Accept()
