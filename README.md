@@ -238,6 +238,33 @@ virtx list vm
 it might take a second or so for the new VM to appear in the list.
 
 
+# MIGRATION NETWORK
+
+Live migration can be directed to a dedicated network instead of using the management network,
+by writing the subnet of that network, in CIDR notation, to a file in shared storage:
+
+```
+echo "192.168.137.0/24" | sudo tee /vms/reg/migration_network
+```
+
+The file is cluster-wide: each virtxd reads it at startup, and matches the configured subnet
+against the interfaces of its own host, to determine the migration address and the network
+interface to advertise to the cluster. Both are reported by the host API
+(GET /hosts/<host-uuid>, see also "virtx get host -n"), and the migration address is used as
+the destination of live migrations (tcp://<migration_addr>), while the interface is
+informational only.
+
+Notes:
+
+- the file is read only once, when virtxd starts: restart virtxd on all hosts of the cluster
+  after creating or changing it;
+
+- the subnet must match an interface present on every host of the cluster;
+
+- if the file does not exist, or if no interface of a host matches it, the migration address
+  of that host is empty, and virtx falls back to using the host name of the destination,
+  ie. to migrate over the management network.
+
 # STORAGE
 
 Storage Management in VirtX is implicit with the lifecycle of VMS.
