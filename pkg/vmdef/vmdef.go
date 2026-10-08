@@ -518,11 +518,15 @@ func vmdef_disk_from_xml(disk *openapi.Disk, domain_disk *libvirtxml.DomainDisk)
 		return errors.New("invalid Disk Alias")
 	}
 	man_mode = fields[0]
+	prov_mode = fields[1]
+	/* man and prov must be single characters */
+	if (len(man_mode) != 1 || len(prov_mode) != 1) {
+		return errors.New("invalid Disk Alias")
+	}
 	err = disk.Man.Parse(man_mode[0])
 	if (err != nil) {
 		return err
 	}
-	prov_mode = fields[1]
 	err = disk.Prov.Parse(prov_mode[0])
 	if (err != nil) {
 		return err
