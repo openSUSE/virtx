@@ -82,6 +82,7 @@ type SystemInfoVm struct {
 
 	/* overall internal counters for Vm Stats */
 	vcpus uint                   /* number of vcpus active (for active domains), 0 for inactive. */
+	runtime_id int32             /* runtime domain id, changes on every domain start, -1 for inactive domains. */
 	hp bool                      /* hugepages used */
 	cpu_time uint64              /* Total cpu time consumed in nanoseconds from libvirt.DomainCPUStats.CpuTime */
 	disk_rd, disk_wr int64       /* Disk Read/Written bytes */
@@ -906,6 +907,7 @@ type xmlInterface struct {
 }
 
 type xmlDomain struct {
+	Id int32 `xml:"id,attr"` /* runtime domain id, absent for inactive domains */
 	MemoryBacking *libvirtxml.DomainMemoryBacking `xml:"memoryBacking"`
 	Devices struct {
 		Disks []xmlDisk `xml:"disk"`
@@ -925,10 +927,12 @@ func get_domain_stats(d *libvirt.Domain, vm *SystemInfoVm, old *SystemInfoVm, im
 		if (err != nil) {
 			return err
 		}
+		xd.Id = -1 /* kept if the id attribute is absent (inactive domain) */
 		err = xml.Unmarshal([]byte(xmldata), &xd)
 		if (err != nil) {
 			return err
 		}
+		vm.runtime_id = xd.Id
 		if (xd.MemoryBacking != nil) {
 			vm.hp = true
 		}
@@ -1012,6 +1016,11 @@ func get_domain_stats(d *libvirt.Domain, vm *SystemInfoVm, old *SystemInfoVm, im
 				break
 			}
 		}
+	}
+	if (old != nil && old.runtime_id != vm.runtime_id) {
+		/* new instance: counters restarted from zero, not overflowed */
+		logger.Debug("gds: runtime_id changed %d -> %d, dropping the previous sample", old.runtime_id, vm.runtime_id)
+		old = nil
 	}
 	if (old != nil) {
 		/* finally, calculate deltas from previous Vm cpu and net stats */
