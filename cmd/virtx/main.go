@@ -145,11 +145,23 @@ func main() {
 		virtx.w = writer.NewWriter(os.Stdout, 0, 4, 1, ' ', writer.StripEscape | writer.Debug)
 		err = cmd_exec()
 		virtx.w.Flush()
+		if (report_warnings(response) > 0) {
+			os.Exit(3) /* done, with warnings */
+		}
 	} else {
 		status := strings.Replace(response.Status, "Insufficient Storage", "Storage Error", 1)
 		fmt.Printf("%s: %s\n", status, strings.TrimSpace(string(vr.Body)))
 		os.Exit(1)
 	}
+}
+
+/* print the Warning headers to stderr, return their count */
+func report_warnings(response *http.Response) int {
+	var warnings []string = response.Header.Values("Warning")
+	for _, warning := range warnings {
+		fmt.Fprintf(os.Stderr, "Warning: %s\n", warning)
+	}
+	return len(warnings)
 }
 
 func read_json(filename string, data any) {
