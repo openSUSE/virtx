@@ -18,6 +18,7 @@
 package virtx
 
 import (
+	"fmt"
 	"net/http"
 	"suse.com/virtx/pkg/hypervisor"
 	"suse.com/virtx/pkg/httpx"
@@ -38,6 +39,7 @@ func vm_boot(w http.ResponseWriter, r *http.Request) {
 		vr httpx.Request
 		o openapi.VmBootOptions
 		msg string
+		runtime_id int32
 	)
 	vr, err = httpx.Decode_request_body(r, &o)
 	if (err != nil) {
@@ -93,7 +95,7 @@ func vm_boot(w http.ResponseWriter, r *http.Request) {
 			logger.Log("vm_boot: oplog: %s", oplog_err.Error())
 		}
 	}()
-	err = hypervisor.Boot_domain(uuid, &o)
+	runtime_id, err = hypervisor.Boot_domain(uuid, &o)
 	if (err != nil) {
 		logger.Log("hypervisor.Boot_domain failed: %s", err.Error())
 		if (oplog_err == nil) {
@@ -103,7 +105,7 @@ func vm_boot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if (oplog_err == nil) {
-		oplog_err = vmlog.End(uuid, openapi.OpVmBoot, openapi.OPERATION_COMPLETED, "Booted.", oplog_off)
+		oplog_err = vmlog.End(uuid, openapi.OpVmBoot, openapi.OPERATION_COMPLETED, fmt.Sprintf("Booted, runtime_id %d.", runtime_id), oplog_off)
 	}
 	httpx.Do_response(w, http.StatusNoContent, nil)
 }

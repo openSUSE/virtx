@@ -23,20 +23,22 @@ import (
 	"suse.com/virtx/pkg/model"
 )
 
-func Boot_domain(uuid string, o *openapi.VmBootOptions) error {
+/* returns the runtime domain id, -1 if unknown */
+func Boot_domain(uuid string, o *openapi.VmBootOptions) (int32, error) {
 	var (
 		err error
 		conn *libvirt.Connect
 		domain *libvirt.Domain
+		runtime_id uint
 	)
 	conn, err = libvirt.NewConnect(LIBVIRT_URI)
 	if (err != nil) {
-		return err
+		return -1, err
 	}
 	defer conn.Close()
 	domain, err = conn.LookupDomainByUUIDString(uuid)
 	if (err != nil) {
-		return err
+		return -1, err
 	}
 	defer domain.Free()
 	if (len(o.CloudInit) > 0) {
@@ -44,5 +46,17 @@ func Boot_domain(uuid string, o *openapi.VmBootOptions) error {
 	} else {
 		err = domain.Create()
 	}
-	return err
+	if (err != nil) {
+		return -1, err
+	}
+	/*
+	 * the libvirt API is broken in many places when it comes to domainid,
+	 * including the return value, which is unsigned int where it clearly
+	 * should be int (in C) and int32 (in Go).
+	 */
+	runtime_id, err = domain.GetID()
+	if (err != nil) {
+		return -1, nil
+	}
+	return int32(runtime_id), nil /* C int: (unsigned int)-1 becomes -1 */
 }
