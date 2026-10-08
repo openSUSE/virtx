@@ -38,6 +38,7 @@ type storage_ops struct {
 type created_resource struct {
 	disk *openapi.Disk
 	resource_name string
+	provisioned bool /* created by this specific operation: delete on rollback */
 }
 type CreatedResources []created_resource /* for rollback */
 
@@ -49,10 +50,10 @@ func Rollback(created CreatedResources, uuid string) {
 		c created_resource
 	)
 	for _, c = range created {
-		if (c.disk.Prov == openapi.DISK_PROV_NONE) {
-			rerr = lockman.Delete_resource(c.resource_name, uuid)
-		} else {
+		if (c.provisioned) {
 			rerr = storage_delete_disk(c.disk, c.resource_name, uuid)
+		} else {
+			rerr = lockman.Delete_resource(c.resource_name, uuid)
 		}
 		if (rerr != nil) {
 			logger.Log("Rollback failed to delete resource %s: %s", c.resource_name, rerr.Error())
@@ -165,17 +166,23 @@ func Create(vm *openapi.Vmdef, old *openapi.Vmdef, uuid string) (CreatedResource
 	)
 	for _, disk := range vmdef.Disks(vm) {
 		if (old != nil && vmdef.Find_disk(old, disk.Path) != nil) {
-			continue
+			continue    /* skip disks that are in both old and new vmdef */
 		}
+		/*
+		 * NOTE! this is a valid DISK_PROV_NONE check only because old disks are skipped
+		 * above, and Detect() has not run yet. Prepare_update() and Detect() overwrite
+		 * Prov with the old and detected value respectively.
+		 */
+		provisioned := storage_is_managed_disk(disk) && disk.Prov != openapi.DISK_PROV_NONE
 		if (storage_is_managed_disk(disk)) {
 			resource_name = lockman.Get_resource_name(disk.Device, disk.Path)
 			err = lockman.Create_resource(resource_name, uuid)
 			if (err != nil) {
 				return created, err
 			}
-			created = append(created, created_resource{ disk, resource_name })
+			created = append(created, created_resource{ disk, resource_name, provisioned })
 		}
-		if (storage_is_managed_disk(disk) && disk.Prov != openapi.DISK_PROV_NONE) {
+		if (provisioned) {
 			err = storage_create_disk(disk, resource_name, uuid)
 		} else {
 			err = Detect(disk)
