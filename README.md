@@ -150,8 +150,13 @@ serf agent &
 start virtxd on the initial node, using the systemd provided service or f.e.: like so:
 
 ```
-sudo -u qemu -g disk nohup virtxd
+sudo -u qemu -G disk,sanlock nohup virtxd
 ```
+
+virtxd runs as qemu:qemu, with the disk and sanlock groups as supplementary
+groups: the raw disks in /dev/ are accessed through disk, and /vms/lock plus
+the sanlock daemon through sanlock. Without the sanlock group the first start
+fails, when virtxd creates /vms/lock and chowns it to the sanlock group.
 
 then proceed to the next node, where you will start the serf agent in the same way:
 
@@ -174,7 +179,7 @@ serf agent -join=virt1 &
 after that, start virtxd on this node too, again with the same command:
 
 ```
-sudo -u qemu -g disk nohup virtxd
+sudo -u qemu -G disk,sanlock nohup virtxd
 ```
 
 If you are using systemd service files for serf and virtx, you will likely just
