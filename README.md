@@ -293,6 +293,19 @@ not implemented. Use either to provision the disk.
 
 By contrast, an "unprovisioned" disk (0) will be assumed to be an existing resource.
 
+# STORAGE TIMEOUTS
+
+virtxd reads the state of the storage and of the lockspace in a few places:
+it detects the format and the provisioning of an image with qemu-img info and
+qemu-img map, and it reads the state of the lockspace with sanlock client gets
+and host_status. These reads, and only these, are given up on after 30 seconds:
+when the shared storage stops answering, the REST request that asked for them
+fails with an error instead of waiting forever.
+
+The commands that modify the storage are not interrupted: qemu-img create and
+convert, wipefs, blkdiscard, dd, and the sanlock commands that create the
+lockspaces and the resource files are left to finish, however long they take.
+
 # DEBUG ISSUES
 
 Investigate issues using your journalctl (if running as service),

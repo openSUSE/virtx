@@ -27,6 +27,7 @@ import (
 	"strconv"
 	"sync"
 	"time"
+	"context"
 	"crypto/md5"
 	"encoding/binary"
 	"encoding/hex"
@@ -269,7 +270,6 @@ func lm_search_join_lockspace(host_uuid string) (uint16, error) {
 		err error
 		args []string
 		sanlock_path string
-		cmd *exec.Cmd
 		output []byte
 		h [16]byte
 		host_id uint16
@@ -281,9 +281,7 @@ func lm_search_join_lockspace(host_uuid string) (uint16, error) {
 	/* get the status of busy IDs from the daemon perspective */
 	sanlock_path = fmt.Sprintf("%s:%d:%s:%d", LOCK_SPACE, 0, LOCK_SPACE_FILE, 0)
 	args = []string{ "client", "host_status", "-s", sanlock_path }
-	logger.Debug("sanlock %v", args)
-	cmd = exec.Command(paths.Get("SANLOCK"), args...)
-	output, err = cmd.CombinedOutput()
+	output, err = lm_probe(args...)
 	if (err != nil && len(output) != 0) { /* sanlock exits with error if there are no hosts in the list */
 		return 0, err
 	}
@@ -325,15 +323,12 @@ func lm_inq_lockspace() (uint16, error) {
 	var (
 		err error
 		args []string
-		cmd *exec.Cmd
 		output []byte
 		host_id uint16
 		fmts string = fmt.Sprintf("s %s:%%d:%s:%d", LOCK_SPACE, LOCK_SPACE_FILE, 0)
 	)
 	args = []string{ "client", "gets" }
-	logger.Debug("sanlock %v", args)
-	cmd = exec.Command(paths.Get("SANLOCK"), args...)
-	output, err = cmd.CombinedOutput()
+	output, err = lm_probe(args...)
 	if (err != nil) {
 		logger.Log("%s\n", string(output))
 		return 0, err
@@ -612,6 +607,33 @@ func lm_init_resource_file(resource_path string, resource_name string, uuid stri
 		return err
 	}
 	return lm_set_lvb(fd, uuid)
+}
+
+/*
+ * Run a read-only sanlock client command.
+ *
+ * Unlike the commands that change the state of the lockspace or of a
+ * resource, a probe must not be able to block its caller for good: sanlock
+ * waits on the shared storage, and the callers here are HTTP handlers and
+ * the system information loop.
+ */
+func lm_probe(args ...string) ([]byte, error) {
+	var (
+		output []byte
+		ctx context.Context
+		cancel context.CancelFunc
+		cmd *exec.Cmd
+		err error
+	)
+	logger.Debug("sanlock %v", args)
+	ctx, cancel = context.WithTimeout(context.Background(), PROBE_TIMEOUT_SECONDS * time.Second)
+	defer cancel()
+	cmd = exec.CommandContext(ctx, paths.Get("SANLOCK"), args...)
+	output, err = cmd.CombinedOutput()
+	if (errors.Is(ctx.Err(), context.DeadlineExceeded)) {
+		return output, fmt.Errorf("sanlock probe timed out after %d seconds", PROBE_TIMEOUT_SECONDS)
+	}
+	return output, err
 }
 
 /* run a set of commands under resource lock, the first failure stops the chain */

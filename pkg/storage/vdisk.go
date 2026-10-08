@@ -21,8 +21,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"context"
 	"errors"
 	"fmt"
+	"time"
 	"encoding/json"
 	"bytes"
 	"golang.org/x/sys/unix"
@@ -212,6 +214,32 @@ type qmap struct {
 	//Offset     uint64 `json:"offset"`
 }
 
+/*
+ * Run a read-only qemu-img command, like a probe of an image.
+ *
+ * Unlike the commands that create and convert images, a probe must not be
+ * able to block its caller for good: qemu-img waits on the shared storage,
+ * and the callers here are HTTP handlers.
+ */
+func qemu_img_probe(args ...string) ([]byte, error) {
+	var (
+		ctx context.Context
+		cancel context.CancelFunc
+		cmd *exec.Cmd
+		output []byte
+		err error
+	)
+	logger.Debug("qemu-img %v", args)
+	ctx, cancel = context.WithTimeout(context.Background(), PROBE_TIMEOUT_SECONDS * time.Second)
+	defer cancel()
+	cmd = exec.CommandContext(ctx, paths.Get("QEMU_IMG"), args...)
+	output, err = cmd.CombinedOutput()
+	if (errors.Is(ctx.Err(), context.DeadlineExceeded)) {
+		return output, fmt.Errorf("qemu-img probe timed out after %d seconds", PROBE_TIMEOUT_SECONDS)
+	}
+	return output, err
+}
+
 func vdisk_detect_qcow2_prov(path string) (openapi.DiskProvMode, int32, error) {
 	var (
 		err error
@@ -220,10 +248,7 @@ func vdisk_detect_qcow2_prov(path string) (openapi.DiskProvMode, int32, error) {
 		qmaps []qmap
 	)
 	args := []string { "map", "--output=json", "-f", "qcow2", path }
-	logger.Debug("qemu-img %v", args)
-	var cmd *exec.Cmd = exec.Command(paths.Get("QEMU_IMG"), args...)
-	var output []byte
-	output, err = cmd.CombinedOutput()
+	output, err := qemu_img_probe(args...)
 	if (err != nil) {
 		logger.Log("%s\n", string(output))
 		return openapi.DISK_PROV_NONE, 0, err
@@ -268,9 +293,7 @@ type qinfo struct {
 func vdisk_detect_qcow2_vsize(path string) (int64, error) {
 	var info qinfo
 	args := []string{ "info", "--output=json", "-f", "qcow2", path }
-	logger.Debug("qemu-img %v", args)
-	cmd := exec.Command(paths.Get("QEMU_IMG"), args...)
-	output, err := cmd.CombinedOutput()
+	output, err := qemu_img_probe(args...)
 	if (err != nil) {
 		logger.Log("%s\n", string(output))
 		return 0, fmt.Errorf("qemu-img info failed: %w", err)

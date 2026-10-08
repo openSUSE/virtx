@@ -35,6 +35,8 @@ const (
 	DEV_DIR = "/dev/"
 	CPUMODEL_VER = `-v\d+$`
 	HTTP_MAX_BODY_LEN = 1048576
+	/* how long a read-only probe may take before it is given up on */
+	PROBE_TIMEOUT_SECONDS = 30
 	VM_NAME_MAX = 32
 	NET_NAME_MAX = 32
 	CPU_NAME_MAX = 32
