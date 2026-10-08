@@ -143,7 +143,7 @@ func Decode_request_body(r *http.Request, arg any) (Request, error) {
 	if (r.ContentLength <= 0) {
 		return vr, errors.New("Body expected but not found")
 	}
-	if (r.ContentLength >= HTTP_MAX_BODY_LEN) {
+	if (r.ContentLength > HTTP_MAX_BODY_LEN) {
 		return vr, errors.New("content-length exceeded")
 	}
 	vr.body, err = io.ReadAll(io.LimitReader(r.Body, HTTP_MAX_BODY_LEN))
@@ -173,7 +173,7 @@ func Decode_response_body(r *http.Response, result any) (Response, error) {
 	if (r.ContentLength <= 0) {
 		return vr, errors.New("Body expected but not found")
 	}
-	if (r.ContentLength >= HTTP_MAX_BODY_LEN) {
+	if (r.ContentLength > HTTP_MAX_BODY_LEN) {
 		return vr, errors.New("content-length exceeded")
 	}
 	vr.Body, err = io.ReadAll(io.LimitReader(r.Body, HTTP_MAX_BODY_LEN))
