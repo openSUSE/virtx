@@ -75,6 +75,8 @@ func vdisk_create(disk *openapi.Disk, resource_name string, uuid string) error {
 		} else if (int64(disk.Size) * MiB < vsize) {
 			return fmt.Errorf("disk.Size is smaller than disk.Source size")
 		}
+	} else if (disk.Size <= 0) {
+		return errors.New("disk with no Source needs Size > 0")
 	}
 	err = os.MkdirAll(filepath.Dir(disk.Path), 0750)
 	if (err != nil) {
