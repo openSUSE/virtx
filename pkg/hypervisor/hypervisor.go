@@ -71,6 +71,7 @@ type Hypervisor struct {
 
 	vcpu_load_factor float64
 	si *SystemInfo
+	save_vminfo atomic.Bool /* write the vminfo to reg on the next system_info_save_vminfo */
 }
 var hv = Hypervisor{
 	m: sync.RWMutex{},

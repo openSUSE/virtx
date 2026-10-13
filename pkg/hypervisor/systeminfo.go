@@ -165,13 +165,16 @@ func system_info_init(si *SystemInfo) {
 	set_system_info_loop_done()
 }
 
-/* save the VmInfo of all VMs to reg, if any changed in this system_info_get */
+/* save the VmInfo of all VMs to reg, if any changed in this system_info_get or the last save failed */
 func system_info_save_vminfo(si *SystemInfo) {
 	var (
 		vms []inventory.VmInfo
 		err error
 	)
-	if (!si.vms_changed) {
+	if (si.vms_changed) {
+		hv.save_vminfo.Store(true)
+	}
+	if (!hv.save_vminfo.Load()) {
 		return
 	}
 	for _, vm := range si.Vms {
@@ -188,7 +191,9 @@ func system_info_save_vminfo(si *SystemInfo) {
 	err = reg.Save_vminfo(si.Host.Uuid, si.Host.VI_ts, vms)
 	if (err != nil) {
 		logger.Log("system_info_save_vminfo: %s", err.Error())
+		return
 	}
+	hv.save_vminfo.Store(false)
 }
 
 /*
