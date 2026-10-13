@@ -99,6 +99,20 @@ func send_VE(e *inventory.VmEvent) error {
 	return send_user_event(LABEL_VM_EVENT, serf.enc_buffer[:eventsize])
 }
 
+/* the serf tags of a HostInfo, without Cstate which each receiver sets from the serf member status */
+func encode_host_tags(hi *inventory.HostInfo) (map[string]string, error) {
+	var (
+		tags map[string]string
+		err error
+	)
+	tags, err = serftags.Encode(hi)
+	if (err != nil) {
+		return nil, err
+	}
+	delete(tags, "Cstate")
+	return tags, nil
+}
+
 /* publish the HostInfo as serf tags */
 func update_host_tags(host_info *inventory.HostInfo) error {
 	serf.m.Lock()
@@ -110,7 +124,7 @@ func update_host_tags(host_info *inventory.HostInfo) error {
 	if (serf.c == nil) {
 		return errors.New("RPC client closed")
 	}
-	tags, err = serftags.Encode(host_info)
+	tags, err = encode_host_tags(host_info)
 	if (err != nil) {
 		return err
 	}
@@ -335,7 +349,7 @@ func remove_stale_tags() error {
 		present bool
 		err error
 	)
-	keys, err = serftags.Encode(&inventory.HostInfo{})
+	keys, err = encode_host_tags(&inventory.HostInfo{})
 	if (err != nil) {
 		return err
 	}
