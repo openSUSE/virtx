@@ -140,12 +140,8 @@ func recv_serf_events() {
 			switch (name) {
 			case "user":
 				handle_user_event(e)
-			case "member-leave":
-				handle_member_change(e, openapi.CSTATE_LEFT)
-			case "member-reap", "member-failed":
-				handle_member_change(e, openapi.CSTATE_FAILED)
-			case "member-join", "member-update":
-				handle_member_change(e, openapi.CSTATE_ACTIVE)
+			case "member-join", "member-update", "member-leave", "member-failed", "member-reap":
+				handle_member_change(e)
 			}
 		}
 
@@ -163,12 +159,27 @@ func recv_serf_events() {
 	}
 }
 
-func handle_member_change(e map[string]any, newstate openapi.Cstate) {
+/* the Cstate of a serf member status */
+func member_cstate(status string) (openapi.Cstate, error) {
+	switch (status) {
+	case "alive":
+		return openapi.CSTATE_ACTIVE, nil
+	case "leaving", "left":
+		return openapi.CSTATE_LEFT, nil
+	case "failed":
+		return openapi.CSTATE_FAILED, nil
+	}
+	return openapi.CSTATE_INVALID, fmt.Errorf("unknown serf status '%s'", status)
+}
+
+func handle_member_change(e map[string]any) {
 	var (
 		err error
 		hi inventory.HostInfo
+		cstate openapi.Cstate
 		tags map[string]string
 		name string = e["Event"].(string)
+		status string
 		addr []byte
 		ok bool
 	)
@@ -187,10 +198,19 @@ func handle_member_change(e map[string]any, newstate openapi.Cstate) {
 			logger.Log("handle_member_change: %s: Uuid tag missing", name)
 			continue
 		}
-		logger.Debug("%s %s", name, hi.Uuid)
-		if (newstate == openapi.CSTATE_ACTIVE) {
-			/* join or update: the tags carry the current HostInfo */
-			hi.Cstate = newstate
+		status, ok = m.(map[any]any)["Status"].(string)
+		if (!ok) {
+			logger.Log("handle_member_change: %s: %s: Status missing", name, hi.Uuid)
+			continue
+		}
+		cstate, err = member_cstate(status)
+		if (err != nil) {
+			logger.Log("handle_member_change: %s: %s: %s", name, hi.Uuid, err.Error())
+			continue
+		}
+		logger.Debug("%s %s %s", name, hi.Uuid, status)
+		if (cstate == openapi.CSTATE_ACTIVE) {
+			hi.Cstate = cstate
 			addr, ok = m.(map[any]any)["Addr"].([]byte)
 			if (!ok) {
 				logger.Log("handle_member_change: %s: %s: Addr missing", name, hi.Uuid)
@@ -199,7 +219,7 @@ func handle_member_change(e map[string]any, newstate openapi.Cstate) {
 			handle_hostinfo(&hi, net.IP(addr).String())
 			continue
 		}
-		err = inventory.Set_host_state(hi.Uuid, newstate)
+		err = inventory.Set_host_state(hi.Uuid, cstate)
 		if (err != nil) {
 			logger.Log("%s", err.Error())
 		}
@@ -402,17 +422,9 @@ func read_all_hostinfo() error {
 		if (hi.Uuid == "") {
 			continue
 		}
-		switch (m.Status) {
-		case "alive":
-			hi.Cstate = openapi.CSTATE_ACTIVE
-		case "leaving", "left":
-			hi.Cstate = openapi.CSTATE_LEFT
-		case "failed":
-			hi.Cstate = openapi.CSTATE_FAILED
-		case "none":
-			hi.Cstate = openapi.CSTATE_INVALID
-		default:
-			logger.Log("read_all_hostinfo: %s: unknown serf status '%s'", m.Name, m.Status)
+		hi.Cstate, err = member_cstate(m.Status)
+		if (err != nil) {
+			logger.Log("read_all_hostinfo: %s: %s", m.Name, err.Error())
 			continue
 		}
 		handle_hostinfo(&hi, m.Addr.String())
