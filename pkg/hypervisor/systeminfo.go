@@ -29,6 +29,7 @@ import (
 	"strings"
 	"strconv"
 	"reflect"
+	"slices"
 
 	"libvirt.org/go/libvirt"
 	"libvirt.org/go/libvirtxml"
@@ -176,6 +177,14 @@ func system_info_save_vminfo(si *SystemInfo) {
 	for _, vm := range si.Vms {
 		vms = append(vms, vm.VmInfo)
 	}
+	/* sort by name, then uuid, for a stable file order */
+	slices.SortFunc(vms, func(a, b inventory.VmInfo) int {
+		var result int = strings.Compare(a.Name, b.Name)
+		if (result == 0) {
+			result = strings.Compare(a.Uuid, b.Uuid)
+		}
+		return result
+	})
 	err = reg.Save_vminfo(si.Host.Uuid, si.Host.VI_ts, vms)
 	if (err != nil) {
 		logger.Log("system_info_save_vminfo: %s", err.Error())
