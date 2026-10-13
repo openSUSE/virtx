@@ -522,6 +522,7 @@ out:
  * including VMs added or removed. The Ts is ignored, as it is set on every tick.
  */
 func system_info_vms_changed(old SystemInfoVms, vms SystemInfoVms) bool {
+	/* assert hv.m.RLock() or hv.m.Lock() */
 	var (
 		vm, oldvm SystemInfoVm
 		present bool
@@ -1109,7 +1110,7 @@ func system_info_get_vmstats(si *SystemInfo, uuid string) (openapi.Vmstats, erro
 }
 
 func system_info_get_host(si *SystemInfo) openapi.Host {
-	/* assert hv.m.Rlock() */
+	/* assert hv.m.RLock() */
 	return openapi.Host{
 		Uuid: machine.Uuid(),
 		Def: openapi.Hostdef{
@@ -1137,6 +1138,7 @@ func system_info_get_host(si *SystemInfo) openapi.Host {
 }
 
 func system_info_get_hoststats(si *SystemInfo) openapi.Hoststats {
+	/* assert hv.m.RLock() */
 	return si.Host.stats
 }
 
