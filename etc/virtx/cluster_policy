@@ -1,0 +1,126 @@
+# Cluster policy of a virtx cluster, /vms/reg/cluster_policy.
+#
+# This file belongs to the cluster, not to a single host: every host reads it,
+# and every host has to agree on it before a judgement may become an action.  It
+# is read from the shared registration tree, and each host keeps the policy it
+# applied on its own disk, so that a judgement made while that tree is out of
+# reach still uses the settings the host was last told to use.
+#
+# The syntax is one "setting = value" per line, a # starts a comment, blank
+# lines are ignored and a value may be quoted.  A setting the file does not
+# mention, and a setting whose value cannot be used, keep the value documented
+# below; only a file that cannot be read at all changes more than one setting,
+# because it forces ha_enabled off.
+#
+# generation is written by whatever changes this file, and only ever moves
+# forward: a host remembers the generation it applied and refuses an older one,
+# which is what keeps a host that comes back with an old view from pushing the
+# cluster back to it.  Bump it on every change; it stays 0 while the cluster has
+# no policy yet.
+generation = 0
+#
+# changed_by is the uuid of the host that wrote this file last, and changed_at is
+# when it did (milliseconds since the epoch).  Render writes both on every change;
+# they are how an operator tells a policy that was changed from one that was only
+# read, and nothing in the cluster acts on them.
+changed_by = ""
+changed_at = 0
+#
+# ha_enabled is the switch of the action surface.  While it is off the hosts
+# judge and log, and do nothing; a file that cannot be read forces it off, and
+# so does a file that is gone while its directory is still there.
+ha_enabled = false
+#
+# ha_hastate_refresh_seconds is how often a host publishes what it sees about
+# itself and about the other hosts.  It is the pace of every window that is
+# counted in rounds.  Default 5.
+ha_hastate_refresh_seconds = 5
+#
+# ha_hastate_stale_seconds is how long the report of a host may stand still
+# before it stops counting as evidence about that host.  It has to be larger
+# than the refresh interval, or every host would look stale between two rounds.
+# Default 30.
+ha_hastate_stale_seconds = 30
+#
+# ha_isolation_address_0 .. ha_isolation_address_9 are the addresses a host
+# pings to tell "my own network is broken" apart from "that peer is
+# unreachable", one address per line, at most ten of them, in the same shape as
+# das.isolationaddress[N] in vSphere HA.  An address that is not an IP is
+# refused with a warning.  They are unset by default, which is what the lines
+# below show; uncomment and fill them in when the cluster has addresses that
+# every host can reach.
+# The keys are optional: a host that has none probes the address it derives from its
+# own management network, so a cluster that never sets them is not broken - it is
+# only less clear about what it probes.  A host counts itself isolated when a probe
+# it ran reached none of the addresses it has, so setting at least two that fail
+# independently is what keeps one lost packet, or a gateway that rate limits ICMP,
+# from looking like an isolation.
+#ha_isolation_address_0 = 192.0.2.1
+#ha_isolation_address_1 = 192.0.2.2
+#
+#
+# ha_max_inflight is how many takeovers may be in flight at the same time.  A
+# takeover moves a whole VM, so starting several at once only makes the
+# storage the bottleneck, and how many may be started at once is a decision
+# about the cluster, not about one host: one is the polite setting for a
+# small cluster.  Default 1.
+ha_max_inflight = 1
+# changed_by and changed_at are written by whatever changes this file, so that
+# the next reader can see who moved it and when.  They are not meant to be
+# edited by hand, and they are empty until the first change is written.
+#changed_by = ""
+#changed_at = ""
+# ha_isolation_response is what a host does with its own running VMs when it
+# finds itself cut off from every judge address while the action surface is on:
+# leave-on keeps them running, shut-down asks the guest to stop (ACPI), and
+# power-off stops them outright.  The default is power-off.  A value that is not
+# one of those three is refused and reads as leave-on - a typo must not turn into
+# the most aggressive behaviour.
+ha_isolation_response = power-off
+# ha_isolation_seconds is how long a host waits, after it has found itself cut off
+# from every judge address, before it acts on its own VMs: the delay is what lets
+# that host stop its VMs, and their disk leases go, before the hosts that are
+# still in touch start them anywhere else.
+# The default is 14.
+ha_isolation_seconds = 14
+
+# ha_isolation_start_interval_seconds is how far apart the VMs of an isolated host
+# are started again on the host that took them over: they are started one at a
+# time, and this is the pause between two of them.  A little distance between the
+# starts keeps a rescued host from taking the whole load of a failed one in one
+# breath.  The default is 5.
+ha_isolation_start_interval_seconds = 5
+
+#
+# Every setting, what it decides, and what it defaults to:
+#
+#   generation                          written by whoever changes this file; it
+#                                       only ever moves forward, and a host
+#                                       refuses an older one; default 0
+#   changed_by / changed_at             who wrote this file, and when; written by
+#                                       Render on every change
+#   ha_enabled                          the action surface: off means the hosts
+#                                       judge and log and do nothing; a file that
+#                                       cannot be read forces it off; default false
+#   ha_hastate_refresh_seconds          the pace of everything counted in rounds:
+#                                       the report of a host and its judge probe,
+#                                       the judgement loop, the coordinator patrol;
+#                                       default 5
+#   ha_hastate_stale_seconds            how long the report of a host may stand
+#                                       still before it stops being evidence about
+#                                       that host; default 30
+#   ha_isolation_address_0 .. _9        the addresses a host pings to tell "my own
+#                                       network is broken" from "that peer is
+#                                       unreachable"; unset, it probes the gateway
+#                                       of its management network
+#   ha_isolation_response               what an isolated host does with its own VMs:
+#                                       leave-on, shut-down or power-off; default
+#                                       power-off
+#   ha_isolation_seconds                how long it waits after the first round that
+#                                       saw it isolated before it acts, and the
+#                                       cluster starts those VMs a second later;
+#                                       default 14
+#   ha_isolation_start_interval_seconds how far apart the VMs it gave up are started
+#                                       again on the host that claimed them; default 5
+#   ha_max_inflight                     how many takeovers may be in flight at the
+#                                       same time; default 1

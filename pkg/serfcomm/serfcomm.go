@@ -367,6 +367,28 @@ func remove_stale_tags() error {
 }
 
 /* add all current serf members to the inventory */
+/*
+ * Management_addr returns the management network address of one host, taken from
+ * our own serf view of the membership: the HostInfo travels in the serf member
+ * tags and the member's address is kept as Hostdata.Man_ip (handle_hostinfo), so
+ * the inventory is the source here. It is the address the judgement layer pings
+ * in the fourth column of the decision table.
+ */
+func Management_addr(uuid string) (string, error) {
+	var (
+		hostdata inventory.Hostdata
+		err error
+	)
+	hostdata, err = inventory.Get_hostdata(uuid)
+	if (err != nil) {
+		return "", err
+	}
+	if (hostdata.Man_ip == "") {
+		return "", fmt.Errorf("no management address known for host %s", uuid)
+	}
+	return hostdata.Man_ip, nil
+}
+
 func read_all_hostinfo() error {
 	/* assert serf.m.Lock() */
 	var (

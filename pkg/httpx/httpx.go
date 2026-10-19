@@ -31,6 +31,7 @@ import (
 	"sync"
 	"time"
 	"strconv"
+	"strings"
 
 	"suse.com/virtx/pkg/logger"
 	. "suse.com/virtx/pkg/constants"
@@ -204,15 +205,70 @@ func (b *CancelBody) Close() error {
 	return b.ReadCloser.Close()
 }
 
-func Do_request(api_server string, method string, path string, arg any) (*http.Response, error) {
+/*
+ * request_url builds the URL of one API call. path is a path and nothing else:
+ * a query string travels separately and is encoded into RawQuery.
+ *
+ * That separation is not cosmetic. Setting a path that contains "?" escapes the
+ * "?" into the path, and the receiving virtxd then routes the whole thing as a
+ * path. Measured on the first instructed takeover:
+ *
+ *	POST /vms/<uuid>/takeover?epoch=...&mask_deadline_ms=...&dry_run=1
+ *	  arrived as /vms/<uuid>/takeover%3Fepoch=... and the API answered
+ *	  "404 page not found" (elapsed 29 ms) - the instruction never reached the
+ *	  landing host at all.
+ *
+ * A "?" left in path is treated as a safety net for an older caller: it is
+ * split off and merged into the query rather than escaped into the path. New
+ * callers pass url.Values (see Do_request_query).
+ */
+func request_url(api_server string, path string, query url.Values) url.URL {
 	var (
 		addr url.URL
+		cut int
+	)
+	cut = strings.IndexByte(path, '?')
+	if (cut >= 0) {
+		var (
+			extra url.Values
+			err error
+		)
+		extra, err = url.ParseQuery(path[cut + 1:])
+		if (err == nil) {
+			if (query == nil) {
+				query = url.Values{}
+			}
+			for key, values := range extra {
+				for _, value := range values {
+					if (!query.Has(key)) {
+						query.Add(key, value)
+					}
+				}
+			}
+		}
+		path = path[:cut]
+	}
+	addr.Scheme = "http"
+	addr.Host = net.JoinHostPort(api_server, "8080")
+	addr.Path = path
+	if (len(query) > 0) {
+		addr.RawQuery = query.Encode()
+	}
+	return addr
+}
+
+/* Do_request sends one API call without a query string. */
+func Do_request(api_server string, method string, path string, arg any) (*http.Response, error) {
+	return Do_request_query(api_server, method, path, nil, arg)
+}
+
+/* Do_request_query sends one API call whose parameters travel as a query string. */
+func Do_request_query(api_server string, method string, path string, query url.Values, arg any) (*http.Response, error) {
+	var (
+		addr url.URL = request_url(api_server, path, query)
 		buf bytes.Buffer
 		err error
 	)
-	addr.Path = path
-	addr.Host = net.JoinHostPort(api_server, "8080")
-	addr.Scheme = "http"
 	err = json.NewEncoder(&buf).Encode(arg)
 	if (err != nil) {
 		return nil, err

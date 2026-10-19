@@ -62,6 +62,7 @@ func Init() {
 	servemux.HandleFunc("DELETE /vms/{uuid}/runstate/migrate", vm_migrate_abort)
 	servemux.HandleFunc("PUT /vms/{uuid}/register", vm_register)
 	servemux.HandleFunc("DELETE /vms/{uuid}/register", vm_unregister)
+	servemux.HandleFunc("POST /vms/{uuid}/takeover", vm_takeover)
 	servemux.HandleFunc("GET /vms/{uuid}/console/vnc", vm_console_vnc)
 	servemux.HandleFunc("GET /vms/{uuid}/console/serial", vm_console_serial)
 	servemux.HandleFunc("GET /vms/{uuid}/log", vm_log)
@@ -69,6 +70,10 @@ func Init() {
 	servemux.HandleFunc("GET /hosts", host_list)
 	servemux.HandleFunc("GET /hosts/{uuid}", host_get)
 	servemux.HandleFunc("GET /hosts/{uuid}/stats", host_stats_get)
+
+	/* the switch of the action surface of the cluster */
+	servemux.HandleFunc("GET /ha", ha_get)
+	servemux.HandleFunc("PUT /ha", ha_put)
 
 	service = Service{
 		servemux: servemux,

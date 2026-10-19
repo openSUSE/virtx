@@ -26,10 +26,10 @@ import (
 /*
  * /usr/sbin/virtx-check-lvb resource_path vm_uuid
  *
- * This command reads the resource lock file LVB sector,
+ * This command reads the resource lock file LOCK_VALUE sector,
  * and compares it with the passed vm_uuid,
  * to ensure that the resource belongs to the specified VM.
- * It returns 0 if and only if the LVB == vm_uuid
+ * It returns 0 if and only if the LOCK_VALUE == vm_uuid
  */
 func main() {
 	if (len(os.Args) != 3) {
@@ -56,6 +56,6 @@ func check_lvb(resource_path string, uuid string) int {
 	if (uuid != lvb) {
 		return 1
 	}
-	/* LVB checks ok! */
+	/* LOCK_VALUE checks ok! */
 	return 0
 }

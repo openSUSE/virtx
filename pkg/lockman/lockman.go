@@ -51,7 +51,7 @@ const (
 	/* see sanlock_rv.h */
 	SANLK_HOSTID_BUSY = -262
 
-	LVB_SECTOR = 2002 /* see sanlock resource.c */
+	LOCK_VALUE_SECTOR = 2002 /* see sanlock resource.c */
 	BLOCK_SIZE = 512 /* on NFS, sanlock and libvirt always use 512 byte blocks */
 )
 type Lockman struct {
@@ -126,6 +126,14 @@ func Init(host_uuid string) error {
 	if (err != nil) {
 		return errors.New("lm_inq_lockspace: " + err.Error())
 	}
+	/*
+	 * The lockspace is joined, so the daemon knows this host's host_id: give
+	 * back the resource leases this host still holds there from an earlier
+	 * life but no longer owns (stale.go). It never blocks the startup, and
+	 * the coordinator's first classification happens later. The host_id is
+	 * passed in: we hold lm.m here, so the sweep must not read it itself.
+	 */
+	Release_stale_registrations(lm.host_id)
 	return nil
 }
 
@@ -369,6 +377,107 @@ func lm_leave_lockspace() error {
 }
 
 /*
+ * Get_coord_path is where the coordinator lease lives: one flat file directly
+ * in the lock directory (the resource name is already unique), rather than the
+ * per-resource directory layout the VM disk leases use. The decision layer's
+ * text calls it a "resource file", and there is no reason to wrap it in
+ * a directory of the same name.
+ */
+func Get_coord_path(resource_name string) string {
+	return LOCK_DIR + resource_name
+}
+
+/*
+ * tmp_resource_path is the temporary file one create attempt initializes before
+ * it is linked into place under the final name.
+ *
+ * The name must be unique per attempt: every host creates the same resource on
+ * the same shared storage, and with one fixed name two hosts delete each
+ * other's half-written file, which makes the link(2) below fail with ENOENT
+ * (measured 2026-10-07: "link /vms/lock/__VIRTX__COORD.tmp
+ * /vms/lock/__VIRTX__COORD: no such file or directory"). The writer's uuid, the
+ * pid and the nanosecond clock keep it unique without any coordination and say
+ * who left it behind, the same way Create_resource's MkdirTemp does for the
+ * per-resource directory layout.
+ */
+func tmp_resource_path(final_path string, uuid string) string {
+	return fmt.Sprintf("%s.tmp.%s.%d.%d", final_path, uuid, os.Getpid(), time.Now().UnixNano())
+}
+
+/*
+ * Create_resource_flat initializes one resource file directly in LOCK_DIR.
+ * It mirrors Create_resource (initialize under a temporary name, then link it
+ * into place so that parallel creations cannot replace each other); a flat file
+ * cannot use rename for that, because rename would silently overwrite, so it
+ * uses link(2), which fails with EEXIST instead.
+ *
+ * A file that already exists is not an error here: the coordinator's rule is
+ * "create first, then take" (row 5a), and losing that race just
+ * means someone else created it.
+ */
+func Create_resource_flat(resource_name string, uuid string) error {
+	return create_resource_flat(Get_coord_path(resource_name), resource_name, uuid, lm_init_resource_file)
+}
+
+/*
+ * create_resource_flat is Create_resource_flat with the final path and the
+ * initializer passed in, so that the create race can be tested with real files
+ * and without sanlock or the lock directory.
+ *
+ * The temporary file is unique per attempt (tmp_resource_path), so two hosts
+ * creating the same resource cannot disturb each other: each one initializes
+ * its own file and only the link(2) into the final name decides the winner.
+ * That link either succeeds, or fails with EEXIST because another host got
+ * there first - and EEXIST is the only outcome that means "it exists". ENOENT
+ * means our own temporary file went away, which is a real failure and is
+ * reported as such (it must never be read as "already exists").
+ *
+ * The temporary file is removed on every path this function can take (a failed
+ * initializer, a lost race, a successful link). A process that is killed in
+ * between leaves one uniquely named file behind: nothing ever reuses that name,
+ * so it is litter rather than a hazard, and only an operator should remove it -
+ * a sweep cannot tell a dead writer's file from a live one's.
+ */
+func create_resource_flat(final_path string, resource_name string, uuid string,
+                          init func(resource_path string, resource_name string, uuid string) error) error {
+	var (
+		err error
+		lerr error
+		tmp_path, lvb string
+	)
+	_, err = os.Stat(final_path)
+	if (err == nil) {
+		lvb, lerr = Read_lvb(final_path)
+		if (lerr != nil) {
+			return nil /* it exists, which is all we need to know */
+		}
+		logger.Debug("lockman: %s already exists (LOCK_VALUE %q)", resource_name, lvb)
+		return nil
+	}
+	tmp_path = tmp_resource_path(final_path, uuid)
+	err = init(tmp_path, resource_name, uuid)
+	if (err != nil) {
+		_ = os.Remove(tmp_path)
+		return err
+	}
+	err = os.Link(tmp_path, final_path)
+	_ = os.Remove(tmp_path)
+	if (err == nil) {
+		return nil
+	}
+	if (errors.Is(err, os.ErrExist)) {
+		/* another host linked its file in first: that file is the resource */
+		logger.Debug("lockman: %s was created by someone else first", resource_name)
+		return nil
+	}
+	if (errors.Is(err, os.ErrNotExist)) {
+		return fmt.Errorf("cannot put %s in place: its temporary file is gone (not \"already exists\"): %w",
+		                  resource_name, err)
+	}
+	return err
+}
+
+/*
  * Create and initialize a new resource file that doesn't exist.
  * If the resource already exists, fail.
  */
@@ -382,7 +491,7 @@ func Create_resource(resource_name string, uuid string) error {
 	if (err == nil) {
 		lvb, err = Read_lvb(resource_path)
 		if (err != nil) {
-			logger.Log("failed to Read LVB: %s", err)
+			logger.Log("failed to Read LOCK_VALUE: %s", err)
 			return fmt.Errorf("(0) cannot create %s for vm %s: it already exists", resource_name, uuid)
 		}
 		return fmt.Errorf("(1) cannot create %s for vm %s: it already exists for vm %s", resource_name, uuid, lvb)
@@ -416,7 +525,7 @@ func Create_resource(resource_name string, uuid string) error {
 			_ = os.Remove(path)
 			lvb, err = Read_lvb(resource_path)
 			if (err != nil) {
-				logger.Log("failed to Read LVB: %s", err)
+				logger.Log("failed to Read LOCK_VALUE: %s", err)
 				return fmt.Errorf("(2) cannot create %s for vm %s: it already exists", resource_name, uuid)
 			}
 			return fmt.Errorf("(3) cannot create %s for vm %s: it already exists for vm %s", resource_name, uuid, lvb)
@@ -442,10 +551,10 @@ func Check_resource(resource_name string, uuid string) error {
 	}
 	lvb, err = Read_lvb(resource_path)
 	if (err != nil) {
-		return fmt.Errorf("failed to Read LVB: %s", err.Error())
+		return fmt.Errorf("failed to Read LOCK_VALUE: %s", err.Error())
 	}
 	if (lvb != uuid) {
-		return fmt.Errorf("LVB %s does not match vm %s", lvb, uuid)
+		return fmt.Errorf("LOCK_VALUE %s does not match vm %s", lvb, uuid)
 	}
 	/* Ok, the path exists, and ownership is ok */
 	return nil
@@ -512,16 +621,20 @@ func lm_pread(fd int, buf []byte, offset int64) error {
 }
 
 /*
- * set the LVB (Lock Value Block). Ideally we would have a sanlock client command for this,
- * but this works too.
+ * write an LOCK_VALUE payload: it lives in one block at LOCK_VALUE_SECTOR, NUL padded, and is
+ * written directly while the lease is held - the technique the resource
+ * creation path already uses for the uuid.
  */
-func lm_set_lvb(fd int, uuid string) error {
+func lm_write_lvb(fd int, payload []byte) error {
 	var (
 		err error
 		buf [BLOCK_SIZE]byte
 	)
-	copy(buf[:], []byte(uuid))
-	err = lm_pwrite(fd, buf[:], LVB_SECTOR * BLOCK_SIZE)
+	if (len(payload) >= BLOCK_SIZE) {
+		return fmt.Errorf("LOCK_VALUE payload of %d bytes does not fit in %d", len(payload), BLOCK_SIZE)
+	}
+	copy(buf[:], payload)
+	err = lm_pwrite(fd, buf[:], LOCK_VALUE_SECTOR * BLOCK_SIZE)
 	if (err != nil) {
 		return err
 	}
@@ -530,6 +643,28 @@ func lm_set_lvb(fd int, uuid string) error {
 		return err
 	}
 	return nil
+}
+
+func lm_set_lvb(fd int, uuid string) error {
+	return lm_write_lvb(fd, []byte(uuid))
+}
+
+/*
+ * Write_lvb replaces the Lock Value Block of one resource with payload. The
+ * coordinator lease keeps its epoch and mask deadline there: those two items,
+ * and nothing else.
+ */
+func Write_lvb(resource_path string, payload string) error {
+	var (
+		err error
+		fd int
+	)
+	fd, err = unix.Open(resource_path, unix.O_RDWR, 0)
+	if (err != nil) {
+		return err
+	}
+	defer unix.Close(fd)
+	return lm_write_lvb(fd, []byte(payload))
 }
 
 func Read_lvb(resource_path string) (string, error) {
@@ -545,7 +680,7 @@ func Read_lvb(resource_path string) (string, error) {
 	}
 	defer unix.Close(fd)
 
-	err = lm_pread(fd, buf[:], LVB_SECTOR * BLOCK_SIZE)
+	err = lm_pread(fd, buf[:], LOCK_VALUE_SECTOR * BLOCK_SIZE)
 	if (err != nil) {
 		return uuid, err
 	}

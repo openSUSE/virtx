@@ -56,6 +56,9 @@ type VirtxClient struct {
 	console_port int            // local port for VNC console (0 = OS-assigned)
 	vnc_viewer string           // VNC viewer binary to launch (overrides VIRTX_VNC_VIEWER and auto-detection)
 	reconnect_timeout int       // seconds to retry reconnecting on remote close (0 = disabled)
+	ha_wait bool                // wait for the hosts to acknowledge a change of the switch
+	ha_no_wait bool             // the opposite of --wait, for scripts that want the answer at once
+	ha_timeout int              // seconds to wait for that acknowledgement
 
 	/* args */
 	host_list_options openapi.HostListOptions

@@ -631,6 +631,64 @@ func read_numa_preplace_conf() float64 {
 	return factor
 }
 
+/* what this host does with a domain that is defined in its own libvirt */
+const (
+	LOCAL_CLAIM = "claim" /* publish it as this host's VM */
+	LOCAL_SKIP = "skip"   /* leave it out of this host's view, keep the definition */
+)
+
+/*
+ * local_domain_policy decides what this host does with one of its own libvirt
+ * domains, given who the registration tree gives the VM to (pkg/reg Owner).
+ *
+ * The vocabulary is deliberately only "claim" and "skip": a leftover definition
+ * is never removed here. Removing it would mean undefining the domain, and for a
+ * UEFI domain that means deleting its NVRAM file - which, when that file sits on
+ * shared storage, is the NVRAM of the very VM that is running on another host.
+ * Measured on this cluster (2026-10-05): both the leftover definition on h11 and
+ * the running VM on h12 point at /var/lib/libvirt/qemu/nvram/<uuid>_VARS.qcow2,
+ * so today the deletion would hit a local file - but a configuration that puts
+ * the VARS file under /vms would make it fatal to the running VM, and libvirt
+ * itself refuses a plain `undefine` of a UEFI domain for exactly that reason
+ * ("Cannot undefine domain with NVRAM/varstore"); `--nvram` is the flag that
+ * deletes the file. The leftover is inert as long as this host does not claim it:
+ * the registration tree, not libvirt, says who owns a VM, so the daemon keeps
+ * running and the cluster's view stays correct.
+ *
+ * Measured 2026-10-05: a rescued host comes back with the domain it used to
+ * own still defined, while the takeover moved the registration to the landing
+ * host. That is the normal outcome of a rescue, not a broken configuration, and
+ * it must not stop the daemon.
+ *
+ * owner_read_ok is false when the tree could not be read: then the domain stays
+ * in this host's view (a VM of our own must not disappear because /vms had a
+ * hiccup), and the caller logs it.
+ *
+ * me is the host uuid the snapshot itself carries: si.Host.Uuid, set from
+ * caps.Host.UUID in step 1 of system_info_get(), before that same snapshot's
+ * domain loop. It is deliberately not machine.Uuid(): the machine package is
+ * filled in by system_info_init(), which upstream runs after the whole first
+ * system_info_get(), so during the first domain loop machine.Uuid() is still
+ * empty while si.Host.Uuid is already the real host uuid. Comparing against the
+ * snapshot's own uuid is what makes the first round as correct as every later
+ * one, by construction rather than by a special case: one of our own domains is
+ * never mistaken for one registered on another host, so the leftover warning cannot
+ * be produced for our own VM (before this change, measured 2026-10-07 on
+ * h12/h13: exactly one such line per own VM in the first snapshot). An empty me
+ * is not a case this function handles: the immutable read refuses a libvirt that
+ * reports no host uuid (see system_info_get_immutable), and the cold start turns
+ * that into a fatal error (see system_info_loop).
+ */
+func local_domain_policy(me string, owner string, owner_read_ok bool) (string, string) {
+	if (!owner_read_ok) {
+		return LOCAL_CLAIM, "registration tree unreadable: keeping it in this host's view"
+	}
+	if (owner == "" || owner == me) {
+		return LOCAL_CLAIM, ""
+	}
+	return LOCAL_SKIP, "registered in remote host " + owner
+}
+
 func check_reg(host_uuid string, si *SystemInfo) {
 	var (
 		err error
@@ -665,7 +723,19 @@ func check_reg(host_uuid string, si *SystemInfo) {
 				}
 			} else if (present) {
 				/* another host directory: our libvirt vm must not be registered here */
-				logger.Fatal("local libvirt domain %s is registered in remote host %s", uuid, host)
+				/*
+				 * Measured 2026-10-05: a domain that is defined locally
+				 * while the registration tree gives it to another host is the
+				 * normal leftover of a rescue - the takeover moved the
+				 * registration away. Exiting here (logger.Fatal, which is
+				 * os.Exit(1)) kept a rescued host out of the cluster until
+				 * somebody removed the definition by hand, and the definition
+				 * must not be removed here at all; see local_domain_policy for
+				 * why. Say it loudly and keep running: this host does not claim
+				 * the VM.
+				 */
+				logger.Log("WARNING: local libvirt domain %s is registered in remote host %s: not claiming it, keeping the definition (see local_domain_policy)", uuid, host)
+				delete(si.Vms, uuid)
 			}
 		}
 	}

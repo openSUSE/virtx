@@ -134,6 +134,24 @@ func Get_hostinfo(uuid string) (HostInfo, error) {
 	return hostdata.Info, fmt.Errorf("inventory: no such host %s", uuid)
 }
 
+/*
+ * Find_host answers the host this cluster knows by that name, or by that uuid.
+ * A name is what an operator types; the uuid is what the cluster uses.
+ */
+func Find_host(name_or_uuid string) (HostInfo, bool) {
+	var (
+		hostdata Hostdata
+	)
+	inventory.m.RLock()
+	defer inventory.m.RUnlock()
+	for _, hostdata = range inventory.hosts {
+		if (hostdata.Info.Uuid == name_or_uuid || hostdata.Info.Name == name_or_uuid) {
+			return hostdata.Info, true
+		}
+	}
+	return HostInfo{}, false
+}
+
 func Get_vminfo(uuid string) (VmInfo, error) {
 	inventory.m.RLock()
 	defer inventory.m.RUnlock()
@@ -233,6 +251,18 @@ func update_vm_state(uuid string, state openapi.Vmrunstate, host string, ts int6
 	return nil
 }
 
+/*
+ * Update_vm inserts the VM into the inventory when this host has never seen it,
+ * and updates it otherwise. Inserting is what makes a VM known at all: it is how
+ * a VM that a host learned from a snapshot enters the cluster's view.
+ *
+ * An update that carries only the placement (host, runstate, ts) is therefore
+ * also the way to bring a VM into this host's view after it was moved here from
+ * a host that is gone - a host that is gone publishes nothing, so the VM may be
+ * in no live host's inventory (measured 2026-10-05: the takeover's plain
+ * state update answered "no such VM" and aborted before the domain was defined).
+ * Update_vm_state, in contrast, only updates an entry that is already there.
+ */
 func Update_vm(vminfo *VmInfo) error {
 	inventory.m.Lock()
 	defer inventory.m.Unlock()

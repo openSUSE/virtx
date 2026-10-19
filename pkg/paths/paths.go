@@ -34,6 +34,7 @@ var prog_paths = map[string]string{
 	"WIPEFS":          "/usr/sbin/wipefs",
 	"BLKDISCARD":      "/usr/sbin/blkdiscard",
 	"RM":              "/usr/bin/rm",
+	"PING":            "/usr/bin/ping",
 	"RMDIR":           "/usr/bin/rmdir",
 	"DD":              "/usr/bin/dd",
 	"QEMU_IMG":        "/usr/bin/qemu-img",

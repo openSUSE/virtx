@@ -439,3 +439,60 @@ func (c *EventCode) Parse(s string) error {
 	}
 	return errors.New("unknown event code")
 }
+
+/*
+ * HaState is the switch of the action surface of a cluster, and how far the
+ * hosts have got in applying it: the generation of the policy on the shared
+ * registration tree, the generation this host answered with, the hosts that
+ * have applied it and the ones that have not.
+ *
+ * It is hand written, like the other adjustments above: the model generator has
+ * no source for it in this tree.
+ */
+type HaState struct {
+	Enabled bool `json:"enabled"`
+	Generation int64 `json:"generation"`
+	Applied int64 `json:"applied"`
+	Acked []string `json:"acked"`
+	Missing []string `json:"missing"`
+	Pending bool `json:"pending"`
+	/* Names is what the inventory calls each of the hosts listed above. */
+	Names map[string]string `json:"names"`
+	/* Coordinator is the host that holds the coordinator office, "" when none does. */
+	Coordinator string `json:"coordinator"`
+	Coordinator_name string `json:"coordinator_name"`
+	Coordinator_epoch int64 `json:"coordinator_epoch"`
+	/* Isolated says whether the host that served this request has concluded that it is
+	   cut off: its view of the other hosts is the shared ledger then, and nothing else. */
+	Isolated bool `json:"isolated"`
+	/* Applied_by is the policy generation each host has applied, by host name. */
+	Applied_by map[string]int64 `json:"applied_by"`
+	/* Judgements is what this host concluded about its peers in the last round. */
+	Judgements []HaJudgement `json:"judgements"`
+}
+
+/*
+ * HaJudgement is one round of judgement about one host, as this host concluded
+ * it: the row and the verdict that were selected, the evidence they rest on, and
+ * what that host says about itself, including the VMs it says it stopped under
+ * its isolation response.
+ */
+type HaJudgement struct {
+	Name string `json:"name"`
+	Uuid string `json:"uuid"`
+	Row string `json:"row"`
+	Verdict string `json:"verdict"`
+	E1 string `json:"e1"`
+	Armed bool `json:"armed"`
+	Report_fresh bool `json:"report_fresh"`
+	Lease string `json:"lease"`
+	Report string `json:"report"`
+	Mgmt_known bool `json:"mgmt_known"`
+	Mgmt_probed bool `json:"mgmt_probed"`
+	Mgmt_reachable bool `json:"mgmt_reachable"`
+	/* Mgmt_addr is the management address that was probed, "" when none was known. */
+	Mgmt_addr string `json:"mgmt_addr"`
+	Age_ms int64 `json:"age_ms"`
+	Isolation_running_vms []string `json:"isolation_running_vms"`
+	Round_ms int64 `json:"round_ms"`
+}

@@ -273,6 +273,85 @@ Notes:
 - if the file does not exist, or a host has no address in the subnet, live migrations to that
   host use its management address.
 
+# CLUSTER POLICY
+
+The settings a cluster has to agree on are not configured per host, but in one file in
+shared storage, read by every host:
+
+```
+# /vms/reg/cluster_policy
+generation = 1
+ha_enabled = false
+ha_hastate_refresh_seconds = 5
+ha_hastate_stale_seconds = 30
+ha_max_inflight = 1
+#ha_isolation_address_0 = 192.0.2.1
+```
+
+Like the migration network, the cluster policy is read from the shared registration tree,
+so that a host which has lost the network can still read it, and each host keeps the
+policy it applied on its own disk. `etc/virtx/cluster_policy` in the source tree documents
+every setting with the value it takes by default; the syntax is one `setting = value` per
+line, `#` starts a comment, and a value may be quoted.
+
+The settings are:
+
+- `ha_enabled` is the switch of the action surface: while it is off, the hosts judge and
+  log, and do nothing. It is off by default, and a file that cannot be read forces it off;
+
+- `ha_hastate_refresh_seconds` is how often a host publishes what it sees about itself and
+  the other hosts, and `ha_hastate_stale_seconds` is how long the report of a host counts
+  as evidence about it;
+
+- `ha_isolation_address_0` .. `ha_isolation_address_9` are, at most ten, the addresses a
+  host pings to tell "my own network is broken" apart from "that peer is unreachable". When
+  none is configured, a host uses the gateway of the interface that carries its own
+  management address;
+
+- `ha_max_inflight` is how many takeovers may be in flight at the same time.
+
+Notes:
+
+- `generation` is written by whatever changes the file and only ever moves forward: a host
+  remembers the generation it applied and refuses an older one, so that a host which comes
+  back with an old view of the cluster cannot push the cluster back to it;
+
+- a setting the file does not mention keeps the value documented in the source tree, and a
+  line that cannot be used only adds a warning to the log. The exception is the switch,
+  which never turns itself on;
+
+- a file that is gone while its directory is still there is not the same as an unreachable
+  shared tree: after a few rounds without it, the cluster is taken to have no policy, which
+  turns the switch off, while an unreachable tree leaves the host running with the copy it
+  applied.
+
+# COORDINATOR
+
+HA decisions are made by one host at a time: the coordinator. It holds a sanlock
+lease (`__VIRTX__COORD`) on shared storage, so there is exactly one, and the other
+hosts can tell a coordinator that died from one that is merely out of reach. Which
+host holds it is decided by whoever takes the lease first; `virtx get ha` shows who
+that is.
+
+An operator can ask for a particular host to take it, for example before taking
+the current coordinator down for maintenance:
+
+```
+virtx set ha --coordinator <host>
+```
+
+The request is written to the shared registration tree, and the current holder is
+what serves it: it gives the office back, and the named host takes the lease on its
+next patrol. The other hosts stay out of the contest until that host has taken it
+or the request has run out (30 seconds), so the move is not a race. A named host
+that never comes costs that bounded wait and nothing else: after it, any host may
+take the office again, and the command says the move was not confirmed.
+
+The action surface has to be on (`virtx enable ha`). A change of the surface that
+is still being acknowledged counts as on, so enabling HA and moving the office can
+be done one after the other; a cluster that is being turned off refuses the move,
+because there is nothing left to coordinate.
+
 # STORAGE
 
 Storage Management in VirtX is implicit with the lifecycle of VMS.
@@ -363,7 +442,8 @@ It is built alongside virtxd from the same source tree (cmd/virtx-check-lvb/).
 
 # TODO
 
-- HA features are not implemented yet
+- HA: the partition response is not implemented yet (a host that is cut off
+  from the coordinator holds its VMs and logs, it does not stop them)
 - Minimal host selection algorithm (for HA)
 - cloud-init seed ISOs (/vms/ds/ci/<uuid>/) are never removed: remove them under lease.
 

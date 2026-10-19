@@ -100,6 +100,21 @@ func init() {
 	cmd_get_host.Flags().BoolVarP(&virtx.cpu, "cpu", "c", false, "Show CPU details")
 	//cmd_get_host.Flags().BoolVarP(&virtx.net, "net", "n", false, "Show network details")
 	cmd_get_host.Flags().BoolVarP(&virtx.sys, "sys", "s", false, "Show system/firmware info")
+	var cmd_get_ha = &cobra.Command{
+		Use:   "ha",
+		Short: "Show the switch of the action surface, and which hosts applied it",
+		Long:  "Show whether the hosts of this cluster may act on a judgement, and how far the change of that answer has got",
+		Args:  cobra.NoArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			if (virtx.ok) {
+				if (virtx.result != nil) {
+					ha_show(virtx.result.(*openapi.HaState))
+				}
+			} else {
+				ha_get_req()
+			}
+		},
+	}
 	var cmd_get_vm = &cobra.Command{
 		Use:   "vm UUID",
 		Short: "Fetch and show all details of the VM",
@@ -409,6 +424,92 @@ func init() {
 	}
 	cmd_unregister_vm.Flags().StringVarP(&virtx.vm_register_options.Host, "host", "h", "", "Unregister VM on the specified host")
 	cmd_unregister_vm.MarkFlagRequired("host")
+	var cmd_takeover = &cobra.Command{
+		Use:   "takeover",
+		Short: "Take over a resource from a host that is gone",
+	}
+	var cmd_takeover_vm = &cobra.Command{
+		Use:   "vm --host HOST_UUID VM_UUID",
+		Short: "Take over a VM",
+		Long:  "Move a VM that belongs to a host that is no longer active to the given host, and start it there",
+		Args:  cobra.ExactArgs(1), /* UUID */
+		Run: func(cmd *cobra.Command, args []string) {
+			if (virtx.ok) {
+				vm_takeover()
+			} else {
+				vm_takeover_req(args[0])
+			}
+		},
+	}
+	cmd_takeover_vm.Flags().StringVarP(&virtx.vm_register_options.Host, "host", "h", "", "Take over the VM on the specified host")
+	cmd_takeover_vm.MarkFlagRequired("host")
+	var cmd_enable = &cobra.Command{
+		Use:   "enable",
+		Short: "Enable a cluster wide capability",
+	}
+	var cmd_enable_ha = &cobra.Command{
+		Use:   "ha",
+		Short: "Let the hosts act on a judgement",
+		Long:  "Turn the action surface on: a restart judgement whose evidence is complete may then drive a takeover. The coordinator writes the change and every host acknowledges it",
+		Args:  cobra.NoArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			if (virtx.ok) {
+				if (virtx.result != nil) {
+					ha_show(virtx.result.(*openapi.HaState))
+					ha_wait_for_acks(virtx.result.(*openapi.HaState))
+				}
+			} else {
+				ha_set_req(true)
+			}
+		},
+	}
+	var cmd_disable = &cobra.Command{
+		Use:   "disable",
+		Short: "Disable a cluster wide capability",
+	}
+	var cmd_disable_ha = &cobra.Command{
+		Use:   "ha",
+		Short: "Stop the hosts from acting on a judgement",
+		Long:  "Turn the action surface off: the hosts keep judging and logging, and do nothing. Once every host has applied the change, the state the change left behind is cleared",
+		Args:  cobra.NoArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			if (virtx.ok) {
+				if (virtx.result != nil) {
+					ha_show(virtx.result.(*openapi.HaState))
+					ha_wait_for_acks(virtx.result.(*openapi.HaState))
+				}
+			} else {
+				ha_set_req(false)
+			}
+		},
+	}
+	var cmd_set = &cobra.Command{
+		Use:   "set",
+		Short: "Set a property of a cluster wide capability",
+	}
+	var cmd_set_ha = &cobra.Command{
+		Use:   "ha",
+		Short: "Ask the coordinator office to move to a host",
+		Long:  "Ask the coordinator office to move to the host named by --coordinator: the holder gives the office back, and that host takes it on its next patrol. The action surface has to be on",
+		Args:  cobra.NoArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			var (
+				host string
+			)
+			host, _ = cmd.Flags().GetString("coordinator")
+			if (virtx.ok) {
+				if (virtx.result != nil) {
+					ha_wait_for_coordinator(host, virtx.result.(*openapi.HaState))
+				}
+			} else {
+				ha_switch_req(host)
+			}
+		},
+	}
+	cmd_set_ha.Flags().String("coordinator", "", "Host (name or UUID) that should hold the coordinator office")
+	cmd_set_ha.MarkFlagRequired("coordinator")
+	cmd_set_ha.Flags().BoolVar(&virtx.ha_no_wait, "no-wait", false, "Do not wait for the office to move")
+	cmd_set_ha.Flags().IntVar(&virtx.ha_timeout, "timeout", 15, "Seconds to wait for the office to move (0 means the default)")
 	var cmd_log = &cobra.Command{
 		Use:   "log",
 		Short: "Show the log of a resource",
@@ -452,6 +553,7 @@ func init() {
 	cmd_list.AddCommand(cmd_list_vm)
 	cmd.AddCommand(cmd_get)
 	cmd_get.AddCommand(cmd_get_host)
+	cmd_get.AddCommand(cmd_get_ha)
 	cmd_get.AddCommand(cmd_get_vm)
 	cmd_get.AddCommand(cmd_get_stats)
 	cmd_get_stats.AddCommand(cmd_get_stats_vm)
@@ -483,6 +585,20 @@ func init() {
 	cmd_register.AddCommand(cmd_register_vm)
 	cmd.AddCommand(cmd_unregister)
 	cmd_unregister.AddCommand(cmd_unregister_vm)
+	cmd.AddCommand(cmd_takeover)
+	cmd.AddCommand(cmd_enable)
+	cmd_enable.AddCommand(cmd_enable_ha)
+	cmd_enable_ha.Flags().BoolVar(&virtx.ha_wait, "wait", true, "Wait for the hosts to acknowledge the change (default)")
+	cmd_enable_ha.Flags().BoolVar(&virtx.ha_no_wait, "no-wait", false, "Do not wait for the acknowledgements")
+	cmd_enable_ha.Flags().IntVar(&virtx.ha_timeout, "timeout", 3, "Seconds to wait for them (0 means the default)")
+	cmd.AddCommand(cmd_disable)
+	cmd_disable.AddCommand(cmd_disable_ha)
+	cmd_disable_ha.Flags().BoolVar(&virtx.ha_wait, "wait", true, "Wait for the hosts to acknowledge the change (default)")
+	cmd_disable_ha.Flags().BoolVar(&virtx.ha_no_wait, "no-wait", false, "Do not wait for the acknowledgements")
+	cmd_disable_ha.Flags().IntVar(&virtx.ha_timeout, "timeout", 3, "Seconds to wait for them (0 means the default)")
+	cmd_takeover.AddCommand(cmd_takeover_vm)
+	cmd.AddCommand(cmd_set)
+	cmd_set.AddCommand(cmd_set_ha)
 	cmd.AddCommand(cmd_log)
 	cmd_log.AddCommand(cmd_log_vm)
 
