@@ -70,7 +70,8 @@ type Hypervisor struct {
 	system_info_loop_done atomic.Bool
 
 	vcpu_load_factor float64
-	si *SystemInfo
+	imm SystemInfoImm /* "immutable" system info that is read once at program start and never again */
+	si *SystemInfo    /* the mutable system info that is re-read every iteration */
 	save_vminfo atomic.Bool /* write the vminfo to reg on the next system_info_save_vminfo */
 }
 var hv = Hypervisor{

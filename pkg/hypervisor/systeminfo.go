@@ -97,7 +97,6 @@ type SystemInfoHost struct {
 }
 
 type SystemInfo struct {
-	imm SystemInfoImm
 	Host SystemInfoHost /* HostInfo to transmit plus internal data not for transmission */
 	Vms SystemInfoVms /* set of VmInfo to transmit plus internal data not for transmission */
 	vms_changed bool  /* the VmInfo of any VM changed since the previous system_info_get */
@@ -116,8 +115,8 @@ type SystemInfo struct {
  */
 func system_info_init(si *SystemInfo) {
 	var (
-		uuid string = si.imm.caps.Host.UUID
-		arch string = si.imm.caps.Host.CPU.Arch
+		uuid string = hv.imm.caps.Host.UUID
+		arch string = hv.imm.caps.Host.CPU.Arch
 		version string
 		machine_types []string
 		domcaps libvirtxml.DomainCaps
@@ -287,20 +286,18 @@ func system_info_get() (SystemInfo, error) {
 	)
 
 	if (hv.si == nil) {
-		err = system_info_get_immutable(&si.imm)
+		err = system_info_get_immutable(&hv.imm)
 		if (err != nil) {
 			goto out
 		}
-	} else {
-		si.imm = hv.si.imm
 	}
 	/* for quick access */
-	caps = &si.imm.caps
-	info = si.imm.info
+	caps = &hv.imm.caps
+	info = hv.imm.info
 
 	/* 1. set the general host information */
 	si.Host.Uuid = caps.Host.UUID
-	si.Host.Mig_ip = si.imm.migration_addr
+	si.Host.Mig_ip = hv.imm.migration_addr
 	si.Host.Name, err = os.Hostname()
 	if (err != nil) {
 		goto out
@@ -315,8 +312,8 @@ func system_info_get() (SystemInfo, error) {
 	si.Host.Cpudef.Threads = int16(info.Threads)
 	si.Host.Cstate = openapi.CSTATE_ACTIVE
 	/* Memavail, Hpavail are set below once calculated */
-	si.Host.Osid = si.imm.os_id
-	si.Host.Osv = si.imm.os_version
+	si.Host.Osid = hv.imm.os_id
+	si.Host.Osv = hv.imm.os_version
 	si.Host.Ts = ts.Now()
 	/*
 	 * 2. get information about all the domains, so that we can calculate
@@ -349,9 +346,9 @@ func system_info_get() (SystemInfo, error) {
 			oldvm, present = hv.si.Vms[vm.Uuid]
 		}
 		if (present) {
-			err = get_domain_stats(&d, &vm, &oldvm, &si.imm)
+			err = get_domain_stats(&d, &vm, &oldvm, &hv.imm)
 		} else {
-			err = get_domain_stats(&d, &vm, nil, &si.imm)
+			err = get_domain_stats(&d, &vm, nil, &hv.imm)
 		}
 		if (err != nil) {
 			logger.Log("could not get_domain_stats: %s", err)
@@ -407,7 +404,7 @@ func system_info_get() (SystemInfo, error) {
 	if (err != nil) {
 		goto out
 	}
-	hp_free *= si.imm.hp_size
+	hp_free *= hv.imm.hp_size
 
 	cpustats, err = hv.conn.GetCPUStats(-1, 0)
 	if (err != nil) {
@@ -415,7 +412,7 @@ func system_info_get() (SystemInfo, error) {
 	}
 	stats = &si.Host.stats
 	/* Hugepages */
-	stats.Hp.Total = int32(si.imm.hp_total / KiB) /* /proc/meminfo is in KiB, translate to MiB */
+	stats.Hp.Total = int32(hv.imm.hp_total / KiB) /* /proc/meminfo is in KiB, translate to MiB */
 	stats.Hp.Free = int32(hp_free / KiB)       /* /proc/meminfo is in KiB, translate to MiB */
 
 	/* Normal Memory (4k pages). Info is in KiB, so convert to MiB and subtract the memory stolen by Hp */
@@ -448,9 +445,9 @@ func system_info_get() (SystemInfo, error) {
 	si.cpu_user_ns = cpustats.User
 
 	/* Network: read cumulative byte counters for the physical NICs discovered at startup */
-	si.nic_rx, si.nic_tx = get_nic_bytes(si.imm.nic_ifaces)
-	stats.NetRx.Total = si.imm.nic_capacity
-	stats.NetTx.Total = si.imm.nic_capacity
+	si.nic_rx, si.nic_tx = get_nic_bytes(hv.imm.nic_ifaces)
+	stats.NetRx.Total = hv.imm.nic_capacity
+	stats.NetTx.Total = hv.imm.nic_capacity
 
 	/* some of the data we can only calculate as comparison from the previous measurement */
 	if (hv.si != nil) {
@@ -1126,16 +1123,16 @@ func system_info_get_host(si *SystemInfo) (openapi.Host, int) {
 			Name: si.Host.Name,
 			Cpudef: si.Host.Cpudef,
 			Tscfreq: func() int64 {
-				if (si.imm.caps.Host.CPU.Counter != nil) {
-					return int64(si.imm.caps.Host.CPU.Counter.Frequency)
+				if (hv.imm.caps.Host.CPU.Counter != nil) {
+					return int64(hv.imm.caps.Host.CPU.Counter.Frequency)
 				} else {
 					logger.Debug("TSC counter not available in capabilities")
 					return 0
 				}
 			}(),
 			Sysinfo: openapi.HostdefSysinfo{
-				Version: si.imm.bios_version,
-				Date: si.imm.bios_date,
+				Version: hv.imm.bios_version,
+				Date: hv.imm.bios_date,
 			},
 			Osid: si.Host.Osid,
 			Osv: si.Host.Osv,
