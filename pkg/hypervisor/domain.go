@@ -207,3 +207,9 @@ func Get_runstate(uuid string) (openapi.Vmrunstate, error) {
 	}
 	return ve.Runstate, nil
 }
+
+func free_domains(doms []libvirt.Domain) {
+	for _, d := range doms {
+		d.Free()
+	}
+}

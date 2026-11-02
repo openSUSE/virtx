@@ -323,7 +323,7 @@ func system_info_get() (SystemInfo, error) {
 	if (err != nil) {
 		goto out
 	}
-	defer freeDomains(doms)
+	defer free_domains(doms)
 
 	for _, d = range doms {
 		var (
@@ -1092,12 +1092,6 @@ func get_domain_stats(d *libvirt.Domain, vm *SystemInfoVm, old *SystemInfoVm, im
 		logger.Debug("gds: NetTxBw = %d", vm.stats.NetTxBw)
 	}
 	return nil
-}
-
-func freeDomains(doms []libvirt.Domain) {
-	for _, d := range doms {
-		d.Free()
-	}
 }
 
 /* assert si != nil, guaranteed by system_info_init() before HTTP starts */
