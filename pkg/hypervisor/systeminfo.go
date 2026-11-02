@@ -128,8 +128,11 @@ func system_info_init(si *SystemInfo) {
 	machine.Set_uuid(uuid)
 	machine.Set_arch(arch)
 	start = time.Now()
-	check_reg(uuid, si)
-	logger.Debug("system_info_init: check_reg: %d vms in %s", len(si.Vms), time.Since(start))
+	err = check_reg(uuid)
+	if (err != nil) {
+		logger.Fatal("system_info_init: check_reg: %s", err.Error())
+	}
+	logger.Debug("system_info_init: check_reg: completed in %s", time.Since(start))
 	version, err = reg.Load_machine_version()
 	if (err != nil) {
 		logger.Fatal("system_info_init: failed to Load_machine_version: %s", err.Error())

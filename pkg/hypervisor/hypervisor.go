@@ -632,7 +632,7 @@ func read_numa_preplace_conf() float64 {
 	return factor
 }
 
-func check_reg(host_uuid string, si *SystemInfo) {
+func check_reg(host_uuid string) error {
 	var (
 		err error
 		host string
@@ -640,24 +640,40 @@ func check_reg(host_uuid string, si *SystemInfo) {
 		uuid string
 		uuids []string
 		registered map[string]bool = make(map[string]bool)
+		libvirt_vms map[string]bool = make(map[string]bool)
 		present bool
+		doms []libvirt.Domain
 	)
+	hv.m.RLock()
+	doms, err = hv.conn.ListAllDomains(libvirt.CONNECT_LIST_DOMAINS_PERSISTENT)
+	hv.m.RUnlock()
+	if (err != nil) {
+		return err
+	}
+	defer free_domains(doms)
+	for i := range(doms) {
+		uuid, err = doms[i].GetUUIDString()
+		if (err != nil) {
+			return err
+		}
+		libvirt_vms[uuid] = true
+	}
 	err = os.MkdirAll(fmt.Sprintf("%s/%s", REG_DIR, host_uuid), 0750)
 	if (err != nil) {
-		logger.Fatal("could not create %s/%s: %s", REG_DIR, host_uuid, err.Error())
+		return fmt.Errorf("could not create %s/%s: %s", REG_DIR, host_uuid, err.Error())
 	}
 	hosts, err = reg.Hosts()
 	if (err != nil) {
-		logger.Fatal("could not get list of hosts: %s", err.Error())
+		return fmt.Errorf("could not get list of hosts: %s", err.Error())
 	}
 	/* read each host directory once, and compare its vms with the vms in libvirt */
 	for _, host = range(hosts) {
 		uuids, err = reg.Uuids(host)
 		if (err != nil) {
-			logger.Fatal("could not get the list of VM uuids for host %s: %s", host, err.Error())
+			return fmt.Errorf("could not get the list of VM uuids for host %s: %s", host, err.Error())
 		}
 		for _, uuid = range(uuids) {
-			_, present = si.Vms[uuid]
+			present = libvirt_vms[uuid]
 			if (host == host_uuid) {
 				/* our own host directory: the vm should be in libvirt */
 				registered[uuid] = true
@@ -666,16 +682,17 @@ func check_reg(host_uuid string, si *SystemInfo) {
 				}
 			} else if (present) {
 				/* another host directory: our libvirt vm must not be registered here */
-				logger.Fatal("local libvirt domain %s is registered in remote host %s", uuid, host)
+				return fmt.Errorf("local libvirt domain %s is registered in remote host %s", uuid, host)
 			}
 		}
 	}
 	/* all vms in libvirt should be registered in our own host directory */
-	for uuid = range(si.Vms) {
+	for uuid = range(libvirt_vms) {
 		if (!registered[uuid]) {
 			logger.Log("WARNING: local libvirt domain %s/%s is not registered in reg", host_uuid, uuid)
 		}
 	}
+	return nil
 }
 
 func Get_vmstats(uuid string) (openapi.Vmstats, error) {
