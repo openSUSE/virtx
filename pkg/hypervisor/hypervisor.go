@@ -695,26 +695,24 @@ func check_reg(host_uuid string) error {
 	return nil
 }
 
-func Get_vmstats(uuid string) (openapi.Vmstats, error) {
+/* returns 0 on success, 503 if no system info is available yet, 404 if the VM is not in it */
+func Get_vmstats(uuid string) (openapi.Vmstats, int) {
 	hv.m.RLock()
 	defer hv.m.RUnlock()
-
 	return system_info_get_vmstats(hv.si, uuid)
 }
 
-/* assert hv.si != nil, guaranteed by system_info_init() before HTTP starts */
-func Get_host() openapi.Host {
+/* returns 0 on success, 503 if no system info is available yet */
+func Get_host() (openapi.Host, int) {
 	hv.m.RLock()
 	defer hv.m.RUnlock()
 	return system_info_get_host(hv.si)
 }
 
-/* assert hv.si != nil, guaranteed by system_info_init() before serfcomm connects */
-/* assert hv.si != nil, guaranteed by system_info_init() before HTTP starts */
-func Get_hoststats() (openapi.Hoststats) {
+/* returns 0 on success, 503 if no system info is available yet */
+func Get_hoststats() (openapi.Hoststats, int) {
 	hv.m.RLock()
 	defer hv.m.RUnlock()
-
 	return system_info_get_hoststats(hv.si)
 }
 

@@ -35,6 +35,7 @@ func vm_stats_get(w http.ResponseWriter, r *http.Request) {
 		uuid string
 		vminfo inventory.VmInfo
 		vmstats openapi.Vmstats
+		status int
 		buf bytes.Buffer
 		vr httpx.Request
 	)
@@ -58,9 +59,13 @@ func vm_stats_get(w http.ResponseWriter, r *http.Request) {
 		http_proxy_request(vminfo.Host, w, vr)
 		return
 	}
-	vmstats, err = hypervisor.Get_vmstats(uuid)
-	if (err != nil) {
-		http.Error(w, "vm_stats_get: stats not found", http.StatusNotFound)
+	vmstats, status = hypervisor.Get_vmstats(uuid)
+	switch (status) {
+	case 503:
+		http.Error(w, "VM stats not available yet", http.StatusServiceUnavailable)
+		return
+	case 404:
+		http.Error(w, "VM not found", http.StatusNotFound)
 		return
 	}
 	err = json.NewEncoder(&buf).Encode(&vmstats)

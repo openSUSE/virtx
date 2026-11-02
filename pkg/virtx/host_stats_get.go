@@ -34,6 +34,7 @@ func host_stats_get(w http.ResponseWriter, r *http.Request) {
 		uuid string
 		hostinfo inventory.HostInfo
 		stats openapi.Hoststats
+		status int
 		buf bytes.Buffer
 		vr httpx.Request
 	)
@@ -57,7 +58,12 @@ func host_stats_get(w http.ResponseWriter, r *http.Request) {
 		http_proxy_request(hostinfo.Uuid, w, vr)
 		return
 	}
-	stats = hypervisor.Get_hoststats()
+	stats, status = hypervisor.Get_hoststats()
+	switch (status) {
+	case 503:
+		http.Error(w, "host stats not available yet", http.StatusServiceUnavailable)
+		return
+	}
 	err = json.NewEncoder(&buf).Encode(&stats)
 	if (err != nil) {
 		logger.Log("failed to encode JSON")

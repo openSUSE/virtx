@@ -1097,22 +1097,29 @@ func get_domain_stats(d *libvirt.Domain, vm *SystemInfoVm, old *SystemInfoVm, im
 	return nil
 }
 
-/* assert si != nil, guaranteed by system_info_init() before HTTP starts */
-func system_info_get_vmstats(si *SystemInfo, uuid string) (openapi.Vmstats, error) {
+/* returns 0 on success, 503 if no system info is available yet, 404 if the VM is not in it */
+func system_info_get_vmstats(si *SystemInfo, uuid string) (openapi.Vmstats, int) {
 	/* assert hv.m.RLock() */
 	var (
 		vm SystemInfoVm
 		present bool
 	)
+	if (si == nil) {
+		return openapi.Vmstats{}, 503
+	}
 	vm, present = si.Vms[uuid]
 	if (!present) {
-		return openapi.Vmstats{}, errors.New("could not find vm")
+		return openapi.Vmstats{}, 404
 	}
-	return vm.stats, nil
+	return vm.stats, 0
 }
 
-func system_info_get_host(si *SystemInfo) openapi.Host {
+/* returns 0 on success, 503 if no system info is available yet */
+func system_info_get_host(si *SystemInfo) (openapi.Host, int) {
 	/* assert hv.m.RLock() */
+	if (si == nil) {
+		return openapi.Host{}, 503
+	}
 	return openapi.Host{
 		Uuid: machine.Uuid(),
 		Def: openapi.Hostdef{
@@ -1136,12 +1143,16 @@ func system_info_get_host(si *SystemInfo) openapi.Host {
 		Cstate: si.Host.Cstate,
 		Lockid: lockman.Lockid(),
 		Ts: si.Host.Ts,
-	}
+	}, 0
 }
 
-func system_info_get_hoststats(si *SystemInfo) openapi.Hoststats {
+/* returns 0 on success, 503 if no system info is available yet */
+func system_info_get_hoststats(si *SystemInfo) (openapi.Hoststats, int) {
 	/* assert hv.m.RLock() */
-	return si.Host.stats
+	if (si == nil) {
+		return openapi.Hoststats{}, 503
+	}
+	return si.Host.stats, 0
 }
 
 func get_system_info_loop_done() bool {

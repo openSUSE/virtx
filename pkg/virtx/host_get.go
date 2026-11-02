@@ -34,6 +34,7 @@ func host_get(w http.ResponseWriter, r *http.Request) {
 		uuid string
 		hostinfo inventory.HostInfo
 		host openapi.Host
+		status int
 		buf bytes.Buffer
 		vr httpx.Request
 	)
@@ -57,7 +58,12 @@ func host_get(w http.ResponseWriter, r *http.Request) {
 		http_proxy_request(hostinfo.Uuid, w, vr)
 		return
 	}
-	host = hypervisor.Get_host()
+	host, status = hypervisor.Get_host()
+	switch (status) {
+	case 503:
+		http.Error(w, "host info not available yet", http.StatusServiceUnavailable)
+		return
+	}
 	err = json.NewEncoder(&buf).Encode(&host)
 	if (err != nil) {
 		logger.Log("failed to encode JSON")
