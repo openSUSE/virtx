@@ -50,11 +50,9 @@ const (
 	LIBVIRT_URI = "qemu:///system"
 	LIBVIRT_RECONNECT_SECONDS = 5
 	SYSTEM_INFO_LOOP_SECONDS = 15
-	WAIT_SYSTEM_INFO_SECONDS = 10
 )
 
 type Hypervisor struct {
-	is_connected atomic.Bool
 	m sync.RWMutex
 
 	conn *libvirt.Connect
@@ -67,7 +65,7 @@ type Hypervisor struct {
 
 	vm_event_ch chan inventory.VmEvent
 	system_info_ch chan SystemInfo
-	system_info_loop_done atomic.Bool
+	system_info_init_done atomic.Bool
 
 	vcpu_load_factor float64
 	imm SystemInfoImm /* "immutable" system info that is read once at program start and never again */
@@ -82,10 +80,27 @@ var hv = Hypervisor{
 	reboot_id: -1,
 }
 
+/* Initialize the hypervisor module and connect to libvirt */
+func Init() error {
+	var err error
+
+	err = connect()
+	if (err != nil) {
+		return err
+	}
+	err = system_info_init()
+	if (err != nil) {
+		return err
+	}
+	set_system_info_init_done()
+	go init_system_info_loop()
+	return nil
+}
+
 /*
  * Connect to libvirt.
  */
-func Connect() error {
+func connect() error {
 	hv.m.Lock()
 	defer hv.m.Unlock()
 
@@ -93,41 +108,14 @@ func Connect() error {
 		/* Reconnect */
 		stop_listening()
 		hv.conn.Close()
-		hv.is_connected.Store(false)
 	}
 	conn, err := libvirt.NewConnect(LIBVIRT_URI)
 	if (err != nil) {
 		return err
 	}
 	hv.conn = conn
-	hv.is_connected.Store(true)
 	err = start_listening()
 	return err
-}
-
-/*
- * system_info_init() initializes important information, including the host
- * libvirt Uuid and CPU arch.
- * We need for this information to be available, before we attempt to
- * initialize the other packages that depend on this information.
- */
-
-func Wait_system_info() error {
-	logger.Debug("waiting for hypervisor system_info...")
-	ticker := time.NewTicker(time.Second)
-	defer ticker.Stop()
-	timeout := time.After(time.Duration(WAIT_SYSTEM_INFO_SECONDS) * time.Second)
-	for {
-		select {
-		case <- ticker.C:
-			if (get_system_info_loop_done()) {
-				logger.Debug("system_info now available.")
-				return nil
-			}
-		case <- timeout:
-			return errors.New("timeout waiting for system_info")
-		}
-	}
 }
 
 func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventLifecycle) {
@@ -137,7 +125,7 @@ func lifecycle_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventL
 		persistent, pending bool
 		err error
 	)
-	if (!hv.system_info_loop_done.Load()) {
+	if (!get_system_info_init_done()) {
 		/*
 		 * too early, we cannot generate events for our host.
 		 * For one, we will not be able to set the host uuid properly.
@@ -303,7 +291,7 @@ func watchdog_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventWa
 		uuid, msg string
 		err error
 	)
-	if (!hv.system_info_loop_done.Load()) {
+	if (!get_system_info_init_done()) {
 		return
 	}
 	persistent, err = d.IsPersistent()
@@ -332,7 +320,7 @@ func ioerror_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventIOE
 		uuid, msg string
 		err error
 	)
-	if (!hv.system_info_loop_done.Load()) {
+	if (!get_system_info_init_done()) {
 		return
 	}
 	persistent, err = d.IsPersistent()
@@ -365,7 +353,7 @@ func reboot_cb(_ *libvirt.Connect, d *libvirt.Domain) {
 		uuid string
 		err error
 	)
-	if (!hv.system_info_loop_done.Load()) {
+	if (!get_system_info_init_done()) {
 		return
 	}
 	persistent, err = d.IsPersistent()
@@ -394,7 +382,7 @@ func control_cb(_ *libvirt.Connect, d *libvirt.Domain) {
 		uuid string
 		err error
 	)
-	if (!hv.system_info_loop_done.Load()) {
+	if (!get_system_info_init_done()) {
 		return
 	}
 	persistent, err = d.IsPersistent()
@@ -450,7 +438,7 @@ func memory_cb(_ *libvirt.Connect, d *libvirt.Domain, e *libvirt.DomainEventMemo
 		uuid string
 		err error
 	)
-	if (!hv.system_info_loop_done.Load()) {
+	if (!get_system_info_init_done()) {
 		return
 	}
 	persistent, err = d.IsPersistent()
@@ -552,17 +540,13 @@ func init_vm_event_loop() {
 }
 
 func init_system_info_loop() {
-	logger.Debug("init_system_info_loop: Waiting for a libvirt connection...")
-	for ; hv.is_connected.Load() == false; {
-		time.Sleep(time.Duration(1) * time.Second)
-	}
 	for {
 		var err error
 		err = system_info_loop(SYSTEM_INFO_LOOP_SECONDS)
 		/* we should from system_info_loop only if there is a libvirt error that requires reconnection */
 		/* assert(err != nil) */
 		logger.Log("reconnect, attempt every %d seconds...", LIBVIRT_RECONNECT_SECONDS)
-		for ; err != nil; err = Connect() {
+		for ; err != nil; err = connect() {
 			time.Sleep(time.Duration(LIBVIRT_RECONNECT_SECONDS) * time.Second)
 		}
 		logger.Log("reconnected.")
@@ -571,7 +555,7 @@ func init_system_info_loop() {
 
 /*
  * init() is guaranteed to be called before main starts, so we can guarantee that EventRegisterDefaultImpl
- * is always called before Connect() in main.
+ * is always called before hypervisor.Init() in main.
  */
 func init() {
 	hv.m.Lock()
@@ -586,7 +570,6 @@ func init() {
 	hv.vcpu_load_factor = read_numa_preplace_conf()
 	logger.Debug("init, vcpu_load_factor %f", hv.vcpu_load_factor)
 	go init_vm_event_loop()
-	go init_system_info_loop()
 }
 
 func read_numa_preplace_conf() float64 {

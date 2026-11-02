@@ -18,6 +18,7 @@
 package hypervisor
 
 import (
+	"fmt"
 	"time"
 	"encoding/xml"
 	"errors"
@@ -109,14 +110,14 @@ type SystemInfo struct {
 }
 
 /*
- * One-time initialization, performed after the first successful system_info_get().
- * Publishes the host identity, reconciles the registration directory and saves the
- * cpu models. Any failure here is fatal: we refuse to run half-initialized.
+ * One-time initialization, called by hypervisor.Init().
+ * Reads the immutable system info, publishes the host identity, reconciles the
+ * registration directory and saves the cpu models. The caller must treat any
+ * error as fatal: we refuse to run half-initialized.
  */
-func system_info_init(si *SystemInfo) {
+func system_info_init() error {
 	var (
-		uuid string = hv.imm.caps.Host.UUID
-		arch string = hv.imm.caps.Host.CPU.Arch
+		uuid, arch string
 		version string
 		machine_types []string
 		domcaps libvirtxml.DomainCaps
@@ -124,17 +125,28 @@ func system_info_init(si *SystemInfo) {
 		err error
 		start time.Time
 	)
+	hv.m.Lock()
+	err = system_info_get_immutable(&hv.imm)
+	if (err != nil) {
+		hv.m.Unlock()
+		return fmt.Errorf("system_info_get_immutable: %s", err.Error())
+	}
+	uuid = hv.imm.caps.Host.UUID
+	arch = hv.imm.caps.Host.CPU.Arch
+	hv.m.Unlock()
+
 	machine.Set_uuid(uuid)
 	machine.Set_arch(arch)
+
 	start = time.Now()
 	err = check_reg(uuid)
 	if (err != nil) {
-		logger.Fatal("system_info_init: check_reg: %s", err.Error())
+		return fmt.Errorf("check_reg: %s", err.Error())
 	}
 	logger.Debug("system_info_init: check_reg: completed in %s", time.Since(start))
 	version, err = reg.Load_machine_version()
 	if (err != nil) {
-		logger.Fatal("system_info_init: failed to Load_machine_version: %s", err.Error())
+		return fmt.Errorf("failed to Load_machine_version: %s", err.Error())
 	}
 	if (version == "") {
 		logger.Log("system_info_init: no %s configured", REG_DIR + "machine_version")
@@ -150,21 +162,21 @@ func system_info_init(si *SystemInfo) {
 	for i, machine_type := range machine_types {
 		domcaps, err = get_domcaps(arch, machine_type)
 		if (err != nil) {
-			logger.Fatal("system_info_init: machine '%s' not supported by kvm: %s", machine_type, err.Error())
+			return fmt.Errorf("machine '%s' not supported by kvm: %s", machine_type, err.Error())
 		}
 		if (i > 0) {
 			continue /* usable cpu models do not depend on firmware, so we can get_cpumodels once */
 		}
 		models, err = get_cpumodels(&domcaps)
 		if (err != nil) {
-			logger.Fatal("system_info_init: failed to get cpu models: %s", err.Error())
+			return fmt.Errorf("failed to get cpu models: %s", err.Error())
 		}
 	}
 	err = reg.Save_cpumodels(uuid, models)
 	if (err != nil) {
-		logger.Fatal("system_info_init: failed to Save_cpumodels: %s", err.Error())
+		return fmt.Errorf("failed to Save_cpumodels: %s", err.Error())
 	}
-	set_system_info_loop_done()
+	return nil
 }
 
 /* save the VmInfo of all VMs to reg, if any changed in this system_info_get or the last save failed */
@@ -208,31 +220,13 @@ func system_info_loop(seconds int) error {
 		ticker *time.Ticker
 		libvirt_err libvirt.Error
 		ok bool
-		start time.Time
 	)
 	logger.Debug("system_info_loop starting...")
 	defer logger.Debug("system_info_loop exit")
 	ticker = time.NewTicker(time.Duration(seconds) * time.Second)
 	defer ticker.Stop()
 
-	/*
-	 * Cold start only: if we are already initialized this is a restart after a
-	 * libvirt reconnect, and we just resume ticking.
-	 */
-	if (!get_system_info_loop_done()) {
-		start = time.Now()
-		si, err = system_info_get()
-		if (err != nil) {
-			logger.Fatal("system_info_loop: initial system_info_get failed: %s", err.Error())
-		}
-		logger.Debug("system_info_loop: initial system_info_get: %d vms in %s", len(si.Vms), time.Since(start))
-		system_info_init(&si)
-		system_info_save_vminfo(&si)
-		/* this first info is missing vm cpu stats and host cpu stats */
-		hv.system_info_ch <- si
-	}
-
-	for range ticker.C {
+	for ; ; <-ticker.C {
 		si, err = system_info_get()
 		if (err != nil) {
 			logger.Log("system_info_loop: failed to system_info_get: %s", err.Error())
@@ -285,12 +279,6 @@ func system_info_get() (SystemInfo, error) {
 		cpustats *libvirt.NodeCPUStats
 	)
 
-	if (hv.si == nil) {
-		err = system_info_get_immutable(&hv.imm)
-		if (err != nil) {
-			goto out
-		}
-	}
 	/* for quick access */
 	caps = &hv.imm.caps
 	info = hv.imm.info
@@ -1152,10 +1140,10 @@ func system_info_get_hoststats(si *SystemInfo) (openapi.Hoststats, int) {
 	return si.Host.stats, 0
 }
 
-func get_system_info_loop_done() bool {
-	return hv.system_info_loop_done.Load()
+func get_system_info_init_done() bool {
+	return hv.system_info_init_done.Load()
 }
 
-func set_system_info_loop_done() {
-	hv.system_info_loop_done.Store(true)
+func set_system_info_init_done() {
+	hv.system_info_init_done.Store(true)
 }

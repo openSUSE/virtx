@@ -49,17 +49,8 @@ func main() {
 	/* runtime paths: initialize the runtime binary dependencies */
 	paths.Init()
 
-	/* hypervisor: initialize and start listening to hypervisor events */
-	err = hypervisor.Connect()
-	if (err != nil) {
-		logger.Fatal("%s", err.Error())
-	}
-	/*
-	 * hypervisor: wait for the system information to be filled before proceeding.
-	 * Everything below relies on this: machine.Uuid(), machine.Arch() and a non-nil
-	 * hv.si are only guaranteed once this returns. Do not move anything above it.
-	 */
-	err = hypervisor.Wait_system_info()
+	/* hypervisor: connect to libvirt and initialize */
+	err = hypervisor.Init()
 	if (err != nil) {
 		logger.Fatal("%s", err.Error())
 	}
